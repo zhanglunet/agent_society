@@ -82,22 +82,35 @@ export class ContactManager {
   }
 
   /**
-   * 检查是否可以发送消息
+   * 检查联系人是否在注册表中（仅用于查询，不用于发送验证）
+   * 注意：此方法不用于阻止消息发送，智能体可以向任何已存在的智能体发送消息
    * @param {string} fromAgentId - 发送者ID
    * @param {string} toAgentId - 接收者ID
-   * @returns {{allowed: boolean, error?: string}}
+   * @returns {{inRegistry: boolean, error?: string}}
    */
-  canSendMessage(fromAgentId, toAgentId) {
+  isContactKnown(fromAgentId, toAgentId) {
     const registry = this._registries.get(fromAgentId);
     
     if (!registry) {
-      return { allowed: false, error: 'sender_not_found' };
+      return { inRegistry: false, error: 'sender_not_found' };
     }
     
     if (!registry.has(toAgentId)) {
-      return { allowed: false, error: 'unknown_contact' };
+      return { inRegistry: false, error: 'unknown_contact' };
     }
     
+    return { inRegistry: true };
+  }
+
+  /**
+   * @deprecated 使用 isContactKnown 代替。此方法保留仅为向后兼容。
+   * 检查是否可以发送消息（始终返回 allowed: true，不做实际验证）
+   * @param {string} fromAgentId - 发送者ID
+   * @param {string} toAgentId - 接收者ID
+   * @returns {{allowed: boolean}}
+   */
+  canSendMessage(fromAgentId, toAgentId) {
+    // 不再验证联系人注册表，始终允许发送
     return { allowed: true };
   }
 

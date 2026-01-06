@@ -115,20 +115,20 @@ class ContactManager {
   }
   
   /**
-   * 检查是否可以发送消息
+   * 检查联系人是否在注册表中（仅用于查询，不用于发送验证）
    * @param {string} fromAgentId - 发送者ID
    * @param {string} toAgentId - 接收者ID
-   * @returns {{allowed: boolean, error?: string}}
+   * @returns {{inRegistry: boolean, error?: string}}
    */
-  canSendMessage(fromAgentId, toAgentId) {
+  isContactKnown(fromAgentId, toAgentId) {
     const registry = this._registries.get(fromAgentId);
     if (!registry) {
-      return { allowed: false, error: 'sender_not_found' };
+      return { inRegistry: false, error: 'sender_not_found' };
     }
     if (!registry.has(toAgentId)) {
-      return { allowed: false, error: 'unknown_contact' };
+      return { inRegistry: false, error: 'unknown_contact' };
     }
-    return { allowed: true };
+    return { inRegistry: true };
   }
   
   /**
@@ -312,16 +312,8 @@ async executeToolCall(ctx, toolName, args) {
     const senderId = ctx.agent?.id ?? "unknown";
     const recipientId = String(args?.to ?? "");
     
-    // 验证联系人
-    const canSend = this.contactManager.canSendMessage(senderId, recipientId);
-    if (!canSend.allowed) {
-      void this.log.warn("send_message 联系人验证失败", { 
-        from: senderId, 
-        to: recipientId, 
-        error: canSend.error 
-      });
-      return { error: canSend.error, to: recipientId };
-    }
+    // 联系人注册表仅用于记录，不做发送验证
+    // 智能体可以向任何已存在的智能体发送消息
     
     // 首次消息时，自动将发送者添加到接收者的联系人列表
     const recipientContact = this.contactManager.getContact(recipientId, senderId);
@@ -468,9 +460,9 @@ const MessageType = {
 
 **Validates: Requirements 2.5**
 
-### Property 5: 联系人验证
+### Property 5: 联系人查询
 
-*For any* send_message 调用，如果接收者不在发送者的 Contact_Registry 中，则应返回 unknown_contact 错误并拒绝发送。
+*For any* send_message 调用，系统不会因为接收者不在发送者的 Contact_Registry 中而拒绝发送。Contact_Registry 仅用于记录和查询联系人信息。
 
 **Validates: Requirements 2.6**
 
@@ -513,12 +505,12 @@ const MessageType = {
 - 拒绝创建子智能体
 - 记录警告日志
 
-### 2. 联系人验证错误
+### 2. 联系人查询
 
-当发送消息给未知联系人时：
-- 返回错误对象：`{ error: 'unknown_contact', to: recipientId }`
-- 拒绝发送消息
-- 记录警告日志，包含发送者和接收者信息
+当查询联系人是否在注册表中时：
+- 返回查询结果：`{ inRegistry: false, error: 'unknown_contact' }`
+- 不阻止消息发送
+- 可用于智能体了解自己的联系人情况
 
 ### 3. 消息格式验证错误
 
@@ -593,10 +585,10 @@ describe('Property 1: Task Brief 验证', () => {
   });
 });
 
-// Property 5: 联系人验证
-// Feature: agent-communication-protocol, Property 5: 联系人验证
-describe('Property 5: 联系人验证', () => {
-  it('向未知联系人发送消息应返回错误', () => {
+// Property 5: 联系人查询（不阻止发送）
+// Feature: agent-communication-protocol, Property 5: 联系人查询
+describe('Property 5: 联系人查询', () => {
+  it('向未知联系人发送消息不应被阻止', () => {
     fc.assert(
       fc.property(
         fc.uuid(),  // senderId
@@ -604,8 +596,25 @@ describe('Property 5: 联系人验证', () => {
         (senderId, recipientId) => {
           const manager = new ContactManager({});
           manager.initRegistry(senderId, 'parent-id', []);
+          // canSendMessage 始终返回 allowed: true
           const result = manager.canSendMessage(senderId, recipientId);
-          return result.allowed === false && result.error === 'unknown_contact';
+          return result.allowed === true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+  
+  it('isContactKnown 应正确报告联系人状态', () => {
+    fc.assert(
+      fc.property(
+        fc.uuid(),  // senderId
+        fc.uuid(),  // recipientId (not in registry)
+        (senderId, recipientId) => {
+          const manager = new ContactManager({});
+          manager.initRegistry(senderId, 'parent-id', []);
+          const result = manager.isContactKnown(senderId, recipientId);
+          return result.inRegistry === false && result.error === 'unknown_contact';
         }
       ),
       { numRuns: 100 }

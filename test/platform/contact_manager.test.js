@@ -134,16 +134,17 @@ describe("ContactManager", () => {
 });
 
 
-describe("ContactManager - 联系人验证", () => {
+describe("ContactManager - 联系人查询", () => {
   /**
-   * Property 5: 联系人验证
-   * *For any* send_message 调用，如果接收者不在发送者的 Contact_Registry 中，
-   * 则应返回 unknown_contact 错误并拒绝发送。
+   * Property 5: 联系人查询（不阻止发送）
+   * 联系人注册表仅用于记录和查询联系人信息，不阻止消息发送。
+   * canSendMessage 始终返回 allowed: true。
+   * 使用 isContactKnown 来查询联系人是否在注册表中。
    * 
    * **Validates: Requirements 2.6**
-   * **Feature: agent-communication-protocol, Property 5: 联系人验证**
+   * **Feature: agent-communication-protocol, Property 5: 联系人查询**
    */
-  test("Property 5: 联系人验证 - 向未知联系人发送消息应返回错误", async () => {
+  test("Property 5: 联系人查询 - canSendMessage 始终返回 allowed: true", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 发送者ID
@@ -161,11 +162,46 @@ describe("ContactManager - 联系人验证", () => {
           // 初始化发送者的注册表（只有父智能体）
           manager.initRegistry(senderId, parentAgentId, []);
           
-          // 尝试向未知联系人发送消息
+          // canSendMessage 始终返回 allowed: true（不做验证）
           const result = manager.canSendMessage(senderId, recipientId);
           
-          // 验证返回错误
-          expect(result.allowed).toBe(false);
+          // 验证始终允许发送
+          expect(result.allowed).toBe(true);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property 5: 联系人查询 - isContactKnown 应正确报告未知联系人
+   * 
+   * **Validates: Requirements 2.6**
+   * **Feature: agent-communication-protocol, Property 5: 联系人查询**
+   */
+  test("Property 5: 联系人查询 - isContactKnown 应正确报告未知联系人", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        // 发送者ID
+        fc.uuid(),
+        // 父智能体ID
+        fc.uuid(),
+        // 接收者ID（不在联系人列表中）
+        fc.uuid(),
+        async (senderId, parentAgentId, recipientId) => {
+          // 确保接收者不是父智能体
+          fc.pre(recipientId !== parentAgentId);
+          
+          const manager = new ContactManager();
+          
+          // 初始化发送者的注册表（只有父智能体）
+          manager.initRegistry(senderId, parentAgentId, []);
+          
+          // 使用 isContactKnown 查询联系人状态
+          const result = manager.isContactKnown(senderId, recipientId);
+          
+          // 验证返回未知联系人
+          expect(result.inRegistry).toBe(false);
           expect(result.error).toBe('unknown_contact');
         }
       ),
@@ -174,12 +210,12 @@ describe("ContactManager - 联系人验证", () => {
   });
 
   /**
-   * Property 5: 联系人验证 - 向已知联系人发送消息应允许
+   * Property 5: 联系人查询 - isContactKnown 应正确报告已知联系人
    * 
    * **Validates: Requirements 2.6**
-   * **Feature: agent-communication-protocol, Property 5: 联系人验证**
+   * **Feature: agent-communication-protocol, Property 5: 联系人查询**
    */
-  test("Property 5: 联系人验证 - 向已知联系人发送消息应允许", async () => {
+  test("Property 5: 联系人查询 - isContactKnown 应正确报告已知联系人", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 发送者ID
@@ -192,11 +228,11 @@ describe("ContactManager - 联系人验证", () => {
           // 初始化发送者的注册表
           manager.initRegistry(senderId, parentAgentId, []);
           
-          // 尝试向父智能体（已知联系人）发送消息
-          const result = manager.canSendMessage(senderId, parentAgentId);
+          // 使用 isContactKnown 查询父智能体（已知联系人）
+          const result = manager.isContactKnown(senderId, parentAgentId);
           
-          // 验证允许发送
-          expect(result.allowed).toBe(true);
+          // 验证返回已知联系人
+          expect(result.inRegistry).toBe(true);
           expect(result.error).toBeUndefined();
         }
       ),
@@ -205,12 +241,12 @@ describe("ContactManager - 联系人验证", () => {
   });
 
   /**
-   * Property 5: 联系人验证 - 发送者不存在时应返回错误
+   * Property 5: 联系人查询 - 发送者不存在时 isContactKnown 应返回错误
    * 
    * **Validates: Requirements 2.6**
-   * **Feature: agent-communication-protocol, Property 5: 联系人验证**
+   * **Feature: agent-communication-protocol, Property 5: 联系人查询**
    */
-  test("Property 5: 联系人验证 - 发送者不存在时应返回错误", async () => {
+  test("Property 5: 联系人查询 - 发送者不存在时 isContactKnown 应返回错误", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 不存在的发送者ID
@@ -222,11 +258,11 @@ describe("ContactManager - 联系人验证", () => {
           
           // 不初始化任何注册表
           
-          // 尝试发送消息
-          const result = manager.canSendMessage(senderId, recipientId);
+          // 使用 isContactKnown 查询
+          const result = manager.isContactKnown(senderId, recipientId);
           
           // 验证返回错误
-          expect(result.allowed).toBe(false);
+          expect(result.inRegistry).toBe(false);
           expect(result.error).toBe('sender_not_found');
         }
       ),
@@ -235,12 +271,12 @@ describe("ContactManager - 联系人验证", () => {
   });
 
   /**
-   * Property 5: 联系人验证 - 添加联系人后应能发送消息
+   * Property 5: 联系人查询 - 添加联系人后 isContactKnown 应返回 true
    * 
    * **Validates: Requirements 2.6**
-   * **Feature: agent-communication-protocol, Property 5: 联系人验证**
+   * **Feature: agent-communication-protocol, Property 5: 联系人查询**
    */
-  test("Property 5: 联系人验证 - 添加联系人后应能发送消息", async () => {
+  test("Property 5: 联系人查询 - 添加联系人后 isContactKnown 应返回 true", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 发送者ID
@@ -260,9 +296,9 @@ describe("ContactManager - 联系人验证", () => {
           // 初始化发送者的注册表
           manager.initRegistry(senderId, parentAgentId, []);
           
-          // 验证初始时无法向新联系人发送消息
-          const beforeResult = manager.canSendMessage(senderId, newContactId);
-          expect(beforeResult.allowed).toBe(false);
+          // 验证初始时 isContactKnown 返回 false
+          const beforeResult = manager.isContactKnown(senderId, newContactId);
+          expect(beforeResult.inRegistry).toBe(false);
           
           // 添加新联系人
           manager.addContact(senderId, {
@@ -271,9 +307,9 @@ describe("ContactManager - 联系人验证", () => {
             source: 'introduction'
           });
           
-          // 验证添加后可以发送消息
-          const afterResult = manager.canSendMessage(senderId, newContactId);
-          expect(afterResult.allowed).toBe(true);
+          // 验证添加后 isContactKnown 返回 true
+          const afterResult = manager.isContactKnown(senderId, newContactId);
+          expect(afterResult.inRegistry).toBe(true);
         }
       ),
       { numRuns: 100 }

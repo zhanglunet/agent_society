@@ -98,12 +98,12 @@ spawn_agent_with_task({
 ```
 该接口会自动创建智能体并发送 initialMessage 作为任务消息。
 
-【send_message 联系人验证】
-send_message 发送消息前会验证接收者是否在你的联系人列表中：
-- 如果接收者在联系人列表中：消息正常发送
-- 如果接收者不在联系人列表中：返回 unknown_contact 错误，消息不会发送
+【send_message 联系人注册表】
+联系人注册表（Contact Registry）用于记录你认识的智能体，但不会阻止消息发送：
+- 你可以向任何已存在的智能体发送消息
+- 联系人注册表仅用于记录和查询联系人信息
 
-如何获取新联系人：
+联系人来源：
 1) 父智能体在创建你时通过 taskBrief.collaborators 预设
 2) 向已认识的智能体请求介绍（发送 introduction_request）
 3) 收到其他智能体的首次消息后自动添加

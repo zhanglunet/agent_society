@@ -29,9 +29,10 @@
   - [x] 2.2 编写联系人注册表初始化属性测试
     - **Property 3: 联系人注册表初始化**
     - **Validates: Requirements 2.1, 2.2**
-  - [x] 2.3 编写联系人验证属性测试
-    - **Property 5: 联系人验证**
+  - [x] 2.3 编写联系人查询属性测试
+    - **Property 5: 联系人查询**
     - **Validates: Requirements 2.6**
+    - 注意：联系人注册表仅用于记录和查询，不阻止消息发送
   - [x] 2.4 实现联系人注册表持久化
     - 在 OrgPrimitives 中添加联系人注册表的保存和加载
     - 更新 org.json 数据结构
@@ -71,9 +72,9 @@
     - **Validates: Requirements 2.5**
 
 - [x] 5. 增强 send_message 工具
-  - [x] 5.1 实现联系人验证
-    - 发送消息前检查接收者是否在发送者的 Contact_Registry 中
-    - 未知联系人返回 unknown_contact 错误
+  - [x] 5.1 联系人注册表记录（不做发送验证）
+    - 联系人注册表仅用于记录和查询联系人信息
+    - 智能体可以向任何已存在的智能体发送消息
     - _Requirements: 2.6_
   - [x] 5.2 实现首次消息双向联系
     - 首次消息时自动将发送者添加到接收者的 Contact_Registry

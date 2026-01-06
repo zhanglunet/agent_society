@@ -924,19 +924,8 @@ export class Runtime {
           return { error: "unknown_recipient", to: recipientId };
         }
         
-        // 联系人验证：检查接收者是否在发送者的 Contact_Registry 中（Requirements 2.6）
-        // 只有当发送者有联系人注册表时才进行验证
-        if (this.contactManager.hasRegistry(senderId)) {
-          const canSend = this.contactManager.canSendMessage(senderId, recipientId);
-          if (!canSend.allowed) {
-            void this.log.warn("send_message 联系人验证失败（已拦截）", { 
-              from: senderId, 
-              to: recipientId, 
-              error: canSend.error 
-            });
-            return { error: canSend.error, to: recipientId };
-          }
-        }
+        // 联系人注册表：仅用于记录和查询联系人信息，不做发送验证
+        // 智能体可以向任何已存在的智能体发送消息
         
         // 获取当前消息的 taskId（由系统自动传递）
         const currentTaskId = ctx.currentMessage?.taskId ?? null;

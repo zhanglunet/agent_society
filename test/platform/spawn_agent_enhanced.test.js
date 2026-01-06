@@ -244,10 +244,10 @@ describe("Property 6: 预设协作者处理", () => {
             expect(contact.source).toBe('preset');
           }
           
-          // 验证子智能体可以向预设协作者发送消息
+          // 验证子智能体的预设协作者在联系人注册表中
           for (const collab of taskBrief.collaborators) {
-            const canSend = runtime.contactManager.canSendMessage(spawnedAgentId, collab.agentId);
-            expect(canSend.allowed).toBe(true);
+            const isKnown = runtime.contactManager.isContactKnown(spawnedAgentId, collab.agentId);
+            expect(isKnown.inRegistry).toBe(true);
           }
         }
       ),
@@ -255,7 +255,7 @@ describe("Property 6: 预设协作者处理", () => {
     );
   });
 
-  test("没有预设协作者时子智能体只能联系父智能体", async () => {
+  test("没有预设协作者时子智能体只有父智能体在联系人列表中", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 生成有效的 TaskBrief 不包含协作者
@@ -305,15 +305,19 @@ describe("Property 6: 预设协作者处理", () => {
           // 验证创建成功
           expect(result.error).toBeUndefined();
           
-          // 验证子智能体只能联系父智能体
+          // 验证子智能体只有父智能体在联系人列表中
           const contacts = runtime.contactManager.listContacts(spawnedAgentId);
           expect(contacts.length).toBe(1);
           expect(contacts[0].id).toBe("parent-agent");
           
-          // 验证子智能体不能向陌生人发送消息
+          // 验证陌生人不在子智能体的联系人列表中（但不阻止发送）
+          const isStrangerKnown = runtime.contactManager.isContactKnown(spawnedAgentId, strangerId);
+          expect(isStrangerKnown.inRegistry).toBe(false);
+          expect(isStrangerKnown.error).toBe('unknown_contact');
+          
+          // canSendMessage 始终返回 allowed: true（不做验证）
           const canSendToStranger = runtime.contactManager.canSendMessage(spawnedAgentId, strangerId);
-          expect(canSendToStranger.allowed).toBe(false);
-          expect(canSendToStranger.error).toBe('unknown_contact');
+          expect(canSendToStranger.allowed).toBe(true);
         }
       ),
       { numRuns: 100 }
@@ -330,7 +334,7 @@ describe("Property 6: 预设协作者处理", () => {
  * **Feature: agent-communication-protocol, Property 4: 父子智能体联系人自动添加**
  */
 describe("Property 4: 父子智能体联系人自动添加", () => {
-  test("创建子智能体后父智能体应能联系子智能体", async () => {
+  test("创建子智能体后父智能体的联系人列表应包含子智能体", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 生成有效的 TaskBrief
@@ -356,10 +360,10 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
           // 初始化父智能体的联系人注册表
           runtime.contactManager.initRegistry("parent-agent", "root", []);
           
-          // 验证创建前父智能体不能联系子智能体
+          // 验证创建前子智能体不在父智能体的联系人列表中
           const childId = `child-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-          const beforeResult = runtime.contactManager.canSendMessage("parent-agent", childId);
-          expect(beforeResult.allowed).toBe(false);
+          const beforeResult = runtime.contactManager.isContactKnown("parent-agent", childId);
+          expect(beforeResult.inRegistry).toBe(false);
           
           // 模拟 spawnAgent
           const ctx = {
@@ -382,9 +386,9 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
           expect(result.error).toBeUndefined();
           expect(result.id).toBe(childId);
           
-          // 验证创建后父智能体可以联系子智能体
-          const afterResult = runtime.contactManager.canSendMessage("parent-agent", childId);
-          expect(afterResult.allowed).toBe(true);
+          // 验证创建后子智能体在父智能体的联系人列表中
+          const afterResult = runtime.contactManager.isContactKnown("parent-agent", childId);
+          expect(afterResult.inRegistry).toBe(true);
           
           // 验证子智能体在父智能体的联系人列表中
           const parentContacts = runtime.contactManager.listContacts("parent-agent");
@@ -424,6 +428,7 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
           // 初始化父智能体的联系人注册表
           runtime.contactManager.initRegistry("parent-agent", "root", []);
           
+          
           // 模拟 spawnAgent
           let spawnedAgentId = null;
           const ctx = {
@@ -446,9 +451,9 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
           // 验证创建成功
           expect(result.error).toBeUndefined();
           
-          // 验证子智能体可以联系父智能体
-          const canSendToParent = runtime.contactManager.canSendMessage(spawnedAgentId, "parent-agent");
-          expect(canSendToParent.allowed).toBe(true);
+          // 验证父智能体在子智能体的联系人列表中
+          const isParentKnown = runtime.contactManager.isContactKnown(spawnedAgentId, "parent-agent");
+          expect(isParentKnown.inRegistry).toBe(true);
           
           // 验证父智能体在子智能体的联系人列表中
           const childContacts = runtime.contactManager.listContacts(spawnedAgentId);
@@ -461,7 +466,7 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
     );
   });
 
-  test("父子智能体应能双向通信", async () => {
+  test("父子智能体应在联系人列表中互相包含", async () => {
     await fc.assert(
       fc.asyncProperty(
         // 生成有效的 TaskBrief
@@ -509,12 +514,12 @@ describe("Property 4: 父子智能体联系人自动添加", () => {
           // 验证创建成功
           expect(result.error).toBeUndefined();
           
-          // 验证双向通信
-          const parentToChild = runtime.contactManager.canSendMessage("parent-agent", spawnedAgentId);
-          const childToParent = runtime.contactManager.canSendMessage(spawnedAgentId, "parent-agent");
+          // 验证双向联系人关系
+          const parentKnowsChild = runtime.contactManager.isContactKnown("parent-agent", spawnedAgentId);
+          const childKnowsParent = runtime.contactManager.isContactKnown(spawnedAgentId, "parent-agent");
           
-          expect(parentToChild.allowed).toBe(true);
-          expect(childToParent.allowed).toBe(true);
+          expect(parentKnowsChild.inRegistry).toBe(true);
+          expect(childKnowsParent.inRegistry).toBe(true);
         }
       ),
       { numRuns: 100 }
