@@ -2,7 +2,7 @@
 import { AgentSociety } from "../src/platform/agent_society.js";
 
 const helpText = [
-  "本 Demo 演示：用本项目的 AgentSociety 跑一个"饭店"多智能体协作场景。",
+  "本 Demo 演示：用本项目的 AgentSociety 跑一个“饭店”多智能体协作场景。",
   "你在命令行里输入文本；系统把文本发给指定智能体，由它自组织创建并协调饭店员工智能体。",
   "",
   "本地指令：",
@@ -29,12 +29,12 @@ function makeReadline() {
 
 function buildRestaurantRequirement() {
   return [
-    "目标：构建一个可在命令行交互的"模拟饭店"，让用户作为顾客点餐、下单、出菜、结账付款。",
+    "目标：构建一个可在命令行交互的“模拟饭店”，让用户作为顾客点餐、下单、出菜、结账付款。",
     "约束：你是 Root 为本 taskId 创建的第一个直属子智能体（任务入口/负责人）。你需要用 create_role / spawn_agent 自组织创建饭店员工智能体（至少包含：迎宾、服务员、后厨、收银、库存）。",
     "交互：用户后续会不断发送短文本命令（menu/order/cart/submit/bill/pay/exit），你要解析并推进状态机。",
     "数据：你需要内置一个小菜单（至少 6 个菜品，包含 ID/名称/单价），并有库存（可扣减）。",
     "输出：所有对用户的输出必须 send_message(to=user, taskId 保持不变, payload.text 为纯文本)。",
-    "完成标准：用户输入 exit 时，向用户输出一句"已退出饭店模拟"，然后停止调用工具。",
+    "完成标准：用户输入 exit 时，向用户输出一句“已退出饭店模拟”，然后 wait_for_message。",
     "提示：组织里可以有多个智能体直接向用户 send_message；不要求只有你能对接用户。",
   ].join("\n");
 }
@@ -59,9 +59,9 @@ async function main() {
     return;
   }
 
-  process.stdout.write(helpText + "\n");
-  process.stdout.write("当前 taskId=" + taskId + "\n");
-  process.stdout.write("默认 target=" + entryAgentId + "\n");
+  process.stdout.write(`${helpText}\n`);
+  process.stdout.write(`当前 taskId=${taskId}\n`);
+  process.stdout.write(`默认 target=${entryAgentId}\n`);
 
   const { rl, question } = makeReadline();
   rl.on("SIGINT", () => {
@@ -82,11 +82,11 @@ async function main() {
       return;
     }
     if (cmd === "help") {
-      process.stdout.write(helpText + "\n");
+      process.stdout.write(`${helpText}\n`);
       continue;
     }
     if (cmd === "target") {
-      process.stdout.write("target=" + defaultTarget + "\n");
+      process.stdout.write(`target=${defaultTarget}\n`);
       continue;
     }
     if (cmd === "use") {
@@ -96,7 +96,7 @@ async function main() {
         continue;
       }
       defaultTarget = id;
-      process.stdout.write("target=" + defaultTarget + "\n");
+      process.stdout.write(`target=${defaultTarget}\n`);
       continue;
     }
     if (cmd === "to") {
