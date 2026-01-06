@@ -401,7 +401,7 @@ export class Runtime {
         type: "function",
         function: {
           name: "spawn_agent",
-          description: "在指定岗位上创建智能体实例（Agent Instance），必须提供任务委托书（Task Brief）。parentAgentId 由系统根据调用者自动填充。Task Brief 必填字段：objective（目标描述）、constraints（技术约束数组）、inputs（输入说明）、outputs（输出要求）、completion_criteria（完成标准）。可选字段：collaborators（协作联系人）、references（参考资料）、priority（优先级）。",
+          description: "在指定岗位上创建智能体实例（Agent Instance），必须提供任务委托书（Task Brief）。注意：spawn_agent 只创建智能体，不会自动发送任务消息！创建后必须用 send_message 向新智能体发送具体任务。如需创建并立即发送任务，请使用 spawn_agent_with_task。",
           parameters: {
             type: "object",
             properties: {
@@ -443,6 +443,66 @@ export class Runtime {
               }
             },
             required: ["roleId", "taskBrief"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "spawn_agent_with_task",
+          description: "创建智能体实例并立即发送任务消息（二合一接口）。相当于 spawn_agent + send_message，省去一次工具调用。推荐在需要立即分配任务时使用。",
+          parameters: {
+            type: "object",
+            properties: {
+              roleId: { type: "string", description: "岗位ID" },
+              taskBrief: {
+                type: "object",
+                description: "任务委托书，包含任务的完整说明",
+                properties: {
+                  objective: { type: "string", description: "目标描述" },
+                  constraints: { 
+                    type: "array", 
+                    items: { type: "string" },
+                    description: "技术约束（如：使用HTML+JS、Python等）" 
+                  },
+                  inputs: { type: "string", description: "输入说明" },
+                  outputs: { type: "string", description: "输出要求" },
+                  completion_criteria: { type: "string", description: "完成标准" },
+                  collaborators: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        agentId: { type: "string", description: "协作者智能体ID" },
+                        role: { type: "string", description: "协作者角色" },
+                        description: { type: "string", description: "协作说明" }
+                      },
+                      required: ["agentId", "role"]
+                    },
+                    description: "预设协作联系人"
+                  },
+                  references: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "参考资料"
+                  },
+                  priority: { type: "string", description: "优先级" }
+                },
+                required: ["objective", "constraints", "inputs", "outputs", "completion_criteria"]
+              },
+              initialMessage: {
+                type: "object",
+                description: "创建后立即发送给新智能体的任务消息内容（payload）",
+                properties: {
+                  message_type: { type: "string", description: "消息类型，默认 task_assignment" },
+                  task: { type: "string", description: "具体任务描述" },
+                  interfaces: { type: "object", description: "接口定义" },
+                  deliverable: { type: "string", description: "交付物说明" },
+                  dependencies: { type: "array", items: { type: "string" }, description: "依赖模块" }
+                }
+              }
+            },
+            required: ["roleId", "taskBrief", "initialMessage"]
           }
         }
       },
@@ -982,6 +1042,12 @@ export class Runtime {
       if (toolName === "terminate_agent") {
         const result = await this._executeTerminateAgent(ctx, args);
         void this.log.debug("工具调用完成", { toolName, ok: !result.error, agentId: args.agentId });
+        return result;
+      }
+      if (toolName === "spawn_agent_with_task") {
+        // spawn_agent_with_task: 创建智能体并立即发送任务消息（二合一接口）
+        const result = await this._executeSpawnAgentWithTask(ctx, args);
+        void this.log.debug("工具调用完成", { toolName, ok: !result.error, agentId: result.id ?? null });
         return result;
       }
       if (toolName === "run_javascript") {
@@ -1618,6 +1684,76 @@ export class Runtime {
     if (processedCount > 0) {
       void this.log.info("终止前消息处理完成", { agentId, processedCount });
     }
+  }
+
+  /**
+   * 执行 spawn_agent_with_task：创建智能体并立即发送任务消息。
+   * @param {any} ctx
+   * @param {{roleId:string, taskBrief:object, initialMessage:object}} args
+   * @returns {Promise<{id?:string, roleId?:string, roleName?:string, messageId?:string, error?:string}>}
+   */
+  async _executeSpawnAgentWithTask(ctx, args) {
+    const creatorId = ctx.agent?.id ?? null;
+    if (!creatorId) {
+      return { error: "missing_creator_agent" };
+    }
+
+    // 验证 initialMessage 参数
+    if (!args.initialMessage || typeof args.initialMessage !== "object") {
+      return { error: "missing_initial_message", message: "initialMessage 是必填参数" };
+    }
+
+    // 复用 spawn_agent 的逻辑创建智能体
+    const spawnResult = await this.executeToolCall(ctx, "spawn_agent", {
+      roleId: args.roleId,
+      taskBrief: args.taskBrief
+    });
+
+    // 如果创建失败，直接返回错误
+    if (spawnResult.error) {
+      return spawnResult;
+    }
+
+    const newAgentId = spawnResult.id;
+    const taskId = ctx.currentMessage?.taskId ?? null;
+
+    // 构建任务消息 payload
+    const messagePayload = {
+      message_type: args.initialMessage.message_type ?? "task_assignment",
+      ...args.initialMessage
+    };
+
+    // 发送任务消息给新创建的智能体
+    const messageId = this.bus.send({
+      to: newAgentId,
+      from: creatorId,
+      taskId,
+      payload: messagePayload
+    });
+
+    void this.log.info("spawn_agent_with_task 完成", {
+      creatorId,
+      newAgentId,
+      roleId: spawnResult.roleId,
+      roleName: spawnResult.roleName,
+      messageId,
+      taskId
+    });
+
+    // 记录智能体发送消息的生命周期事件
+    void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
+      agentId: creatorId,
+      messageId,
+      to: newAgentId,
+      taskId
+    });
+
+    return {
+      id: newAgentId,
+      roleId: spawnResult.roleId,
+      roleName: spawnResult.roleName,
+      messageId
+    };
   }
 
   async _runJavaScriptTool(args) {

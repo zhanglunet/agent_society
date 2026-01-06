@@ -1,0 +1,19 @@
+{
+  "promptsDir": "config/prompts",
+  "artifactsDir": "data/runtime/artifacts",
+  "runtimeDir": "data/runtime/state",
+  "loggingConfigPath": "config/logging.json",
+  "maxSteps": 200,
+  "maxToolRounds": 200,
+  "llm": {
+    "baseURL": "http://127.0.0.1:1234/v1",
+    "model": "zai-org/glm-4.6v-flash",
+    "apiKey": "NOT_NEEDED"
+  },
+  "contextLimit": {
+    "maxTokens": 12000,
+    "warningThreshold": 0.7,
+    "criticalThreshold": 0.9,
+    "hardLimitThreshold": 0.95
+  }
+}

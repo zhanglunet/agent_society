@@ -389,7 +389,7 @@ export class OrgPrimitives {
   /**
    * 创建智能体实例（Agent Instance），必须绑定岗位 roleId。
    * @param {{roleId:string, parentAgentId?:string}} input
-   * @returns {Promise<{id:string, roleId:string, parentAgentId:string|null}>}
+   * @returns {Promise<{id:string, roleId:string, parentAgentId:string|null, status:string}>}
    */
   async createAgent(input) {
     const id = randomUUID();
@@ -406,11 +406,12 @@ export class OrgPrimitives {
       id,
       roleId: input.roleId,
       parentAgentId,
-      createdAt: formatLocalTimestamp()
+      createdAt: formatLocalTimestamp(),
+      status: "active"  // 默认状态为活跃
     };
     this._agents.set(id, agent);
     await this.persist();
-    void this.log.info("创建智能体元数据", { id, roleId: agent.roleId, parentAgentId: agent.parentAgentId });
+    void this.log.info("创建智能体元数据", { id, roleId: agent.roleId, parentAgentId: agent.parentAgentId, status: agent.status });
     return agent;
   }
 
@@ -437,6 +438,7 @@ export class OrgPrimitives {
 
   /**
    * 记录智能体终止事件。
+   * 会级联标记所有子智能体为已终止状态。
    * @param {string} agentId - 被终止的智能体ID
    * @param {string} terminatedBy - 执行终止的智能体ID
    * @param {string} [reason] - 终止原因
@@ -458,9 +460,63 @@ export class OrgPrimitives {
       agent.status = "terminated";
     }
     
+    // 级联终止所有子智能体
+    const cascadeTerminated = [];
+    for (const [id, childAgent] of this._agents) {
+      if (childAgent.parentAgentId === agentId && childAgent.status !== "terminated") {
+        const childTermination = {
+          agentId: id,
+          terminatedBy: agentId,
+          terminatedAt: termination.terminatedAt,
+          reason: "父智能体已终止（级联终止）"
+        };
+        this._terminations.push(childTermination);
+        childAgent.terminatedAt = childTermination.terminatedAt;
+        childAgent.status = "terminated";
+        cascadeTerminated.push(id);
+        
+        // 递归处理孙子智能体
+        await this._cascadeTerminateChildren(id, childTermination.terminatedAt);
+      }
+    }
+    
+    if (cascadeTerminated.length > 0) {
+      void this.log.info("级联终止子智能体", { 
+        parentAgentId: agentId, 
+        cascadeTerminated,
+        count: cascadeTerminated.length 
+      });
+    }
+    
     await this.persist();
-    void this.log.info("记录智能体终止", { agentId, terminatedBy, reason: reason ?? null });
+    void this.log.info("记录智能体终止", { agentId, terminatedBy, reason: reason ?? null, cascadeCount: cascadeTerminated.length });
     return termination;
+  }
+
+  /**
+   * 递归级联终止子智能体（内部方法）。
+   * @param {string} parentId - 父智能体ID
+   * @param {string} terminatedAt - 终止时间
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _cascadeTerminateChildren(parentId, terminatedAt) {
+    for (const [id, childAgent] of this._agents) {
+      if (childAgent.parentAgentId === parentId && childAgent.status !== "terminated") {
+        const childTermination = {
+          agentId: id,
+          terminatedBy: parentId,
+          terminatedAt,
+          reason: "父智能体已终止（级联终止）"
+        };
+        this._terminations.push(childTermination);
+        childAgent.terminatedAt = terminatedAt;
+        childAgent.status = "terminated";
+        
+        // 递归处理更深层的子智能体
+        await this._cascadeTerminateChildren(id, terminatedAt);
+      }
+    }
   }
 
   /**
