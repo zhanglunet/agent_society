@@ -208,9 +208,85 @@ export class Runtime {
       });
     }
 
+    // 从持久化的组织状态恢复智能体实例
+    await this._restoreAgentsFromOrg();
+
     void this.log.info("运行时初始化完成", {
       agents: this._agents.size
     });
+  }
+
+  /**
+   * 从组织状态恢复智能体实例到内存中。
+   * 在服务器重启后调用，确保之前创建的智能体能够继续处理消息。
+   * @returns {Promise<void>}
+   */
+  async _restoreAgentsFromOrg() {
+    const agentMetas = this.org.listAgents();
+    let restoredCount = 0;
+    let skippedCount = 0;
+
+    for (const meta of agentMetas) {
+      // 跳过已终止的智能体
+      if (meta.status === "terminated") {
+        skippedCount++;
+        continue;
+      }
+
+      // 跳过已经注册的智能体（如 root、user）
+      if (this._agents.has(meta.id)) {
+        continue;
+      }
+
+      // 获取岗位信息
+      const role = this.org.getRole(meta.roleId);
+      if (!role) {
+        void this.log.warn("恢复智能体失败：岗位不存在", { agentId: meta.id, roleId: meta.roleId });
+        skippedCount++;
+        continue;
+      }
+
+      // 创建智能体实例
+      const roleName = role.name ?? "unknown";
+      const behaviorFactory = this._behaviorRegistry.get(roleName);
+      const behavior = behaviorFactory
+        ? behaviorFactory(this._buildAgentContext())
+        : this.llm
+          ? async (ctx, message) => await ctx.runtime._handleWithLlm(ctx, message)
+          : async () => {};
+
+      const agent = new Agent({
+        id: meta.id,
+        roleId: meta.roleId,
+        roleName,
+        rolePrompt: role.rolePrompt ?? "",
+        behavior
+      });
+
+      this.registerAgentInstance(agent);
+      this._agentMetaById.set(agent.id, { 
+        id: meta.id, 
+        roleId: meta.roleId, 
+        parentAgentId: meta.parentAgentId ?? null 
+      });
+      this._agentLastActivityTime.set(agent.id, Date.now());
+      restoredCount++;
+
+      void this.log.debug("恢复智能体实例", {
+        id: agent.id,
+        roleId: agent.roleId,
+        roleName: agent.roleName,
+        parentAgentId: meta.parentAgentId ?? null
+      });
+    }
+
+    if (restoredCount > 0 || skippedCount > 0) {
+      void this.log.info("智能体恢复完成", { 
+        restored: restoredCount, 
+        skipped: skippedCount,
+        total: this._agents.size 
+      });
+    }
   }
 
   /**
