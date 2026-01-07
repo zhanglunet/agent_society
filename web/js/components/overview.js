@@ -97,8 +97,9 @@ const OverviewPanel = {
     let statsArray = [];
     
     if (this.roles && this.roles.length > 0) {
-      // 使用 API 返回的岗位数据，包含 agentCount
+      // 使用 API 返回的岗位数据，包含 agentCount 和 id
       statsArray = this.roles.map(role => ({
+        id: role.id,
         name: role.name,
         count: role.agentCount ?? 0
       }));
@@ -119,9 +120,12 @@ const OverviewPanel = {
     }
 
     const statsHtml = statsArray.map(stat => `
-      <div class="role-stat-item ${stat.count === 0 ? 'empty-role' : ''}" onclick="OverviewPanel.onRoleClick('${this.escapeHtml(stat.name).replace(/'/g, "\\'")}')">
-        <span class="role-stat-name">${this.escapeHtml(stat.name)}</span>
-        <span class="role-stat-count">${stat.count}</span>
+      <div class="role-stat-item ${stat.count === 0 ? 'empty-role' : ''}">
+        <span class="role-stat-name" onclick="OverviewPanel.onRoleClick('${this.escapeHtml(stat.name).replace(/'/g, "\\'")}')">${this.escapeHtml(stat.name)}</span>
+        <div class="role-stat-actions">
+          <span class="role-stat-count">${stat.count}</span>
+          <button class="role-detail-btn" onclick="event.stopPropagation(); OverviewPanel.onRoleDetailClick('${this.escapeHtml(stat.id || stat.name).replace(/'/g, "\\'")}')" title="查看详情">ℹ️</button>
+        </div>
       </div>
     `).join('');
 
@@ -230,12 +234,22 @@ const OverviewPanel = {
   },
 
   /**
-   * 岗位统计项点击处理
+   * 岗位统计项点击处理（筛选列表）
    * @param {string} roleName - 岗位名称
    */
   onRoleClick(roleName) {
     if (window.App) {
       window.App.switchToListViewWithFilter(roleName);
+    }
+  },
+
+  /**
+   * 岗位详情按钮点击处理
+   * @param {string} roleId - 岗位 ID
+   */
+  onRoleDetailClick(roleId) {
+    if (window.RoleDetailModal) {
+      window.RoleDetailModal.showByRoleId(roleId);
     }
   },
 

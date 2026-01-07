@@ -157,7 +157,9 @@ const AgentDetailModal = {
         </div>
         <div class="detail-item">
           <div class="detail-label">岗位名称</div>
-          <div class="detail-value">${this.escapeHtml(agent.roleName || '未知')}</div>
+          <div class="detail-value">
+            <span class="role-link" onclick="AgentDetailModal.openRoleDetail('${this.escapeHtml(agent.roleId || '')}')">${this.escapeHtml(agent.roleName || '未知')}</span>
+          </div>
         </div>
         <div class="detail-item">
           <div class="detail-label">岗位 ID</div>
@@ -260,6 +262,18 @@ const AgentDetailModal = {
     } catch (error) {
       console.error('保存自定义名称失败:', error);
       Toast.show('保存失败: ' + error.message, 'error');
+    }
+  },
+
+  /**
+   * 打开岗位详情
+   * @param {string} roleId - 岗位 ID
+   */
+  openRoleDetail(roleId) {
+    if (!roleId) return;
+    this.hide();
+    if (window.RoleDetailModal) {
+      window.RoleDetailModal.showByRoleId(roleId);
     }
   },
 
