@@ -1,16 +1,27 @@
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 /**
  * 读取并解析平台配置文件。
+ * 优先加载 app.local.json，如果不存在则加载 app.json。
  * @param {string} configPath 配置文件路径（相对或绝对）
  * @param {{dataDir?:string}} [options] 可选配置
  * @returns {Promise<object>} 配置对象
  */
 export async function loadConfig(configPath = "config/app.json", options = {}) {
-  const absPath = path.isAbsolute(configPath)
+  let absPath = path.isAbsolute(configPath)
     ? configPath
     : path.resolve(process.cwd(), configPath);
+  
+  // 如果使用默认配置路径，优先检查 app.local.json
+  if (configPath === "config/app.json") {
+    const localConfigPath = path.resolve(process.cwd(), "config/app.local.json");
+    if (existsSync(localConfigPath)) {
+      absPath = localConfigPath;
+    }
+  }
+  
   const raw = await readFile(absPath, "utf8");
   const cfg = JSON.parse(raw);
 

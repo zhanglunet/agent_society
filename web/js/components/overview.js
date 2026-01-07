@@ -92,9 +92,23 @@ const OverviewPanel = {
   renderRoleStats() {
     if (!this.roleStatsContainer) return;
 
-    // 计算岗位统计
-    const counts = TreeUtils.countByRole(this.agents);
-    const statsArray = TreeUtils.roleCountsToArray(counts);
+    // 优先使用 API 返回的岗位数据（包含没有智能体的岗位）
+    // 如果没有岗位数据，则从智能体列表统计
+    let statsArray = [];
+    
+    if (this.roles && this.roles.length > 0) {
+      // 使用 API 返回的岗位数据，包含 agentCount
+      statsArray = this.roles.map(role => ({
+        name: role.name,
+        count: role.agentCount ?? 0
+      }));
+      // 按数量降序排列
+      statsArray.sort((a, b) => b.count - a.count);
+    } else {
+      // 回退：从智能体列表统计
+      const counts = TreeUtils.countByRole(this.agents);
+      statsArray = TreeUtils.roleCountsToArray(counts);
+    }
 
     if (statsArray.length === 0) {
       this.roleStatsContainer.innerHTML = `
@@ -105,7 +119,7 @@ const OverviewPanel = {
     }
 
     const statsHtml = statsArray.map(stat => `
-      <div class="role-stat-item" onclick="OverviewPanel.onRoleClick('${this.escapeHtml(stat.name).replace(/'/g, "\\'")}')">
+      <div class="role-stat-item ${stat.count === 0 ? 'empty-role' : ''}" onclick="OverviewPanel.onRoleClick('${this.escapeHtml(stat.name).replace(/'/g, "\\'")}')">
         <span class="role-stat-name">${this.escapeHtml(stat.name)}</span>
         <span class="role-stat-count">${stat.count}</span>
       </div>

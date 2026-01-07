@@ -299,6 +299,19 @@ body {
   font-size: 12px;
 }
 
+/* 没有智能体的岗位样式 */
+.role-stat-item.empty-role {
+  opacity: 0.7;
+}
+
+.role-stat-item.empty-role .role-stat-name {
+  color: #aaa;
+}
+
+.role-stat-item.empty-role .role-stat-count {
+  background-color: #666;
+}
+
 .org-tree h3 {
   font-size: 14px;
   color: #888;
