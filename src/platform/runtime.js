@@ -45,6 +45,7 @@ export class Runtime {
     this._agentMetaById = new Map();
     this._agentLastActivityTime = new Map(); // 跟踪智能体最后活动时间
     this._idleWarningEmitted = new Set(); // 跟踪已发出空闲警告的智能体
+    this._agentComputeStatus = new Map(); // 跟踪智能体运算状态: 'idle' | 'waiting_llm' | 'processing'
     this._taskWorkspaces = new Map(); // 跟踪任务工作空间 taskId -> workspacePath
     this._agentTaskBriefs = new Map(); // 跟踪智能体的 TaskBrief agentId -> TaskBrief
     this.loggerRoot = new Logger(normalizeLoggingConfig(null));
@@ -79,6 +80,63 @@ export class Runtime {
       } catch (err) {
         void this.log?.warn?.("工具调用事件监听器执行失败", { error: err?.message ?? String(err) });
       }
+    }
+  }
+
+  /**
+   * 设置智能体运算状态。
+   * @param {string} agentId - 智能体ID
+   * @param {'idle'|'waiting_llm'|'processing'} status - 运算状态
+   */
+  setAgentComputeStatus(agentId, status) {
+    if (agentId) {
+      this._agentComputeStatus.set(agentId, status);
+      this._emitComputeStatusChange(agentId, status);
+    }
+  }
+
+  /**
+   * 获取智能体运算状态。
+   * @param {string} agentId - 智能体ID
+   * @returns {'idle'|'waiting_llm'|'processing'} 运算状态
+   */
+  getAgentComputeStatus(agentId) {
+    return this._agentComputeStatus.get(agentId) ?? 'idle';
+  }
+
+  /**
+   * 获取所有智能体的运算状态。
+   * @returns {Object.<string, 'idle'|'waiting_llm'|'processing'>} 智能体ID到运算状态的映射
+   */
+  getAllAgentComputeStatus() {
+    return Object.fromEntries(this._agentComputeStatus);
+  }
+
+  /**
+   * 触发运算状态变更事件。
+   * @param {string} agentId - 智能体ID
+   * @param {'idle'|'waiting_llm'|'processing'} status - 新状态
+   */
+  _emitComputeStatusChange(agentId, status) {
+    for (const listener of this._computeStatusListeners ?? []) {
+      try {
+        listener({ agentId, status, timestamp: new Date().toISOString() });
+      } catch (err) {
+        void this.log?.warn?.("运算状态事件监听器执行失败", { error: err?.message ?? String(err) });
+      }
+    }
+  }
+
+  /**
+   * 注册运算状态变更事件监听器。
+   * @param {(event: {agentId: string, status: string, timestamp: string}) => void} listener
+   */
+  onComputeStatusChange(listener) {
+    if (!this._computeStatusListeners) {
+      this._computeStatusListeners = new Set();
+    }
+    if (typeof listener === "function") {
+      this._computeStatusListeners.add(listener);
     }
   }
 
@@ -1207,6 +1265,9 @@ export class Runtime {
     if (!this.llm) return;
 
     const agentId = ctx.agent?.id ?? null;
+    
+    // 设置初始状态为处理中
+    this.setAgentComputeStatus(agentId, 'processing');
 
     // 检查上下文是否已超过硬性限制
     if (agentId && this._conversationManager.isContextExceeded(agentId)) {
@@ -1237,6 +1298,8 @@ export class Runtime {
           }
         });
       }
+      // 重置为空闲状态
+      this.setAgentComputeStatus(agentId, 'idle');
       return;
     }
 
@@ -1266,14 +1329,23 @@ export class Runtime {
           round: i + 1
         };
         void this.log.info("请求 LLM", llmMeta);
+        // 设置状态为等待LLM响应
+        this.setAgentComputeStatus(agentId, 'waiting_llm');
         msg = await this.llm.chat({ messages: conv, tools, meta: llmMeta });
+        // LLM响应后设置为处理中
+        this.setAgentComputeStatus(agentId, 'processing');
       } catch (err) {
+        // 出错时重置为空闲状态
+        this.setAgentComputeStatus(agentId, 'idle');
         const text = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
         void this.log.error("LLM 调用失败", { agentId: ctx.agent?.id ?? null, messageId: message?.id ?? null, message: text });
         this._stopRequested = true;
         return;
       }
-      if (!msg) return;
+      if (!msg) {
+        this.setAgentComputeStatus(agentId, 'idle');
+        return;
+      }
       
       // 更新 token 使用统计（基于 LLM 返回的实际值）
       if (agentId && msg._usage) {
@@ -1335,6 +1407,8 @@ export class Runtime {
           continue; // 继续下一轮，让 LLM 重新生成带 tool_calls 的响应
         }
         
+        // 没有工具调用，处理完成，重置为空闲状态
+        this.setAgentComputeStatus(agentId, 'idle');
         return;
       }
 
@@ -1375,9 +1449,12 @@ export class Runtime {
       }
       if (ctx.yieldRequested) {
         ctx.yieldRequested = false;
+        this.setAgentComputeStatus(agentId, 'idle');
         return;
       }
     }
+    // 工具调用轮次达到上限，重置为空闲状态
+    this.setAgentComputeStatus(agentId, 'idle');
     void this.log.warn("工具调用轮次达到上限，强制停止本次处理", {
       agentId: ctx.agent?.id ?? null,
       messageId: message?.id ?? null,

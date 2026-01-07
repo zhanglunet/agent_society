@@ -268,8 +268,11 @@ const App = {
       // 请求成功，重置错误计数
       this.consecutiveErrors = 0;
       
-      // 检查是否有新智能体
-      if (newAgents.length !== this.agents.length) {
+      // 检查是否有变化（数量变化或运算状态变化）
+      const hasChanges = this.hasAgentChanges(newAgents);
+      
+      if (hasChanges) {
+        const isNewAgent = newAgents.length !== this.agents.length;
         this.agents = newAgents;
         this.agentsById.clear();
         this.agents.forEach(agent => {
@@ -278,16 +281,18 @@ const App = {
         AgentList.setAgents(this.agents);
         OverviewPanel.setAgents(this.agents);
         
-        // 更新岗位和组织树
-        const [rolesRes, treeRes, roleTreeRes] = await Promise.all([
-          API.getRoles(),
-          API.getOrgTree(),
-          API.getRoleTree(),
-        ]);
-        this.roles = rolesRes.roles || [];
-        OverviewPanel.setRoles(this.roles);
-        OverviewPanel.setTree(treeRes.tree);
-        OverviewPanel.setRoleTree(roleTreeRes.tree);
+        // 只在有新智能体时更新岗位和组织树
+        if (isNewAgent) {
+          const [rolesRes, treeRes, roleTreeRes] = await Promise.all([
+            API.getRoles(),
+            API.getOrgTree(),
+            API.getRoleTree(),
+          ]);
+          this.roles = rolesRes.roles || [];
+          OverviewPanel.setRoles(this.roles);
+          OverviewPanel.setTree(treeRes.tree);
+          OverviewPanel.setRoleTree(roleTreeRes.tree);
+        }
       }
 
       // 更新当前选中智能体的消息
@@ -348,6 +353,36 @@ const App = {
         break; // 如果有错误，停止检查其他智能体
       }
     }
+  },
+
+  /**
+   * 检查智能体列表是否有变化（数量、状态或运算状态）
+   * @param {Array} newAgents - 新的智能体列表
+   * @returns {boolean} 是否有变化
+   */
+  hasAgentChanges(newAgents) {
+    // 数量变化
+    if (newAgents.length !== this.agents.length) {
+      return true;
+    }
+    
+    // 检查每个智能体的状态是否有变化
+    for (const newAgent of newAgents) {
+      const oldAgent = this.agentsById.get(newAgent.id);
+      if (!oldAgent) {
+        return true;
+      }
+      // 检查运算状态变化
+      if (oldAgent.computeStatus !== newAgent.computeStatus) {
+        return true;
+      }
+      // 检查其他状态变化
+      if (oldAgent.status !== newAgent.status) {
+        return true;
+      }
+    }
+    
+    return false;
   },
 };
 

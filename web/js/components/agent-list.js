@@ -256,6 +256,7 @@ const AgentList = {
       const iconText = this.getAgentIconText(agent);
       const displayName = this.getAgentDisplayName(agent);
       const showIdSeparately = agent.customName && agent.customName !== agent.id;
+      const computeStatusHtml = this.renderComputeStatus(agent.computeStatus);
 
       return `
         <div class="agent-item ${isSelected ? 'selected' : ''} ${hasNewMessage ? 'has-new-message' : ''}"
@@ -263,7 +264,10 @@ const AgentList = {
              onclick="AgentList.selectAgent('${agent.id}')">
           <div class="agent-icon ${iconType}">${iconText}</div>
           <div class="agent-info">
-            <div class="agent-name">${this.escapeHtml(displayName)}</div>
+            <div class="agent-name-row">
+              <span class="agent-name">${this.escapeHtml(displayName)}</span>
+              ${computeStatusHtml}
+            </div>
             ${showIdSeparately ? `<div class="agent-id-small">${this.escapeHtml(agent.id)}</div>` : ''}
             <div class="agent-role">${this.escapeHtml(agent.roleName || '未知岗位')}</div>
           </div>
@@ -274,6 +278,27 @@ const AgentList = {
     }).join('');
 
     this.listContainer.innerHTML = html;
+  },
+
+  /**
+   * 渲染运算状态指示器
+   * @param {string} computeStatus - 运算状态: 'idle' | 'waiting_llm' | 'processing'
+   * @returns {string} HTML 字符串
+   */
+  renderComputeStatus(computeStatus) {
+    if (!computeStatus || computeStatus === 'idle') {
+      return '';
+    }
+    
+    if (computeStatus === 'waiting_llm') {
+      return '<span class="compute-status waiting" title="等待大模型响应">⏳</span>';
+    }
+    
+    if (computeStatus === 'processing') {
+      return '<span class="compute-status processing" title="处理中">⚙️</span>';
+    }
+    
+    return '';
   },
 
   /**

@@ -1326,3 +1326,46 @@ body {
   background-color: #f0fff4;
   border-color: #c6f6d5;
 }
+
+
+/* ========== 智能体运算状态指示器 ========== */
+.agent-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compute-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.compute-status.waiting {
+  color: #ffc107;
+}
+
+.compute-status.processing {
+  color: #2196f3;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

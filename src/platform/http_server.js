@@ -736,6 +736,15 @@ export class HTTPServer {
       
       // 创建岗位ID到名称的映射
       const roleMap = new Map(roles.map(r => [r.id, r.name]));
+      
+      // 获取运算状态
+      const runtime = this.society.runtime;
+      const getComputeStatus = (agentId) => {
+        if (runtime && typeof runtime.getAgentComputeStatus === 'function') {
+          return runtime.getAgentComputeStatus(agentId);
+        }
+        return 'idle';
+      };
 
       // 构建智能体列表，包含 root 和 user
       const agents = [
@@ -747,6 +756,7 @@ export class HTTPServer {
           createdAt: null,
           lastActiveAt: this._getLastActiveAt("root"),
           status: "active",
+          computeStatus: getComputeStatus("root"),
           customName: this.getCustomName("root")
         },
         {
@@ -757,6 +767,7 @@ export class HTTPServer {
           createdAt: null,
           lastActiveAt: this._getLastActiveAt("user"),
           status: "active",
+          computeStatus: getComputeStatus("user"),
           customName: this.getCustomName("user")
         },
         ...persistedAgents.map(a => ({
@@ -767,6 +778,7 @@ export class HTTPServer {
           createdAt: a.createdAt,
           lastActiveAt: this._getLastActiveAt(a.id),
           status: a.status ?? "active",
+          computeStatus: getComputeStatus(a.id),
           terminatedAt: a.terminatedAt,
           customName: this.getCustomName(a.id)
         }))
