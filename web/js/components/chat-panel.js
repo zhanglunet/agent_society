@@ -74,6 +74,47 @@ const ChatPanel = {
         this.headerStatus.textContent = '';
       }
     }
+    this.updateInputPlaceholder();
+  },
+
+  /**
+   * 获取智能体显示名称（岗位（ID）格式）
+   * @param {string} agentId - 智能体 ID
+   * @returns {string} 显示名称
+   */
+  getAgentDisplayName(agentId) {
+    if (!agentId) return '未知';
+    if (agentId === 'user' || agentId === 'root') {
+      return agentId;
+    }
+    if (window.App && window.App.agentsById) {
+      const agent = window.App.agentsById.get(agentId);
+      if (agent && agent.roleName) {
+        return `${agent.roleName}（${agentId}）`;
+      }
+    }
+    return agentId;
+  },
+
+  /**
+   * 更新输入框 placeholder
+   */
+  updateInputPlaceholder() {
+    if (!this.chatInput || !this.currentAgentId) return;
+    
+    // 确定消息发送目标
+    let targetId = this.currentAgentId;
+    if (this.currentAgentId === 'user') {
+      // user 界面时，目标是最后给 user 发消息的智能体
+      targetId = this.getLastSenderId();
+    }
+    
+    if (targetId) {
+      const displayName = this.getAgentDisplayName(targetId);
+      this.chatInput.placeholder = `向 ${displayName} 发送消息...`;
+    } else {
+      this.chatInput.placeholder = '等待智能体发送消息...';
+    }
   },
 
   /**
@@ -88,6 +129,7 @@ const ChatPanel = {
     });
     this.render();
     this.scrollToBottom();
+    this.updateInputPlaceholder();
   },
 
   /**
@@ -103,6 +145,7 @@ const ChatPanel = {
     this.messagesById.set(message.id, message);
     this.render();
     this.scrollToBottom();
+    this.updateInputPlaceholder();
   },
 
   /**
@@ -167,10 +210,10 @@ const ChatPanel = {
   /**
    * 获取发送者显示名称
    * @param {object} message - 消息对象
-   * @returns {string} 发送者名称
+   * @returns {string} 发送者名称，格式为 "岗位（ID）"，user 和 root 保持原样
    */
   getSenderName(message) {
-    return message.from || '未知';
+    return this.getAgentDisplayName(message.from);
   },
 
   /**
