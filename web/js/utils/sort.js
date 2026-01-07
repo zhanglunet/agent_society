@@ -64,6 +64,44 @@ const SortUtils = {
   },
 
   /**
+   * 按创建时间排序智能体列表，固定 user 和 root 在顶部
+   * @param {Array} agents - 智能体数组
+   * @param {string} order - 排序方向 ('asc' 或 'desc')
+   * @returns {Array} 排序后的新数组，user 在第一位，root 在第二位
+   */
+  sortWithPinnedAgents(agents, order = this.ASC) {
+    if (!Array.isArray(agents)) {
+      return [];
+    }
+    
+    // 分离固定智能体和普通智能体
+    const regular = [];
+    let userAgent = null;
+    let rootAgent = null;
+    
+    for (const agent of agents) {
+      if (agent.id === 'user') {
+        userAgent = agent;
+      } else if (agent.id === 'root') {
+        rootAgent = agent;
+      } else {
+        regular.push(agent);
+      }
+    }
+    
+    // 按固定顺序添加: user 第一，root 第二
+    const pinned = [];
+    if (userAgent) pinned.push(userAgent);
+    if (rootAgent) pinned.push(rootAgent);
+    
+    // 对普通智能体排序
+    const sortedRegular = this.sortByCreatedAt(regular, order);
+    
+    // 合并结果
+    return [...pinned, ...sortedRegular];
+  },
+
+  /**
    * 切换排序方向
    * @param {string} currentOrder - 当前排序方向
    * @returns {string} 新的排序方向

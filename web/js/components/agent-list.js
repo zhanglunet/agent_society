@@ -72,8 +72,8 @@ const AgentList = {
   applyFilterAndSort() {
     // 先筛选
     let result = FilterUtils.filterByKeyword(this.agents, this.filterKeyword);
-    // 再排序
-    result = SortUtils.sortByCreatedAt(result, this.sortOrder);
+    // 使用固定排序函数，确保 user 和 root 在顶部
+    result = SortUtils.sortWithPinnedAgents(result, this.sortOrder);
     this.filteredAgents = result;
   },
 
