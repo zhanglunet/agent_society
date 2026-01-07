@@ -2,6 +2,8 @@
 
 本指南将帮助你快速上手 Agent Society，从安装配置到运行第一个多智能体协作任务。
 
+![Agent Society UI](images/UI.png)
+
 ## 目录
 
 - [环境准备](#环境准备)
@@ -159,6 +161,11 @@ bun start --port 3001
 # 组合使用
 bun start ./my-data -p 3001 --no-browser
 ```
+
+然后在浏览器里像微信一样聊天。
+
+
+![Agent Society Architecture](images/work.png)
 
 ### 示例 1：简单计算
 
