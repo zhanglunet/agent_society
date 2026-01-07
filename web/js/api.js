@@ -95,6 +95,26 @@ const API = {
       message: message,
     });
   },
+
+  /**
+   * 设置智能体自定义名称
+   * @param {string} agentId - 智能体 ID
+   * @param {string} customName - 自定义名称（空字符串表示清除）
+   * @returns {Promise<object>} 设置结果
+   */
+  async setAgentCustomName(agentId, customName) {
+    return this.post(`/agent/${encodeURIComponent(agentId)}/custom-name`, {
+      customName: customName,
+    });
+  },
+
+  /**
+   * 获取所有智能体的自定义名称
+   * @returns {Promise<{customNames: object}>} 自定义名称映射
+   */
+  async getAgentCustomNames() {
+    return this.get('/agent-custom-names');
+  },
 };
 
 // 导出 API 对象供其他模块使用

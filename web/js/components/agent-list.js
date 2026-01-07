@@ -184,9 +184,22 @@ const AgentList = {
   getAgentIconText(agent) {
     if (agent.id === 'root') return '🌳';
     if (agent.id === 'user') return '👤';
-    // 取岗位名称首字或 ID 首字母
-    const name = agent.roleName || agent.id || '?';
+    // 优先使用自定义名称，其次岗位名称，最后 ID
+    const name = agent.customName || agent.roleName || agent.id || '?';
     return name.charAt(0).toUpperCase();
+  },
+
+  /**
+   * 获取智能体显示名称
+   * @param {object} agent - 智能体对象
+   * @returns {string} 显示名称
+   */
+  getAgentDisplayName(agent) {
+    // 如果有自定义名称，优先显示
+    if (agent.customName) {
+      return agent.customName;
+    }
+    return agent.id;
   },
 
   /**
@@ -241,6 +254,8 @@ const AgentList = {
       const hasNewMessage = this.newMessageAgents.has(agent.id);
       const iconType = this.getAgentIconType(agent);
       const iconText = this.getAgentIconText(agent);
+      const displayName = this.getAgentDisplayName(agent);
+      const showIdSeparately = agent.customName && agent.customName !== agent.id;
 
       return `
         <div class="agent-item ${isSelected ? 'selected' : ''} ${hasNewMessage ? 'has-new-message' : ''}"
@@ -248,7 +263,8 @@ const AgentList = {
              onclick="AgentList.selectAgent('${agent.id}')">
           <div class="agent-icon ${iconType}">${iconText}</div>
           <div class="agent-info">
-            <div class="agent-name">${this.escapeHtml(agent.id)}</div>
+            <div class="agent-name">${this.escapeHtml(displayName)}</div>
+            ${showIdSeparately ? `<div class="agent-id-small">${this.escapeHtml(agent.id)}</div>` : ''}
             <div class="agent-role">${this.escapeHtml(agent.roleName || '未知岗位')}</div>
           </div>
           <div class="agent-time">${this.getDisplayTime(agent)}</div>

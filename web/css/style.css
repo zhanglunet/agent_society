@@ -827,3 +827,157 @@ body {
     max-width: 80%;
   }
 }
+
+
+/* ========== 智能体详情弹窗 ========== */
+.agent-detail-modal {
+  max-width: 500px;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+/* 自定义名称表单 */
+.custom-name-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.custom-name-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.custom-name-input:focus {
+  outline: none;
+  border-color: #07c160;
+}
+
+.save-name-btn {
+  background-color: #07c160;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.save-name-btn:hover {
+  background-color: #06ad56;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #888;
+}
+
+/* 状态徽章 */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.status-badge.active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.terminated {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* 等宽字体 */
+.monospace {
+  font-family: "Consolas", "Monaco", monospace;
+  font-size: 13px;
+}
+
+/* 统计网格 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #07c160;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* 智能体详情按钮 */
+.agent-detail-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.chat-header:hover .agent-detail-btn {
+  opacity: 1;
+}
+
+.agent-detail-btn:hover {
+  color: #07c160;
+}
+
+/* 智能体列表项中的自定义名称显示 */
+.agent-custom-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-id-small {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

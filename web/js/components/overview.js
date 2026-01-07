@@ -163,6 +163,9 @@ const OverviewPanel = {
 
     const icon = this.getNodeIcon(node);
     const statusClass = node.status === 'terminated' ? 'terminated' : '';
+    
+    // 获取显示名称（优先使用自定义名称）
+    const displayName = this.getNodeDisplayName(node);
 
     let childrenHtml = '';
     if (node.children && node.children.length > 0) {
@@ -177,12 +180,28 @@ const OverviewPanel = {
       <div class="tree-node">
         <div class="tree-node-content ${statusClass}" onclick="OverviewPanel.onNodeClick('${node.id}')">
           <span class="tree-node-icon">${icon}</span>
-          <span class="tree-node-name">${this.escapeHtml(node.id)}</span>
+          <span class="tree-node-name">${this.escapeHtml(displayName)}</span>
           <span class="tree-node-role">${this.escapeHtml(node.roleName)}</span>
         </div>
         ${childrenHtml}
       </div>
     `;
+  },
+
+  /**
+   * 获取节点显示名称
+   * @param {object} node - 树节点
+   * @returns {string} 显示名称
+   */
+  getNodeDisplayName(node) {
+    // 从 App 获取智能体信息，检查是否有自定义名称
+    if (window.App && window.App.agentsById) {
+      const agent = window.App.agentsById.get(node.id);
+      if (agent && agent.customName) {
+        return agent.customName;
+      }
+    }
+    return node.id;
   },
 
   /**

@@ -60,7 +60,7 @@ const ChatPanel = {
    */
   updateHeader() {
     if (this.headerTitle) {
-      this.headerTitle.textContent = this.currentAgent ? this.currentAgent.id : '选择一个智能体';
+      this.headerTitle.textContent = this.currentAgent ? this.getAgentShortName(this.currentAgent) : '选择一个智能体';
     }
     if (this.headerRole) {
       this.headerRole.textContent = this.currentAgent ? (this.currentAgent.roleName || '') : '';
@@ -74,7 +74,39 @@ const ChatPanel = {
         this.headerStatus.textContent = '';
       }
     }
+    
+    // 更新或创建详情按钮
+    this.updateDetailButton();
+    
     this.updateInputPlaceholder();
+  },
+
+  /**
+   * 更新详情按钮
+   */
+  updateDetailButton() {
+    const chatTitle = document.querySelector('.chat-title');
+    if (!chatTitle) return;
+    
+    let detailBtn = chatTitle.querySelector('.agent-detail-btn');
+    
+    if (this.currentAgent) {
+      if (!detailBtn) {
+        detailBtn = document.createElement('button');
+        detailBtn.className = 'agent-detail-btn';
+        detailBtn.title = '查看详情';
+        detailBtn.textContent = 'ℹ️';
+        chatTitle.appendChild(detailBtn);
+      }
+      detailBtn.onclick = () => {
+        if (window.AgentDetailModal && this.currentAgentId) {
+          window.AgentDetailModal.show(this.currentAgentId);
+        }
+      };
+      detailBtn.style.display = 'inline-block';
+    } else if (detailBtn) {
+      detailBtn.style.display = 'none';
+    }
   },
 
   /**
@@ -89,11 +121,31 @@ const ChatPanel = {
     }
     if (window.App && window.App.agentsById) {
       const agent = window.App.agentsById.get(agentId);
-      if (agent && agent.roleName) {
-        return `${agent.roleName}（${agentId}）`;
+      if (agent) {
+        // 优先使用自定义名称
+        if (agent.customName) {
+          return agent.customName;
+        }
+        if (agent.roleName) {
+          return `${agent.roleName}（${agentId}）`;
+        }
       }
     }
     return agentId;
+  },
+
+  /**
+   * 获取智能体简短显示名称（用于头部）
+   * @param {object} agent - 智能体对象
+   * @returns {string} 显示名称
+   */
+  getAgentShortName(agent) {
+    if (!agent) return '选择一个智能体';
+    // 优先使用自定义名称
+    if (agent.customName) {
+      return agent.customName;
+    }
+    return agent.id;
   },
 
   /**

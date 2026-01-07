@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, appendFile } from "node:fs/promises";
+import { mkdir, readFile, appendFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { createNoopModuleLogger } from "./logger.js";
@@ -16,6 +16,8 @@ import { createNoopModuleLogger } from "./logger.js";
  * - GET /api/roles - 列出所有岗位及智能体数量
  * - GET /api/agent-messages/:agentId - 查询智能体消息（按agentId）
  * - GET /api/org/tree - 获取组织层级树结构
+ * - POST /api/agent/:agentId/custom-name - 设置智能体自定义名称
+ * - GET /api/agent-custom-names - 获取所有智能体自定义名称
  * - GET /web/* - 静态文件服务
  */
 export class HTTPServer {
@@ -34,6 +36,9 @@ export class HTTPServer {
     this._runtimeDir = options.runtimeDir ?? null;
     this._messagesByAgent = new Map(); // agentId -> messages[]
     this._messagesById = new Map(); // messageId -> message（用于去重）
+    
+    // 自定义名称存储
+    this._customNames = new Map(); // agentId -> customName
   }
 
   /**
@@ -51,6 +56,95 @@ export class HTTPServer {
   _getMessagesDir() {
     if (!this._runtimeDir) return null;
     return path.join(this._runtimeDir, "web", "messages");
+  }
+
+  /**
+   * 获取自定义名称存储文件路径。
+   * @returns {string|null}
+   */
+  _getCustomNamesFilePath() {
+    if (!this._runtimeDir) return null;
+    return path.join(this._runtimeDir, "web", "custom-names.json");
+  }
+
+  /**
+   * 加载自定义名称配置。
+   * @returns {Promise<void>}
+   */
+  async _loadCustomNames() {
+    const filePath = this._getCustomNamesFilePath();
+    if (!filePath) return;
+
+    try {
+      if (!existsSync(filePath)) {
+        return;
+      }
+      const content = await readFile(filePath, "utf8");
+      const data = JSON.parse(content);
+      this._customNames.clear();
+      for (const [agentId, customName] of Object.entries(data)) {
+        if (customName && typeof customName === "string") {
+          this._customNames.set(agentId, customName);
+        }
+      }
+      void this.log.debug("加载自定义名称", { count: this._customNames.size });
+    } catch (err) {
+      void this.log.warn("加载自定义名称失败", { error: err.message });
+    }
+  }
+
+  /**
+   * 保存自定义名称配置。
+   * @returns {Promise<void>}
+   */
+  async _saveCustomNames() {
+    const filePath = this._getCustomNamesFilePath();
+    if (!filePath) return;
+
+    try {
+      // 确保目录存在
+      const dir = path.dirname(filePath);
+      await mkdir(dir, { recursive: true });
+
+      const data = Object.fromEntries(this._customNames);
+      await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+      void this.log.debug("保存自定义名称", { count: this._customNames.size });
+    } catch (err) {
+      void this.log.error("保存自定义名称失败", { error: err.message });
+      throw err;
+    }
+  }
+
+  /**
+   * 设置智能体自定义名称。
+   * @param {string} agentId - 智能体ID
+   * @param {string} customName - 自定义名称（空字符串表示清除）
+   * @returns {Promise<void>}
+   */
+  async setCustomName(agentId, customName) {
+    if (customName && typeof customName === "string" && customName.trim()) {
+      this._customNames.set(agentId, customName.trim());
+    } else {
+      this._customNames.delete(agentId);
+    }
+    await this._saveCustomNames();
+  }
+
+  /**
+   * 获取智能体自定义名称。
+   * @param {string} agentId - 智能体ID
+   * @returns {string|null} 自定义名称，如果没有则返回null
+   */
+  getCustomName(agentId) {
+    return this._customNames.get(agentId) || null;
+  }
+
+  /**
+   * 获取所有自定义名称。
+   * @returns {object} agentId -> customName 映射
+   */
+  getAllCustomNames() {
+    return Object.fromEntries(this._customNames);
   }
 
   /**
@@ -287,6 +381,9 @@ export class HTTPServer {
     
     // 预加载所有已存在的消息
     await this._preloadAllMessages();
+    
+    // 加载自定义名称
+    await this._loadCustomNames();
 
     return new Promise((resolve) => {
       try {
@@ -390,6 +487,17 @@ export class HTTPServer {
         });
       } else if (method === "GET" && pathname === "/api/org/tree") {
         this._handleGetOrgTree(res);
+      } else if (method === "POST" && pathname.startsWith("/api/agent/") && pathname.endsWith("/custom-name")) {
+        // 提取 agentId: /api/agent/:agentId/custom-name
+        const match = pathname.match(/^\/api\/agent\/(.+)\/custom-name$/);
+        if (match) {
+          const agentId = decodeURIComponent(match[1]);
+          this._handleSetCustomName(req, agentId, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
+      } else if (method === "GET" && pathname === "/api/agent-custom-names") {
+        this._handleGetCustomNames(res);
       } else if (method === "GET" && pathname.startsWith("/web/")) {
         // 异步处理静态文件
         this._handleStaticFile(pathname, res).catch(err => {
@@ -575,7 +683,8 @@ export class HTTPServer {
           parentAgentId: null,
           createdAt: null,
           lastActiveAt: this._getLastActiveAt("root"),
-          status: "active"
+          status: "active",
+          customName: this.getCustomName("root")
         },
         {
           id: "user",
@@ -584,7 +693,8 @@ export class HTTPServer {
           parentAgentId: null,
           createdAt: null,
           lastActiveAt: this._getLastActiveAt("user"),
-          status: "active"
+          status: "active",
+          customName: this.getCustomName("user")
         },
         ...persistedAgents.map(a => ({
           id: a.id,
@@ -594,7 +704,8 @@ export class HTTPServer {
           createdAt: a.createdAt,
           lastActiveAt: this._getLastActiveAt(a.id),
           status: a.status ?? "active",
-          terminatedAt: a.terminatedAt
+          terminatedAt: a.terminatedAt,
+          customName: this.getCustomName(a.id)
         }))
       ];
       
@@ -760,6 +871,55 @@ export class HTTPServer {
       });
     } catch (err) {
       void this.log.error("查询组织树失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 POST /api/agent/:agentId/custom-name - 设置智能体自定义名称。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} agentId - 智能体ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleSetCustomName(req, agentId, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      const customName = body?.customName;
+      if (customName !== undefined && typeof customName !== "string") {
+        this._sendJson(res, 400, { error: "invalid_custom_name", message: "customName 必须是字符串" });
+        return;
+      }
+
+      try {
+        await this.setCustomName(agentId, customName || "");
+        void this.log.info("设置智能体自定义名称", { agentId, customName: customName || "(cleared)" });
+        this._sendJson(res, 200, { 
+          ok: true, 
+          agentId, 
+          customName: this.getCustomName(agentId) 
+        });
+      } catch (saveErr) {
+        void this.log.error("保存自定义名称失败", { agentId, error: saveErr.message });
+        this._sendJson(res, 500, { error: "save_failed", message: saveErr.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 GET /api/agent-custom-names - 获取所有智能体自定义名称。
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetCustomNames(res) {
+    try {
+      const customNames = this.getAllCustomNames();
+      void this.log.debug("HTTP查询自定义名称", { count: Object.keys(customNames).length });
+      this._sendJson(res, 200, { customNames });
+    } catch (err) {
+      void this.log.error("查询自定义名称失败", { error: err.message });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
     }
   }

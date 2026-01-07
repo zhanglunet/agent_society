@@ -30,6 +30,7 @@ const App = {
     ChatPanel.init();
     OverviewPanel.init();
     MessageModal.init();
+    AgentDetailModal.init();
 
     // 绑定视图切换按钮
     this.bindViewToggle();
