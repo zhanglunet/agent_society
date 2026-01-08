@@ -538,6 +538,10 @@ export class Runtime {
       await new Promise((r) => setImmediate(r));
     }
     
+    if (this._forceExit) {
+      void this.log.info("强制退出，跳过等待活跃消息");
+      process.exit(1);
+    }
     // 等待所有正在处理的消息完成（除非强制退出）
     while (this._activeProcessingAgents.size > 0 && !this._forceExit) {
       void this.log.info("等待活跃消息处理完成", { 
@@ -547,10 +551,6 @@ export class Runtime {
       await new Promise((r) => setTimeout(r, 100));
     }
     
-    if (this._forceExit) {
-      void this.log.info("强制退出，跳过等待活跃消息");
-      process.exit(1);
-    }
     
     void this.log.info("运行时常驻消息循环结束", { stopRequested: this._stopRequested });
   }
