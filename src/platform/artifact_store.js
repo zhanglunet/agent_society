@@ -64,4 +64,39 @@ export class ArtifactStore {
       throw err;
     }
   }
+
+  /**
+   * 保存截图为 JPEG 图片文件。
+   * @param {Buffer} buffer - 图片二进制数据
+   * @param {{tabId?: string, url?: string, title?: string, fullPage?: boolean, selector?: string}} meta - 元数据
+   * @returns {Promise<string>} 图片文件路径
+   */
+  async saveScreenshot(buffer, meta = {}) {
+    await this.ensureReady();
+    
+    // 创建 screenshots 子目录
+    const screenshotsDir = path.resolve(this.artifactsDir, "screenshots");
+    await mkdir(screenshotsDir, { recursive: true });
+    
+    // 生成文件名：时间戳_uuid.jpg
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const id = randomUUID().slice(0, 8);
+    const fileName = `${timestamp}_${id}.jpg`;
+    const filePath = path.resolve(screenshotsDir, fileName);
+    
+    // 写入图片文件
+    await writeFile(filePath, buffer);
+    
+    // 返回相对路径
+    const relativePath = `screenshots/${fileName}`;
+    
+    void this.log.info("保存截图", { 
+      fileName, 
+      relativePath,
+      url: meta.url || null,
+      title: meta.title || null
+    });
+    
+    return relativePath;
+  }
 }

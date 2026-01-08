@@ -54,6 +54,7 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
     artifactsDir: dataDir ? path.resolve(dataDir, "artifacts") : path.resolve(process.cwd(), cfg.artifactsDir),
     runtimeDir: dataDir ? path.resolve(dataDir, "state") : path.resolve(process.cwd(), cfg.runtimeDir),
     maxSteps: Number.isFinite(cfg.maxSteps) ? cfg.maxSteps : 200,
+    maxToolRounds: Number.isFinite(cfg.maxToolRounds) ? cfg.maxToolRounds : 200,
     llm: cfg.llm
       ? {
           baseURL: String(cfg.llm.baseURL ?? ""),
@@ -63,7 +64,10 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
       : null
     ,
     logging,
-    dataDir
+    dataDir,
+    // 模块配置：字符串数组，列出要启用的模块名称
+    modules: Array.isArray(cfg.modules) ? cfg.modules.filter(m => typeof m === "string") : [],
+    contextLimit: cfg.contextLimit ?? null
   };
 }
 

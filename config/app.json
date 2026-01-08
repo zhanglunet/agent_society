@@ -15,5 +15,6 @@
     "warningThreshold": 0.7,
     "criticalThreshold": 0.9,
     "hardLimitThreshold": 0.95
-  }
+  },
+  "modules": ["chrome"]
 }

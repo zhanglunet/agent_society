@@ -135,6 +135,32 @@ const API = {
       rolePrompt: rolePrompt,
     });
   },
+
+  /**
+   * 获取指定智能体的对话历史（包含思考过程）
+   * @param {string} agentId - 智能体 ID
+   * @returns {Promise<{agentId: string, messages: Array, thinkingMap: object}>} 对话历史
+   */
+  async getAgentConversation(agentId) {
+    return this.get(`/agent-conversation/${encodeURIComponent(agentId)}`);
+  },
+
+  /**
+   * 获取所有已加载模块列表
+   * @returns {Promise<{modules: Array}>} 模块列表
+   */
+  async getModules() {
+    return this.get('/modules');
+  },
+
+  /**
+   * 获取��定模块的 Web 组件
+   * @param {string} moduleName - 模块名称
+   * @returns {Promise<{html: string, css: string, js: string}>} Web 组件定义
+   */
+  async getModuleWebComponent(moduleName) {
+    return this.get(`/modules/${encodeURIComponent(moduleName)}/web-component`);
+  },
 };
 
 // 导出 API 对象供其他模块使用

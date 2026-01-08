@@ -537,6 +537,13 @@ export class HTTPServer {
           void this.log.error("处理智能体消息请求失败", { agentId, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
+      } else if (method === "GET" && pathname.startsWith("/api/agent-conversation/")) {
+        const agentId = decodeURIComponent(pathname.slice("/api/agent-conversation/".length));
+        // 异步处理
+        this._handleGetAgentConversation(agentId, res).catch(err => {
+          void this.log.error("处理智能体对话历史请求失败", { agentId, error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
       } else if (method === "GET" && pathname === "/api/org/tree") {
         this._handleGetOrgTree(res);
       } else if (method === "GET" && pathname === "/api/org/role-tree") {
@@ -571,6 +578,12 @@ export class HTTPServer {
         // 重定向到 /web/index.html
         this._handleStaticFile("/web/index.html", res).catch(err => {
           void this.log.error("处理静态文件请求失败", { pathname: "/web/index.html", error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (pathname.startsWith("/api/modules")) {
+        // 模块 API 路由
+        this._handleModuleApi(req, res, method, pathname).catch(err => {
+          void this.log.error("处理模块 API 请求失败", { pathname, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
       } else {
@@ -880,6 +893,80 @@ export class HTTPServer {
       void this.log.error("查询智能体消息失败", { agentId, error: err.message });
       this._sendJson(res, 500, { error: "load_messages_failed", message: err.message });
     }
+  }
+
+  /**
+   * 处理 GET /api/agent-conversation/:agentId - 获取智能体的对话历史（包含 reasoning_content）。
+   * @param {string} agentId
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetAgentConversation(agentId, res) {
+    if (!agentId || agentId.trim() === "") {
+      this._sendJson(res, 400, { error: "missing_agent_id" });
+      return;
+    }
+
+    try {
+      // 从对话历史文件中读取
+      const conversationsDir = this._getConversationsDir();
+      if (!conversationsDir) {
+        this._sendJson(res, 200, { agentId, messages: [], thinkingMap: {} });
+        return;
+      }
+
+      const filePath = path.join(conversationsDir, `${agentId}.json`);
+      
+      if (!existsSync(filePath)) {
+        this._sendJson(res, 200, { agentId, messages: [], thinkingMap: {} });
+        return;
+      }
+
+      const content = await readFile(filePath, "utf8");
+      const data = JSON.parse(content);
+      const messages = data.messages || [];
+
+      // 提取 reasoning_content，建立 tool_call_id 到 reasoning_content 的映射
+      const thinkingMap = {};
+      for (const msg of messages) {
+        if (msg.role === "assistant" && msg.reasoning_content) {
+          // 如果有 tool_calls，用第一个 tool_call 的 id 作为 key
+          if (msg.tool_calls && msg.tool_calls.length > 0) {
+            const callId = msg.tool_calls[0].id;
+            if (callId) {
+              thinkingMap[callId] = msg.reasoning_content;
+            }
+          }
+          // 也用消息内容的哈希作为备用 key（用于没有 tool_calls 的情况）
+          if (msg.content) {
+            const contentKey = `content:${msg.content.substring(0, 100)}`;
+            thinkingMap[contentKey] = msg.reasoning_content;
+          }
+        }
+      }
+
+      void this.log.debug("HTTP查询智能体对话历史", { agentId, messageCount: messages.length, thinkingCount: Object.keys(thinkingMap).length });
+      this._sendJson(res, 200, {
+        agentId,
+        messages,
+        thinkingMap
+      });
+    } catch (err) {
+      void this.log.error("查询智能体对话历史失败", { agentId, error: err.message });
+      this._sendJson(res, 500, { error: "load_conversation_failed", message: err.message });
+    }
+  }
+
+  /**
+   * 获取对话历史目录路径。
+   * @returns {string|null}
+   */
+  _getConversationsDir() {
+    if (!this.society || !this.society.runtime || !this.society.runtime.config) {
+      return null;
+    }
+    const runtimeDir = this.society.runtime.config.runtimeDir;
+    if (!runtimeDir) return null;
+    return path.join(runtimeDir, "conversations");
   }
 
   /**
@@ -1262,5 +1349,134 @@ export class HTTPServer {
     this._messagesByTaskId.clear();
     this._messagesByAgent.clear();
     this._messagesById.clear();
+  }
+
+  /**
+   * 处理模块 API 请求。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {import("node:http").ServerResponse} res
+   * @param {string} method
+   * @param {string} pathname
+   */
+  async _handleModuleApi(req, res, method, pathname) {
+    // 检查 runtime 是否可用
+    if (!this.society || !this.society.runtime || !this.society.runtime.moduleLoader) {
+      this._sendJson(res, 500, { error: "modules_not_initialized" });
+      return;
+    }
+
+    const moduleLoader = this.society.runtime.moduleLoader;
+    
+    // 解析路径: /api/modules, /api/modules/:name, /api/modules/:name/...
+    const pathParts = pathname.slice("/api/modules".length).split("/").filter(Boolean);
+    
+    // GET /api/modules - 获取所有已加载模块列表
+    if (method === "GET" && pathParts.length === 0) {
+      const modules = moduleLoader.getLoadedModules();
+      this._sendJson(res, 200, { ok: true, modules, count: modules.length });
+      return;
+    }
+
+    const moduleName = pathParts[0];
+    const subPath = pathParts.slice(1);
+
+    // GET /api/modules/:name - 获取指定模块详情
+    if (method === "GET" && pathParts.length === 1) {
+      const modules = moduleLoader.getLoadedModules();
+      const moduleInfo = modules.find(m => m.name === moduleName);
+      if (!moduleInfo) {
+        this._sendJson(res, 404, { error: "module_not_found", moduleName });
+        return;
+      }
+      this._sendJson(res, 200, { ok: true, module: moduleInfo });
+      return;
+    }
+
+    // GET /api/modules/:name/web-component - 获取模块的 Web 组件定义
+    if (method === "GET" && subPath.length === 1 && subPath[0] === "web-component") {
+      const components = moduleLoader.getWebComponents();
+      const component = components.find(c => c.moduleName === moduleName);
+      if (!component) {
+        this._sendJson(res, 404, { error: "web_component_not_found", moduleName });
+        return;
+      }
+      
+      // 如果组件定义包含 panelPath，读取文件内容
+      const componentDef = component.component;
+      if (componentDef.panelPath) {
+        try {
+          const panelDir = path.dirname(componentDef.panelPath);
+          const baseName = path.basename(componentDef.panelPath, '.html');
+          
+          // 读取 HTML、CSS、JS 文件
+          let html = '', css = '', js = '';
+          
+          const htmlPath = path.join(process.cwd(), componentDef.panelPath);
+          const cssPath = path.join(process.cwd(), panelDir, `${baseName}.css`);
+          const jsPath = path.join(process.cwd(), panelDir, `${baseName}.js`);
+          
+          if (existsSync(htmlPath)) {
+            const htmlContent = await readFile(htmlPath, 'utf8');
+            // 提取 body 内容
+            const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            html = bodyMatch ? bodyMatch[1].trim() : htmlContent;
+          }
+          
+          if (existsSync(cssPath)) {
+            css = await readFile(cssPath, 'utf8');
+          }
+          
+          if (existsSync(jsPath)) {
+            js = await readFile(jsPath, 'utf8');
+          }
+          
+          this._sendJson(res, 200, { 
+            ok: true, 
+            html, 
+            css, 
+            js,
+            moduleName: componentDef.moduleName,
+            displayName: componentDef.displayName,
+            icon: componentDef.icon
+          });
+          return;
+        } catch (err) {
+          void this.log.error("读取模块 Web 组件文件失败", { moduleName, error: err.message });
+          this._sendJson(res, 500, { error: "read_component_failed", message: err.message });
+          return;
+        }
+      }
+      
+      this._sendJson(res, 200, { ok: true, component: componentDef });
+      return;
+    }
+
+    // 路由到模块的 HTTP 处理器
+    const httpHandler = moduleLoader.getModuleHttpHandler(moduleName);
+    if (!httpHandler) {
+      this._sendJson(res, 404, { error: "module_http_handler_not_found", moduleName });
+      return;
+    }
+
+    try {
+      // 对于 POST 请求，读取请求体
+      let body = null;
+      if (method === "POST") {
+        body = await new Promise((resolve, reject) => {
+          this._readJsonBody(req, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+          });
+        });
+      }
+
+      // 调用模块的 HTTP 处理器
+      const result = await httpHandler(req, res, subPath, body);
+      this._sendJson(res, 200, result);
+    } catch (err) {
+      const message = err?.message ?? String(err);
+      void this.log.error("模块 HTTP 处理器错误", { moduleName, error: message });
+      this._sendJson(res, 500, { error: "module_handler_error", moduleName, message });
+    }
   }
 }

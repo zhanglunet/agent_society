@@ -5,7 +5,7 @@
 
 const App = {
   // 应用状态
-  currentView: 'list',      // 当前视图 ('list' 或 'overview')
+  currentView: 'list',      // 当前视图 ('list', 'overview', 'modules')
   selectedAgentId: null,    // 当前选中的智能体 ID
   agents: [],               // 所有智能体
   agentsById: new Map(),    // 智能体 ID 索引
@@ -29,6 +29,7 @@ const App = {
     AgentList.init();
     ChatPanel.init();
     OverviewPanel.init();
+    ModulesPanel.init();
     MessageModal.init();
     AgentDetailModal.init();
     RoleDetailModal.init();
@@ -51,12 +52,16 @@ const App = {
   bindViewToggle() {
     const listBtn = document.getElementById('view-list-btn');
     const overviewBtn = document.getElementById('view-overview-btn');
+    const modulesBtn = document.getElementById('view-modules-btn');
 
     if (listBtn) {
       listBtn.addEventListener('click', () => this.switchToListView());
     }
     if (overviewBtn) {
       overviewBtn.addEventListener('click', () => this.switchToOverviewView());
+    }
+    if (modulesBtn) {
+      modulesBtn.addEventListener('click', () => this.switchToModulesView());
     }
   },
 
@@ -67,6 +72,7 @@ const App = {
     this.currentView = 'list';
     this.updateViewToggleButtons();
     OverviewPanel.hide();
+    this.hideModulesPanel();
   },
 
   /**
@@ -84,7 +90,47 @@ const App = {
   switchToOverviewView() {
     this.currentView = 'overview';
     this.updateViewToggleButtons();
+    this.hideModulesPanel();
     OverviewPanel.show();
+  },
+
+  /**
+   * 切换到模块管理视图
+   */
+  switchToModulesView() {
+    this.currentView = 'modules';
+    this.updateViewToggleButtons();
+    OverviewPanel.hide();
+    this.showModulesPanel();
+  },
+
+  /**
+   * 显示模块管理面板
+   */
+  showModulesPanel() {
+    const agentList = document.getElementById('agent-list');
+    const toolbar = document.querySelector('.sidebar-toolbar');
+    const modulesPanel = document.getElementById('modules-panel');
+    
+    if (agentList) agentList.classList.add('hidden');
+    if (toolbar) toolbar.classList.add('hidden');
+    if (modulesPanel) {
+      modulesPanel.classList.remove('hidden');
+      ModulesPanel.show();
+    }
+  },
+
+  /**
+   * 隐藏模块管理面板
+   */
+  hideModulesPanel() {
+    const agentList = document.getElementById('agent-list');
+    const toolbar = document.querySelector('.sidebar-toolbar');
+    const modulesPanel = document.getElementById('modules-panel');
+    
+    if (agentList) agentList.classList.remove('hidden');
+    if (toolbar) toolbar.classList.remove('hidden');
+    if (modulesPanel) modulesPanel.classList.add('hidden');
   },
 
   /**
@@ -93,12 +139,16 @@ const App = {
   updateViewToggleButtons() {
     const listBtn = document.getElementById('view-list-btn');
     const overviewBtn = document.getElementById('view-overview-btn');
+    const modulesBtn = document.getElementById('view-modules-btn');
 
     if (listBtn) {
       listBtn.classList.toggle('active', this.currentView === 'list');
     }
     if (overviewBtn) {
       overviewBtn.classList.toggle('active', this.currentView === 'overview');
+    }
+    if (modulesBtn) {
+      modulesBtn.classList.toggle('active', this.currentView === 'modules');
     }
   },
 

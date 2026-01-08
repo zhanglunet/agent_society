@@ -16,6 +16,7 @@
         <div class="view-toggle">
           <button id="view-list-btn" class="toggle-btn active" title="列表视图">📋</button>
           <button id="view-overview-btn" class="toggle-btn" title="总览视图">🌳</button>
+          <button id="view-modules-btn" class="toggle-btn" title="模块管理">🔌</button>
         </div>
       </div>
       
@@ -47,6 +48,16 @@
         <!-- 智能体组织树 -->
         <div id="org-tree" class="org-tree">
           <!-- 组织树将通过 JavaScript 动态生成 -->
+        </div>
+      </div>
+      
+      <!-- 模块管理面板（默认隐藏） -->
+      <div id="modules-panel" class="modules-panel hidden">
+        <div id="modules-list" class="modules-list">
+          <!-- 模块列表将通过 JavaScript 动态生成 -->
+        </div>
+        <div id="module-detail" class="module-detail">
+          <!-- 模块详情将通过 JavaScript 动态生成 -->
         </div>
       </div>
     </aside>
@@ -134,6 +145,7 @@
   <script src="js/components/agent-detail-modal.js"></script>
   <script src="js/components/role-detail-modal.js"></script>
   <script src="js/components/overview.js"></script>
+  <script src="js/components/modules-panel.js"></script>
   <!-- 主应用 -->
   <script src="js/app.js"></script>
 </body>

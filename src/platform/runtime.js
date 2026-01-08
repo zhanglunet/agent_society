@@ -15,6 +15,7 @@ import { validateTaskBrief, formatTaskBrief } from "./task_brief.js";
 import { ContactManager } from "./contact_manager.js";
 import { formatMessageForAgent } from "./message_formatter.js";
 import { validateMessageFormat } from "./message_validator.js";
+import { ModuleLoader } from "./module_loader.js";
 
 /**
  * 运行时：将平台能力（org/message/artifact/prompt）与智能体行为连接起来。
@@ -58,6 +59,8 @@ export class Runtime {
     this.contactManager = new ContactManager();
     // 工具调用事件监听器
     this._toolCallListeners = new Set();
+    // 模块加载器（在 init() 中会重新初始化带 logger）
+    this.moduleLoader = new ModuleLoader();
   }
 
   /**
@@ -175,6 +178,16 @@ export class Runtime {
     this.commandExecutor = new CommandExecutor({ logger: this.loggerRoot.forModule("command") });
     // 重新初始化 ContactManager 带 logger
     this.contactManager = new ContactManager({ logger: this.loggerRoot.forModule("contact") });
+
+    // 初始化模块加载器并加载配置中启用的模块
+    this.moduleLoader = new ModuleLoader({ logger: this.loggerRoot.forModule("modules") });
+    if (this.config.modules && this.config.modules.length > 0) {
+      const moduleResult = await this.moduleLoader.loadModules(this.config.modules, this);
+      void this.log.info("模块加载完成", {
+        loaded: moduleResult.loaded,
+        errors: moduleResult.errors.length
+      });
+    }
 
     // 加载上下文限制配置并更新 ConversationManager
     if (this.config.contextLimit) {
@@ -917,7 +930,9 @@ export class Runtime {
             required: ["command"]
           }
         }
-      }
+      },
+      // 合并模块提供的工具定义
+      ...this.moduleLoader.getToolDefinitions()
     ];
   }
 
@@ -935,6 +950,14 @@ export class Runtime {
         toolName,
         args: args ?? null
       });
+      
+      // 检查是否是模块提供的工具
+      if (this.moduleLoader.hasToolName(toolName)) {
+        const result = await this.moduleLoader.executeToolCall(ctx, toolName, args);
+        void this.log.debug("模块工具调用完成", { toolName, ok: !result?.error });
+        return result;
+      }
+      
       if (toolName === "find_role_by_name") {
         const result = ctx.tools.findRoleByName(args.name);
         void this.log.debug("工具调用完成", { toolName, ok: true });
@@ -1736,6 +1759,7 @@ export class Runtime {
       },
       putArtifact: (artifact) => this.artifacts.putArtifact(artifact),
       getArtifact: (ref) => this.artifacts.getArtifact(ref),
+      saveScreenshot: (buffer, meta) => this.artifacts.saveScreenshot(buffer, meta),
       composePrompt: (parts) => this.prompts.compose(parts),
       consolePrint: (text) => process.stdout.write(String(text ?? ""))
     };

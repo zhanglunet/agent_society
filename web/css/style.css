@@ -1369,3 +1369,373 @@ body {
     transform: rotate(360deg);
   }
 }
+
+
+/* ========== 思考过程折叠标签样式 ========== */
+.thinking-section {
+  margin-bottom: 8px;
+  max-width: 100%;
+}
+
+.thinking-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: #f0f7ff;
+  border: 1px solid #d0e3ff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1976d2;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.thinking-toggle:hover {
+  background-color: #e3f0ff;
+  border-color: #b0d0ff;
+}
+
+.thinking-icon {
+  font-size: 14px;
+}
+
+.thinking-label {
+  font-weight: 500;
+}
+
+.thinking-arrow {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.thinking-content {
+  margin-top: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.thinking-content.hidden {
+  display: none;
+}
+
+.thinking-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+/* 发送消息的思考过程样式调整 */
+.message-item.sent .thinking-section {
+  text-align: right;
+}
+
+.message-item.sent .thinking-toggle {
+  background-color: #e8f5e9;
+  border-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.message-item.sent .thinking-toggle:hover {
+  background-color: #dcedc8;
+  border-color: #aed581;
+}
+
+.message-item.sent .thinking-content {
+  background-color: #f1f8e9;
+  border-color: #dcedc8;
+  text-align: left;
+}
+
+.message-item.sent .thinking-text {
+  color: #33691e;
+}
+
+
+/* ========== 模块管理面板样式 ========== */
+.modules-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.modules-panel.hidden {
+  display: none !important;
+}
+
+.modules-list {
+  padding: 12px;
+  border-bottom: 1px solid #1a1a1a;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.modules-title {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+  font-weight: normal;
+}
+
+.module-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #3a3a3a;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.module-item:hover {
+  background-color: #4a4a4a;
+}
+
+.module-item.selected {
+  background-color: #07c160;
+}
+
+.module-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.module-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.module-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.module-tools {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.module-item.selected .module-tools {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.module-status {
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.module-status.has-ui {
+  color: #07c160;
+}
+
+/* 模块详情区域 */
+.module-detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background-color: #252525;
+}
+
+.module-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.module-detail-header h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin: 0;
+}
+
+.module-refresh-btn {
+  background-color: #3a3a3a;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.module-refresh-btn:hover {
+  background-color: #4a4a4a;
+}
+
+.module-no-ui {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+}
+
+.module-no-ui p {
+  margin: 8px 0;
+}
+
+.module-no-ui .hint {
+  font-size: 12px;
+  color: #666;
+}
+
+.module-component-container {
+  color: #fff;
+}
+
+/* 模块面板内的加载和错误状态 */
+.modules-panel .loading-state,
+.modules-panel .error-state,
+.modules-panel .empty-state {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+}
+
+.modules-panel .error-state {
+  color: #f44336;
+}
+
+/* Chrome 模块面板样式（嵌入式） */
+.module-component-container .chrome-module-panel {
+  background: transparent;
+}
+
+.module-component-container .panel-header {
+  display: none; /* 隐藏模块自带的头部，使用统一的头部 */
+}
+
+.module-component-container .section {
+  margin-bottom: 16px;
+}
+
+.module-component-container .section h4 {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+  font-weight: normal;
+}
+
+.module-component-container .browser-list,
+.module-component-container .tab-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.module-component-container .browser-item,
+.module-component-container .tab-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background-color: #3a3a3a;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.module-component-container .browser-item:hover,
+.module-component-container .tab-item:hover {
+  background-color: #4a4a4a;
+}
+
+.module-component-container .browser-item.selected,
+.module-component-container .tab-item.selected {
+  background-color: #07c160;
+}
+
+.module-component-container .browser-info,
+.module-component-container .tab-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.module-component-container .browser-id,
+.module-component-container .tab-title {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.module-component-container .browser-status,
+.module-component-container .tab-url {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.module-component-container .browser-status.connected {
+  color: #07c160;
+}
+
+.module-component-container .close-btn {
+  background-color: #f44336;
+  border: none;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.module-component-container .browser-item:hover .close-btn,
+.module-component-container .tab-item:hover .close-btn {
+  opacity: 1;
+}
+
+.module-component-container .close-btn:hover {
+  background-color: #d32f2f;
+}
+
+.module-component-container .screenshot-preview {
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.module-component-container .screenshot-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+}
+
+.module-component-container .loading,
+.module-component-container .empty,
+.module-component-container .error {
+  padding: 12px;
+  text-align: center;
+  color: #888;
+  font-size: 12px;
+}
+
+.module-component-container .error {
+  color: #f44336;
+}

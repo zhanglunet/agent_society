@@ -9,6 +9,7 @@ const ChatPanel = {
   currentAgent: null,    // 当前智能体对象
   messages: [],          // 消息列表
   messagesById: new Map(), // 消息 ID 索引
+  thinkingMap: {},       // 思考过程映射（tool_call_id -> reasoning_content）
 
   // DOM 元素引用
   headerTitle: null,
@@ -182,6 +183,31 @@ const ChatPanel = {
     this.render();
     this.scrollToBottom();
     this.updateInputPlaceholder();
+    
+    // 异步加载思考过程
+    this.loadThinkingContent();
+  },
+
+  /**
+   * 加载思考过程内容
+   */
+  async loadThinkingContent() {
+    if (!this.currentAgentId || this.currentAgentId === 'user' || this.currentAgentId === 'root') {
+      this.thinkingMap = {};
+      return;
+    }
+
+    try {
+      const result = await API.getAgentConversation(this.currentAgentId);
+      this.thinkingMap = result.thinkingMap || {};
+      // 重新渲染以显示思考过程
+      if (Object.keys(this.thinkingMap).length > 0) {
+        this.render();
+      }
+    } catch (err) {
+      console.warn('加载思考过程失败:', err);
+      this.thinkingMap = {};
+    }
   },
 
   /**
@@ -333,6 +359,9 @@ const ChatPanel = {
         `;
       }
 
+      // 构建思考过程折叠标签
+      const thinkingHtml = this.renderThinkingSection(message);
+
       return `
         <div class="message-item ${messageClass}" data-message-id="${message.id}">
           <div class="message-avatar">${senderName.charAt(0).toUpperCase()}</div>
@@ -341,6 +370,7 @@ const ChatPanel = {
               ${headerText}
               <span class="message-time">${time}</span>
             </div>
+            ${thinkingHtml}
             <div class="message-bubble">${this.escapeHtml(messageText)}</div>
             <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
               详情
@@ -351,6 +381,85 @@ const ChatPanel = {
     }).join('');
 
     this.messageList.innerHTML = html;
+  },
+
+  /**
+   * 渲染思考过程折叠标签
+   * @param {object} message - 消息对象
+   * @returns {string} HTML 字符串
+   */
+  renderThinkingSection(message) {
+    // 从消息的原始数据中查找 reasoning_content
+    // 需要从对话历史中获取
+    const thinkingContent = this.getThinkingContent(message);
+    
+    if (!thinkingContent) {
+      return '';
+    }
+
+    const uniqueId = `thinking-${message.id}`;
+    return `
+      <div class="thinking-section">
+        <div class="thinking-toggle" onclick="ChatPanel.toggleThinking('${uniqueId}')">
+          <span class="thinking-icon">💭</span>
+          <span class="thinking-label">思考过程</span>
+          <span class="thinking-arrow" id="${uniqueId}-arrow">▶</span>
+        </div>
+        <div class="thinking-content hidden" id="${uniqueId}">
+          <pre class="thinking-text">${this.escapeHtml(thinkingContent)}</pre>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 获取消息的思考内容
+   * @param {object} message - 消息对象
+   * @returns {string|null} 思考内容
+   */
+  getThinkingContent(message) {
+    // 检查消息 payload 中是否有 reasoning_content
+    if (message.payload && message.payload.reasoning_content) {
+      return message.payload.reasoning_content;
+    }
+    // 检查消息本身是否有 reasoning_content（某些格式可能直接存储）
+    if (message.reasoning_content) {
+      return message.reasoning_content;
+    }
+    
+    // 从 thinkingMap 中查找（基于 tool_call_id）
+    if (message.type === 'tool_call' && message.id) {
+      // 工具调用消息的 ID 格式为 "tool-{callId}"
+      const callId = message.id.replace(/^tool-/, '');
+      if (this.thinkingMap[callId]) {
+        return this.thinkingMap[callId];
+      }
+    }
+    
+    // 尝试用消息内容匹配
+    const messageText = this.getMessageText(message);
+    if (messageText) {
+      const contentKey = `content:${messageText.substring(0, 100)}`;
+      if (this.thinkingMap[contentKey]) {
+        return this.thinkingMap[contentKey];
+      }
+    }
+    
+    return null;
+  },
+
+  /**
+   * 切换思考过程的展开/折叠状态
+   * @param {string} id - 思考内容元素的 ID
+   */
+  toggleThinking(id) {
+    const contentEl = document.getElementById(id);
+    const arrowEl = document.getElementById(`${id}-arrow`);
+    
+    if (contentEl && arrowEl) {
+      contentEl.classList.toggle('hidden');
+      arrowEl.textContent = contentEl.classList.contains('hidden') ? '▶' : '▼';
+    }
   },
 
   /**
@@ -386,6 +495,9 @@ const ChatPanel = {
       resultDisplay = String(result);
     }
 
+    // 构建思考过程折叠标签
+    const thinkingHtml = this.renderThinkingSection(message);
+
     return `
       <div class="message-item tool-call" data-message-id="${message.id}">
         <div class="message-avatar">🔧</div>
@@ -395,6 +507,7 @@ const ChatPanel = {
             <span class="tool-name">${this.escapeHtml(toolName)}</span>
             <span class="message-time">${time}</span>
           </div>
+          ${thinkingHtml}
           <div class="tool-call-details">
             <div class="tool-call-section">
               <span class="tool-call-section-label">参数:</span>

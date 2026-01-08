@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome 浏览器管理</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="chrome-module-panel">
+    <div class="panel-header">
+      <h3>🌐 Chrome 浏览器管理</h3>
+      <button class="refresh-btn" onclick="ChromePanel.refresh()">刷新</button>
+    </div>
+    
+    <div class="section">
+      <h4>浏览器实例</h4>
+      <div id="browser-list" class="browser-list">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h4>标签页列表</h4>
+      <div id="tab-list" class="tab-list">
+        <div class="empty">请先选择一个浏览器实例</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h4>截图预览</h4>
+      <div id="screenshot-preview" class="screenshot-preview">
+        <div class="empty">请先选择一个标签页</div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="panel.js"></script>
+</body>
+</html>
