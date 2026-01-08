@@ -119,7 +119,10 @@ export class LlmClient {
       messages: input.messages,
       tools: input.tools,
       tool_choice: input.tools && input.tools.length > 0 ? "auto" : undefined,
-      temperature: typeof input.temperature === "number" ? input.temperature : 0.2
+      temperature: typeof input.temperature === "number" ? input.temperature : 0.2,
+      extra_body:{
+        "thinking":{"type":"enabled"}
+      }
     };
     await this.log.info("LLM 请求内容", {
       meta,
