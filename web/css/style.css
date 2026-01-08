@@ -1739,3 +1739,167 @@ body {
 .module-component-container .error {
   color: #f44336;
 }
+
+
+/* ========== 图片查看器样式 ========== */
+.image-viewer-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3000;
+}
+
+.image-viewer-modal.hidden {
+  display: none;
+}
+
+.image-viewer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.image-viewer-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.image-viewer-image {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.image-viewer-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  z-index: 3001;
+}
+
+.image-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-viewer-prev,
+.image-viewer-next {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 48px;
+  width: 60px;
+  height: 80px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  z-index: 3001;
+}
+
+.image-viewer-prev {
+  left: 20px;
+  border-radius: 4px;
+}
+
+.image-viewer-next {
+  right: 20px;
+  border-radius: 4px;
+}
+
+.image-viewer-prev:hover,
+.image-viewer-next:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-viewer-counter {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 3001;
+}
+
+/* ========== 消息图片缩略图样式 ========== */
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.message-thumbnail {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 4px;
+  cursor: pointer;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.message-thumbnail:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.message-thumbnail.error {
+  background-color: #f5f5f5;
+  border: 1px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 75px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* 发送消息中的图片样式 */
+.message-item.sent .message-images {
+  justify-content: flex-end;
+}
+
+.message-item.sent .message-thumbnail {
+  border-color: #7bc96f;
+}
+
+/* 工具调用消息中的图片样式 */
+.message-item.tool-call .message-images {
+  margin-top: 12px;
+}

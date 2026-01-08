@@ -175,10 +175,37 @@ const ModulesPanel = {
         // 使用 Function 构造器来执行模块 JS，避免全局污染
         const executeModuleJs = new Function(js);
         executeModuleJs();
+        
+        // 使用通用初始化机制（不再硬编码模块名）
+        this.initModulePanel(moduleName);
       } catch (err) {
         console.error('执行模块脚本失败:', err);
+        this.showError(`脚本执行失败: ${err.message}`);
       }
     }
+  },
+
+  /**
+   * 通用模块面板初始化
+   * @param {string} moduleName - 模块名称
+   */
+  async initModulePanel(moduleName) {
+    // 将模块名转换为 PascalCase
+    const pascalName = this.toPascalCase(moduleName);
+    const panelKey = `ModulePanel_${pascalName}`;
+    
+    // 查找模块面板对象
+    const panel = window[panelKey];
+    
+    if (panel && typeof panel.init === 'function') {
+      try {
+        await panel.init();
+      } catch (err) {
+        console.error(`模块 ${moduleName} 初始化失败:`, err);
+        this.showError(`模块初始化失败: ${err.message}`);
+      }
+    }
+    // 如果没有找到面板对象，静默跳过（模块可能不需要交互初始化）
   },
 
   /**
@@ -188,6 +215,29 @@ const ModulesPanel = {
     // 清除缓存
     this.moduleComponents.delete(moduleName);
     await this.loadModuleDetail(moduleName);
+  },
+
+  /**
+   * 显示错误信息
+   * @param {string} message - 错误信息
+   */
+  showError(message) {
+    if (this.moduleDetail) {
+      this.moduleDetail.innerHTML += `<div class="error-state">${this.escapeHtml(message)}</div>`;
+    }
+  },
+
+  /**
+   * 将 kebab-case 或 snake_case 转换为 PascalCase
+   * @param {string} str - 输入字符串
+   * @returns {string} PascalCase 格式的字符串
+   */
+  toPascalCase(str) {
+    if (!str) return '';
+    return str
+      .split(/[-_]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join('');
   },
 
   /**

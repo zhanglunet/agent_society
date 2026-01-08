@@ -361,6 +361,9 @@ const ChatPanel = {
 
       // 构建思考过程折叠标签
       const thinkingHtml = this.renderThinkingSection(message);
+      
+      // 构建图片缩略图
+      const imagesHtml = this.renderMessageImages(message);
 
       return `
         <div class="message-item ${messageClass}" data-message-id="${message.id}">
@@ -372,6 +375,7 @@ const ChatPanel = {
             </div>
             ${thinkingHtml}
             <div class="message-bubble">${this.escapeHtml(messageText)}</div>
+            ${imagesHtml}
             <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
               详情
             </button>
@@ -497,6 +501,9 @@ const ChatPanel = {
 
     // 构建思考过程折叠标签
     const thinkingHtml = this.renderThinkingSection(message);
+    
+    // 构建图片缩略图
+    const imagesHtml = this.renderMessageImages(message);
 
     return `
       <div class="message-item tool-call" data-message-id="${message.id}">
@@ -518,6 +525,7 @@ const ChatPanel = {
               <pre class="tool-call-result">${this.escapeHtml(resultDisplay)}</pre>
             </div>
           </div>
+          ${imagesHtml}
           <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
             详情
           </button>
@@ -648,6 +656,46 @@ const ChatPanel = {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  },
+
+  /**
+   * 渲染消息中的图片缩略图
+   * @param {object} message - 消息对象
+   * @returns {string} HTML 字符串
+   */
+  renderMessageImages(message) {
+    // 从 payload 或 result 中获取 images 数组
+    let images = [];
+    
+    if (message.payload) {
+      if (Array.isArray(message.payload.images)) {
+        images = message.payload.images;
+      } else if (message.payload.result && Array.isArray(message.payload.result.images)) {
+        images = message.payload.result.images;
+      }
+    }
+    
+    if (images.length === 0) return '';
+    
+    // 生成唯一 ID 用于存储图片数组
+    const imagesId = `images_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // 将图片数组存储到全局，供点击时使用
+    window._chatPanelImages = window._chatPanelImages || {};
+    window._chatPanelImages[imagesId] = images;
+    
+    return `
+      <div class="message-images">
+        ${images.map((img, idx) => `
+          <img 
+            class="message-thumbnail" 
+            src="/artifacts/${this.escapeHtml(img)}" 
+            alt="图片 ${idx + 1}"
+            onclick="ImageViewer.show(window._chatPanelImages['${imagesId}'], ${idx})"
+            onerror="this.classList.add('error'); this.alt='加载失败'"
+          />
+        `).join('')}
+      </div>
+    `;
   },
 };
 

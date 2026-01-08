@@ -21,10 +21,11 @@ import { createNoopModuleLogger } from "./logger.js";
  * - GET /api/agent-custom-names - 获取所有智能体自定义名称
  * - POST /api/role/:roleId/prompt - 更新岗位职责提示词
  * - GET /web/* - 静态文件服务
+ * - GET /artifacts/* - 工件文件服务
  */
 export class HTTPServer {
   /**
-   * @param {{port?:number, society?:any, logger?:any, runtimeDir?:string}} options
+   * @param {{port?:number, society?:any, logger?:any, runtimeDir?:string, artifactsDir?:string}} options
    */
   constructor(options = {}) {
     this.port = options.port ?? 3000;
@@ -36,6 +37,7 @@ export class HTTPServer {
     
     // 消息存储相关
     this._runtimeDir = options.runtimeDir ?? null;
+    this._artifactsDir = options.artifactsDir ?? null;
     this._messagesByAgent = new Map(); // agentId -> messages[]
     this._messagesById = new Map(); // messageId -> message（用于去重）
     
@@ -49,6 +51,14 @@ export class HTTPServer {
    */
   setRuntimeDir(runtimeDir) {
     this._runtimeDir = runtimeDir;
+  }
+
+  /**
+   * 设置工件目录。
+   * @param {string} artifactsDir
+   */
+  setArtifactsDir(artifactsDir) {
+    this._artifactsDir = artifactsDir;
   }
 
   /**
@@ -578,6 +588,12 @@ export class HTTPServer {
         // 重定向到 /web/index.html
         this._handleStaticFile("/web/index.html", res).catch(err => {
           void this.log.error("处理静态文件请求失败", { pathname: "/web/index.html", error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "GET" && pathname.startsWith("/artifacts/")) {
+        // 工件文件服务
+        this._handleArtifactFile(pathname, res).catch(err => {
+          void this.log.error("处理工件文件请求失败", { pathname, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
       } else if (pathname.startsWith("/api/modules")) {
@@ -1285,6 +1301,78 @@ export class HTTPServer {
       void this.log.debug("HTTP静态文件", { path: relativePath });
     } catch (err) {
       void this.log.error("读取静态文件失败", { path: relativePath, error: err.message });
+      this._sendJson(res, 500, { error: "read_file_failed", message: err.message });
+    }
+  }
+
+  /**
+   * 处理工件文件请求。
+   * @param {string} pathname - 请求路径
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleArtifactFile(pathname, res) {
+    // 检查是否配置了工件目录
+    if (!this._artifactsDir) {
+      this._sendJson(res, 500, { error: "artifacts_not_configured", message: "工件目录未配置" });
+      return;
+    }
+
+    // 移除 /artifacts/ 前缀，获取相对路径
+    let relativePath = pathname.replace(/^\/artifacts\/?/, "");
+    if (!relativePath || relativePath === "") {
+      this._sendJson(res, 400, { error: "invalid_path", message: "文件路径不能为空" });
+      return;
+    }
+
+    // 构建文件路径
+    const filePath = path.join(this._artifactsDir, relativePath);
+
+    // 安全检查：防止路径遍历攻击
+    const artifactsDir = path.resolve(this._artifactsDir);
+    const resolvedPath = path.resolve(filePath);
+    if (!resolvedPath.startsWith(artifactsDir)) {
+      this._sendJson(res, 403, { error: "forbidden", message: "路径访问被拒绝" });
+      return;
+    }
+
+    try {
+      // 检查文件是否存在
+      if (!existsSync(resolvedPath)) {
+        void this.log.warn("工件文件不存在", { path: relativePath, resolvedPath });
+        this._sendJson(res, 404, { error: "not_found", path: pathname });
+        return;
+      }
+
+      // 读取文件内容
+      const content = await readFile(resolvedPath);
+
+      // 根据文件扩展名设置 Content-Type
+      const ext = path.extname(relativePath).toLowerCase();
+      const contentTypes = {
+        ".html": "text/html; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".js": "application/javascript; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+        ".txt": "text/plain; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".xml": "application/xml; charset=utf-8",
+        ".pdf": "application/pdf"
+      };
+      const contentType = contentTypes[ext] ?? "application/octet-stream";
+
+      res.setHeader("Content-Type", contentType);
+      res.writeHead(200);
+      res.end(content);
+
+      void this.log.debug("HTTP工件文件", { path: relativePath });
+    } catch (err) {
+      void this.log.error("读取工件文件失败", { path: relativePath, error: err.message });
       this._sendJson(res, 500, { error: "read_file_failed", message: err.message });
     }
   }

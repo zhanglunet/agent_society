@@ -1,17 +1,35 @@
 /**
  * Chrome 模块管理面板 JavaScript
+ * 遵循标准模块面板命名约定: window.ModulePanel_{PascalCaseName}
  */
 
-const ChromePanel = {
+const ModulePanel_Chrome = {
   selectedBrowserId: null,
   selectedTabId: null,
   apiBase: '/api/modules/chrome',
+  initTimeout: 10000, // 初始化超时时间（毫秒）
 
   /**
    * 初始化面板
    */
   async init() {
-    await this.loadBrowsers();
+    try {
+      // 使用超时保护，避免无限等待
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('加载超时')), this.initTimeout);
+      });
+      
+      await Promise.race([
+        this.loadBrowsers(),
+        timeoutPromise
+      ]);
+    } catch (err) {
+      console.error('Chrome 面板初始化失败:', err);
+      const container = document.getElementById('browser-list');
+      if (container) {
+        container.innerHTML = `<div class="error">初始化失败: ${err.message}</div>`;
+      }
+    }
   },
 
   /**
@@ -30,27 +48,30 @@ const ChromePanel = {
    */
   async loadBrowsers() {
     const container = document.getElementById('browser-list');
+    if (!container) {
+      throw new Error('找不到浏览器列表容器');
+    }
     container.innerHTML = '<div class="loading">加载中...</div>';
 
-    try {
-      const response = await fetch(`${this.apiBase}/browsers`);
-      const data = await response.json();
-
-      if (data.error) {
-        container.innerHTML = `<div class="error">错误: ${data.error}</div>`;
-        return;
-      }
-
-      const browsers = data.browsers || [];
-      if (browsers.length === 0) {
-        container.innerHTML = '<div class="empty">暂无浏览器实例</div>';
-        return;
-      }
-
-      this.renderBrowserList(browsers);
-    } catch (err) {
-      container.innerHTML = `<div class="error">加载失败: ${err.message}</div>`;
+    const response = await fetch(`${this.apiBase}/browsers`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+    
+    const data = await response.json();
+
+    if (data.error) {
+      container.innerHTML = `<div class="error">错误: ${data.error}</div>`;
+      return;
+    }
+
+    const browsers = data.browsers || [];
+    if (browsers.length === 0) {
+      container.innerHTML = '<div class="empty">暂无浏览器实例</div>';
+      return;
+    }
+
+    this.renderBrowserList(browsers);
   },
 
   /**
@@ -60,12 +81,12 @@ const ChromePanel = {
     const container = document.getElementById('browser-list');
     container.innerHTML = browsers.map(browser => `
       <div class="browser-item ${browser.id === this.selectedBrowserId ? 'selected' : ''}" 
-           onclick="ChromePanel.selectBrowser('${browser.id}')">
+           onclick="ModulePanel_Chrome.selectBrowser('${browser.id}')">
         <div class="browser-info">
           <div class="browser-id">🌐 ${browser.id.slice(0, 8)}...</div>
           <div class="browser-status ${browser.status}">${browser.status}</div>
         </div>
-        <button class="close-btn" onclick="event.stopPropagation(); ChromePanel.closeBrowser('${browser.id}')">
+        <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeBrowser('${browser.id}')">
           关闭
         </button>
       </div>
@@ -152,12 +173,12 @@ const ChromePanel = {
 
     container.innerHTML = tabs.map(tab => `
       <div class="tab-item ${tab.id === this.selectedTabId ? 'selected' : ''}"
-           onclick="ChromePanel.selectTab('${tab.id}')">
+           onclick="ModulePanel_Chrome.selectTab('${tab.id}')">
         <div class="tab-info">
           <div class="tab-title">📄 ${this.escapeHtml(tab.title || '无标题')}</div>
           <div class="tab-url">${this.escapeHtml(tab.url || 'about:blank')}</div>
         </div>
-        <button class="close-btn" onclick="event.stopPropagation(); ChromePanel.closeTab('${tab.id}')">
+        <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeTab('${tab.id}')">
           关闭
         </button>
       </div>
@@ -172,9 +193,8 @@ const ChromePanel = {
     
     // 更新选中状态
     document.querySelectorAll('.tab-item').forEach(el => {
-      el.classList.remove('selected');
+      el.classList.toggle('selected', el.onclick?.toString().includes(tabId));
     });
-    event.currentTarget?.classList.add('selected');
 
     await this.loadScreenshot(tabId);
   },
@@ -242,7 +262,7 @@ const ChromePanel = {
       return;
     }
 
-    container.innerHTML = `<img src="data:image/png;base64,${base64Data}" alt="页面截图">`;
+    container.innerHTML = `<img src="data:image/jpeg;base64,${base64Data}" alt="页面截图">`;
   },
 
   /**
@@ -255,7 +275,17 @@ const ChromePanel = {
   }
 };
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', () => {
-  ChromePanel.init();
-});
+// 注册到全局（标准命名约定）
+window.ModulePanel_Chrome = ModulePanel_Chrome;
+
+// 保留别名以兼容旧代码
+window.ChromePanel = ModulePanel_Chrome;
+
+// 页面加载完成后初始化（独立页面使用）
+// 嵌入式使用时由 ModulesPanel 调用 ModulePanel_Chrome.init()
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    ModulePanel_Chrome.init();
+  });
+}
+// 嵌入式模式下不自动初始化，等待 ModulesPanel 调用

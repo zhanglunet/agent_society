@@ -122,7 +122,7 @@ export class PageActions {
 
         return { 
           ok: true, 
-          filePath,
+          images: [filePath],    // 使用 images 数组
           url: pageUrl,
           title: pageTitle,
           fullPage,
