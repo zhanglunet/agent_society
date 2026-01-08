@@ -17,10 +17,11 @@ import { existsSync } from "node:fs";
 
 export class BrowserManager {
   /**
-   * @param {{log?: any}} options
+   * @param {{log?: any, config?: object}} options
    */
   constructor(options = {}) {
     this.log = options.log ?? console;
+    this.config = options.config ?? {};
     /** @type {Map<string, BrowserInstance>} */
     this._browsers = new Map();
   }
@@ -65,8 +66,10 @@ export class BrowserManager {
    * @returns {Promise<{ok: boolean, browserId: string, createdAt: string}>}
    */
   async launch(options = {}) {
+    // 优先使用调用参数，其次使用模块配置，最后使用默认值 true
+    const defaultHeadless = this.config.headless ?? true;
     const {
-      headless = true,
+      headless = defaultHeadless,
       args = [],
       executablePath
     } = options;

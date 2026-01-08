@@ -23,6 +23,9 @@ let runtime = null;
 /** @type {any} */
 let log = null;
 
+/** @type {object} */
+let moduleConfig = {};
+
 /**
  * Chrome 模块导出
  */
@@ -32,17 +35,19 @@ export default {
   /**
    * 初始化模块
    * @param {any} rt - 运行时实例
+   * @param {object} config - 模块配置
    * @returns {Promise<void>}
    */
-  async init(rt) {
+  async init(rt, config = {}) {
     runtime = rt;
+    moduleConfig = config;
     log = runtime?.log ?? console;
     
-    browserManager = new BrowserManager({ log });
+    browserManager = new BrowserManager({ log, config: moduleConfig });
     tabManager = new TabManager({ log, browserManager });
     pageActions = new PageActions({ log, tabManager });
     
-    log.info?.("Chrome 模块初始化完成");
+    log.info?.("Chrome 模块初始化完成", { config: moduleConfig });
   },
 
   /**

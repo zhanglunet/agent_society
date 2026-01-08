@@ -21,27 +21,69 @@ export class ModuleLoader {
   }
 
   /**
+   * 解析模块配置。
+   * 支持两种格式：
+   * - 字符串数组: ["chrome", "other"] - 向后兼容
+   * - 对象: { "chrome": { headless: false }, "other": {} } - 带配置
+   * @param {string[]|object} modulesConfig - 模块配置
+   * @returns {{moduleNames: string[], moduleConfigs: Map<string, object>}}
+   */
+  _parseModulesConfig(modulesConfig) {
+    const moduleNames = [];
+    const moduleConfigs = new Map();
+
+    if (!modulesConfig) {
+      return { moduleNames, moduleConfigs };
+    }
+
+    // 字符串数组格式（向后兼容）
+    if (Array.isArray(modulesConfig)) {
+      for (const item of modulesConfig) {
+        if (typeof item === "string") {
+          moduleNames.push(item);
+          moduleConfigs.set(item, {});
+        }
+      }
+      return { moduleNames, moduleConfigs };
+    }
+
+    // 对象格式（带配置）
+    if (typeof modulesConfig === "object") {
+      for (const [moduleName, config] of Object.entries(modulesConfig)) {
+        moduleNames.push(moduleName);
+        moduleConfigs.set(moduleName, config ?? {});
+      }
+    }
+
+    return { moduleNames, moduleConfigs };
+  }
+
+  /**
    * 加载配置中启用的模块。
-   * @param {string[]} enabledModules - 启用的模块名称列表
+   * @param {string[]|object} modulesConfig - 模块配置（字符串数组或对象）
    * @param {any} runtime - 运行时实例
    * @returns {Promise<{loaded: string[], errors: Array<{module: string, error: string}>}>}
    */
-  async loadModules(enabledModules, runtime) {
+  async loadModules(modulesConfig, runtime) {
     this._runtime = runtime;
     const loaded = [];
     const errors = [];
 
-    if (!enabledModules || !Array.isArray(enabledModules) || enabledModules.length === 0) {
+    const { moduleNames, moduleConfigs } = this._parseModulesConfig(modulesConfig);
+    this._moduleConfigs = moduleConfigs;
+
+    if (moduleNames.length === 0) {
       void this.log.info("没有启用的模块");
       this._initialized = true;
       return { loaded, errors };
     }
 
-    void this.log.info("开始加载模块", { count: enabledModules.length, modules: enabledModules });
+    void this.log.info("开始加载模块", { count: moduleNames.length, modules: moduleNames });
 
-    for (const moduleName of enabledModules) {
+    for (const moduleName of moduleNames) {
       try {
-        await this._loadModule(moduleName);
+        const moduleConfig = moduleConfigs.get(moduleName) ?? {};
+        await this._loadModule(moduleName, moduleConfig);
         loaded.push(moduleName);
       } catch (err) {
         const errorMessage = err?.message ?? String(err);
@@ -59,16 +101,17 @@ export class ModuleLoader {
   /**
    * 加载单个模块。
    * @param {string} moduleName - 模块名称
+   * @param {object} moduleConfig - 模块配置
    * @returns {Promise<void>}
    */
-  async _loadModule(moduleName) {
+  async _loadModule(moduleName, moduleConfig = {}) {
     const modulePath = path.join(this.modulesDir, moduleName, "index.js");
     
     if (!existsSync(modulePath)) {
       throw new Error(`模块文件不存在: ${modulePath}`);
     }
 
-    void this.log.debug("加载模块", { module: moduleName, path: modulePath });
+    void this.log.debug("加载模块", { module: moduleName, path: modulePath, config: moduleConfig });
 
     // 动态导入模块
     const moduleUrl = `file://${modulePath.replace(/\\/g, "/")}`;
@@ -78,10 +121,10 @@ export class ModuleLoader {
     // 验证模块接口
     this._validateModuleInterface(moduleName, moduleInstance);
 
-    // 初始化模块
+    // 初始化模块，传递 runtime 和模块配置
     if (typeof moduleInstance.init === "function") {
-      void this.log.debug("初始化模块", { module: moduleName });
-      await moduleInstance.init(this._runtime);
+      void this.log.debug("初始化模块", { module: moduleName, config: moduleConfig });
+      await moduleInstance.init(this._runtime, moduleConfig);
     }
 
     // 注册模块

@@ -65,8 +65,10 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
     ,
     logging,
     dataDir,
-    // 模块配置：字符串数组，列出要启用的模块名称
-    modules: Array.isArray(cfg.modules) ? cfg.modules.filter(m => typeof m === "string") : [],
+    // 模块配置：支持字符串数组或对象格式
+    // 数组格式: ["chrome", "other"]
+    // 对象格式: { "chrome": { headless: false }, "other": {} }
+    modules: cfg.modules ?? {},
     contextLimit: cfg.contextLimit ?? null
   };
 }

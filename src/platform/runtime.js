@@ -212,7 +212,12 @@ export class Runtime {
 
     // 初始化模块加载器并加载配置中启用的模块
     this.moduleLoader = new ModuleLoader({ logger: this.loggerRoot.forModule("modules") });
-    if (this.config.modules && this.config.modules.length > 0) {
+    // 支持数组格式 (length > 0) 和对象格式 (Object.keys().length > 0)
+    const hasModules = this.config.modules && (
+      (Array.isArray(this.config.modules) && this.config.modules.length > 0) ||
+      (!Array.isArray(this.config.modules) && typeof this.config.modules === "object" && Object.keys(this.config.modules).length > 0)
+    );
+    if (hasModules) {
       const moduleResult = await this.moduleLoader.loadModules(this.config.modules, this);
       void this.log.info("模块加载完成", {
         loaded: moduleResult.loaded,

@@ -16,5 +16,9 @@
     "criticalThreshold": 0.9,
     "hardLimitThreshold": 0.95
   },
-  "modules": ["chrome"]
+  "modules": {
+    "chrome": {
+      "headless": true
+    }
+  }
 }

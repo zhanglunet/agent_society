@@ -25,6 +25,39 @@ export class PageActions {
     return { page };
   }
 
+  /**
+   * 清理选择器字符串，移除多余的引号和空白
+   * @param {string} selector - 原始选择器
+   * @returns {{original: string, cleaned: string, modified: boolean}}
+   */
+  _sanitizeSelector(selector) {
+    // 处理 null/undefined 情况
+    if (selector == null) {
+      return { original: selector, cleaned: selector, modified: false };
+    }
+    
+    const original = selector;
+    let cleaned = String(selector).trim();
+    
+    // 移除首尾的双引号
+    if (cleaned.startsWith('"') && cleaned.endsWith('"') && cleaned.length >= 2) {
+      cleaned = cleaned.slice(1, -1);
+    }
+    // 移除首尾的单引号
+    else if (cleaned.startsWith("'") && cleaned.endsWith("'") && cleaned.length >= 2) {
+      cleaned = cleaned.slice(1, -1);
+    }
+    
+    // 再次 trim 以处理引号内的空白
+    cleaned = cleaned.trim();
+    
+    return {
+      original,
+      cleaned,
+      modified: original !== cleaned
+    };
+  }
+
   // ==================== 页面导航 ====================
 
   /**
@@ -88,15 +121,29 @@ export class PageActions {
     const { page } = result;
     const { fullPage = false, selector, ctx } = options;
 
-    this.log.info?.("获取截图", { tabId, fullPage, selector });
+    // 清理选择器（如果提供）
+    let cleanedSelector = selector;
+    let originalSelector;
+    let selectorModified = false;
+    if (selector) {
+      const sanitized = this._sanitizeSelector(selector);
+      cleanedSelector = sanitized.cleaned;
+      originalSelector = sanitized.original;
+      selectorModified = sanitized.modified;
+      if (selectorModified) {
+        this.log.info?.("选择器已清理", { tabId, original: originalSelector, cleaned: cleanedSelector });
+      }
+    }
+
+    this.log.info?.("获取截图", { tabId, fullPage, selector: cleanedSelector });
 
     try {
       let screenshotBuffer;
       
-      if (selector) {
-        const element = await page.$(selector);
+      if (cleanedSelector) {
+        const element = await page.$(cleanedSelector);
         if (!element) {
-          return { error: "element_not_found", selector };
+          return { error: "element_not_found", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined };
         }
         screenshotBuffer = await element.screenshot({ type: "jpeg", quality: 80 });
       } else {
@@ -117,7 +164,7 @@ export class PageActions {
           url: pageUrl,
           title: pageTitle,
           fullPage,
-          selector: selector || null
+          selector: cleanedSelector || null
         });
 
         return { 
@@ -126,7 +173,7 @@ export class PageActions {
           url: pageUrl,
           title: pageTitle,
           fullPage,
-          selector: selector || null
+          selector: cleanedSelector || null
         };
       }
 
@@ -134,7 +181,7 @@ export class PageActions {
       return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
     } catch (err) {
       const message = err?.message ?? String(err);
-      return { error: "screenshot_failed", message };
+      return { error: "screenshot_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };
     }
   }
 
@@ -149,13 +196,27 @@ export class PageActions {
     
     const { page } = result;
 
+    // 清理选择器（如果提供）
+    let cleanedSelector = selector;
+    let originalSelector;
+    let selectorModified = false;
+    if (selector) {
+      const sanitized = this._sanitizeSelector(selector);
+      cleanedSelector = sanitized.cleaned;
+      originalSelector = sanitized.original;
+      selectorModified = sanitized.modified;
+      if (selectorModified) {
+        this.log.info?.("选择器已清理", { tabId, original: originalSelector, cleaned: cleanedSelector });
+      }
+    }
+
     try {
       let html;
       
-      if (selector) {
-        const element = await page.$(selector);
+      if (cleanedSelector) {
+        const element = await page.$(cleanedSelector);
         if (!element) {
-          return { error: "element_not_found", selector };
+          return { error: "element_not_found", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined };
         }
         html = await page.evaluate(el => el.outerHTML, element);
       } else {
@@ -165,7 +226,7 @@ export class PageActions {
       return { ok: true, html };
     } catch (err) {
       const message = err?.message ?? String(err);
-      return { error: "get_content_failed", message };
+      return { error: "get_content_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };
     }
   }
 
@@ -180,13 +241,27 @@ export class PageActions {
     
     const { page } = result;
 
+    // 清理选择器（如果提供）
+    let cleanedSelector = selector;
+    let originalSelector;
+    let selectorModified = false;
+    if (selector) {
+      const sanitized = this._sanitizeSelector(selector);
+      cleanedSelector = sanitized.cleaned;
+      originalSelector = sanitized.original;
+      selectorModified = sanitized.modified;
+      if (selectorModified) {
+        this.log.info?.("选择器已清理", { tabId, original: originalSelector, cleaned: cleanedSelector });
+      }
+    }
+
     try {
       let text;
       
-      if (selector) {
-        const element = await page.$(selector);
+      if (cleanedSelector) {
+        const element = await page.$(cleanedSelector);
         if (!element) {
-          return { error: "element_not_found", selector };
+          return { error: "element_not_found", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined };
         }
         text = await page.evaluate(el => el.innerText || el.textContent, element);
       } else {
@@ -196,7 +271,7 @@ export class PageActions {
       return { ok: true, text };
     } catch (err) {
       const message = err?.message ?? String(err);
-      return { error: "get_text_failed", message };
+      return { error: "get_text_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };
     }
   }
 
@@ -215,24 +290,30 @@ export class PageActions {
     const { page } = result;
     const { waitForSelector = true, timeoutMs = 5000 } = options;
 
-    this.log.info?.("点击元素", { tabId, selector });
+    // 清理选择器
+    const { original, cleaned, modified } = this._sanitizeSelector(selector);
+    if (modified) {
+      this.log.info?.("选择器已清理", { tabId, original, cleaned });
+    }
+
+    this.log.info?.("点击元素", { tabId, selector: cleaned });
 
     try {
       if (waitForSelector) {
-        await page.waitForSelector(selector, { timeout: timeoutMs });
+        await page.waitForSelector(cleaned, { timeout: timeoutMs });
       }
       
-      await page.click(selector);
+      await page.click(cleaned);
       return { ok: true };
     } catch (err) {
       const message = err?.message ?? String(err);
       if (message.includes("No element found") || message.includes("not found")) {
-        return { error: "element_not_found", selector };
+        return { error: "element_not_found", selector: cleaned, originalSelector: modified ? original : undefined };
       }
       if (message.includes("timeout") || message.includes("Timeout")) {
-        return { error: "wait_timeout", selector, timeoutMs };
+        return { error: "wait_timeout", selector: cleaned, originalSelector: modified ? original : undefined, timeoutMs };
       }
-      return { error: "click_failed", selector, message };
+      return { error: "click_failed", selector: cleaned, originalSelector: modified ? original : undefined, message };
     }
   }
 
@@ -275,18 +356,24 @@ export class PageActions {
     const { page } = result;
     const { delay = 0 } = options;
 
-    this.log.info?.("输入文本", { tabId, selector, textLength: text?.length });
+    // 清理选择器
+    const { original, cleaned, modified } = this._sanitizeSelector(selector);
+    if (modified) {
+      this.log.info?.("选择器已清理", { tabId, original, cleaned });
+    }
+
+    this.log.info?.("输入文本", { tabId, selector: cleaned, textLength: text?.length });
 
     try {
-      await page.waitForSelector(selector, { timeout: 5000 });
-      await page.type(selector, text, { delay });
+      await page.waitForSelector(cleaned, { timeout: 5000 });
+      await page.type(cleaned, text, { delay });
       return { ok: true };
     } catch (err) {
       const message = err?.message ?? String(err);
       if (message.includes("No element found") || message.includes("not found")) {
-        return { error: "element_not_found", selector };
+        return { error: "element_not_found", selector: cleaned, originalSelector: modified ? original : undefined };
       }
-      return { error: "type_failed", selector, message };
+      return { error: "type_failed", selector: cleaned, originalSelector: modified ? original : undefined, message };
     }
   }
 
@@ -302,27 +389,33 @@ export class PageActions {
     
     const { page } = result;
 
-    this.log.info?.("填充文本", { tabId, selector, valueLength: value?.length });
+    // 清理选择器
+    const { original, cleaned, modified } = this._sanitizeSelector(selector);
+    if (modified) {
+      this.log.info?.("选择器已清理", { tabId, original, cleaned });
+    }
+
+    this.log.info?.("填充文本", { tabId, selector: cleaned, valueLength: value?.length });
 
     try {
-      await page.waitForSelector(selector, { timeout: 5000 });
+      await page.waitForSelector(cleaned, { timeout: 5000 });
       
       // 清空现有内容
-      await page.$eval(selector, el => {
+      await page.$eval(cleaned, el => {
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
           el.value = "";
         }
       });
       
       // 填入新值
-      await page.type(selector, value);
+      await page.type(cleaned, value);
       return { ok: true };
     } catch (err) {
       const message = err?.message ?? String(err);
       if (message.includes("No element found") || message.includes("not found")) {
-        return { error: "element_not_found", selector };
+        return { error: "element_not_found", selector: cleaned, originalSelector: modified ? original : undefined };
       }
-      return { error: "fill_failed", selector, message };
+      return { error: "fill_failed", selector: cleaned, originalSelector: modified ? original : undefined, message };
     }
   }
 
@@ -365,35 +458,41 @@ export class PageActions {
     const { page } = result;
     const { state = "visible", timeoutMs = 30000 } = options;
 
-    this.log.info?.("等待元素", { tabId, selector, state });
+    // 清理选择器
+    const { original, cleaned, modified } = this._sanitizeSelector(selector);
+    if (modified) {
+      this.log.info?.("选择器已清理", { tabId, original, cleaned });
+    }
+
+    this.log.info?.("等待元素", { tabId, selector: cleaned, state });
 
     try {
       const waitOptions = { timeout: timeoutMs };
       
       switch (state) {
         case "attached":
-          await page.waitForSelector(selector, { ...waitOptions });
+          await page.waitForSelector(cleaned, { ...waitOptions });
           break;
         case "detached":
-          await page.waitForSelector(selector, { ...waitOptions, hidden: true });
+          await page.waitForSelector(cleaned, { ...waitOptions, hidden: true });
           break;
         case "visible":
-          await page.waitForSelector(selector, { ...waitOptions, visible: true });
+          await page.waitForSelector(cleaned, { ...waitOptions, visible: true });
           break;
         case "hidden":
-          await page.waitForSelector(selector, { ...waitOptions, hidden: true });
+          await page.waitForSelector(cleaned, { ...waitOptions, hidden: true });
           break;
         default:
-          await page.waitForSelector(selector, { ...waitOptions, visible: true });
+          await page.waitForSelector(cleaned, { ...waitOptions, visible: true });
       }
       
       return { ok: true };
     } catch (err) {
       const message = err?.message ?? String(err);
       if (message.includes("timeout") || message.includes("Timeout")) {
-        return { error: "wait_timeout", selector, state, timeoutMs };
+        return { error: "wait_timeout", selector: cleaned, originalSelector: modified ? original : undefined, state, timeoutMs };
       }
-      return { error: "wait_failed", selector, message };
+      return { error: "wait_failed", selector: cleaned, originalSelector: modified ? original : undefined, message };
     }
   }
 }

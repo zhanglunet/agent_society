@@ -141,6 +141,41 @@ config/
 | `contextLimit.criticalThreshold` | `number` | `0.9` | 临界阈值（90%） |
 | `contextLimit.hardLimitThreshold` | `number` | `0.95` | 硬性限制（95%） |
 
+#### 模块配置
+
+`modules` 配置项用于启用和配置可插拔模块。支持两种格式：
+
+**字符串数组格式（向后兼容）：**
+
+```json
+{
+  "modules": ["chrome", "other-module"]
+}
+```
+
+**对象格式（带模块配置）：**
+
+```json
+{
+  "modules": {
+    "chrome": {
+      "headless": false
+    },
+    "other-module": {
+      "customOption": "value"
+    }
+  }
+}
+```
+
+**Chrome 模块配置选项：**
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `headless` | `boolean` | `true` | 是否以无头模式启动浏览器 |
+
+设置 `headless: false` 可以在启动浏览器时显示浏览器窗口，便于调试。
+
 ## 日志配置
 
 `config/logging.json` 配置日志行为。
