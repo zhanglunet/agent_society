@@ -1,12 +1,13 @@
 import OpenAI from "openai";
 import { createNoopModuleLogger } from "./logger.js";
+import { ConcurrencyController } from "./concurrency_controller.js";
 
 /**
  * 最小 LLM 客户端：使用 OpenAI SDK 调用本地 LMStudio 的 OpenAI 兼容接口。
  */
 export class LlmClient {
   /**
-   * @param {{baseURL:string, model:string, apiKey:string, maxRetries?:number, logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}} options
+   * @param {{baseURL:string, model:string, apiKey:string, maxRetries?:number, maxConcurrentRequests?:number, logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}} options
    */
   constructor(options) {
     this.baseURL = options.baseURL;
@@ -18,21 +19,53 @@ export class LlmClient {
       apiKey: this.apiKey,
       baseURL: this.baseURL
     });
-    // 存储活跃的 LLM 请求，用于支持中断功能
+    
+    // 初始化并发控制器，验证配置
+    let maxConcurrentRequests = options.maxConcurrentRequests ?? 3;
+    if (typeof maxConcurrentRequests !== 'number' || maxConcurrentRequests <= 0) {
+      this.log.warn("无效的maxConcurrentRequests配置，使用默认值3", {
+        provided: maxConcurrentRequests,
+        using: 3
+      });
+      maxConcurrentRequests = 3;
+    }
+    this.concurrencyController = new ConcurrencyController(maxConcurrentRequests, this.log);
+    
+    // 存储活跃的 LLM 请求，用于支持中断功能（向后兼容）
     // Map<agentId, AbortController>
     this._activeRequests = new Map();
   }
 
   /**
-   * 调用聊天补全（支持工具调用和中断）。
+   * 调用聊天补全（支持工具调用、中断和并发控制）。
    * @param {{messages:any[], tools?:any[], temperature?:number, meta?:any}} input
    * @returns {Promise<any>} message
    */
   async chat(input) {
     const agentId = input?.meta?.agentId ?? null;
+    
+    // 如果没有agentId，回退到原始行为（向后兼容）
+    if (!agentId) {
+      return this._executeChatRequestLegacy(input);
+    }
+
+    // 使用并发控制器执行请求
+    return this.concurrencyController.executeRequest(
+      agentId,
+      () => this._executeChatRequest(input)
+    );
+  }
+
+  /**
+   * 向后兼容的聊天请求执行（不使用并发控制）
+   * @param {{messages:any[], tools?:any[], temperature?:number, meta?:any}} input
+   * @returns {Promise<any>} message
+   */
+  async _executeChatRequestLegacy(input) {
+    const agentId = input?.meta?.agentId ?? null;
     const abortController = new AbortController();
     
-    // 如果有 agentId，将 AbortController 存入活跃请求映射
+    // 如果有 agentId，将 AbortController 存入活跃请求映射（向后兼容）
     if (agentId) {
       this._activeRequests.set(agentId, abortController);
     }
@@ -41,6 +74,30 @@ export class LlmClient {
       return await this._chatWithRetry(input, this.maxRetries, abortController.signal);
     } finally {
       // 无论成功、失败还是中断，都要清理活跃请求映射
+      if (agentId) {
+        this._activeRequests.delete(agentId);
+      }
+    }
+  }
+
+  /**
+   * 执行聊天请求（通过并发控制器调用）
+   * @param {{messages:any[], tools?:any[], temperature?:number, meta?:any}} input
+   * @returns {Promise<any>} message
+   */
+  async _executeChatRequest(input) {
+    const agentId = input?.meta?.agentId ?? null;
+    const abortController = new AbortController();
+    
+    // 将 AbortController 存入活跃请求映射以支持中断
+    if (agentId) {
+      this._activeRequests.set(agentId, abortController);
+    }
+    
+    try {
+      return await this._chatWithRetry(input, this.maxRetries, abortController.signal);
+    } finally {
+      // 清理活跃请求映射
       if (agentId) {
         this._activeRequests.delete(agentId);
       }
@@ -196,13 +253,26 @@ export class LlmClient {
    * @returns {boolean} 是否成功中断（true 表示有活跃请求被中断，false 表示没有活跃请求）
    */
   abort(agentId) {
+    let cancelled = false;
+    
+    // 首先检查并发控制器中的请求（活跃请求或队列中的请求）
+    if (this.concurrencyController.hasRequest(agentId)) {
+      // 异步取消，但不等待结果
+      this.concurrencyController.cancelRequest(agentId).catch(() => {
+        // 忽略错误
+      });
+      cancelled = true;
+    }
+    
+    // 然后检查传统的活跃请求映射（向后兼容）
     const controller = this._activeRequests.get(agentId);
     if (controller) {
       controller.abort();
       this._activeRequests.delete(agentId);
-      return true;
+      cancelled = true;
     }
-    return false;
+    
+    return cancelled;
   }
 
   /**
@@ -211,6 +281,28 @@ export class LlmClient {
    * @returns {boolean} 是否有活跃请求
    */
   hasActiveRequest(agentId) {
-    return this._activeRequests.has(agentId);
+    // 检查并发控制器中的活跃请求
+    const hasActiveInController = this.concurrencyController.hasActiveRequest(agentId);
+    
+    // 检查传统的活跃请求映射（向后兼容）
+    const hasActiveInLegacy = this._activeRequests.has(agentId);
+    
+    return hasActiveInController || hasActiveInLegacy;
+  }
+
+  /**
+   * 更新最大并发请求数
+   * @param {number} maxConcurrentRequests - 新的最大并发请求数
+   */
+  async updateMaxConcurrentRequests(maxConcurrentRequests) {
+    await this.concurrencyController.updateMaxConcurrentRequests(maxConcurrentRequests);
+  }
+
+  /**
+   * 获取并发控制统计信息
+   * @returns {object} 统计信息
+   */
+  getConcurrencyStats() {
+    return this.concurrencyController.getStats();
   }
 }

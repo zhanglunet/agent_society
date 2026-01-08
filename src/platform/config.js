@@ -59,7 +59,8 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
       ? {
           baseURL: String(cfg.llm.baseURL ?? ""),
           model: String(cfg.llm.model ?? ""),
-          apiKey: String(cfg.llm.apiKey ?? "")
+          apiKey: String(cfg.llm.apiKey ?? ""),
+          maxConcurrentRequests: _validateMaxConcurrentRequests(cfg.llm.maxConcurrentRequests)
         }
       : null
     ,
@@ -86,4 +87,26 @@ async function _loadOptionalJson(absPath) {
     if (err && typeof err === "object" && err.code === "ENOENT") return null;
     throw err;
   }
+}
+
+/**
+ * 验证并返回有效的最大并发请求数
+ * @param {any} value 配置值
+ * @returns {number} 有效的最大并发请求数
+ */
+function _validateMaxConcurrentRequests(value) {
+  const defaultValue = 3;
+  
+  // 如果未配置，使用默认值
+  if (value === undefined || value === null) {
+    return defaultValue;
+  }
+  
+  // 必须是数字类型且为正整数
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    console.warn(`Invalid maxConcurrentRequests value: ${value}. Using default value: ${defaultValue}`);
+    return defaultValue;
+  }
+  
+  return value;
 }
