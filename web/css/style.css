@@ -214,10 +214,24 @@ body {
   position: relative;
 }
 
+.agent-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .agent-name {
   font-size: 14px;
   font-weight: 500;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-id-small {
+  font-size: 11px;
+  color: #666;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -231,23 +245,50 @@ body {
   text-overflow: ellipsis;
 }
 
+.agent-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .agent-time {
   font-size: 11px;
   color: #666;
-  margin-left: 8px;
-  flex-shrink: 0;
 }
 
 .agent-status {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 8px;
 }
 
 .agent-status.terminated {
   background-color: #f44336;
   color: #fff;
+}
+
+/* 删除按钮样式 */
+.delete-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.agent-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background-color: #f44336;
+  color: #fff;
+  transform: scale(1.1);
 }
 
 /* ========== 总览面板 ========== */
@@ -1144,6 +1185,29 @@ body {
 }
 
 .role-detail-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 岗位删除按钮样式 */
+.role-delete-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.role-stat-item:hover .role-delete-btn {
+  opacity: 1;
+}
+
+.role-delete-btn:hover {
+  background-color: #f44336;
+  color: #fff;
   transform: scale(1.1);
 }
 

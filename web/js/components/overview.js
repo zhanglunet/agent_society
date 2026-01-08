@@ -140,6 +140,7 @@ const OverviewPanel = {
         <div class="role-stat-actions">
           <span class="role-stat-count">${stat.count}</span>
           <button class="role-detail-btn" onclick="event.stopPropagation(); OverviewPanel.onRoleDetailClick('${this.escapeHtml(stat.id || stat.name).replace(/'/g, "\\'")}')" title="查看详情">ℹ️</button>
+          ${this.renderRoleDeleteButton(stat)}
         </div>
       </div>
     `).join('');
@@ -343,6 +344,75 @@ const OverviewPanel = {
   onRoleClick(roleName) {
     if (window.App) {
       window.App.switchToListViewWithFilter(roleName);
+    }
+  },
+
+  /**
+   * 渲染岗位删除按钮
+   * @param {object} stat - 岗位统计对象
+   * @returns {string} HTML 字符串
+   */
+  renderRoleDeleteButton(stat) {
+    // 系统岗位不显示删除按钮
+    if (stat.name === 'root' || stat.name === 'user') {
+      return '';
+    }
+    
+    // 如果没有岗位ID，不显示删除按钮
+    if (!stat.id) {
+      return '';
+    }
+    
+    return `
+      <button class="role-delete-btn" 
+              onclick="event.stopPropagation(); OverviewPanel.confirmDeleteRole('${this.escapeHtml(stat.id).replace(/'/g, "\\'")}', '${this.escapeHtml(stat.name).replace(/'/g, "\\'")}', ${stat.count})" 
+              title="删除岗位">🗑️</button>
+    `;
+  },
+
+  /**
+   * 确认删除岗位
+   * @param {string} roleId - 岗位 ID
+   * @param {string} roleName - 岗位名称
+   * @param {number} agentCount - 该岗位上的智能体数量
+   */
+  async confirmDeleteRole(roleId, roleName, agentCount) {
+    let confirmMessage = `确定要删除岗位 "${roleName}" 吗？\n\n删除后将会：\n- 终止该岗位上的所有智能体（${agentCount}个）\n- 递归删除所有子岗位\n- 停止接受任何交互\n- 保留历史数据用于审计\n\n此操作不可撤销！`;
+    
+    if (agentCount === 0) {
+      confirmMessage = `确定要删除岗位 "${roleName}" 吗？\n\n该岗位当前没有智能体，但删除后将会：\n- 递归删除所有子岗位\n- 保留历史数据用于审计\n\n此操作不可撤销！`;
+    }
+    
+    const confirmed = confirm(confirmMessage);
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      Toast.show('正在删除岗位...', 'info');
+      const result = await API.deleteRole(roleId, '用户删除');
+      
+      if (result.ok) {
+        const affectedCount = result.deleteResult.affectedAgents.length + result.deleteResult.affectedRoles.length;
+        Toast.show(`岗位 "${roleName}" 已删除，影响了 ${affectedCount} 个对象`, 'success');
+        
+        // 刷新数据
+        if (window.App && window.App.loadRoles) {
+          await window.App.loadRoles();
+        }
+        if (window.App && window.App.loadAgents) {
+          await window.App.loadAgents();
+        }
+        if (window.App && window.App.loadOrgTree) {
+          await window.App.loadOrgTree();
+        }
+      } else {
+        Toast.show('删除失败: ' + (result.message || '未知错误'), 'error');
+      }
+    } catch (error) {
+      console.error('删除岗位失败:', error);
+      Toast.show('删除失败: ' + error.message, 'error');
     }
   },
 

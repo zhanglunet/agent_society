@@ -368,7 +368,7 @@ export class OrgPrimitives {
    */
   async createRole(input) {
     const existing = this.findRoleByName(input.name);
-    if (existing) {
+    if (existing && existing.status !== "deleted") {
       void this.log.warn("岗位已存在，已复用", { id: existing.id, name: existing.name });
       return existing;
     }
@@ -378,7 +378,8 @@ export class OrgPrimitives {
       name: input.name,
       rolePrompt: input.rolePrompt,
       createdBy: input.createdBy ?? null,
-      createdAt: formatLocalTimestamp()
+      createdAt: formatLocalTimestamp(),
+      status: "active"  // 默认状态为活跃
     };
     this._roles.set(id, role);
     await this.persist();
@@ -540,6 +541,117 @@ export class OrgPrimitives {
         
         // 递归处理更深层的子智能体
         await this._cascadeTerminateChildren(id, terminatedAt);
+      }
+    }
+  }
+
+  /**
+   * 删除岗位（软删除）。
+   * 会级联终止该岗位上的所有智能体，并递归删除子岗位。
+   * @param {string} roleId - 要删除的岗位ID
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @param {string} [reason] - 删除原因
+   * @returns {Promise<{roleId:string, deletedBy:string, deletedAt:string, reason:string|null, affectedAgents:string[], affectedRoles:string[]}>}
+   */
+  async deleteRole(roleId, deletedBy, reason) {
+    const role = this._roles.get(roleId);
+    if (!role) {
+      throw new Error(`岗位不存在: ${roleId}`);
+    }
+
+    const deletedAt = formatLocalTimestamp();
+    const affectedAgents = [];
+    const affectedRoles = [];
+
+    // 1. 终止该岗位上的所有智能体
+    for (const [agentId, agent] of this._agents) {
+      if (agent.roleId === roleId && agent.status !== "terminated") {
+        await this.recordTermination(agentId, deletedBy, `岗位已删除: ${role.name}`);
+        affectedAgents.push(agentId);
+      }
+    }
+
+    // 2. 递归删除子岗位（通过智能体的父子关系推断岗位层级）
+    await this._cascadeDeleteChildRoles(roleId, deletedBy, deletedAt, affectedAgents, affectedRoles);
+
+    // 3. 标记岗位为已删除
+    role.status = "deleted";
+    role.deletedAt = deletedAt;
+    role.deletedBy = deletedBy;
+    role.deleteReason = reason ?? null;
+    
+    affectedRoles.push(roleId);
+
+    await this.persist();
+    void this.log.info("删除岗位", { 
+      roleId, 
+      roleName: role.name, 
+      deletedBy, 
+      reason: reason ?? null,
+      affectedAgentsCount: affectedAgents.length,
+      affectedRolesCount: affectedRoles.length
+    });
+
+    return {
+      roleId,
+      deletedBy,
+      deletedAt,
+      reason: reason ?? null,
+      affectedAgents,
+      affectedRoles
+    };
+  }
+
+  /**
+   * 递归删除子岗位（内部方法）。
+   * @param {string} parentRoleId - 父岗位ID
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @param {string} deletedAt - 删除时间
+   * @param {string[]} affectedAgents - 受影响的智能体列表
+   * @param {string[]} affectedRoles - 受影响的岗位列表
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _cascadeDeleteChildRoles(parentRoleId, deletedBy, deletedAt, affectedAgents, affectedRoles) {
+    // 找到该岗位下的智能体创建的子岗位
+    const parentAgents = [];
+    for (const [agentId, agent] of this._agents) {
+      if (agent.roleId === parentRoleId) {
+        parentAgents.push(agentId);
+      }
+    }
+
+    // 找到这些智能体创建的子智能体的岗位
+    const childRoleIds = new Set();
+    for (const parentAgentId of parentAgents) {
+      for (const [childAgentId, childAgent] of this._agents) {
+        if (childAgent.parentAgentId === parentAgentId && childAgent.roleId !== parentRoleId) {
+          childRoleIds.add(childAgent.roleId);
+        }
+      }
+    }
+
+    // 递归删除子岗位
+    for (const childRoleId of childRoleIds) {
+      const childRole = this._roles.get(childRoleId);
+      if (childRole && childRole.status !== "deleted") {
+        // 终止该子岗位上的所有智能体
+        for (const [agentId, agent] of this._agents) {
+          if (agent.roleId === childRoleId && agent.status !== "terminated") {
+            await this.recordTermination(agentId, deletedBy, `父岗位已删除（级联删除）`);
+            affectedAgents.push(agentId);
+          }
+        }
+
+        // 标记子岗位为已删除
+        childRole.status = "deleted";
+        childRole.deletedAt = deletedAt;
+        childRole.deletedBy = deletedBy;
+        childRole.deleteReason = "父岗位已删除（级联删除）";
+        affectedRoles.push(childRoleId);
+
+        // 递归处理更深层的子岗位
+        await this._cascadeDeleteChildRoles(childRoleId, deletedBy, deletedAt, affectedAgents, affectedRoles);
       }
     }
   }

@@ -519,7 +519,7 @@ export class HTTPServer {
 
       // 设置CORS头
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
       if (method === "OPTIONS") {
@@ -540,6 +540,14 @@ export class HTTPServer {
         this._handleGetAgents(res);
       } else if (method === "GET" && pathname === "/api/roles") {
         this._handleGetRoles(res);
+      } else if (method === "DELETE" && pathname.startsWith("/api/agent/")) {
+        // 删除智能体: DELETE /api/agent/:agentId
+        const agentId = decodeURIComponent(pathname.slice("/api/agent/".length));
+        this._handleDeleteAgent(req, agentId, res);
+      } else if (method === "DELETE" && pathname.startsWith("/api/role/")) {
+        // 删除岗位: DELETE /api/role/:roleId
+        const roleId = decodeURIComponent(pathname.slice("/api/role/".length));
+        this._handleDeleteRole(req, roleId, res);
       } else if (method === "GET" && pathname.startsWith("/api/agent-messages/")) {
         const agentId = decodeURIComponent(pathname.slice("/api/agent-messages/".length));
         // 异步处理
@@ -1184,6 +1192,127 @@ export class HTTPServer {
       } catch (saveErr) {
         void this.log.error("保存自定义名称失败", { agentId, error: saveErr.message });
         this._sendJson(res, 500, { error: "save_failed", message: saveErr.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 DELETE /api/agent/:agentId - 删除智能体（软删除）。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} agentId - 智能体ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleDeleteAgent(req, agentId, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      const reason = body?.reason || "用户删除";
+      const deletedBy = body?.deletedBy || "user";
+
+      try {
+        if (!this.society || !this.society.runtime || !this.society.runtime.org) {
+          this._sendJson(res, 500, { error: "society_not_initialized" });
+          return;
+        }
+
+        const org = this.society.runtime.org;
+        const agent = org.getAgent(agentId);
+        
+        if (!agent) {
+          this._sendJson(res, 404, { error: "agent_not_found", message: "智能体不存在" });
+          return;
+        }
+
+        if (agent.status === "terminated") {
+          this._sendJson(res, 400, { error: "agent_already_terminated", message: "智能体已被终止" });
+          return;
+        }
+
+        // 不允许删除系统智能体
+        if (agentId === "root" || agentId === "user") {
+          this._sendJson(res, 400, { error: "cannot_delete_system_agent", message: "不能删除系统智能体" });
+          return;
+        }
+
+        const termination = await org.recordTermination(agentId, deletedBy, reason);
+
+        void this.log.info("删除智能体", { agentId, deletedBy, reason });
+        this._sendJson(res, 200, { 
+          ok: true, 
+          agentId,
+          termination
+        });
+      } catch (deleteErr) {
+        void this.log.error("删除智能体失败", { agentId, error: deleteErr.message });
+        this._sendJson(res, 500, { error: "delete_failed", message: deleteErr.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 DELETE /api/role/:roleId - 删除岗位（软删除）。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} roleId - 岗位ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleDeleteRole(req, roleId, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      const reason = body?.reason || "用户删除";
+      const deletedBy = body?.deletedBy || "user";
+
+      try {
+        if (!this.society || !this.society.runtime || !this.society.runtime.org) {
+          this._sendJson(res, 500, { error: "society_not_initialized" });
+          return;
+        }
+
+        const org = this.society.runtime.org;
+        const role = org.getRole(roleId);
+        
+        if (!role) {
+          this._sendJson(res, 404, { error: "role_not_found", message: "岗位不存在" });
+          return;
+        }
+
+        if (role.status === "deleted") {
+          this._sendJson(res, 400, { error: "role_already_deleted", message: "岗位已被删除" });
+          return;
+        }
+
+        // 不允许删除系统岗位
+        if (roleId === "root" || roleId === "user") {
+          this._sendJson(res, 400, { error: "cannot_delete_system_role", message: "不能删除系统岗位" });
+          return;
+        }
+
+        const deleteResult = await org.deleteRole(roleId, deletedBy, reason);
+
+        void this.log.info("删除岗位", { 
+          roleId, 
+          roleName: role.name,
+          deletedBy, 
+          reason,
+          affectedAgentsCount: deleteResult.affectedAgents.length,
+          affectedRolesCount: deleteResult.affectedRoles.length
+        });
+        
+        this._sendJson(res, 200, { 
+          ok: true, 
+          roleId,
+          roleName: role.name,
+          deleteResult
+        });
+      } catch (deleteErr) {
+        void this.log.error("删除岗位失败", { roleId, error: deleteErr.message });
+        this._sendJson(res, 500, { error: "delete_failed", message: deleteErr.message });
       }
     });
   }

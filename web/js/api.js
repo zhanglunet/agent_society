@@ -51,6 +51,31 @@ const API = {
   },
 
   /**
+   * 发送 DELETE 请求
+   * @param {string} endpoint - API 端点
+   * @param {object} data - 请求数据
+   * @returns {Promise<any>} 响应数据
+   */
+  async delete(endpoint, data = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP 错误: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`API DELETE 请求失败 [${endpoint}]:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * 获取所有智能体列表
    * @returns {Promise<{agents: Array}>} 智能体列表
    */
@@ -169,6 +194,34 @@ const API = {
    */
   async getModuleWebComponent(moduleName) {
     return this.get(`/modules/${encodeURIComponent(moduleName)}/web-component`);
+  },
+
+  /**
+   * 删除智能体（软删除）
+   * @param {string} agentId - 智能体 ID
+   * @param {string} reason - 删除原因
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @returns {Promise<object>} 删除结果
+   */
+  async deleteAgent(agentId, reason = '用户删除', deletedBy = 'user') {
+    return this.delete(`/agent/${encodeURIComponent(agentId)}`, {
+      reason: reason,
+      deletedBy: deletedBy,
+    });
+  },
+
+  /**
+   * 删除岗位（软删除）
+   * @param {string} roleId - 岗位 ID
+   * @param {string} reason - 删除原因
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @returns {Promise<object>} 删除结果
+   */
+  async deleteRole(roleId, reason = '用户删除', deletedBy = 'user') {
+    return this.delete(`/role/${encodeURIComponent(roleId)}`, {
+      reason: reason,
+      deletedBy: deletedBy,
+    });
   },
 };
 

@@ -271,8 +271,11 @@ const AgentList = {
             ${showIdSeparately ? `<div class="agent-id-small">${this.escapeHtml(agent.id)}</div>` : ''}
             <div class="agent-role">${this.escapeHtml(agent.roleName || '未知岗位')}</div>
           </div>
-          <div class="agent-time">${this.getDisplayTime(agent)}</div>
-          ${agent.status === 'terminated' ? '<span class="agent-status terminated">已终止</span>' : ''}
+          <div class="agent-actions">
+            <div class="agent-time">${this.getDisplayTime(agent)}</div>
+            ${agent.status === 'terminated' ? '<span class="agent-status terminated">已终止</span>' : ''}
+            ${this.renderDeleteButton(agent)}
+          </div>
         </div>
       `;
     }).join('');
@@ -305,6 +308,60 @@ const AgentList = {
     }
     
     return '';
+  },
+
+  /**
+   * 渲染删除按钮
+   * @param {object} agent - 智能体对象
+   * @returns {string} HTML 字符串
+   */
+  renderDeleteButton(agent) {
+    // 系统智能体不显示删除按钮
+    if (agent.id === 'root' || agent.id === 'user') {
+      return '';
+    }
+    
+    // 已终止的智能体不显示删除按钮
+    if (agent.status === 'terminated') {
+      return '';
+    }
+    
+    return `
+      <button class="delete-btn" 
+              onclick="event.stopPropagation(); AgentList.confirmDeleteAgent('${agent.id}', '${this.escapeHtml(this.getAgentDisplayName(agent))}')" 
+              title="删除智能体">🗑️</button>
+    `;
+  },
+
+  /**
+   * 确认删除智能体
+   * @param {string} agentId - 智能体 ID
+   * @param {string} displayName - 显示名称
+   */
+  async confirmDeleteAgent(agentId, displayName) {
+    const confirmed = confirm(`确定要删除智能体 "${displayName}" 吗？\n\n删除后将会：\n- 终止该智能体及其所有子智能体\n- 停止接受任何交互\n- 保留历史数据用于审计\n\n此操作不可撤销！`);
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      Toast.show('正在删除智能体...', 'info');
+      const result = await API.deleteAgent(agentId, '用户删除');
+      
+      if (result.ok) {
+        Toast.show(`智能体 "${displayName}" 已删除`, 'success');
+        // 刷新智能体列表
+        if (window.App && window.App.loadAgents) {
+          await window.App.loadAgents();
+        }
+      } else {
+        Toast.show('删除失败: ' + (result.message || '未知错误'), 'error');
+      }
+    } catch (error) {
+      console.error('删除智能体失败:', error);
+      Toast.show('删除失败: ' + error.message, 'error');
+    }
   },
 
   /**
