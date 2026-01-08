@@ -117,7 +117,11 @@ const ModulePanel_Chrome = {
 
     try {
       const response = await fetch(`${this.apiBase}/browsers/${browserId}/close`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}) // 发送空的JSON对象
       });
       const data = await response.json();
 
@@ -207,21 +211,46 @@ const ModulePanel_Chrome = {
 
     try {
       const response = await fetch(`${this.apiBase}/tabs/${tabId}/close`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}) // 发送空的JSON对象而不是空请求体
       });
       const data = await response.json();
 
       if (data.error) {
-        alert(`关闭失败: ${data.error}`);
+        // 根据错误类型显示不同的提示
+        let errorMessage = `关闭失败: ${data.error}`;
+        
+        if (data.errorType === "connection_lost") {
+          errorMessage = "标签页连接已断开，可能已被外部关闭";
+        } else if (data.errorType === "timeout") {
+          errorMessage = "关闭操作超时，但标签页可能已关闭";
+        } else if (data.errorType === "session_closed") {
+          errorMessage = "浏览器会话已关闭";
+        } else if (data.message) {
+          errorMessage = `关闭失败: ${data.message}`;
+        }
+        
+        console.warn('标签页关闭错误详情:', data);
+        alert(errorMessage);
+        
+        // 即使出错也刷新列表，因为标签页可能已被清理
+        if (this.selectedBrowserId) {
+          await this.loadTabs(this.selectedBrowserId);
+        }
         return;
       }
 
+      // 成功关闭，刷新列表
       if (this.selectedBrowserId) {
         await this.loadTabs(this.selectedBrowserId);
       }
       this.renderScreenshot(null);
     } catch (err) {
-      alert(`关闭失败: ${err.message}`);
+      console.error('关闭标签页网络错误:', err);
+      alert(`网络错误: ${err.message}`);
     }
   },
 

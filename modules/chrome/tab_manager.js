@@ -96,12 +96,28 @@ export class TabManager {
       return { error: "tab_not_found", tabId };
     }
 
-    this.log.info?.("关闭标签页", { tabId });
+    this.log.info?.("关闭标签页", { tabId, status: tab.status });
 
     try {
-      if (tab.status === "active") {
-        await tab.page.close();
+      if (tab.status === "active" && tab.page) {
+        // 检查页面是否仍然有效
+        const isPageClosed = tab.page.isClosed();
+        this.log.debug?.("页面状态检查", { tabId, isClosed: isPageClosed });
+        
+        if (!isPageClosed) {
+          // 设置超时保护，避免无限等待
+          const closePromise = tab.page.close();
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("关闭超时")), 5000);
+          });
+          
+          await Promise.race([closePromise, timeoutPromise]);
+          this.log.debug?.("页面关闭成功", { tabId });
+        } else {
+          this.log.info?.("页面已经关闭", { tabId });
+        }
       }
+      
       tab.status = "closed";
       this._tabs.delete(tabId);
       
@@ -109,11 +125,47 @@ export class TabManager {
       return { ok: true };
     } catch (err) {
       const message = err?.message ?? String(err);
-      this.log.error?.("标签页关闭失败", { tabId, error: message });
-      // 即使关闭失败，也从列表中移除
+      const errorType = this._categorizeError(err);
+      
+      this.log.error?.("标签页关闭失败", { 
+        tabId, 
+        error: message, 
+        errorType,
+        stack: err?.stack 
+      });
+      
+      // 即使关闭失败，也从列表中移除，避免僵尸标签页
+      tab.status = "closed";
       this._tabs.delete(tabId);
-      return { error: "tab_close_failed", tabId, message };
+      
+      return { 
+        error: "tab_close_failed", 
+        tabId, 
+        message,
+        errorType 
+      };
     }
+  }
+
+  /**
+   * 分类错误类型，便于调试
+   * @param {Error} err - 错误对象
+   * @returns {string} 错误类型
+   */
+  _categorizeError(err) {
+    const message = err?.message ?? String(err);
+    
+    if (message.includes("Protocol error") || message.includes("Target closed")) {
+      return "connection_lost";
+    }
+    if (message.includes("关闭超时") || message.includes("timeout")) {
+      return "timeout";
+    }
+    if (message.includes("Session closed") || message.includes("Connection closed")) {
+      return "session_closed";
+    }
+    
+    return "unknown";
   }
 
   /**

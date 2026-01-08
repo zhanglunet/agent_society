@@ -1324,20 +1324,52 @@ export class HTTPServer {
    */
   _handleAbortLlmCall(agentId, res) {
     if (!this.society || !this.society.runtime) {
+      void this.log.error("中断请求失败：系统未初始化", { agentId });
       this._sendJson(res, 500, { error: "society_not_initialized" });
       return;
     }
 
-    const result = this.society.runtime.abortAgentLlmCall(agentId);
+    try {
+      const result = this.society.runtime.abortAgentLlmCall(agentId);
 
-    if (!result.ok) {
-      const statusCode = result.reason === "agent_not_found" ? 404 : 400;
-      this._sendJson(res, statusCode, { error: result.reason });
-      return;
+      if (!result.ok) {
+        const statusCode = result.reason === "agent_not_found" ? 404 : 400;
+        void this.log.warn("中断请求失败", { 
+          agentId, 
+          reason: result.reason,
+          statusCode 
+        });
+        this._sendJson(res, statusCode, { error: result.reason });
+        return;
+      }
+
+      void this.log.info("处理 LLM 中断请求", { 
+        agentId, 
+        aborted: result.aborted,
+        reason: result.reason ?? null
+      });
+      
+      this._sendJson(res, 200, { 
+        ok: true, 
+        agentId, 
+        aborted: result.aborted,
+        reason: result.reason ?? null,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      const errorMessage = err?.message ?? String(err);
+      void this.log.error("处理中断请求时发生异常", {
+        agentId,
+        error: errorMessage,
+        stack: err?.stack ?? null
+      });
+      
+      this._sendJson(res, 500, { 
+        error: "internal_error", 
+        message: errorMessage,
+        agentId
+      });
     }
-
-    void this.log.info("处理 LLM 中断请求", { agentId, aborted: result.aborted });
-    this._sendJson(res, 200, { ok: true, agentId, aborted: result.aborted });
   }
 
   /**
@@ -1550,6 +1582,11 @@ export class HTTPServer {
     });
     req.on("end", () => {
       try {
+        // 如果请求体为空，返回null而不是尝试解析
+        if (body.trim() === "") {
+          callback(null, null);
+          return;
+        }
         const parsed = JSON.parse(body);
         callback(null, parsed);
       } catch (err) {

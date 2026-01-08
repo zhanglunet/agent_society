@@ -142,6 +142,19 @@ export class Runtime {
     if (aborted) {
       this.setAgentComputeStatus(agentId, 'idle');
       void this.log.info("LLM 调用已中断", { agentId });
+      
+      // 记录中断事件，用于调试和监控
+      void this.loggerRoot.logAgentLifecycleEvent("llm_call_aborted", {
+        agentId,
+        timestamp: new Date().toISOString(),
+        reason: "user_requested"
+      });
+    } else {
+      void this.log.warn("LLM 中断请求失败", { 
+        agentId, 
+        currentStatus,
+        hasLlmClient: !!this.llm 
+      });
     }
 
     return { ok: true, aborted };
@@ -512,14 +525,31 @@ export class Runtime {
       let steps = 0;
       while (!this._stopRequested && steps < this.maxSteps && this.bus.hasPending()) {
         steps += 1;
-        const delivered = await this._deliverOneRound();
-        if (!delivered) break;
-        if (steps % 5 === 0) {
-          await new Promise((r) => setImmediate(r));
+        
+        try {
+          const delivered = await this._deliverOneRound();
+          if (!delivered) break;
+          
+          if (steps % 5 === 0) {
+            await new Promise((r) => setImmediate(r));
+          }
+        } catch (err) {
+          // 捕获消息投递过程中的异常，记录日志但不停止循环
+          void this.log.error("消息投递轮次异常（已恢复）", {
+            step: steps,
+            error: err?.message ?? String(err),
+            stack: err?.stack ?? null,
+            pendingMessages: this.bus.getPendingCount(),
+            willContinue: true
+          });
+          
+          // 短暂延迟后继续
+          await new Promise((r) => setTimeout(r, 1000));
         }
       }
       await new Promise((r) => setImmediate(r));
     }
+    
     void this.log.info("运行时常驻消息循环结束", { stopRequested: this._stopRequested });
   }
 
@@ -550,18 +580,43 @@ export class Runtime {
         taskId: msg.taskId ?? null
       });
       
-      // 错误隔离：捕获单个智能体的异常，记录日志后继续处理其他智能体
+      // 改进的错误隔离：捕获单个智能体的异常，记录详细日志后继续处理其他智能体
       try {
         await agent.onMessage(this._buildAgentContext(agent), msg);
       } catch (err) {
         const errorMessage = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+        const errorType = err?.name ?? "UnknownError";
+        
+        // 详细记录异常信息
         void this.log.error("智能体消息处理异常（已隔离）", {
           agentId,
           messageId: msg.id ?? null,
           from: msg.from,
           taskId: msg.taskId ?? null,
-          error: errorMessage
+          errorType,
+          error: errorMessage,
+          stack: err?.stack ?? null,
+          willContinueProcessing: true
         });
+        
+        // 确保智能体状态重置为空闲
+        this.setAgentComputeStatus(agentId, 'idle');
+        
+        // 向父智能体发送错误通知
+        try {
+          await this._sendErrorNotificationToParent(agentId, msg, {
+            errorType: "agent_message_processing_failed",
+            message: `智能体 ${agentId} 消息处理异常: ${errorMessage}`,
+            originalError: errorMessage,
+            errorName: errorType
+          });
+        } catch (notifyErr) {
+          void this.log.error("发送异常通知失败", {
+            agentId,
+            notifyError: notifyErr?.message ?? String(notifyErr)
+          });
+        }
+        
         // 继续处理其他智能体，不中断循环
       }
     }
@@ -1506,12 +1561,60 @@ export class Runtime {
         // LLM响应后设置为处理中
         this.setAgentComputeStatus(agentId, 'processing');
       } catch (err) {
-        // 出错时重置为空闲状态
+        // 改进的异常处理：区分不同类型的错误
         this.setAgentComputeStatus(agentId, 'idle');
         const text = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
-        void this.log.error("LLM 调用失败", { agentId: ctx.agent?.id ?? null, messageId: message?.id ?? null, message: text });
-        this._stopRequested = true;
-        return;
+        const errorType = err?.name ?? "UnknownError";
+        
+        // 详细记录异常信息
+        void this.log.error("LLM 调用失败", { 
+          agentId: ctx.agent?.id ?? null, 
+          messageId: message?.id ?? null, 
+          taskId: message?.taskId ?? null,
+          errorType,
+          message: text,
+          round: i + 1,
+          stack: err?.stack ?? null
+        });
+
+        // 根据错误类型决定处理策略
+        if (errorType === "AbortError") {
+          // 中断错误：记录日志但不停止整个系统
+          void this.log.info("LLM 调用被用户中断，智能体将继续处理其他消息", { 
+            agentId: ctx.agent?.id ?? null,
+            messageId: message?.id ?? null,
+            taskId: message?.taskId ?? null
+          });
+          
+          // 向父智能体发送中断通知
+          await this._sendErrorNotificationToParent(agentId, message, {
+            errorType: "llm_call_aborted",
+            message: "LLM 调用被用户中断",
+            originalError: text
+          });
+          
+          return; // 结束当前消息处理，但不停止整个系统
+        } else {
+          // 其他错误：记录详细信息，向父智能体发送错误通知，但不停止系统
+          void this.log.error("LLM 调用遇到非中断错误", {
+            agentId: ctx.agent?.id ?? null,
+            messageId: message?.id ?? null,
+            taskId: message?.taskId ?? null,
+            errorType,
+            errorMessage: text,
+            willContinueProcessing: true
+          });
+          
+          // 向父智能体发送错误通知
+          await this._sendErrorNotificationToParent(agentId, message, {
+            errorType: "llm_call_failed",
+            message: `LLM 调用失败: ${text}`,
+            originalError: text,
+            errorName: errorType
+          });
+          
+          return; // 结束当前消息处理，但不停止整个系统
+        }
       }
       if (!msg) {
         this.setAgentComputeStatus(agentId, 'idle');
@@ -1594,12 +1697,56 @@ export class Runtime {
         let args = {};
         try {
           args = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
-        } catch {
-          args = {};
+        } catch (parseErr) {
+          // 工具参数解析失败
+          const parseError = parseErr && typeof parseErr.message === "string" ? parseErr.message : String(parseErr ?? "unknown parse error");
+          void this.log.error("工具调用参数解析失败", { 
+            agentId: ctx.agent?.id ?? null,
+            toolName: call.function?.name ?? "unknown",
+            arguments: call.function?.arguments ?? "null",
+            parseError,
+            callId: call.id
+          });
+          
+          // 返回解析错误结果，继续处理其他工具调用
+          conv.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify({
+              error: "参数解析失败",
+              details: parseError,
+              toolName: call.function?.name ?? "unknown"
+            })
+          });
+          continue;
         }
+        
         const toolName = call.function?.name ?? null;
         void this.log.debug("解析工具调用参数", { name: toolName });
-        const result = await this.executeToolCall(ctx, toolName, args);
+        
+        let result = null;
+        try {
+          result = await this.executeToolCall(ctx, toolName, args);
+        } catch (toolErr) {
+          // 工具执行失败
+          const toolError = toolErr && typeof toolErr.message === "string" ? toolErr.message : String(toolErr ?? "unknown tool error");
+          void this.log.error("工具执行失败", {
+            agentId: ctx.agent?.id ?? null,
+            toolName,
+            args,
+            toolError,
+            callId: call.id,
+            stack: toolErr?.stack ?? null
+          });
+          
+          // 返回工具执行错误结果，继续处理其他工具调用
+          result = {
+            error: "工具执行失败",
+            details: toolError,
+            toolName,
+            args
+          };
+        }
         
         // 触发工具调用事件
         this._emitToolCall({
@@ -1634,27 +1781,64 @@ export class Runtime {
 
     // 向父智能体发送错误通知（需求 5.3）
     if (agentId) {
-      const parentAgentId = this._agentMetaById.get(agentId)?.parentAgentId ?? null;
-      if (parentAgentId && this._agents.has(parentAgentId)) {
-        this.bus.send({
-          to: parentAgentId,
-          from: agentId,
-          taskId: message?.taskId ?? null,
-          payload: {
-            kind: "error",
-            errorType: "max_tool_rounds_exceeded",
-            message: `智能体 ${agentId} 超过最大工具调用轮次限制 (${this.maxToolRounds})`,
-            agentId,
-            maxToolRounds: this.maxToolRounds,
-            originalMessageId: message?.id ?? null
-          }
-        });
-        void this.log.info("已向父智能体发送工具调用超限通知", {
+      await this._sendErrorNotificationToParent(agentId, message, {
+        errorType: "max_tool_rounds_exceeded",
+        message: `智能体 ${agentId} 超过最大工具调用轮次限制 (${this.maxToolRounds})`,
+        maxToolRounds: this.maxToolRounds
+      });
+    }
+  }
+
+  /**
+   * 向父智能体发送错误通知的统一方法。
+   * @param {string} agentId - 当前智能体ID
+   * @param {any} originalMessage - 原始消息
+   * @param {{errorType: string, message: string, [key: string]: any}} errorInfo - 错误信息
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _sendErrorNotificationToParent(agentId, originalMessage, errorInfo) {
+    if (!agentId) return;
+    
+    const parentAgentId = this._agentMetaById.get(agentId)?.parentAgentId ?? null;
+    if (!parentAgentId || !this._agents.has(parentAgentId)) {
+      void this.log.debug("未找到父智能体，跳过错误通知", { 
+        agentId, 
+        parentAgentId,
+        errorType: errorInfo.errorType 
+      });
+      return;
+    }
+
+    try {
+      this.bus.send({
+        to: parentAgentId,
+        from: agentId,
+        taskId: originalMessage?.taskId ?? null,
+        payload: {
+          kind: "error",
+          errorType: errorInfo.errorType,
+          message: errorInfo.message,
           agentId,
-          parentAgentId,
-          maxToolRounds: this.maxToolRounds
-        });
-      }
+          originalMessageId: originalMessage?.id ?? null,
+          timestamp: new Date().toISOString(),
+          ...errorInfo // 包含其他错误详情
+        }
+      });
+      
+      void this.log.info("已向父智能体发送错误通知", {
+        agentId,
+        parentAgentId,
+        errorType: errorInfo.errorType,
+        taskId: originalMessage?.taskId ?? null
+      });
+    } catch (notifyErr) {
+      void this.log.error("发送错误通知失败", {
+        agentId,
+        parentAgentId,
+        errorType: errorInfo.errorType,
+        notifyError: notifyErr?.message ?? String(notifyErr)
+      });
     }
   }
 

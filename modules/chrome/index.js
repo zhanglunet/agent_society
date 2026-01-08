@@ -169,13 +169,27 @@ export default {
           }
           if (id && action === "close") {
             // POST /api/modules/chrome/tabs/:id/close
-            return await tabManager.closeTab(id);
+            log?.info?.("HTTP请求关闭标签页", { tabId: id, method: req.method });
+            const result = await tabManager.closeTab(id);
+            log?.info?.("标签页关闭结果", { tabId: id, result });
+            return result;
           }
         }
         
         return { error: "not_found", path: pathParts.join("/") };
       } catch (err) {
-        return { error: "handler_error", message: err?.message ?? String(err) };
+        const message = err?.message ?? String(err);
+        const errorDetails = {
+          error: "handler_error", 
+          message,
+          resource,
+          id,
+          action,
+          stack: err?.stack
+        };
+        
+        log?.error?.("Chrome HTTP处理器错误", errorDetails);
+        return errorDetails;
       }
     };
   },

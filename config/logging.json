@@ -9,7 +9,8 @@
     "artifacts": "info",
     "bus": "info",
     "prompts": "warn",
-    "society": "info"
+    "society": "info",
+    "chrome": "debug"
   }
 }
 

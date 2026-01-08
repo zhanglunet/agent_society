@@ -81,6 +81,7 @@ export class LlmClient {
       if (signal?.aborted) {
         const abortError = new Error("LLM 请求已被中断");
         abortError.name = "AbortError";
+        void this.log.info("LLM 请求在开始前已被中断", { meta, attempt: attempt + 1 });
         throw abortError;
       }
 
@@ -123,10 +124,16 @@ export class LlmClient {
         const latencyMs = Date.now() - startTime;
         lastError = err;
         const text = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+        const errorType = err?.name ?? "UnknownError";
         
         // 如果是中断错误，直接抛出，不重试
-        if (err.name === "AbortError" || signal?.aborted) {
-          void this.log.info("LLM 请求已被中断", { meta });
+        if (errorType === "AbortError" || signal?.aborted) {
+          void this.log.info("LLM 请求已被中断", { 
+            meta, 
+            attempt: attempt + 1,
+            latencyMs,
+            errorMessage: text
+          });
           const abortError = new Error("LLM 请求已被中断");
           abortError.name = "AbortError";
           throw abortError;
@@ -136,16 +143,20 @@ export class LlmClient {
         await this.log.logLlmMetrics({
           latencyMs,
           success: false,
-          model: this.model
+          model: this.model,
+          errorType,
+          errorMessage: text
         }, meta);
         
         // 如果是最后一次尝试，不再重试
         if (attempt >= maxRetries - 1) {
           void this.log.error("LLM 请求失败（已达最大重试次数）", { 
             meta, 
-            message: text, 
+            message: text,
+            errorType,
             attempt: attempt + 1, 
-            maxRetries 
+            maxRetries,
+            stack: err?.stack ?? null
           });
           throw err;
         }
@@ -155,9 +166,11 @@ export class LlmClient {
         void this.log.warn("LLM 调用失败，重试中", { 
           meta,
           message: text,
+          errorType,
           attempt: attempt + 1, 
           maxRetries, 
-          delayMs 
+          delayMs,
+          stack: err?.stack ?? null
         });
         
         await this._sleep(delayMs);
