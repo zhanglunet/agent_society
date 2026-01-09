@@ -17,6 +17,7 @@ const AgentList = {
   // DOM 元素引用
   listContainer: null,
   searchInput: null,
+  searchClearBtn: null,
   sortBtn: null,
   sortTypeBtn: null,
   toggleTerminatedBtn: null,
@@ -27,6 +28,7 @@ const AgentList = {
   init() {
     this.listContainer = document.getElementById('agent-list');
     this.searchInput = document.getElementById('search-input');
+    this.searchClearBtn = document.getElementById('search-clear-btn');
     this.sortBtn = document.getElementById('sort-btn');
     this.sortTypeBtn = document.getElementById('sort-type-btn');
     this.toggleTerminatedBtn = document.getElementById('toggle-terminated-btn');
@@ -35,8 +37,15 @@ const AgentList = {
     if (this.searchInput) {
       this.searchInput.addEventListener('input', (e) => {
         this.filterKeyword = e.target.value;
+        this.updateSearchClearButton();
         this.applyFilterAndSort();
         this.render();
+      });
+    }
+
+    if (this.searchClearBtn) {
+      this.searchClearBtn.addEventListener('click', () => {
+        this.clearFilter();
       });
     }
 
@@ -76,6 +85,28 @@ const AgentList = {
     this.updateToggleTerminatedButton();
     this.applyFilterAndSort();
     this.render();
+  },
+
+  /**
+   * 清除筛选关键词
+   */
+  clearFilter() {
+    this.filterKeyword = '';
+    if (this.searchInput) {
+      this.searchInput.value = '';
+    }
+    this.updateSearchClearButton();
+    this.applyFilterAndSort();
+    this.render();
+  },
+
+  /**
+   * 更新清除按钮显示状态
+   */
+  updateSearchClearButton() {
+    if (this.searchClearBtn) {
+      this.searchClearBtn.style.display = this.filterKeyword ? 'block' : 'none';
+    }
   },
 
   /**
@@ -200,6 +231,9 @@ const AgentList = {
     if (this.searchInput) {
       this.searchInput.value = this.filterKeyword;
     }
+    
+    // 更新清除按钮显示状态
+    this.updateSearchClearButton();
     
     this.applyFilterAndSort();
     this.render();

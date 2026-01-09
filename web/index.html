@@ -23,7 +23,10 @@
       
       <!-- 搜索和排序 -->
       <div class="sidebar-toolbar">
-        <input type="text" id="search-input" class="search-input" placeholder="按岗位筛选...">
+        <div class="search-input-wrapper">
+          <input type="text" id="search-input" class="search-input" placeholder="按岗位筛选...">
+          <button id="search-clear-btn" class="search-clear-btn" title="清除筛选" style="display: none;">✕</button>
+        </div>
         <button id="toggle-terminated-btn" class="toggle-terminated-btn" title="显示已终止的智能体">👁️</button>
         <button id="sort-type-btn" class="sort-type-btn" title="切换排序类型">活跃</button>
         <button id="sort-btn" class="sort-btn" title="切换排序方向">↓</button>
