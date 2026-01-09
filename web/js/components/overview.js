@@ -9,6 +9,7 @@ const OverviewPanel = {
   roles: [],       // 岗位列表
   tree: null,      // 组织树
   roleTree: null,  // 岗位从属关系树
+  showDeletedRoles: false, // 是否显示已删除的岗位（默认隐藏）
 
   // DOM 元素引用
   panel: null,
@@ -116,8 +117,15 @@ const OverviewPanel = {
       statsArray = this.roles.map(role => ({
         id: role.id,
         name: role.name,
-        count: role.agentCount ?? 0
+        count: role.agentCount ?? 0,
+        deleted: role.deleted ?? false
       }));
+      
+      // 根据设置过滤已删除的岗位
+      if (!this.showDeletedRoles) {
+        statsArray = statsArray.filter(stat => !stat.deleted);
+      }
+      
       // 按数量降序排列
       statsArray.sort((a, b) => b.count - a.count);
     } else {
@@ -126,7 +134,10 @@ const OverviewPanel = {
       statsArray = TreeUtils.roleCountsToArray(counts);
     }
 
-    if (statsArray.length === 0) {
+    // 计算已删除岗位数量（用于显示）
+    const deletedCount = this.roles ? this.roles.filter(r => r.deleted).length : 0;
+
+    if (statsArray.length === 0 && deletedCount === 0) {
       this.roleStatsContainer.innerHTML = `
         <h3>岗位统计</h3>
         <div style="color: #888; padding: 12px;">暂无数据</div>
@@ -135,9 +146,10 @@ const OverviewPanel = {
     }
 
     const statsHtml = statsArray.map(stat => `
-      <div class="role-stat-item ${stat.count === 0 ? 'empty-role' : ''}">
+      <div class="role-stat-item ${stat.count === 0 ? 'empty-role' : ''} ${stat.deleted ? 'deleted-role' : ''}">
         <span class="role-stat-name" onclick="OverviewPanel.onRoleClick('${this.escapeHtml(stat.name).replace(/'/g, "\\'")}')">${this.escapeHtml(stat.name)}</span>
         <div class="role-stat-actions">
+          ${stat.deleted ? '<span class="role-deleted-badge" title="已删除">🗑️</span>' : ''}
           <span class="role-stat-count">${stat.count}</span>
           <button class="role-detail-btn" onclick="event.stopPropagation(); OverviewPanel.onRoleDetailClick('${this.escapeHtml(stat.id || stat.name).replace(/'/g, "\\'")}')" title="查看详情">ℹ️</button>
           ${this.renderRoleDeleteButton(stat)}
@@ -145,10 +157,31 @@ const OverviewPanel = {
       </div>
     `).join('');
 
+    // 显示/隐藏已删除岗位的开关
+    const toggleBtnClass = this.showDeletedRoles ? 'active' : '';
+    const toggleBtnIcon = this.showDeletedRoles ? '👁️' : '🙈';
+    const toggleBtnTitle = this.showDeletedRoles ? '隐藏已删除的岗位' : '显示已删除的岗位';
+    const toggleBtn = deletedCount > 0 ? `
+      <button class="toggle-deleted-roles-btn ${toggleBtnClass}" 
+              onclick="OverviewPanel.toggleShowDeletedRoles()" 
+              title="${toggleBtnTitle}">${toggleBtnIcon} ${deletedCount}</button>
+    ` : '';
+
     this.roleStatsContainer.innerHTML = `
-      <h3>岗位统计</h3>
-      ${statsHtml}
+      <h3>
+        岗位统计
+        ${toggleBtn}
+      </h3>
+      ${statsHtml.length > 0 ? statsHtml : '<div style="color: #888; padding: 12px;">暂无数据</div>'}
     `;
+  },
+
+  /**
+   * 切换显示/隐藏已删除岗位
+   */
+  toggleShowDeletedRoles() {
+    this.showDeletedRoles = !this.showDeletedRoles;
+    this.render();
   },
 
   /**
