@@ -154,6 +154,7 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
   border-bottom: 1px solid #252525;
+  position: relative;
 }
 
 .agent-item:hover {
