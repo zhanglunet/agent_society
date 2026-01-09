@@ -317,6 +317,287 @@ class ImageViewer {
   }
 }
 
+/**
+ * 静态方法：显示图片灯箱（供聊天面板等外部调用）
+ * @param {string[]} images - 图片路径数组
+ * @param {number} startIndex - 起始索引
+ */
+ImageViewer.show = function(images, startIndex = 0) {
+  if (!images || images.length === 0) return;
+  
+  const currentIndex = Math.max(0, Math.min(startIndex, images.length - 1));
+  
+  // 获取图片 URL
+  const getImageUrl = (img) => {
+    if (!img) return "";
+    if (img.startsWith("data:") || img.startsWith("http://") || img.startsWith("https://")) {
+      return img;
+    }
+    return `/artifacts/${img}`;
+  };
+
+  const lightbox = document.createElement("div");
+  lightbox.className = "image-lightbox";
+  lightbox.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    overflow: hidden;
+    cursor: grab;
+  `;
+
+  const img = document.createElement("img");
+  img.src = getImageUrl(images[currentIndex]);
+  img.style.cssText = `
+    position: absolute;
+    transform-origin: center center;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-drag: none;
+    max-width: 90vw;
+    max-height: 90vh;
+  `;
+
+  // 缩放和拖拽状态
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let lastTranslateX = 0;
+  let lastTranslateY = 0;
+  let index = currentIndex;
+
+  const updateTransform = () => {
+    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  };
+
+  const resetView = () => {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    updateTransform();
+  };
+
+  const showImage = (newIndex) => {
+    if (newIndex < 0 || newIndex >= images.length) return;
+    index = newIndex;
+    img.src = getImageUrl(images[index]);
+    resetView();
+    updateCounter();
+  };
+
+  // 鼠标滚轮缩放
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(0.1, Math.min(scale * delta, 20));
+    
+    const rect = img.getBoundingClientRect();
+    const imgCenterX = rect.left + rect.width / 2;
+    const imgCenterY = rect.top + rect.height / 2;
+    const mouseOffsetX = e.clientX - imgCenterX;
+    const mouseOffsetY = e.clientY - imgCenterY;
+    
+    const scaleRatio = newScale / scale;
+    translateX -= mouseOffsetX * (scaleRatio - 1);
+    translateY -= mouseOffsetY * (scaleRatio - 1);
+    
+    scale = newScale;
+    updateTransform();
+  };
+
+  // 拖拽
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    lastTranslateX = translateX;
+    lastTranslateY = translateY;
+    lightbox.style.cursor = "grabbing";
+    img.style.cursor = "grabbing";
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    translateX = lastTranslateX + (e.clientX - startX);
+    translateY = lastTranslateY + (e.clientY - startY);
+    updateTransform();
+  };
+
+  const handleMouseUp = () => {
+    isDragging = false;
+    lightbox.style.cursor = "grab";
+    img.style.cursor = "grab";
+  };
+
+  // 双击重置
+  const handleDblClick = (e) => {
+    if (e.target === img) {
+      resetView();
+    }
+  };
+
+  // 关闭按钮
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "✕";
+  closeBtn.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 10001;
+  `;
+
+  // 导航按钮（多图时显示）
+  let prevBtn, nextBtn, counter;
+  
+  if (images.length > 1) {
+    prevBtn = document.createElement("button");
+    prevBtn.textContent = "‹";
+    prevBtn.style.cssText = `
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 30px;
+      z-index: 10001;
+    `;
+    prevBtn.addEventListener("click", () => showImage(index - 1));
+
+    nextBtn = document.createElement("button");
+    nextBtn.textContent = "›";
+    nextBtn.style.cssText = `
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 50px;
+      height: 50px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 30px;
+      z-index: 10001;
+    `;
+    nextBtn.addEventListener("click", () => showImage(index + 1));
+
+    counter = document.createElement("div");
+    counter.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 10001;
+    `;
+  }
+
+  const updateCounter = () => {
+    if (counter) {
+      counter.textContent = `${index + 1} / ${images.length}`;
+    }
+    if (prevBtn) prevBtn.style.opacity = index === 0 ? "0.3" : "1";
+    if (nextBtn) nextBtn.style.opacity = index === images.length - 1 ? "0.3" : "1";
+  };
+
+  // 提示信息
+  const hint = document.createElement("div");
+  hint.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #999;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10001;
+  `;
+  hint.textContent = images.length > 1 
+    ? "滚轮缩放 · 拖拽移动 · 双击重置 · 左右箭头切换 · ESC关闭"
+    : "滚轮缩放 · 拖拽移动 · 双击重置 · ESC关闭";
+
+  const closeLightbox = () => {
+    lightbox.removeEventListener("wheel", handleWheel);
+    lightbox.removeEventListener("mousedown", handleMouseDown);
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+    document.removeEventListener("keydown", handleKeyDown);
+    if (document.body.contains(lightbox)) {
+      document.body.removeChild(lightbox);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      closeLightbox();
+    } else if (e.key === "ArrowLeft" && images.length > 1) {
+      showImage(index - 1);
+    } else if (e.key === "ArrowRight" && images.length > 1) {
+      showImage(index + 1);
+    }
+  };
+
+  closeBtn.addEventListener("click", closeLightbox);
+  
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) {
+      closeLightbox();
+    }
+  });
+
+  lightbox.addEventListener("wheel", handleWheel, { passive: false });
+  lightbox.addEventListener("mousedown", handleMouseDown);
+  lightbox.addEventListener("dblclick", handleDblClick);
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("mouseup", handleMouseUp);
+  document.addEventListener("keydown", handleKeyDown);
+
+  lightbox.appendChild(img);
+  lightbox.appendChild(closeBtn);
+  lightbox.appendChild(hint);
+  
+  if (images.length > 1) {
+    lightbox.appendChild(prevBtn);
+    lightbox.appendChild(nextBtn);
+    lightbox.appendChild(counter);
+    updateCounter();
+  }
+
+  document.body.appendChild(lightbox);
+};
+
 // 导出
 if (typeof module !== "undefined" && module.exports) {
   module.exports = ImageViewer;
