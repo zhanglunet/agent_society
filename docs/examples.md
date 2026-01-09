@@ -58,6 +58,9 @@ async function main() {
   if (reply?.payload?.text) {
     console.log(reply.payload.text);
   }
+  
+  // 6. 优雅关闭
+  await system.shutdown();
 }
 
 await main();
@@ -123,7 +126,7 @@ bun run demo/demo2.js
 // 构建饭店需求
 function buildRestaurantRequirement() {
   return [
-    "目标：构建一个可在命令行交互的"模拟饭店"",
+    "目标：构建一个可在命令行交互的\"模拟饭店\"",
     "约束：你需要用 create_role / spawn_agent 自组织创建饭店员工智能体",
     "交互：用户会发送短文本命令（menu/order/cart/submit/bill）",
     "数据：内置菜单（至少 6 个菜品）和库存",
@@ -292,6 +295,24 @@ spawn_agent({
 });
 ```
 
+### 最佳实践：使用 spawn_agent_with_task
+
+为了减少通信开销，建议使用 `spawn_agent_with_task` 工具，它可以在创建智能体的同时发送第一条任务消息：
+
+```javascript
+spawn_agent_with_task({
+  roleId: "programmer-xxx",
+  taskBrief: {
+    // ... 同上 ...
+  },
+  initialMessage: {
+    message_type: "task_assignment",
+    task: "请根据 Task Brief 开始编写代码",
+    deliverable: "src/calculator.js"
+  }
+});
+```
+
 ### 工作流程
 
 ```
@@ -306,7 +327,7 @@ spawn_agent({
         ▼
 4. 架构师创建程序员岗位和智能体
    - create_role("programmer", rolePrompt)
-   - spawn_agent(roleId, taskBrief)
+   - spawn_agent_with_task(roleId, taskBrief, initialMessage)
         │
         ▼
 5. 程序员编写代码
@@ -408,6 +429,8 @@ async function main() {
   );
   
   console.log("任务完成:", completion?.payload?.text);
+  
+  await system.shutdown();
 }
 
 main();
@@ -444,6 +467,8 @@ async function main() {
   results.forEach((r, i) => {
     console.log(`任务${i + 1} 结果:`, r?.payload?.text);
   });
+  
+  await system.shutdown();
 }
 
 main();

@@ -1,0 +1,74 @@
+{
+  "services": [
+    {
+      "id": "vision-model",
+      "name": "视觉理解模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "vision-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["视觉理解", "图像分析", "多模态"],
+      "description": "专门用于图像内容理解和分析的模型",
+      "maxConcurrentRequests": 2
+    },
+    {
+      "id": "coding-model",
+      "name": "编程模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "coding-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["编程", "代码生成", "代码审查"],
+      "description": "专门用于代码生成和编程任务的模型",
+      "maxConcurrentRequests": 3
+    },
+    {
+      "id": "high-intelligence-model",
+      "name": "高智能模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "high-intelligence-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["高智能", "复杂推理", "深度分析"],
+      "description": "适用于复杂推理和深度分析任务的高智能模型",
+      "maxConcurrentRequests": 2
+    },
+    {
+      "id": "low-cost-model",
+      "name": "低成本模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "low-cost-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["低成本", "快速响应", "简单任务"],
+      "description": "适用于简单任务的低成本快速模型",
+      "maxConcurrentRequests": 5
+    },
+    {
+      "id": "humanized-model",
+      "name": "人性化模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "humanized-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["人性化", "情感理解", "自然对话"],
+      "description": "专注于自然对话和情感理解的人性化模型",
+      "maxConcurrentRequests": 3
+    },
+    {
+      "id": "audio-model",
+      "name": "音频模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "audio-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["音频处理", "语音识别", "音频分析"],
+      "description": "专门用于音频处理和语音识别的模型",
+      "maxConcurrentRequests": 2
+    },
+    {
+      "id": "game-model",
+      "name": "游戏化模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "game-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["游戏化", "互动体验", "创意生成"],
+      "description": "适用于游戏化场景和创意生成的模型",
+      "maxConcurrentRequests": 3
+    }
+  ]
+}

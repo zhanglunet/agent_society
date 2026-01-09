@@ -17,7 +17,7 @@
 
 ### 运行时环境
 
-Agent Society 推荐使用 [Bun](https://bun.sh/) 作为运行时，也支持 Node.js。
+Agent Society 推荐使用 [Bun](https://bun.sh/) 作为运行时，也支持 Node.js (>= 18)。
 
 **安装 Bun（推荐）：**
 
@@ -28,10 +28,6 @@ curl -fsSL https://bun.sh/install | bash
 # Windows (PowerShell)
 powershell -c "irm bun.sh/install.ps1 | iex"
 ```
-
-**或使用 Node.js：**
-
-确保 Node.js 版本 >= 18。
 
 ### LLM 服务
 
@@ -45,7 +41,7 @@ Agent Society 需要一个兼容 OpenAI API 的 LLM 服务。你可以选择：
 2. **云端 API**
    - OpenAI API
    - Azure OpenAI
-   - 其他兼容 OpenAI API 的服务
+   - 其他兼容 OpenAI API 的服务（如 DeepSeek, Moonshot 等）
 
 ## 安装
 
@@ -62,9 +58,9 @@ npm install
 
 ## 配置
 
-### 主配置文件
+### 1. 主配置文件 (`config/app.json`)
 
-编辑 `config/app.json`：
+这是系统的核心配置文件，控制运行时行为、默认 LLM 和上下文限制。
 
 ```json
 {
@@ -77,13 +73,19 @@ npm install
   "llm": {
     "baseURL": "http://127.0.0.1:1234/v1",
     "model": "your-model-name",
-    "apiKey": "your-api-key-or-NOT_NEEDED"
+    "apiKey": "your-api-key-or-NOT_NEEDED",
+    "maxConcurrentRequests": 5
   },
   "contextLimit": {
     "maxTokens": 12000,
     "warningThreshold": 0.7,
     "criticalThreshold": 0.9,
     "hardLimitThreshold": 0.95
+  },
+  "modules": {
+    "chrome": {
+      "headless": true
+    }
   }
 }
 ```
@@ -92,18 +94,47 @@ npm install
 
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| `promptsDir` | 系统提示词目录 | `config/prompts` |
-| `artifactsDir` | 工件存储目录 | `data/runtime/artifacts` |
-| `runtimeDir` | 运行时状态目录 | `data/runtime/state` |
+| `llm` | 默认 LLM 服务配置 | - |
 | `maxSteps` | 消息循环最大步数 | `200` |
 | `maxToolRounds` | 单次 LLM 调用最大工具轮次 | `200` |
-| `llm.baseURL` | LLM API 地址 | - |
-| `llm.model` | 模型名称 | - |
-| `llm.apiKey` | API 密钥 | - |
+| `contextLimit` | 上下文长度限制与警告阈值 | - |
+| `modules` | 启用的外部模块列表 | `[]` |
 
-### 日志配置
+### 2. 多模型服务配置 (`config/llmservices.json`)
 
-编辑 `config/logging.json`：
+**（可选）** 如果你需要让不同的岗位使用不同的模型（例如：让"架构师"用 GPT-4，"程序员"用本地 Qwen-7B），可以配置此文件。
+
+```json{
+  "services": [
+    {
+      "id": "vision-model",
+      "name": "视觉理解模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "vision-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["视觉理解", "图像分析", "多模态"],
+      "description": "专门用于图像内容理解和分析的模型",
+      "maxConcurrentRequests": 2
+    },
+    {
+      "id": "coding-model",
+      "name": "编程模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "coding-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["编程", "代码生成", "代码审查"],
+      "description": "专门用于代码生成和编程任务的模型",
+      "maxConcurrentRequests": 3
+    }
+  ]
+}
+```
+
+配置后，你可以在 `create_role` 时指定 `llmServiceId`，或者让系统根据 `capabilities` 自动选择。
+
+### 3. 日志配置 (`config/logging.json`)
+
+控制各模块的日志级别。
 
 ```json
 {
@@ -112,12 +143,9 @@ npm install
   "defaultLevel": "info",
   "levels": {
     "runtime": "info",
-    "llm": "info",
+    "llm": "debug",
     "org": "info",
-    "artifacts": "info",
-    "bus": "info",
-    "prompts": "warn",
-    "society": "info"
+    "bus": "info"
   }
 }
 ```
@@ -164,10 +192,9 @@ bun start ./my-data -p 3001 --no-browser
 
 然后在浏览器里像微信一样聊天。
 
-
 ![Agent Society Architecture](images/work.png)
 
-### 示例 1：简单计算
+### 代码运行示例：简单计算
 
 创建一个文件 `my_first_demo.js`：
 
@@ -201,6 +228,9 @@ async function main() {
   } else {
     console.log("等待超时");
   }
+  
+  // 优雅关闭
+  await system.shutdown();
 }
 
 main().catch(console.error);
@@ -210,68 +240,6 @@ main().catch(console.error);
 
 ```bash
 bun run my_first_demo.js
-```
-
-### 示例 2：交互式对话
-
-```javascript
-import readline from "node:readline";
-import { AgentSociety } from "./src/platform/agent_society.js";
-
-async function main() {
-  const system = new AgentSociety({ dataDir: "data/interactive" });
-  await system.init();
-  
-  // 提交初始需求
-  const { taskId } = await system.submitRequirement(
-    "你是一个友好的助手，请回答用户的问题。"
-  );
-  
-  // 等待入口智能体创建
-  const entryMsg = await system.waitForUserMessage(
-    (m) => m?.taskId === taskId && m?.from === "root" && m?.payload?.agentId,
-    { timeoutMs: 60000 }
-  );
-  
-  const entryAgentId = entryMsg?.payload?.agentId;
-  if (!entryAgentId) {
-    console.log("未能获取入口智能体");
-    return;
-  }
-  
-  console.log(`入口智能体: ${entryAgentId}`);
-  console.log("输入 'exit' 退出\n");
-  
-  // 创建命令行接口
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  const question = (q) => new Promise(r => rl.question(q, r));
-  
-  while (true) {
-    const input = await question("你: ");
-    if (input.toLowerCase() === "exit") break;
-    
-    // 发送消息给智能体
-    system.sendTextToAgent(entryAgentId, input, { taskId });
-    
-    // 等待回复
-    const reply = await system.waitForUserMessage(
-      (m) => m?.taskId === taskId && m?.payload?.text,
-      { timeoutMs: 60000 }
-    );
-    
-    if (reply) {
-      console.log(`助手: ${reply.payload.text}\n`);
-    }
-  }
-  
-  rl.close();
-}
-
-main().catch(console.error);
 ```
 
 ## 理解输出
@@ -300,61 +268,11 @@ main().catch(console.error);
 
 ### 组织状态
 
-组织结构保存在 `data/<dataDir>/state/org.json`：
-
-```json
-{
-  "roles": {
-    "role-xxx": {
-      "id": "role-xxx",
-      "name": "assistant",
-      "rolePrompt": "...",
-      "createdBy": "root",
-      "createdAt": "2026-01-06T..."
-    }
-  },
-  "agents": {
-    "agent-xxx": {
-      "id": "agent-xxx",
-      "roleId": "role-xxx",
-      "parentAgentId": "root"
-    }
-  }
-}
-```
+组织结构保存在 `<dataDir>/state/org.json`，记录了所有的岗位、智能体关系和生命周期状态。
 
 ## Web 查看器
 
 Agent Society 提供了一个仿微信风格的 Web 界面，用于可视化查看智能体之间的对话和组织结构。
-
-### 启动 Web 服务器
-
-**方式一：使用启动脚本（推荐）**
-
-```bash
-# 最简单的方式
-bun start
-
-# 或使用平台脚本
-./start.sh          # Unix/macOS
-start.cmd           # Windows
-```
-
-服务器启动后会自动打开浏览器访问 `http://localhost:3000`。
-
-**方式二：在代码中启用**
-
-在创建 `AgentSociety` 实例时启用 HTTP 服务器：
-
-```javascript
-const system = new AgentSociety({
-  dataDir: "data/my_project",
-  enableHttp: true,
-  httpPort: 3000  // 默认端口
-});
-
-await system.init();
-```
 
 ### 访问 Web 界面
 
@@ -366,40 +284,15 @@ http://localhost:3000/web/
 
 ### 界面功能
 
-**左侧面板 - 智能体列表：**
-- 显示所有智能体（包括 root、user 和动态创建的智能体）
-- 按创建时间排序（默认升序，可切换）
-- 支持按岗位名称筛选
-- 新消息提示（红点标记）
-- 已终止智能体显示状态标签
-
-**右侧面板 - 对话视图：**
-- 仿微信风格的消息气泡
-- 当前智能体发送的消息靠右（绿色背景）
-- 其他智能体发送的消息靠左（白色背景）
-- 点击发送者链接可跳转到该智能体的对话
-- 消息详情弹窗显示完整技术数据
-
-**总览视图：**
-- 点击左上角树形图标切换
-- 显示组织结构树状图
-- 显示各岗位的智能体数量统计
-- 点击节点跳转到对话视图
-
-**发送消息：**
-- 在底部输入框输入消息
-- 以 `user` 身份发送给当前选中的智能体
-
-### 实时更新
-
-Web 界面每 2 秒自动轮询更新：
-- 新智能体自动添加到列表
-- 新消息自动追加到对话
-- 组织树实时更新
+- **智能体列表**：显示所有智能体，支持按岗位筛选。
+- **对话视图**：实时显示智能体之间的对话，支持 Markdown 渲染。
+- **组织架构图**：可视化展示智能体层级关系。
+- **发送消息**：可以直接以 User 身份参与对话。
 
 ## 下一步
 
 - 阅读 [架构设计](./architecture.md) 了解系统原理
 - 查看 [API 参考](./api-reference.md) 了解完整接口
+- 学习 [配置指南](./configuration.md) 了解更多配置项
 - 学习 [工具参考](./tools.md) 了解可用工具
 - 运行 [示例教程](./examples.md) 体验更多场景

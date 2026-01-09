@@ -16,6 +16,8 @@ import { ContactManager } from "./contact_manager.js";
 import { formatMessageForAgent } from "./message_formatter.js";
 import { validateMessageFormat } from "./message_validator.js";
 import { ModuleLoader } from "./module_loader.js";
+import { LlmServiceRegistry } from "./llm_service_registry.js";
+import { ModelSelector } from "./model_selector.js";
 
 /**
  * 运行时：将平台能力（org/message/artifact/prompt）与智能体行为连接起来。
@@ -62,6 +64,11 @@ export class Runtime {
     this._toolCallListeners = new Set();
     // 模块加载器（在 init() 中会重新初始化带 logger）
     this.moduleLoader = new ModuleLoader();
+    // LLM 服务注册表和模型选择器（在 init() 中初始化）
+    this.serviceRegistry = null;
+    this.modelSelector = null;
+    /** @type {Map<string, LlmClient>} */
+    this.llmClientPool = new Map();
   }
 
   /**
@@ -236,6 +243,41 @@ export class Runtime {
       void this.log.info("模块加载完成", {
         loaded: moduleResult.loaded,
         errors: moduleResult.errors.length
+      });
+    }
+
+    // 初始化 LLM 服务注册表和模型选择器
+    this.serviceRegistry = new LlmServiceRegistry({
+      configDir: path.dirname(this.configPath),
+      logger: this.loggerRoot.forModule("llm_service_registry")
+    });
+    await this.serviceRegistry.load();
+    
+    // 加载模型选择提示词模板
+    let modelSelectorPrompt = "";
+    try {
+      modelSelectorPrompt = await this.prompts.loadSystemPromptFile("model_selector.txt");
+    } catch {
+      void this.log.warn("模型选择提示词模板加载失败，模型选择功能将不可用");
+    }
+    
+    // 初始化模型选择器（仅当有默认 LLM 和提示词模板时）
+    if (this.llm && modelSelectorPrompt) {
+      this.modelSelector = new ModelSelector({
+        llmClient: this.llm,
+        serviceRegistry: this.serviceRegistry,
+        promptTemplate: modelSelectorPrompt,
+        logger: this.loggerRoot.forModule("model_selector")
+      });
+      void this.log.info("模型选择器初始化完成", {
+        hasServices: this.serviceRegistry.hasServices(),
+        serviceCount: this.serviceRegistry.getServiceCount()
+      });
+    } else {
+      this.modelSelector = null;
+      void this.log.info("模型选择器未初始化", {
+        hasLlm: !!this.llm,
+        hasPromptTemplate: !!modelSelectorPrompt
       });
     }
 
@@ -1167,11 +1209,34 @@ export class Runtime {
           return result;
         }
 
-        const result = await ctx.tools.createRole({ name: args.name, rolePrompt: args.rolePrompt });
+        // 使用模型选择器自动选择合适的 LLM 服务
+        let llmServiceId = null;
+        if (this.modelSelector && this.serviceRegistry?.hasServices()) {
+          try {
+            const selectionResult = await this.modelSelector.selectService(args.rolePrompt);
+            llmServiceId = selectionResult?.serviceId ?? null;
+            if (llmServiceId) {
+              void this.log.info("模型选择器选择了 LLM 服务", {
+                roleName: args.name,
+                llmServiceId,
+                reason: selectionResult?.reason ?? null
+              });
+            }
+          } catch (err) {
+            const message = err && typeof err.message === "string" ? err.message : String(err);
+            void this.log.warn("模型选择失败，使用默认 LLM", { roleName: args.name, error: message });
+          }
+        }
+
+        const result = await ctx.tools.createRole({ 
+          name: args.name, 
+          rolePrompt: args.rolePrompt,
+          llmServiceId
+        });
         if (isRoot && isFromUser && taskId) {
           this._rootTaskRoleByTaskId.set(taskId, result.id);
         }
-        void this.log.debug("工具调用完成", { toolName, ok: true, roleId: result?.id ?? null });
+        void this.log.debug("工具调用完成", { toolName, ok: true, roleId: result?.id ?? null, llmServiceId });
         return result;
       }
       if (toolName === "spawn_agent") {
@@ -1554,10 +1619,12 @@ export class Runtime {
    * @returns {Promise<void>}
    */
   async _handleWithLlm(ctx, message) {
-    if (!this.llm) return;
-
+    // 获取智能体应使用的 LlmClient
     const agentId = ctx.agent?.id ?? null;
+    const llmClient = this.getLlmClientForAgent(agentId) ?? this.llm;
     
+    if (!llmClient) return;
+
     // 设置初始状态为处理中
     this.setAgentComputeStatus(agentId, 'processing');
 
@@ -1601,7 +1668,7 @@ export class Runtime {
     
     // 使用 try-finally 确保对话历史被持久化
     try {
-      await this._doLlmProcessing(ctx, message, conv, agentId);
+      await this._doLlmProcessing(ctx, message, conv, agentId, llmClient);
     } finally {
       // 持久化对话历史
       if (agentId) {
@@ -1616,10 +1683,11 @@ export class Runtime {
    * @param {any} message
    * @param {any[]} conv
    * @param {string|null} agentId
+   * @param {LlmClient} llmClient - 要使用的 LLM 客户端
    * @returns {Promise<void>}
    * @private
    */
-  async _doLlmProcessing(ctx, message, conv, agentId) {
+  async _doLlmProcessing(ctx, message, conv, agentId, llmClient) {
     // 在用户消息中注入上下文状态提示
     const contextStatusPrompt = this._conversationManager.buildContextStatusPrompt(agentId);
     const userContent = this._formatMessageForLlm(ctx, message) + contextStatusPrompt;
@@ -1644,7 +1712,7 @@ export class Runtime {
         void this.log.info("请求 LLM", llmMeta);
         // 设置状态为等待LLM响应
         this.setAgentComputeStatus(agentId, 'waiting_llm');
-        msg = await this.llm.chat({ messages: conv, tools, meta: llmMeta });
+        msg = await llmClient.chat({ messages: conv, tools, meta: llmMeta });
         // LLM响应后设置为处理中
         this.setAgentComputeStatus(agentId, 'processing');
       } catch (err) {
@@ -2083,6 +2151,93 @@ export class Runtime {
       tools,
       agent: agent ?? null
     };
+  }
+
+  /**
+   * 获取指定服务的 LlmClient（懒加载，池化复用）。
+   * @param {string} serviceId - 服务ID
+   * @returns {LlmClient|null} LlmClient 实例，如果服务不存在则返回 null
+   */
+  getLlmClientForService(serviceId) {
+    if (!serviceId) {
+      return null;
+    }
+
+    // 检查池中是否已有该服务的客户端
+    if (this.llmClientPool.has(serviceId)) {
+      return this.llmClientPool.get(serviceId);
+    }
+
+    // 从注册表获取服务配置
+    const serviceConfig = this.serviceRegistry?.getServiceById(serviceId);
+    if (!serviceConfig) {
+      void this.log.warn("LLM服务不存在", { serviceId });
+      return null;
+    }
+
+    // 创建新的 LlmClient 实例
+    try {
+      const client = new LlmClient({
+        baseURL: serviceConfig.baseURL,
+        model: serviceConfig.model,
+        apiKey: serviceConfig.apiKey,
+        maxConcurrentRequests: serviceConfig.maxConcurrentRequests ?? 2,
+        logger: this.loggerRoot.forModule(`llm_${serviceId}`)
+      });
+
+      // 存入池中
+      this.llmClientPool.set(serviceId, client);
+
+      void this.log.info("创建 LlmClient 实例", {
+        serviceId,
+        serviceName: serviceConfig.name,
+        model: serviceConfig.model
+      });
+
+      return client;
+    } catch (err) {
+      const message = err && typeof err.message === "string" ? err.message : String(err);
+      void this.log.error("创建 LlmClient 失败", { serviceId, error: message });
+      return null;
+    }
+  }
+
+  /**
+   * 获取智能体应使用的 LlmClient。
+   * 根据智能体岗位的 llmServiceId 获取对应的 LlmClient，如果未指定或服务不可用则使用默认 LlmClient。
+   * @param {string} agentId - 智能体ID
+   * @returns {LlmClient|null} LlmClient 实例
+   */
+  getLlmClientForAgent(agentId) {
+    if (!agentId) {
+      return this.llm;
+    }
+
+    // 获取智能体的岗位信息
+    const agent = this._agents.get(agentId);
+    if (!agent) {
+      return this.llm;
+    }
+
+    const role = this.org.getRole(agent.roleId);
+    if (!role || !role.llmServiceId) {
+      // 岗位未指定 llmServiceId，使用默认 LlmClient
+      return this.llm;
+    }
+
+    // 尝试获取指定服务的 LlmClient
+    const serviceClient = this.getLlmClientForService(role.llmServiceId);
+    if (serviceClient) {
+      return serviceClient;
+    }
+
+    // 服务不可用，回退到默认 LlmClient
+    void this.log.warn("岗位指定的 LLM 服务不可用，使用默认 LlmClient", {
+      agentId,
+      roleId: agent.roleId,
+      llmServiceId: role.llmServiceId
+    });
+    return this.llm;
   }
 
   /**

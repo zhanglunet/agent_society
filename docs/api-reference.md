@@ -7,12 +7,14 @@
 - [AgentSociety 类](#agentsociety-类)
 - [Runtime 类](#runtime-类)
 - [Agent 类](#agent-类)
+- [HTTP API](#http-api)
 - [消息格式](#消息格式)
 - [工件格式](#工件格式)
+- [Task Brief 格式](#task-brief-格式)
 
 ## AgentSociety 类
 
-用户入口类，提供系统初始化和用户交互接口。
+用户入口类，提供系统初始化、用户交互和生命周期管理接口。
 
 ### 构造函数
 
@@ -29,7 +31,7 @@ new AgentSociety(options?)
 | `options.maxSteps` | `number` | `200` | 消息循环最大步数 |
 | `options.httpPort` | `number` | `3000` | HTTP 服务器端口 |
 | `options.enableHttp` | `boolean` | `false` | 是否启用 HTTP 服务器 |
-| `options.shutdownTimeoutMs` | `number` | `30000` | 关闭超时时间（毫秒） |
+| `options.shutdownTimeoutMs` | `number` | `30000` | 优雅关闭超时时间（毫秒） |
 
 **示例：**
 
@@ -50,17 +52,13 @@ async init(): Promise<void>
 ```
 
 **说明：**
-- 加载配置
-- 初始化平台能力组件
+- 加载配置（app.json, logging.json, llmservices.json 等）
+- 初始化平台能力（Runtime, MessageBus, ArtifactStore, OrgPrimitives 等）
+- 加载外部模块（Modules）
 - 创建根智能体与用户端点
 - 启动消息处理循环
 - 启动 HTTP 服务器（如果启用）
-
-**示例：**
-
-```javascript
-await system.init();
-```
+- 设置优雅关闭钩子（SIGINT/SIGTERM）
 
 ### submitRequirement()
 
@@ -78,24 +76,7 @@ async submitRequirement(
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `text` | `string` | 需求描述文本 |
-| `options.workspacePath` | `string` | 可选，绑定的工作空间路径 |
-
-**返回值：**
-
-成功时返回 `{ taskId, workspacePath? }`，失败时返回 `{ error }`。
-
-**示例：**
-
-```javascript
-// 简单需求
-const { taskId } = await system.submitRequirement("计算 1+1");
-
-// 带工作空间
-const result = await system.submitRequirement(
-  "创建一个计算器程序",
-  { workspacePath: "./my_project" }
-);
-```
+| `options.workspacePath` | `string` | 可选，绑定的工作空间路径（绝对路径或相对路径） |
 
 ### sendTextToAgent()
 
@@ -109,51 +90,12 @@ sendTextToAgent(
 ): { taskId: string, to: string } | { error: string }
 ```
 
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `agentId` | `string` | 目标智能体 ID |
-| `text` | `string` | 消息文本 |
-| `options.taskId` | `string` | 可选，任务 ID（不提供则自动生成） |
-
-**返回值：**
-
-成功时返回 `{ taskId, to }`，失败时返回 `{ error }`。
-
-**示例：**
-
-```javascript
-system.sendTextToAgent("agent-xxx", "你好", { taskId });
-```
-
 ### onUserMessage()
 
-注册用户消息回调。
+注册用户消息回调（接收发给 User 端点的消息）。
 
 ```javascript
 onUserMessage(handler: (message: any) => void): () => void
-```
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `handler` | `function` | 消息处理函数 |
-
-**返回值：**
-
-返回取消订阅函数。
-
-**示例：**
-
-```javascript
-const unsubscribe = system.onUserMessage((message) => {
-  console.log("收到消息:", message.payload?.text);
-});
-
-// 取消订阅
-unsubscribe();
 ```
 
 ### waitForUserMessage()
@@ -167,36 +109,9 @@ async waitForUserMessage(
 ): Promise<any | null>
 ```
 
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `predicate` | `function` | 消息匹配函数 |
-| `options.timeoutMs` | `number` | 超时时间（毫秒），0 表示无限等待 |
-
-**返回值：**
-
-匹配的消息，超时返回 `null`。
-
-**示例：**
-
-```javascript
-// 等待特定任务的回复
-const reply = await system.waitForUserMessage(
-  (m) => m?.taskId === taskId && m?.payload?.text,
-  { timeoutMs: 60000 }
-);
-
-// 等待入口智能体 ID
-const entryMsg = await system.waitForUserMessage(
-  (m) => m?.from === "root" && m?.payload?.agentId,
-  { timeoutMs: 30000 }
-);
-```
-
 ### shutdown()
 
-手动触发优雅关闭。
+手动触发优雅关闭流程。
 
 ```javascript
 async shutdown(): Promise<{
@@ -207,22 +122,7 @@ async shutdown(): Promise<{
 }>
 ```
 
-**示例：**
-
-```javascript
-const result = await system.shutdown();
-console.log(`关闭完成，耗时 ${result.shutdownDuration}ms`);
-```
-
-### isShuttingDown()
-
-检查系统是否正在关闭。
-
-```javascript
-isShuttingDown(): boolean
-```
-
-### HTTP 服务器相关
+### HTTP 服务器管理
 
 ```javascript
 // 获取 HTTP 服务器实例
@@ -237,7 +137,7 @@ async stopHttpServer(): Promise<{ ok: boolean }>
 
 ## Runtime 类
 
-运行时核心类，通常不直接使用，通过 `AgentSociety` 访问。
+运行时核心类，通常通过 `AgentSociety.runtime` 访问。
 
 ### 构造函数
 
@@ -245,201 +145,181 @@ async stopHttpServer(): Promise<{ ok: boolean }>
 new Runtime(options?)
 ```
 
-**参数：**
+**关键参数：**
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `options.maxSteps` | `number` | `200` | 消息循环最大步数 |
-| `options.configPath` | `string` | `"config/app.json"` | 配置文件路径 |
-| `options.maxToolRounds` | `number` | `200` | 单次 LLM 调用最大工具轮次 |
-| `options.maxContextMessages` | `number` | `50` | 最大上下文消息数 |
-| `options.idleWarningMs` | `number` | `300000` | 空闲警告时间（毫秒） |
-| `options.dataDir` | `string` | `null` | 数据目录 |
+- `contextLimit`: 上下文限制配置对象
+  - `maxTokens`: 最大 Token 数
+  - `warningThreshold`: 警告阈值 (0-1)
+  - `criticalThreshold`: 严重警告阈值 (0-1)
+  - `hardLimitThreshold`: 硬性限制阈值 (0-1)
+- `maxToolRounds`: 单次 LLM 交互最大工具调用轮次
+- `idleWarningMs`: 智能体空闲警告阈值（毫秒）
 
-### listAgentInstances()
+### 核心方法
 
-列出已注册的智能体实例。
+#### getAgentStatus()
 
-```javascript
-listAgentInstances(): Array<{
-  id: string,
-  roleId: string,
-  roleName: string
-}>
-```
-
-### getAgentStatus()
-
-获取智能体状态。
+获取智能体运行时状态。
 
 ```javascript
 getAgentStatus(agentId: string): {
   id: string,
   roleId: string,
   roleName: string,
-  parentAgentId: string | null,
-  status: string,
+  status: string, // "active" | "terminated"
   queueDepth: number,
   conversationLength: number
 } | null
 ```
 
-### getQueueDepths()
+#### getAgentComputeStatus()
 
-获取所有智能体的队列深度。
-
-```javascript
-getQueueDepths(): Array<{
-  agentId: string,
-  queueDepth: number
-}>
-```
-
-### getToolDefinitions()
-
-获取 LLM 工具定义。
+获取智能体运算状态。
 
 ```javascript
-getToolDefinitions(): Array<ToolDefinition>
+getAgentComputeStatus(agentId: string): 'idle' | 'waiting_llm' | 'processing'
 ```
+
+#### abortAgentLlmCall()
+
+中断指定智能体的 LLM 调用。
+
+```javascript
+abortAgentLlmCall(agentId: string): { 
+  ok: boolean, 
+  aborted: boolean, 
+  reason?: string 
+}
+```
+
+#### checkIdleAgents()
+
+检查并返回空闲超时的智能体列表。
+
+```javascript
+checkIdleAgents(): Array<{ agentId: string, idleTimeMs: number }>
+```
+
+#### getToolDefinitions()
+
+获取当前可用的所有工具定义（OpenAI Schema）。
 
 ## Agent 类
 
 智能体实例类。
 
-### 构造函数
-
-```javascript
-new Agent(options)
-```
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `options.id` | `string` | 智能体实例 ID |
-| `options.roleId` | `string` | 岗位 ID |
-| `options.roleName` | `string` | 岗位名称 |
-| `options.rolePrompt` | `string` | 岗位提示词 |
-| `options.behavior` | `function` | 行为函数 |
-
 ### 属性
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | 智能体实例 ID |
-| `roleId` | `string` | 岗位 ID |
-| `roleName` | `string` | 岗位名称 |
-| `rolePrompt` | `string` | 岗位提示词 |
+- `id`: 智能体唯一 ID
+- `roleId`: 岗位 ID
+- `roleName`: 岗位名称
+- `rolePrompt`: 岗位 System Prompt
 
-### onMessage()
+### 方法
 
-处理收到的消息。
+#### onMessage()
 
 ```javascript
 async onMessage(ctx: AgentContext, message: Message): Promise<void>
 ```
 
+## HTTP API
+
+Agent Society 内置 HTTP 服务器提供 RESTful API。
+
+### 基础交互
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/submit` | 提交需求给根智能体 |
+| POST | `/api/send` | 发送消息给指定智能体 |
+| GET | `/api/messages/:taskId` | 获取指定任务的消息记录 |
+
+### 智能体与组织管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/agents` | 获取所有智能体列表 |
+| GET | `/api/roles` | 获取所有岗位列表 |
+| GET | `/api/org/tree` | 获取组织架构树（智能体层级） |
+| GET | `/api/org/role-tree` | 获取岗位架构树（岗位层级） |
+| DELETE | `/api/agent/:agentId` | 删除智能体（软删除） |
+| DELETE | `/api/role/:roleId` | 删除岗位（软删除） |
+
+### 智能体详情与操作
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/agent-messages/:agentId` | 获取智能体全量消息历史 |
+| GET | `/api/agent-conversation/:agentId` | 获取智能体对话上下文（含思考过程） |
+| POST | `/api/agent/:agentId/custom-name` | 设置智能体自定义名称 |
+| GET | `/api/agent-custom-names` | 获取所有自定义名称 |
+| POST | `/api/agent/:agentId/abort` | 中断智能体当前的 LLM 生成 |
+| POST | `/api/role/:roleId/prompt` | 更新岗位提示词 |
+
+### 模块 (Modules)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/modules` | 获取已加载模块列表 |
+| GET | `/api/modules/:name` | 获取指定模块详情 |
+| GET | `/api/modules/:name/web-component` | 获取模块的前端组件定义 |
+| ANY | `/api/modules/:name/*` | 调用模块自定义的 HTTP 接口 |
+
+### 静态资源
+
+- `/web/*`: Web 查看器界面
+- `/artifacts/*`: 访问生成的工件文件
+
 ## 消息格式
 
-### 标准消息
+### 标准消息结构
 
 ```typescript
 interface Message {
-  id: string;           // 消息 ID（UUID）
-  to: string;           // 目标智能体 ID
-  from: string;         // 发送者智能体 ID
-  taskId?: string;      // 任务 ID
-  payload: {            // 消息载荷
+  id: string;           // UUID
+  to: string;           // 接收者 ID
+  from: string;         // 发送者 ID
+  taskId?: string;      // 关联的任务 ID
+  payload: {
     text?: string;      // 文本内容
-    [key: string]: any; // 其他数据
+    kind?: string;      // 消息类型标识 (如 "error")
+    [key: string]: any; // 其他结构化数据
   };
-}
-```
-
-### 入口智能体通知
-
-Root 创建入口智能体后发送给用户的通知：
-
-```javascript
-{
-  to: "user",
-  from: "root",
-  taskId: "task-uuid",
-  payload: {
-    agentId: "entry-agent-id"
-  }
-}
-```
-
-### 文本回复
-
-智能体发送给用户的文本回复：
-
-```javascript
-{
-  to: "user",
-  from: "agent-id",
-  taskId: "task-uuid",
-  payload: {
-    text: "回复内容"
-  }
+  createdAt: string;    // ISO 时间戳
 }
 ```
 
 ## 工件格式
 
-### 工件结构
-
 ```typescript
 interface Artifact {
-  id: string;           // 工件 ID（UUID）
-  type: string;         // 工件类型
-  content: any;         // 工件内容
+  id: string;           // UUID
+  type: string;         // 类型 (如 "file", "image", "report")
+  content: any;         // 内容
   meta?: {              // 元数据
+    author?: string;
+    createdAt?: string;
     [key: string]: any;
   };
-  createdAt: string;    // 创建时间（ISO 8601）
 }
-```
-
-### 工件引用
-
-```typescript
-type ArtifactRef = string;  // 格式: "artifact:<uuid>"
-```
-
-### 示例
-
-```javascript
-// 写入工件
-const ref = await ctx.tools.putArtifact({
-  type: "document",
-  content: { title: "报告", body: "内容..." },
-  meta: { author: "agent-xxx" }
-});
-// ref = "artifact:abc-123-..."
-
-// 读取工件
-const artifact = await ctx.tools.getArtifact(ref);
-// artifact = { id, type, content, meta, createdAt }
 ```
 
 ## Task Brief 格式
 
-创建子智能体时必须提供的任务委托书：
+创建子智能体 (`spawn_agent`) 时必须提供的任务描述结构。
 
 ```typescript
 interface TaskBrief {
-  // 必填字段
-  objective: string;           // 目标描述
-  constraints: string[];       // 技术约束数组
-  inputs: string;              // 输入说明
-  outputs: string;             // 输出要求
+  // 核心必填项
+  objective: string;           // 任务目标
+  constraints: string[];       // 约束条件
+  inputs: string;              // 输入数据说明
+  outputs: string;             // 交付物说明
   completion_criteria: string; // 完成标准
-  
-  // 可选字段
-  collaborators?: Array<{      // 协作联系人
+
+  // 可选项
+  collaborators?: Array<{      // 预设协作方
     agentId: string;
     role: string;
     description?: string;
@@ -448,238 +328,3 @@ interface TaskBrief {
   priority?: string;           // 优先级
 }
 ```
-
-### 示例
-
-```javascript
-await ctx.tools.spawnAgent({
-  roleId: "programmer-role-id",
-  taskBrief: {
-    objective: "实现计算器的核心运算模块",
-    constraints: [
-      "使用 JavaScript 实现",
-      "纯前端代码，无后端依赖",
-      "支持四则运算"
-    ],
-    inputs: "两个数字和一个运算符",
-    outputs: "运算结果",
-    completion_criteria: "所有四则运算测试通过"
-  }
-});
-```
-
-## Web API 端点
-
-HTTP 服务器提供以下 API 端点，用于 Web 查看器和外部集成。
-
-### GET /api/agents
-
-获取所有智能体列表。
-
-**响应：**
-
-```json
-{
-  "agents": [
-    {
-      "id": "root",
-      "roleId": null,
-      "roleName": "根智能体",
-      "parentAgentId": null,
-      "createdAt": "2026-01-06T12:00:00.000Z",
-      "status": "active"
-    },
-    {
-      "id": "user",
-      "roleId": null,
-      "roleName": "用户端点",
-      "parentAgentId": null,
-      "createdAt": "2026-01-06T12:00:00.000Z",
-      "status": "active"
-    },
-    {
-      "id": "agent-xxx",
-      "roleId": "role-xxx",
-      "roleName": "助手",
-      "parentAgentId": "root",
-      "createdAt": "2026-01-06T12:01:00.000Z",
-      "status": "active"
-    }
-  ]
-}
-```
-
-### GET /api/roles
-
-获取所有岗位列表。
-
-**响应：**
-
-```json
-{
-  "roles": [
-    {
-      "id": "role-xxx",
-      "name": "助手",
-      "rolePrompt": "你是一个友好的助手...",
-      "createdBy": "root",
-      "createdAt": "2026-01-06T12:00:30.000Z",
-      "agentCount": 2
-    }
-  ]
-}
-```
-
-### GET /api/agent-messages/:agentId
-
-获取指定智能体的所有消息（发送和接收）。
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `agentId` | `string` | 智能体 ID |
-
-**响应：**
-
-```json
-{
-  "messages": [
-    {
-      "id": "msg-xxx",
-      "from": "user",
-      "to": "agent-xxx",
-      "taskId": "task-xxx",
-      "payload": {
-        "text": "你好"
-      },
-      "createdAt": "2026-01-06T12:02:00.000Z"
-    },
-    {
-      "id": "msg-yyy",
-      "from": "agent-xxx",
-      "to": "user",
-      "taskId": "task-xxx",
-      "payload": {
-        "text": "你好！有什么可以帮助你的？"
-      },
-      "createdAt": "2026-01-06T12:02:05.000Z"
-    }
-  ]
-}
-```
-
-### GET /api/org/tree
-
-获取组织层级树结构。
-
-**响应：**
-
-```json
-{
-  "tree": {
-    "id": "root",
-    "roleName": "根智能体",
-    "status": "active",
-    "children": [
-      {
-        "id": "agent-xxx",
-        "roleName": "助手",
-        "status": "active",
-        "children": [
-          {
-            "id": "agent-yyy",
-            "roleName": "程序员",
-            "status": "active",
-            "children": []
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### POST /api/send
-
-发送消息给指定智能体（以 user 身份）。
-
-**请求体：**
-
-```json
-{
-  "to": "agent-xxx",
-  "message": "你好"
-}
-```
-
-**响应：**
-
-```json
-{
-  "ok": true,
-  "taskId": "task-xxx"
-}
-```
-
-### POST /api/submit
-
-提交需求给根智能体。
-
-**请求体：**
-
-```json
-{
-  "requirement": "计算 1+1",
-  "workspacePath": "./my_project"
-}
-```
-
-**响应：**
-
-```json
-{
-  "ok": true,
-  "taskId": "task-xxx",
-  "workspacePath": "/absolute/path/to/my_project"
-}
-```
-
-### GET /api/messages/:taskId
-
-获取指定任务的用户消息。
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `taskId` | `string` | 任务 ID |
-
-**响应：**
-
-```json
-{
-  "messages": [
-    {
-      "id": "msg-xxx",
-      "from": "agent-xxx",
-      "to": "user",
-      "taskId": "task-xxx",
-      "payload": {
-        "text": "任务完成"
-      },
-      "createdAt": "2026-01-06T12:05:00.000Z"
-    }
-  ]
-}
-```
-
-### GET /web/*
-
-静态文件服务，提供 Web 查看器界面。
-
-**示例：**
-
-- `GET /web/` → `web/index.html`
-- `GET /web/css/style.css` → `web/css/style.css`
-- `GET /web/js/app.js` → `web/js/app.js`

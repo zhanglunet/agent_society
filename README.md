@@ -25,20 +25,24 @@ Agent Society 是一个基于大语言模型（LLM）的自组织多智能体协
 - **最小化系统**：系统只提供能力，不提供组织社会规则
 - **自组织**：组织结构、岗位职责、协作规则由智能体自主决定
 - **上下文最小化**：通过任务拆解，让每个智能体只控制必要的最小上下文
-- **异步协作**：智能体之间通过异步消息通信，支持并行处理
+- **异步协作**：智能体之间通过异步消息通信，支持并行处理与并发控制
 
 ![Agent Society Architecture](docs/images/work.png)
 
 ## 特性
 
 - 🏗️ **组织构建原语**：创建岗位、创建智能体实例、维护父子链结构
-- 📨 **异步消息通道**：发送、投递、接收与基础排队
+- 🧠 **多模型支持**：支持配置多个 LLM 服务（OpenAI, Anthropic, Local LLMs 等），并根据岗位需求自动选择最合适的模型
+- 🔌 **模块化系统**：支持动态加载外部模块，扩展工具集、Web 组件和 HTTP 路由
+- 📋 **结构化任务委托**：基于 Task Brief 的标准化任务分发与上下文注入
+- 🤝 **智能联系人管理**：自动维护协作关系网络，支持跨任务协作
+- 📨 **异步消息通道**：发送、投递、接收与基础排队，支持并发控制
 - 📦 **工件存储与引用**：跨岗位交付以工件引用为主，避免长上下文传递
 - 📝 **提示词模板系统**：系统预置提示词与拼接模板加载
-- 🔧 **丰富的工具集**：文件操作、命令执行、HTTP 请求、JavaScript 运行等
-- 📊 **上下文管理**：自动监控上下文使用率，支持压缩与摘要
-- 🌐 **HTTP API**：可选的 HTTP 服务器接口
-- 📋 **完整日志系统**：分模块日志记录，支持多级别配置
+- 🔧 **丰富的工具集**：文件操作、命令执行、HTTP 请求、JavaScript 沙箱运行、上下文压缩等
+- 📊 **上下文管理**：自动监控上下文使用率，支持压缩、摘要与硬性限制保护
+- 🌐 **HTTP API & Web UI**：内置 HTTP 服务器与可视化 Web 界面
+- 📋 **完整日志系统**：分模块日志记录，支持多级别配置与生命周期追踪
 
 ## 快速开始
 
@@ -64,17 +68,50 @@ bun install
 
 ```bash
 cp config/app.json config/app.local.json
+cp config/llmservices_template.json config/llmservices.local.json
 ```
 
-2. 配置 LLM 连接（`config/app.json`）：
+2. 配置主程序（`config/app.local.json`）：
 
 ```json
 {
   "llm": {
     "baseURL": "http://127.0.0.1:1234/v1",
-    "model": "your-model-name",
+    "model": "your-default-model",
     "apiKey": "your-api-key"
-  }
+  },
+  "modules": {
+    "chrome": {
+      "headless": false
+    }
+  } // 启用可选模块
+}
+```
+
+3. 配置多模型服务（`config/llmservices.local.json`，可选）：
+
+```json
+{
+  "services": [
+    {
+      "id": "gpt4",
+      "name": "GPT-4 Service",
+      "baseURL": "https://api.openai.com/v1",
+      "model": "gpt-4",
+      "apiKey": "sk-...",
+      "capabilityTags": ["reasoning", "coding"],
+      "description": "擅长复杂推理和编程任务"
+    },
+    {
+      "id": "local-fast",
+      "name": "Local Fast Model",
+      "baseURL": "http://localhost:1234/v1",
+      "model": "qwen2.5-7b-instruct",
+      "apiKey": "any",
+      "capabilityTags": ["chat", "fast"],
+      "description": "响应速度快，适合简单对话"
+    }
+  ]
 }
 ```
 
@@ -135,9 +172,14 @@ bun run demo/dev_team.js -w ./my_project -r "创建一个计算器程序"
 │  │         │ │(组织原语)│ │(工件存储)│ │(提示词) │           │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │LlmClient│ │Workspace│ │Command  │ │HttpClien│           │
-│  │(LLM调用)│ │Manager  │ │Executor │ │t        │           │
-│  │         │ │(工作空间)│ │(命令执行)│ │(HTTP)   │           │
+│  │LlmServi-│ │Workspace│ │Command  │ │HttpClien│           │
+│  │ceRegisty│ │Manager  │ │Executor │ │t        │           │
+│  │(多模型)  │ │(工作空间)│ │(命令执行)│ │(HTTP)   │           │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │Module   │ │Contact  │ │Converse-│ │Concurre-│           │
+│  │Loader   │ │Manager  │ │tionMgr  │ │ncyCtrl  │           │
+│  │(模块化)  │ │(联系人)  │ │(会话)    │ │(并发)    │           │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -156,10 +198,12 @@ bun run demo/dev_team.js -w ./my_project -r "创建一个计算器程序"
 | 概念 | 说明 |
 |------|------|
 | **组织 (Organization)** | 岗位与智能体实例构成的层级结构 |
-| **岗位 (Role)** | 岗位职责、能力边界、输入输出标准的模板定义 |
+| **岗位 (Role)** | 岗位职责、能力边界、输入输出标准的模板定义，可绑定特定 LLM 服务 |
 | **智能体实例 (Agent)** | 某岗位在某任务场景中的一次运行实体 |
+| **任务委托书 (Task Brief)** | 标准化的任务描述对象，包含目标、约束、输入输出和协作关系 |
 | **工件 (Artifact)** | 任务中产生的可持久化产物 |
 | **异步消息** | 智能体之间的协作载体 |
+| **模块 (Module)** | 可插拔的功能扩展单元，提供工具、UI 和 API |
 
 ## 文档
 
@@ -214,6 +258,7 @@ bun run demo/dev_team.js -w ./my_project -r "创建一个待办事项应用"
 agent-society/
 ├── config/                 # 配置文件
 │   ├── app.json           # 主配置
+│   ├── llmservices.json   # 多模型服务配置
 │   ├── logging.json       # 日志配置
 │   └── prompts/           # 系统提示词模板
 ├── src/
@@ -224,8 +269,10 @@ agent-society/
 │       ├── runtime.js          # 运行时
 │       ├── message_bus.js      # 消息总线
 │       ├── org_primitives.js   # 组织原语
-│       ├── artifact_store.js   # 工件存储
+│       ├── llm_service_registry.js # 多模型注册表
+│       ├── module_loader.js    # 模块加载器
 │       └── ...
+├── modules/               # 可插拔模块
 ├── demo/                  # 示例程序
 ├── test/                  # 测试文件
 ├── docs/                  # 文档

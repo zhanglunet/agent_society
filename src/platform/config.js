@@ -3,6 +3,43 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 /**
+ * 加载 LLM 服务配置文件（优先 local 文件）
+ * @param {string} configDir 配置目录路径
+ * @returns {Promise<{services: any[], configPath: string|null, configSource: string|null}>}
+ */
+async function loadLlmServicesConfig(configDir) {
+  const localPath = path.resolve(configDir, "llmservices.local.json");
+  const defaultPath = path.resolve(configDir, "llmservices.json");
+  
+  let configPath = null;
+  let configSource = null;
+  
+  // 优先加载 local 配置文件
+  if (existsSync(localPath)) {
+    configPath = localPath;
+    configSource = "local";
+  } else if (existsSync(defaultPath)) {
+    configPath = defaultPath;
+    configSource = "default";
+  }
+  
+  // 如果两个文件都不存在，返回空配置
+  if (!configPath) {
+    return { services: [], configPath: null, configSource: null };
+  }
+  
+  try {
+    const raw = await readFile(configPath, "utf8");
+    const data = JSON.parse(raw);
+    const services = Array.isArray(data?.services) ? data.services : [];
+    return { services, configPath, configSource };
+  } catch {
+    // 解析失败时返回空配置
+    return { services: [], configPath, configSource };
+  }
+}
+
+/**
  * 读取并解析平台配置文件。
  * 优先加载 app.local.json，如果不存在则加载 app.json。
  * @param {string} configPath 配置文件路径（相对或绝对）
@@ -70,7 +107,9 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
     // 数组格式: ["chrome", "other"]
     // 对象格式: { "chrome": { headless: false }, "other": {} }
     modules: cfg.modules ?? {},
-    contextLimit: cfg.contextLimit ?? null
+    contextLimit: cfg.contextLimit ?? null,
+    // LLM 服务配置：从 llmservices.local.json 或 llmservices.json 加载
+    llmServices: await loadLlmServicesConfig(path.dirname(absPath))
   };
 }
 

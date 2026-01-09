@@ -363,8 +363,8 @@ export class OrgPrimitives {
 
   /**
    * 创建岗位（Role）。
-   * @param {{name:string, rolePrompt:string, createdBy?:string}} input
-   * @returns {Promise<{id:string, name:string, rolePrompt:string}>}
+   * @param {{name:string, rolePrompt:string, createdBy?:string, llmServiceId?:string}} input
+   * @returns {Promise<{id:string, name:string, rolePrompt:string, llmServiceId:string|null}>}
    */
   async createRole(input) {
     const existing = this.findRoleByName(input.name);
@@ -379,11 +379,12 @@ export class OrgPrimitives {
       rolePrompt: input.rolePrompt,
       createdBy: input.createdBy ?? null,
       createdAt: formatLocalTimestamp(),
-      status: "active"  // 默认状态为活跃
+      status: "active",  // 默认状态为活跃
+      llmServiceId: input.llmServiceId ?? null  // 新增：指定的 LLM 服务 ID
     };
     this._roles.set(id, role);
     await this.persist();
-    void this.log.info("创建岗位", { id, name: role.name, createdBy: role.createdBy });
+    void this.log.info("创建岗位", { id, name: role.name, createdBy: role.createdBy, llmServiceId: role.llmServiceId });
     return role;
   }
 

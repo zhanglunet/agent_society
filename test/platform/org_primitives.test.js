@@ -205,3 +205,87 @@ describe("OrgPrimitives", () => {
     );
   });
 });
+
+
+  /**
+   * Feature: llm-service-selector, Property 7: 岗位 llmServiceId 持久化往返
+   * *For any* 创建的岗位（包含或不包含 llmServiceId），持久化后重新加载应得到相同的 llmServiceId 值
+   * （包括 null/undefined 情况）。
+   * **Validates: Requirements 5.1, 5.2, 5.3**
+   */
+  describe("Property 7: 岗位 llmServiceId 持久化往返", () => {
+    test("创建带 llmServiceId 的岗位，持久化后重新加载应保持一致", async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+          fc.string({ minLength: 0, maxLength: 200 }),
+          fc.option(fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0), { nil: null }),
+          async (name, rolePrompt, llmServiceId) => {
+            const runtimeDir = path.resolve(process.cwd(), `test/.tmp/pbt_llm_service_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+            await rm(runtimeDir, { recursive: true, force: true });
+            
+            try {
+              // 创建岗位
+              const org1 = new OrgPrimitives({ runtimeDir });
+              const role = await org1.createRole({ 
+                name, 
+                rolePrompt, 
+                createdBy: "root",
+                llmServiceId 
+              });
+              
+              // 验证创建时的 llmServiceId
+              expect(role.llmServiceId).toBe(llmServiceId);
+              
+              // 创建新的 OrgPrimitives 实例并加载
+              const org2 = new OrgPrimitives({ runtimeDir });
+              await org2.loadIfExists();
+              
+              // 获取加载后的岗位
+              const loadedRole = org2.getRole(role.id);
+              
+              // 验证 llmServiceId 保持一致
+              expect(loadedRole).not.toBeNull();
+              expect(loadedRole.llmServiceId).toBe(llmServiceId);
+            } finally {
+              await rm(runtimeDir, { recursive: true, force: true });
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    test("不指定 llmServiceId 时默认为 null", async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+          fc.string({ minLength: 0, maxLength: 200 }),
+          async (name, rolePrompt) => {
+            const runtimeDir = path.resolve(process.cwd(), `test/.tmp/pbt_llm_default_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+            await rm(runtimeDir, { recursive: true, force: true });
+            
+            try {
+              const org = new OrgPrimitives({ runtimeDir });
+              
+              // 创建岗位时不指定 llmServiceId
+              const role = await org.createRole({ name, rolePrompt, createdBy: "root" });
+              
+              // 验证默认值为 null
+              expect(role.llmServiceId).toBeNull();
+              
+              // 重新加载验证
+              const org2 = new OrgPrimitives({ runtimeDir });
+              await org2.loadIfExists();
+              const loadedRole = org2.getRole(role.id);
+              
+              expect(loadedRole.llmServiceId).toBeNull();
+            } finally {
+              await rm(runtimeDir, { recursive: true, force: true });
+            }
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
