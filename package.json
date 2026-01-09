@@ -8,6 +8,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.88",
     "openai": "^6.15.0",
     "puppeteer-core": "^24.34.0"
   },

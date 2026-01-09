@@ -91,4 +91,12 @@ export class ArtifactStore {
     
     return fileName;
   }
+
+  /**
+   * 生成工件ID。
+   * @returns {string} 工件ID（UUID格式）
+   */
+  generateId() {
+    return randomUUID();
+  }
 }

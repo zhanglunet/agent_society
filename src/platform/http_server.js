@@ -1911,11 +1911,19 @@ export class HTTPServer {
   _handleGetArtifacts(res) {
     try {
       if (!this._artifactsDir) {
-        this._sendJson(res, 500, { error: "artifacts_dir_not_set" });
+        // 工件目录未设置时返回空列表
+        this._sendJson(res, 200, { artifacts: [], count: 0 });
         return;
       }
 
-      const { readdirSync, statSync } = require("node:fs");
+      const { readdirSync, statSync, existsSync } = require("node:fs");
+      
+      // 目录不存在时返回空列表
+      if (!existsSync(this._artifactsDir)) {
+        this._sendJson(res, 200, { artifacts: [], count: 0 });
+        return;
+      }
+      
       const files = readdirSync(this._artifactsDir).filter(f => f.endsWith(".json"));
       
       const artifacts = files.map(filename => {

@@ -989,7 +989,7 @@ export class Runtime {
         function: {
           name: "run_javascript",
           description:
-            "运行一段 JavaScript 代码（在 new Function 中执行）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算，不要靠大模型猜测。每次调用都是全新执行环境：不带任何上下文、不保留任何状态、不支持跨调用变量引用。参数 input 会作为变量 input 传入代码。code 必须是“函数体”形式的代码（可包含多行语句），需要显式 return 一个可 JSON 序列化的值；如果返回 Promise，会等待其 resolve 后再作为工具结果返回。为降低风险：本工具不会注入/提供文件系统、进程、OS、网络等能力，也不会传入 require/process/fs/os 等对象；但这不是安全沙箱，请不要尝试任何带副作用或越权的代码。",
+            "运行一段 JavaScript 代码（在 new Function 中执行）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算，不要靠大模型猜测。每次调用都是全新执行环境：不带任何上下文、不保留任何状态、不支持跨调用变量引用。参数 input 会作为变量 input 传入代码。code 必须是“函数体”形式的代码（可包含多行语句），需要显式 return 一个可 JSON 序列化的值；如果返回 Promise，会等待其 resolve 后再作为工具结果返回。为降低风险：本工具不会注入/提供文件系统、进程、OS、网络等能力，也不会传入 require/process/fs/os 等对象；但这不是安全沙箱，请不要尝试任何带副作用或越权的代码。【Canvas 绘图】本工具支持 Canvas 绘图功能。调用 getCanvas(width, height) 获取 Canvas 对象（默认尺寸 800x600），然后使用 getContext('2d') 进行绘图。脚本执行完成后，Canvas 内容会自动导出为 PNG 图像并保存到工件库，返回结果中包含 images 数组。示例：const canvas = getCanvas(400, 300); const ctx = canvas.getContext('2d'); ctx.fillStyle = 'red'; ctx.fillRect(50, 50, 100, 100); return 'done';",
           parameters: {
             type: "object",
             properties: {
@@ -2542,21 +2542,78 @@ export class Runtime {
     const blocked = this._detectBlockedJavaScriptTokens(code);
     if (blocked.length > 0) return { error: "blocked_code", blocked };
 
+    // Canvas 支持：预加载 canvas 库并创建容器变量
+    let canvasInstance = null;
+    let canvasError = null;
+    let createCanvasFn = null;
+
+    // 预加载 @napi-rs/canvas 库
+    try {
+      const canvasModule = await import("@napi-rs/canvas");
+      createCanvasFn = canvasModule.createCanvas;
+    } catch (err) {
+      // Canvas 库不可用，但不影响普通 JS 执行
+      canvasError = err;
+    }
+
+    // 定义 getCanvas 函数（单例模式）
+    const getCanvas = (width = 800, height = 600) => {
+      if (canvasInstance) {
+        return canvasInstance;
+      }
+      if (!createCanvasFn) {
+        throw new Error("Canvas 功能不可用，请确保 @napi-rs/canvas 包已安装");
+      }
+      canvasInstance = createCanvasFn(width, height);
+      return canvasInstance;
+    };
+
     try {
       const prelude =
         '"use strict";\n' +
         "const require=undefined, process=undefined, globalThis=undefined, module=undefined, exports=undefined, __filename=undefined, __dirname=undefined;\n" +
         "const fetch=undefined, XMLHttpRequest=undefined, WebSocket=undefined;\n";
-      const fn = new Function("input", prelude + String(code));
-      let value = fn(input);
+      const fn = new Function("input", "getCanvas", prelude + String(code));
+      let value = fn(input, getCanvas);
       if (value && (typeof value === "object" || typeof value === "function") && typeof value.then === "function") {
         value = await value;
       }
       const jsonSafe = this._toJsonSafeValue(value);
       if (jsonSafe.error) return jsonSafe;
+
+      // 如果使用了 Canvas，自动导出并保存
+      if (canvasInstance) {
+        try {
+          const { randomUUID } = await import("node:crypto");
+          const { writeFile } = await import("node:fs/promises");
+          const pngBuffer = canvasInstance.toBuffer("image/png");
+          const artifactId = randomUUID();
+          const fileName = `${artifactId}.png`;
+          const filePath = path.resolve(this.artifacts.artifactsDir, fileName);
+          
+          await this.artifacts.ensureReady();
+          await writeFile(filePath, pngBuffer);
+          
+          void this.log.info("保存 Canvas 图像", {
+            fileName,
+            width: canvasInstance.width,
+            height: canvasInstance.height
+          });
+          
+          return { result: jsonSafe.value, images: [fileName] };
+        } catch (exportErr) {
+          const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
+          return { result: jsonSafe.value, error: "canvas_export_failed", message: exportMessage };
+        }
+      }
+
       return jsonSafe.value;
     } catch (err) {
       const message = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+      // 检查是否是 Canvas 库加载错误
+      if (canvasError) {
+        return { error: "canvas_not_available", message: "Canvas 功能不可用，请安装 @napi-rs/canvas 包" };
+      }
       return { error: "js_execution_failed", message };
     }
   }

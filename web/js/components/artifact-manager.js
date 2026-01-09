@@ -412,7 +412,12 @@ class ArtifactManager {
    */
   _renderList() {
     if (this.filteredArtifacts.length === 0) {
-      this.listPanel.innerHTML = '<div class="empty-state">没有找到工件</div>';
+      // 区分是过滤后为空还是本身就没有工件
+      if (this.artifacts.length === 0) {
+        this.listPanel.innerHTML = '<div class="empty-state">暂无工件</div>';
+      } else {
+        this.listPanel.innerHTML = '<div class="empty-state">没有找到匹配的工件</div>';
+      }
       return;
     }
 
