@@ -121,3 +121,4 @@ dist
 .pnp.*
 config/app.local.json
 agent-society-data/
+config/llmservices.json
