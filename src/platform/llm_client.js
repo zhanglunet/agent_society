@@ -233,7 +233,7 @@ export class LlmClient {
           stack: err?.stack ?? null
         });
         
-        await this._sleep(delayMs);
+        await this._sleep(delayMs, signal);
       }
     }
 
@@ -242,12 +242,34 @@ export class LlmClient {
   }
 
   /**
-   * 延迟指定毫秒数。
+   * 延迟指定毫秒数，支持中断信号。
    * @param {number} ms
+   * @param {AbortSignal} [signal] 中断信号
    * @returns {Promise<void>}
    */
-  async _sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  async _sleep(ms, signal) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, ms);
+      
+      if (signal) {
+        if (signal.aborted) {
+          clearTimeout(timeoutId);
+          const error = new Error("Sleep interrupted");
+          error.name = "AbortError";
+          reject(error);
+          return;
+        }
+        
+        const abortHandler = () => {
+          clearTimeout(timeoutId);
+          const error = new Error("Sleep interrupted");
+          error.name = "AbortError";
+          reject(error);
+        };
+        
+        signal.addEventListener("abort", abortHandler, { once: true });
+      }
+    });
   }
 
   /**
@@ -258,20 +280,26 @@ export class LlmClient {
   abort(agentId) {
     let cancelled = false;
     
-    // 首先检查并发控制器中的请求（活跃请求或队列中的请求）
-    if (this.concurrencyController.hasRequest(agentId)) {
-      // 异步取消，但不等待结果
-      this.concurrencyController.cancelRequest(agentId).catch(() => {
-        // 忽略错误
-      });
-      cancelled = true;
-    }
-    
-    // 然后检查传统的活跃请求映射（向后兼容）
+    // 首先检查传统的活跃请求映射（向后兼容）
     const controller = this._activeRequests.get(agentId);
     if (controller) {
       controller.abort();
       this._activeRequests.delete(agentId);
+      cancelled = true;
+    }
+    
+    // 然后检查并发控制器中的请求（活跃请求或队列中的请求）
+    if (this.concurrencyController.hasRequest(agentId)) {
+      // 同步中止 AbortController
+      const activeRequest = this.concurrencyController.activeRequests.get(agentId);
+      if (activeRequest && activeRequest.abortController) {
+        activeRequest.abortController.abort();
+      }
+      
+      // 异步取消，但不等待结果
+      this.concurrencyController.cancelRequest(agentId).catch(() => {
+        // 忽略错误
+      });
       cancelled = true;
     }
     

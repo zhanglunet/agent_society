@@ -131,7 +131,8 @@ export class ConcurrencyController {
       error.name = "AbortError";
       activeRequest.reject(error);
       
-      await this.log.info("活跃请求已取消", { agentId });
+      // 异步记录日志，不阻塞
+      this.log.info("活跃请求已取消", { agentId }).catch(() => {});
       
       // 处理队列中的下一个请求
       this._processQueue();
@@ -149,7 +150,8 @@ export class ConcurrencyController {
       error.name = "AbortError";
       queuedRequest.reject(error);
       
-      await this.log.info("队列中的请求已取消", { agentId });
+      // 异步记录日志，不阻塞
+      this.log.info("队列中的请求已取消", { agentId }).catch(() => {});
       return true;
     }
 
@@ -246,10 +248,11 @@ export class ConcurrencyController {
       const nextRequest = this.requestQueue.shift();
       this.stats.queueLength--;
       
-      await this.log.info("从队列中取出请求进行处理", {
+      // 异步记录日志，不阻塞
+      this.log.info("从队列中取出请求进行处理", {
         agentId: nextRequest.agentId,
         queueLength: this.stats.queueLength
-      });
+      }).catch(() => {});
       
       this._executeRequestImmediately(nextRequest);
     }
