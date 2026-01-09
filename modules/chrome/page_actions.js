@@ -158,9 +158,11 @@ export class PageActions {
       if (ctx && ctx.tools && typeof ctx.tools.saveImage === 'function') {
         const pageUrl = page.url();
         const pageTitle = await page.title();
+        const messageId = ctx.currentMessage?.id ?? null;
         
         const filePath = await ctx.tools.saveImage(screenshotBuffer, {
           format: "jpg",
+          messageId,
           tabId,
           url: pageUrl,
           title: pageTitle,

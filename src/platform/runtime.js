@@ -1492,8 +1492,9 @@ export class Runtime {
         return result;
       }
       if (toolName === "run_javascript") {
-        const result = await this._runJavaScriptTool(args);
-        void this.log.debug("工具调用完成", { toolName, ok: true });
+        const messageId = ctx.currentMessage?.id ?? null;
+        const result = await this._runJavaScriptTool(args, messageId);
+        void this.log.debug("工具调用完成", { toolName, ok: true, messageId });
         return result;
       }
       if (toolName === "compress_context") {
@@ -2534,7 +2535,7 @@ export class Runtime {
     };
   }
 
-  async _runJavaScriptTool(args) {
+  async _runJavaScriptTool(args, messageId = null) {
     const code = args?.code;
     const input = args?.input;
     if (typeof code !== "string") return { error: "invalid_args", message: "code must be a string" };
@@ -2603,7 +2604,7 @@ export class Runtime {
             extension,
             type: "image",
             createdAt,
-            messageId: null,
+            messageId: messageId,
             width: canvasInstance.width,
             height: canvasInstance.height,
             source: "canvas"
