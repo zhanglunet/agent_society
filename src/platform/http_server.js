@@ -1924,19 +1924,21 @@ export class HTTPServer {
         return;
       }
       
-      const files = readdirSync(this._artifactsDir).filter(f => f.endsWith(".json"));
+      // 获取所有文件（不仅仅是 JSON）
+      const files = readdirSync(this._artifactsDir);
       
       const artifacts = files.map(filename => {
         const filePath = path.join(this._artifactsDir, filename);
         const stat = statSync(filePath);
-        const id = filename.replace(".json", "");
+        const extension = path.extname(filename);
+        const id = filename.replace(extension, "");
         
         return {
           id,
           filename,
           size: stat.size,
           createdAt: stat.birthtime?.toISOString() || stat.mtime?.toISOString(),
-          extension: ".json"
+          extension
         };
       }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

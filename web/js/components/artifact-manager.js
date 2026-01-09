@@ -332,21 +332,32 @@ class ArtifactManager {
       this.listPanel.innerHTML = '<div class="empty-state">加载中...</div>';
       const response = await this.api.get("/artifacts");
       
-      // 加载每个工件的详细信息以获取实际类型
+      // 加载每个工件的详细信息
       const artifactsWithDetails = await Promise.all(
         (response.artifacts || []).map(async (artifact) => {
           try {
-            const detail = await this.api.get(`/artifacts/${artifact.id}`);
+            // JSON 文件：读取内部的业务 type
+            if (artifact.extension === ".json") {
+              const detail = await this.api.get(`/artifacts/${artifact.id}`);
+              return {
+                ...artifact,
+                type: detail.type || "unknown",
+                content: detail.content,
+                actualFilename: detail.meta?.filename || detail.meta?.name || detail.meta?.title || `${detail.type || "artifact"}_${artifact.id.slice(0, 8)}`
+              };
+            }
+            // 非 JSON 文件：使用文件扩展名作为类型
+            const extType = artifact.extension.replace(".", "").toLowerCase();
             return {
               ...artifact,
-              type: detail.type || "unknown",
-              content: detail.content,
-              actualFilename: detail.meta?.filename || detail.meta?.name || detail.meta?.title || `${detail.type || "artifact"}_${artifact.id.slice(0, 8)}`
+              type: extType || "file",
+              content: artifact.filename, // 文件名作为内容引用
+              actualFilename: artifact.filename
             };
           } catch (e) {
             return {
               ...artifact,
-              type: "unknown",
+              type: artifact.extension?.replace(".", "") || "unknown",
               actualFilename: artifact.filename
             };
           }
@@ -585,11 +596,24 @@ class ArtifactManager {
       this.viewerModal?.classList.remove("hidden");
       this.viewerPanel.innerHTML = '<div class="empty-state">加载中...</div>';
 
-      // 加载完整工件内容
-      const fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
+      let fullArtifact;
+      let metadata = {};
       
-      // 加载元数据
-      const metadata = await this.api.get(`/artifacts/${artifact.id}/metadata`);
+      // JSON 文件：通过 API 加载内容
+      if (artifact.extension === ".json") {
+        fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
+        // 加载元数据
+        metadata = await this.api.get(`/artifacts/${artifact.id}/metadata`);
+      } else {
+        // 非 JSON 文件：直接使用文件信息
+        fullArtifact = {
+          id: artifact.id,
+          type: artifact.type,
+          content: artifact.filename,
+          meta: {}
+        };
+      }
+      
       this.selectedArtifact.messageId = metadata.messageId;
 
       // 显示"查看来源"按钮
