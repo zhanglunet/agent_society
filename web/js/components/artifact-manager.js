@@ -445,8 +445,24 @@ class ArtifactManager {
   _renderIconView() {
     this.listPanel.innerHTML = this.filteredArtifacts.map(artifact => {
       const type = artifact.type || "unknown";
-      const icon = this._getFileIconByType(type);
       const displayName = artifact.actualFilename || artifact.filename;
+      const isImage = this._isImageType(type);
+      
+      // 图片类型显示缩略图
+      if (isImage && artifact.content) {
+        const imageUrl = this._getImageUrl(artifact.content);
+        return `
+          <div class="artifact-item" data-id="${artifact.id}" title="${this._escapeHtml(displayName)}">
+            <div class="artifact-thumbnail">
+              <img src="${imageUrl}" alt="${this._escapeHtml(displayName)}" onerror="this.parentElement.innerHTML='🖼️'">
+            </div>
+            <div class="artifact-item-name">${this._escapeHtml(this._truncateName(displayName, 20))}</div>
+          </div>
+        `;
+      }
+      
+      // 非图片类型显示图标
+      const icon = this._getFileIconByType(type);
       return `
         <div class="artifact-item" data-id="${artifact.id}" title="${this._escapeHtml(displayName)}">
           <div class="artifact-icon">${icon}</div>
@@ -541,6 +557,20 @@ class ArtifactManager {
   _truncateName(name, maxLen) {
     if (name.length <= maxLen) return name;
     return name.slice(0, maxLen - 3) + "...";
+  }
+
+  /**
+   * 获取图片 URL
+   * @param {string} content - 图片内容（可能是文件名、base64 或完整 URL）
+   */
+  _getImageUrl(content) {
+    if (!content) return "";
+    // 已经是 base64 或完整 URL
+    if (content.startsWith("data:") || content.startsWith("http://") || content.startsWith("https://")) {
+      return content;
+    }
+    // 文件名，构建 artifacts 路径
+    return `/artifacts/${content}`;
   }
 
   /**

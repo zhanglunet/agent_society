@@ -70,13 +70,8 @@ class ImageViewer {
     img.style.borderRadius = "4px";
 
     // 设置图片源
-    if (typeof imageData === "string" && imageData.startsWith("data:")) {
-      img.src = imageData;
-    } else if (typeof imageData === "object" && imageData.data) {
-      img.src = imageData.data;
-    } else if (typeof imageData === "string") {
-      img.src = imageData;
-    }
+    const imgSrc = this._getImageSrc(imageData);
+    img.src = imgSrc;
 
     // 点击打开灯箱
     img.addEventListener("click", () => {
@@ -98,6 +93,35 @@ class ImageViewer {
     wrapper.appendChild(hintDiv);
 
     this.container.appendChild(wrapper);
+  }
+
+  /**
+   * 获取图片源 URL
+   */
+  _getImageSrc(imageData) {
+    if (!imageData) return "";
+    
+    // Base64 编码的图片
+    if (typeof imageData === "string" && imageData.startsWith("data:")) {
+      return imageData;
+    }
+    
+    // 对象形式，包含 data 字段
+    if (typeof imageData === "object" && imageData.data) {
+      return imageData.data;
+    }
+    
+    // 完整 URL
+    if (typeof imageData === "string" && (imageData.startsWith("http://") || imageData.startsWith("https://"))) {
+      return imageData;
+    }
+    
+    // 文件名，构建 artifacts 路径
+    if (typeof imageData === "string") {
+      return `/artifacts/${imageData}`;
+    }
+    
+    return "";
   }
 
   /**

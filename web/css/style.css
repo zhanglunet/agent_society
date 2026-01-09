@@ -2589,6 +2589,24 @@ body {
   margin-bottom: 8px;
 }
 
+.artifact-thumbnail {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #2d2d30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.artifact-thumbnail img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+
 .artifact-list.icon-view .artifact-item-name {
   font-size: 11px;
   text-align: center;
