@@ -4,7 +4,13 @@ import { randomUUID } from "node:crypto";
 import { createNoopModuleLogger } from "./logger.js";
 
 /**
- * 提供最小可用的工件存储：将 JSON 工件写入 data/artifacts 并用 ref 引用。
+ * 元信息文件后缀
+ */
+const META_EXTENSION = ".meta";
+
+/**
+ * 提供最小可用的工件存储：将工件写入 data/artifacts 并用 ref 引用。
+ * 工件文件只保存原始内容，元信息保存在同名的 .meta 后缀的 JSON 文件里。
  */
 export class ArtifactStore {
   /**
@@ -24,28 +30,73 @@ export class ArtifactStore {
   }
 
   /**
+   * 写入工件元信息文件。
+   * @param {string} artifactId - 工件ID
+   * @param {object} metadata - 元信息对象
+   * @returns {Promise<void>}
+   */
+  async _writeMetadata(artifactId, metadata) {
+    const metaFilePath = path.resolve(this.artifactsDir, `${artifactId}${META_EXTENSION}`);
+    await writeFile(metaFilePath, JSON.stringify(metadata, null, 2), "utf8");
+    void this.log.debug("写入工件元信息", { id: artifactId, metaFile: `${artifactId}${META_EXTENSION}` });
+  }
+
+  /**
+   * 读取工件元信息文件。
+   * @param {string} artifactId - 工件ID
+   * @returns {Promise<object|null>} 元信息对象，不存在时返回 null
+   */
+  async getMetadata(artifactId) {
+    const metaFilePath = path.resolve(this.artifactsDir, `${artifactId}${META_EXTENSION}`);
+    try {
+      const raw = await readFile(metaFilePath, "utf8");
+      const metadata = JSON.parse(raw);
+      void this.log.debug("读取工件元信息成功", { id: artifactId });
+      return metadata;
+    } catch (err) {
+      if (err && typeof err === "object" && err.code === "ENOENT") {
+        void this.log.debug("工件元信息文件不存在", { id: artifactId });
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
    * 写入工件并返回引用。
+   * 工件文件只保存原始内容（content），元信息保存在独立的 .meta 文件中。
    * @param {{type:string, content:any, meta?:object, messageId?:string}} artifact
    * @returns {Promise<string>} artifact_ref
    */
   async putArtifact(artifact) {
     await this.ensureReady();
     const id = randomUUID();
-    const filePath = path.resolve(this.artifactsDir, `${id}.json`);
-    const payload = {
+    const extension = ".json";
+    const filePath = path.resolve(this.artifactsDir, `${id}${extension}`);
+    const createdAt = new Date().toISOString();
+    
+    // 工件文件只保存原始内容
+    await writeFile(filePath, JSON.stringify(artifact.content, null, 2), "utf8");
+    
+    // 元信息保存到独立的 .meta 文件
+    const metadata = {
       id,
-      createdAt: new Date().toISOString(),
-      ...artifact
+      extension,
+      type: artifact.type,
+      createdAt,
+      messageId: artifact.messageId || null,
+      meta: artifact.meta || null
     };
-    await writeFile(filePath, JSON.stringify(payload, null, 2), "utf8");
-    void this.log.info("写入工件", { id, type: payload.type, ref: `artifact:${id}`, messageId: artifact.messageId || null });
+    await this._writeMetadata(id, metadata);
+    
+    void this.log.info("写入工件", { id, type: artifact.type, ref: `artifact:${id}`, messageId: artifact.messageId || null });
     return `artifact:${id}`;
   }
 
   /**
    * 读取工件引用。
    * @param {string} ref artifact_ref
-   * @returns {Promise<any>} 工件内容
+   * @returns {Promise<any>} 工件内容（包含元信息）
    */
   async getArtifact(ref) {
     await this.ensureReady();
@@ -53,7 +104,21 @@ export class ArtifactStore {
     const filePath = path.resolve(this.artifactsDir, `${id}.json`);
     try {
       const raw = await readFile(filePath, "utf8");
-      const payload = JSON.parse(raw);
+      const content = JSON.parse(raw);
+      
+      // 读取元信息
+      const metadata = await this.getMetadata(id);
+      
+      // 返回合并后的工件对象（兼容旧格式）
+      const payload = {
+        id,
+        content,
+        type: metadata?.type || null,
+        createdAt: metadata?.createdAt || new Date().toISOString(),
+        messageId: metadata?.messageId || null,
+        meta: metadata?.meta || null
+      };
+      
       void this.log.debug("读取工件成功", { id, ref: `artifact:${id}` });
       return payload;
     } catch (err) {
@@ -66,28 +131,36 @@ export class ArtifactStore {
   }
 
   /**
-   * 保存截图为 JPEG 图片文件。
+   * 保存图片文件。
    * @param {Buffer} buffer - 图片二进制数据
-   * @param {{tabId?: string, url?: string, title?: string, fullPage?: boolean, selector?: string}} meta - 元数据
+   * @param {{format?: "png"|"jpg"|"jpeg"|"gif"|"webp", messageId?: string, [key: string]: any}} meta - 元数据，format 默认为 "png"
    * @returns {Promise<string>} 图片文件名（相对于 artifacts 目录）
    */
-  async saveScreenshot(buffer, meta = {}) {
+  async saveImage(buffer, meta = {}) {
     await this.ensureReady();
     
-    // 生成文件名：时间戳_uuid.jpg
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const id = randomUUID().slice(0, 8);
-    const fileName = `${timestamp}_${id}.jpg`;
+    const { format = "png", messageId, ...otherMeta } = meta;
+    const id = randomUUID();
+    const extension = `.${format}`;
+    const fileName = `${id}${extension}`;
     const filePath = path.resolve(this.artifactsDir, fileName);
+    const createdAt = new Date().toISOString();
     
-    // 写入图片文件
+    // 写入图片文件（原始内容）
     await writeFile(filePath, buffer);
     
-    void this.log.info("保存截图", { 
-      fileName,
-      url: meta.url || null,
-      title: meta.title || null
-    });
+    // 写入元信息文件
+    const metadata = {
+      id,
+      extension,
+      type: "image",
+      createdAt,
+      messageId: messageId || null,
+      ...otherMeta
+    };
+    await this._writeMetadata(id, metadata);
+    
+    void this.log.info("保存图片", { fileName, format });
     
     return fileName;
   }
@@ -98,5 +171,22 @@ export class ArtifactStore {
    */
   generateId() {
     return randomUUID();
+  }
+
+  /**
+   * 检查文件名是否为元信息文件。
+   * @param {string} filename - 文件名
+   * @returns {boolean}
+   */
+  static isMetaFile(filename) {
+    return filename.endsWith(META_EXTENSION);
+  }
+
+  /**
+   * 获取元信息文件后缀。
+   * @returns {string}
+   */
+  static get META_EXTENSION() {
+    return META_EXTENSION;
   }
 }

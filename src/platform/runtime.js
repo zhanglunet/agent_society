@@ -2166,7 +2166,7 @@ export class Runtime {
       },
       putArtifact: (artifact) => this.artifacts.putArtifact(artifact),
       getArtifact: (ref) => this.artifacts.getArtifact(ref),
-      saveScreenshot: (buffer, meta) => this.artifacts.saveScreenshot(buffer, meta),
+      saveImage: (buffer, meta) => this.artifacts.saveImage(buffer, meta),
       composePrompt: (parts) => this.prompts.compose(parts),
       consolePrint: (text) => process.stdout.write(String(text ?? ""))
     };
@@ -2589,11 +2589,26 @@ export class Runtime {
           const { writeFile } = await import("node:fs/promises");
           const pngBuffer = canvasInstance.toBuffer("image/png");
           const artifactId = randomUUID();
-          const fileName = `${artifactId}.png`;
+          const extension = ".png";
+          const fileName = `${artifactId}${extension}`;
           const filePath = path.resolve(this.artifacts.artifactsDir, fileName);
+          const createdAt = new Date().toISOString();
           
           await this.artifacts.ensureReady();
           await writeFile(filePath, pngBuffer);
+          
+          // 写入元信息文件
+          const metadata = {
+            id: artifactId,
+            extension,
+            type: "image",
+            createdAt,
+            messageId: null,
+            width: canvasInstance.width,
+            height: canvasInstance.height,
+            source: "canvas"
+          };
+          await this.artifacts._writeMetadata(artifactId, metadata);
           
           void this.log.info("保存 Canvas 图像", {
             fileName,

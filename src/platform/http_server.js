@@ -1916,7 +1916,8 @@ export class HTTPServer {
         return;
       }
 
-      const { readdirSync, statSync, existsSync } = require("node:fs");
+      const { readdirSync, statSync, existsSync, readFileSync } = require("node:fs");
+      const { ArtifactStore } = require("./artifact_store.js");
       
       // 目录不存在时返回空列表
       if (!existsSync(this._artifactsDir)) {
@@ -1924,8 +1925,10 @@ export class HTTPServer {
         return;
       }
       
-      // 获取所有文件（不仅仅是 JSON）
-      const files = readdirSync(this._artifactsDir);
+      // 获取所有文件（不仅仅是 JSON），但过滤掉 .meta 文件
+      const files = readdirSync(this._artifactsDir).filter(filename => {
+        return !ArtifactStore.isMetaFile(filename);
+      });
       
       const artifacts = files.map(filename => {
         const filePath = path.join(this._artifactsDir, filename);
@@ -1933,12 +1936,26 @@ export class HTTPServer {
         const extension = path.extname(filename);
         const id = filename.replace(extension, "");
         
+        // 尝试读取元信息文件
+        let metadata = null;
+        const metaFilePath = path.join(this._artifactsDir, `${id}${ArtifactStore.META_EXTENSION}`);
+        if (existsSync(metaFilePath)) {
+          try {
+            const metaContent = readFileSync(metaFilePath, "utf8");
+            metadata = JSON.parse(metaContent);
+          } catch (e) {
+            // 忽略元信息读取错误
+          }
+        }
+        
         return {
           id,
           filename,
           size: stat.size,
-          createdAt: stat.birthtime?.toISOString() || stat.mtime?.toISOString(),
-          extension
+          createdAt: metadata?.createdAt || stat.birthtime?.toISOString() || stat.mtime?.toISOString(),
+          extension: metadata?.extension || extension,
+          type: metadata?.type || null,
+          messageId: metadata?.messageId || null
         };
       }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -1965,16 +1982,47 @@ export class HTTPServer {
         return;
       }
 
-      const filePath = path.join(this._artifactsDir, `${artifactId}.json`);
       const { readFileSync, existsSync } = require("node:fs");
+      const { ArtifactStore } = require("./artifact_store.js");
+      
+      // 尝试读取元信息文件获取扩展名
+      let extension = ".json";
+      const metaFilePath = path.join(this._artifactsDir, `${artifactId}${ArtifactStore.META_EXTENSION}`);
+      let metadata = null;
+      
+      if (existsSync(metaFilePath)) {
+        try {
+          const metaContent = readFileSync(metaFilePath, "utf8");
+          metadata = JSON.parse(metaContent);
+          extension = metadata.extension || ".json";
+        } catch (e) {
+          // 忽略元信息读取错误，使用默认扩展名
+        }
+      }
+      
+      const filePath = path.join(this._artifactsDir, `${artifactId}${extension}`);
       
       if (!existsSync(filePath)) {
         this._sendJson(res, 404, { error: "artifact_not_found", id: artifactId });
         return;
       }
 
-      const content = readFileSync(filePath, "utf8");
-      const artifact = JSON.parse(content);
+      const rawContent = readFileSync(filePath, "utf8");
+      let content;
+      
+      // 尝试解析为 JSON
+      try {
+        content = JSON.parse(rawContent);
+      } catch (e) {
+        content = rawContent;
+      }
+
+      // 返回合并后的工件对象
+      const artifact = {
+        id: artifactId,
+        content,
+        ...(metadata || { createdAt: new Date().toISOString() })
+      };
 
       void this.log.debug("HTTP查询工件", { id: artifactId });
       this._sendJson(res, 200, artifact);
@@ -1996,8 +2044,40 @@ export class HTTPServer {
         return;
       }
 
-      const filePath = path.join(this._artifactsDir, `${artifactId}.json`);
       const { readFileSync, existsSync, statSync } = require("node:fs");
+      const { ArtifactStore } = require("./artifact_store.js");
+      
+      // 首先尝试读取 .meta 文件
+      const metaFilePath = path.join(this._artifactsDir, `${artifactId}${ArtifactStore.META_EXTENSION}`);
+      
+      if (existsSync(metaFilePath)) {
+        try {
+          const metaContent = readFileSync(metaFilePath, "utf8");
+          const metadata = JSON.parse(metaContent);
+          
+          // 获取工件文件的大小
+          const extension = metadata.extension || ".json";
+          const artifactFilePath = path.join(this._artifactsDir, `${artifactId}${extension}`);
+          let size = 0;
+          if (existsSync(artifactFilePath)) {
+            const stat = statSync(artifactFilePath);
+            size = stat.size;
+          }
+          
+          void this.log.debug("HTTP查询工件元数据（从meta文件）", { id: artifactId });
+          this._sendJson(res, 200, {
+            ...metadata,
+            filename: `${artifactId}${extension}`,
+            size
+          });
+          return;
+        } catch (e) {
+          // 元信息文件解析失败，继续尝试旧格式
+        }
+      }
+      
+      // 兼容旧格式：从 JSON 工件文件中读取元信息
+      const filePath = path.join(this._artifactsDir, `${artifactId}.json`);
       
       if (!existsSync(filePath)) {
         this._sendJson(res, 404, { error: "artifact_not_found", id: artifactId });
@@ -2009,16 +2089,17 @@ export class HTTPServer {
       const stat = statSync(filePath);
 
       const metadata = {
-        id: artifact.id,
+        id: artifact.id || artifactId,
         filename: `${artifactId}.json`,
         size: stat.size,
         extension: ".json",
         createdAt: artifact.createdAt,
         messageId: artifact.messageId || null,
+        type: artifact.type || null,
         mimeType: "application/json"
       };
 
-      void this.log.debug("HTTP查询工件元数据", { id: artifactId });
+      void this.log.debug("HTTP查询工件元数据（从工件文件）", { id: artifactId });
       this._sendJson(res, 200, metadata);
     } catch (err) {
       void this.log.error("查询工件元数据失败", { id: artifactId, error: err.message });

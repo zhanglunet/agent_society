@@ -336,7 +336,17 @@ class ArtifactManager {
       const artifactsWithDetails = await Promise.all(
         (response.artifacts || []).map(async (artifact) => {
           try {
-            // JSON 文件：读取内部的业务 type
+            // 如果 API 已经返回了元信息，直接使用
+            if (artifact.type) {
+              const isImage = this._isImageType(artifact.type);
+              return {
+                ...artifact,
+                content: isImage ? artifact.filename : null,
+                actualFilename: artifact.filename
+              };
+            }
+            
+            // JSON 文件：读取内部的业务 type（兼容旧格式）
             if (artifact.extension === ".json") {
               const detail = await this.api.get(`/artifacts/${artifact.id}`);
               return {

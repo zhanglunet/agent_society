@@ -155,11 +155,12 @@ export class PageActions {
       }
 
       // 如果有上下文，保存为图片文件
-      if (ctx && ctx.tools && typeof ctx.tools.saveScreenshot === 'function') {
+      if (ctx && ctx.tools && typeof ctx.tools.saveImage === 'function') {
         const pageUrl = page.url();
         const pageTitle = await page.title();
         
-        const filePath = await ctx.tools.saveScreenshot(screenshotBuffer, {
+        const filePath = await ctx.tools.saveImage(screenshotBuffer, {
+          format: "jpg",
           tabId,
           url: pageUrl,
           title: pageTitle,
