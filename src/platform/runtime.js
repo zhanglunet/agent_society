@@ -1836,12 +1836,11 @@ export class Runtime {
           continue; // 继续下一轮，让 LLM 重新生成带 tool_calls 的响应
         }
         
-        // 没有工具调用但有文本内容，自动发送给最后一个消息发送者
+        // 没有工具调用但有文本内容，自动发送给 user
         if (content.trim()) {
-          const lastFrom = ctx.currentMessage?.from;
           const currentAgentId = ctx.agent?.id ?? "unknown";
-          // 确定发送目标：最后一个发来消息的目标，如果没有或是自己，则发给 user
-          const targetId = (lastFrom && lastFrom !== currentAgentId) ? lastFrom : "user";
+          // 没有调用 send_message 的回复默认发给 user
+          const targetId = "user";
           const currentTaskId = ctx.currentMessage?.taskId ?? null;
           
           void this.log.info("LLM 返回纯文本无 tool_calls，自动发送消息", {
