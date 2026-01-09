@@ -11,7 +11,7 @@ export class WorkspaceManager {
    * @param {{logger?: {trace:(m:string,d?:any)=>Promise<void>, debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}}} options
    */
   constructor(options = {}) {
-    /** @type {Map<string, {workspacePath: string, createdAt: string}>} */
+    /** @type {Map<string, {workspacePath: string, createdAt: string, lazyCreated: boolean}>} */
     this._workspaces = new Map();
     this.log = options.logger ?? createNoopModuleLogger();
   }
@@ -38,7 +38,8 @@ export class WorkspaceManager {
       
       this._workspaces.set(taskId, {
         workspacePath: absolutePath,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        lazyCreated: true
       });
       
       void this.log.info("工作空间绑定成功", { taskId, workspacePath: absolutePath });
@@ -47,6 +48,69 @@ export class WorkspaceManager {
       const message = err && typeof err === "object" && "message" in err ? err.message : String(err);
       void this.log.error("工作空间绑定失败", { taskId, workspacePath, error: message });
       return { ok: false, error: `bind_failed: ${message}` };
+    }
+  }
+
+  /**
+   * 为工作空间分配路径（懒加载，不立即创建文件夹）
+   * @param {string} workspaceId - 工作空间ID（通常是 root 直接子智能体的 agentId）
+   * @param {string} workspacePath - 工作空间绝对路径
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async assignWorkspace(workspaceId, workspacePath) {
+    if (!workspaceId || typeof workspaceId !== "string") {
+      return { ok: false, error: "invalid_workspace_id" };
+    }
+    if (!workspacePath || typeof workspacePath !== "string") {
+      return { ok: false, error: "invalid_workspace_path" };
+    }
+
+    const absolutePath = path.resolve(workspacePath);
+    
+    // 懒加载：仅记录路径信息，不创建文件夹
+    this._workspaces.set(workspaceId, {
+      workspacePath: absolutePath,
+      createdAt: new Date().toISOString(),
+      lazyCreated: false
+    });
+    
+    void this.log.info("工作空间分配成功（懒加载）", { workspaceId, workspacePath: absolutePath });
+    return { ok: true };
+  }
+
+  /**
+   * 检查工作空间是否已分配
+   * @param {string} workspaceId
+   * @returns {boolean}
+   */
+  hasWorkspace(workspaceId) {
+    return this._workspaces.has(workspaceId);
+  }
+
+  /**
+   * 确保工作空间文件夹存在（懒加载创建）
+   * @param {string} workspaceId
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async ensureWorkspaceExists(workspaceId) {
+    const entry = this._workspaces.get(workspaceId);
+    if (!entry) {
+      return { ok: false, error: "workspace_not_assigned" };
+    }
+
+    if (entry.lazyCreated) {
+      return { ok: true };
+    }
+
+    try {
+      await mkdir(entry.workspacePath, { recursive: true });
+      entry.lazyCreated = true;
+      void this.log.info("工作空间文件夹已创建", { workspaceId, workspacePath: entry.workspacePath });
+      return { ok: true };
+    } catch (err) {
+      const message = err && typeof err === "object" && "message" in err ? err.message : String(err);
+      void this.log.error("工作空间文件夹创建失败", { workspaceId, error: message });
+      return { ok: false, error: `create_failed: ${message}` };
     }
   }
 
@@ -147,6 +211,12 @@ export class WorkspaceManager {
       return { ok: false, error: "path_traversal_blocked" };
     }
 
+    // 懒加载：首次写入时创建工作空间文件夹
+    const ensureResult = await this.ensureWorkspaceExists(taskId);
+    if (!ensureResult.ok) {
+      return { ok: false, error: ensureResult.error };
+    }
+
     const fullPath = path.resolve(workspacePath, relativePath);
     
     try {
@@ -210,7 +280,9 @@ export class WorkspaceManager {
     } catch (err) {
       if (err && typeof err === "object" && "code" in err) {
         if (err.code === "ENOENT") {
-          return { error: "directory_not_found" };
+          // 懒加载：工作空间文件夹不存在时返回空列表而不是错误
+          void this.log.debug("工作空间文件夹不存在，返回空列表", { taskId, relativePath });
+          return { files: [] };
         }
         if (err.code === "EACCES") {
           return { error: "permission_denied" };
@@ -242,7 +314,14 @@ export class WorkspaceManager {
     } catch (err) {
       if (err && typeof err === "object" && "code" in err) {
         if (err.code === "ENOENT") {
-          return { error: "workspace_not_found" };
+          // 懒加载：工作空间文件夹不存在时返回空的统计信息
+          void this.log.debug("工作空间文件夹不存在，返回空统计信息", { taskId });
+          return {
+            fileCount: 0,
+            dirCount: 0,
+            totalSize: 0,
+            lastModified: new Date(0).toISOString()
+          };
         }
         if (err.code === "EACCES") {
           return { error: "permission_denied" };

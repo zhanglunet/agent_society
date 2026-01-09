@@ -513,6 +513,22 @@ export class Runtime {
     this._agentMetaById.set(agent.id, { id: meta.id, roleId: meta.roleId, parentAgentId: meta.parentAgentId ?? null });
     // 初始化智能体最后活动时间
     this._agentLastActivityTime.set(agent.id, Date.now());
+    
+    // 工作空间处理：只有 root 的直接子智能体需要分配工作空间
+    if (input.parentAgentId === "root") {
+      const workspaceId = agent.id;
+      // 使用 dataDir 或 runtimeDir 的父目录作为基础路径
+      const baseDir = this.config.dataDir ?? path.dirname(this.config.runtimeDir);
+      const workspacePath = path.join(baseDir, "workspaces", workspaceId);
+      await this.workspaceManager.assignWorkspace(workspaceId, workspacePath);
+      void this.log.info("为智能体分配工作空间", {
+        agentId: agent.id,
+        workspaceId,
+        workspacePath
+      });
+    }
+    // 非 root 的子智能体不需要任何操作，工作空间通过查找祖先链确定
+    
     void this.log.info("创建智能体实例", {
       id: agent.id,
       roleId: agent.roleId,
@@ -542,6 +558,32 @@ export class Runtime {
       throw new Error("invalid_parentAgentId");
     }
     return await this.spawnAgent({ roleId: input.roleId, parentAgentId: callerAgentId });
+  }
+
+  /**
+   * 通过祖先链查找智能体的工作空间ID。
+   * 从当前智能体开始向上查找，直到找到第一个有工作空间的祖先。
+   * @param {string} agentId
+   * @returns {string|null} 工作空间ID，如果没有则返回 null
+   */
+  findWorkspaceIdForAgent(agentId) {
+    let currentAgentId = agentId;
+    
+    while (currentAgentId && currentAgentId !== "root" && currentAgentId !== "user") {
+      // 检查当前智能体是否有工作空间
+      if (this.workspaceManager.hasWorkspace(currentAgentId)) {
+        return currentAgentId;
+      }
+      
+      // 获取父智能体ID
+      const meta = this._agentMetaById.get(currentAgentId);
+      if (!meta || !meta.parentAgentId) {
+        break;
+      }
+      currentAgentId = meta.parentAgentId;
+    }
+    
+    return null;
   }
 
   /**
@@ -1151,6 +1193,72 @@ export class Runtime {
           }
         }
       },
+      // 工作空间文件操作工具
+      {
+        type: "function",
+        function: {
+          name: "write_file",
+          description: "在工作空间中写入文件。路径必须是相对路径。如果文件已存在会被覆盖，如果父目录不存在会自动创建。",
+          parameters: {
+            type: "object",
+            properties: {
+              path: { 
+                type: "string", 
+                description: "相对于工作空间的文件路径" 
+              },
+              content: { 
+                type: "string", 
+                description: "文件内容" 
+              }
+            },
+            required: ["path", "content"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "read_file",
+          description: "从工作空间读取文件内容。路径必须是相对路径。",
+          parameters: {
+            type: "object",
+            properties: {
+              path: { 
+                type: "string", 
+                description: "相对于工作空间的文件路径" 
+              }
+            },
+            required: ["path"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "list_files",
+          description: "列出工作空间中的文件和目录。路径必须是相对路径，默认为根目录。",
+          parameters: {
+            type: "object",
+            properties: {
+              path: { 
+                type: "string", 
+                description: "相对于工作空间的目录路径，默认为 '.'" 
+              }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_workspace_info",
+          description: "获取工作空间的统计信息，包括文件数量、目录数量、总大小等。",
+          parameters: {
+            type: "object",
+            properties: {}
+          }
+        }
+      },
       // 合并模块提供的工具定义
       ...this.moduleLoader.getToolDefinitions()
     ];
@@ -1556,39 +1664,39 @@ export class Runtime {
         return result;
       }
       if (toolName === "read_file") {
-        const taskId = this._getTaskIdForAgent(ctx.agent?.id);
-        if (!taskId) {
-          return { error: "workspace_not_bound", message: "当前智能体未绑定工作空间" };
+        const workspaceId = this.findWorkspaceIdForAgent(ctx.agent?.id);
+        if (!workspaceId) {
+          return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
         }
-        const result = await this.workspaceManager.readFile(taskId, args.path);
-        void this.log.debug("工具调用完成", { toolName, ok: !result.error, path: args.path });
+        const result = await this.workspaceManager.readFile(workspaceId, args.path);
+        void this.log.debug("工具调用完成", { toolName, ok: !result.error, path: args.path, workspaceId });
         return result;
       }
       if (toolName === "write_file") {
-        const taskId = this._getTaskIdForAgent(ctx.agent?.id);
-        if (!taskId) {
-          return { error: "workspace_not_bound", message: "当前智能体未绑定工作空间" };
+        const workspaceId = this.findWorkspaceIdForAgent(ctx.agent?.id);
+        if (!workspaceId) {
+          return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
         }
-        const result = await this.workspaceManager.writeFile(taskId, args.path, args.content);
-        void this.log.debug("工具调用完成", { toolName, ok: result.ok, path: args.path });
+        const result = await this.workspaceManager.writeFile(workspaceId, args.path, args.content);
+        void this.log.debug("工具调用完成", { toolName, ok: result.ok, path: args.path, workspaceId });
         return result;
       }
       if (toolName === "list_files") {
-        const taskId = this._getTaskIdForAgent(ctx.agent?.id);
-        if (!taskId) {
-          return { error: "workspace_not_bound", message: "当前智能体未绑定工作空间" };
+        const workspaceId = this.findWorkspaceIdForAgent(ctx.agent?.id);
+        if (!workspaceId) {
+          return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
         }
-        const result = await this.workspaceManager.listFiles(taskId, args.path ?? ".");
-        void this.log.debug("工具调用完成", { toolName, ok: !result.error, path: args.path ?? "." });
+        const result = await this.workspaceManager.listFiles(workspaceId, args.path ?? ".");
+        void this.log.debug("工具调用完成", { toolName, ok: !result.error, path: args.path ?? ".", workspaceId });
         return result;
       }
       if (toolName === "get_workspace_info") {
-        const taskId = this._getTaskIdForAgent(ctx.agent?.id);
-        if (!taskId) {
-          return { error: "workspace_not_bound", message: "当前智能体未绑定工作空间" };
+        const workspaceId = this.findWorkspaceIdForAgent(ctx.agent?.id);
+        if (!workspaceId) {
+          return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
         }
-        const result = await this.workspaceManager.getWorkspaceInfo(taskId);
-        void this.log.debug("工具调用完成", { toolName, ok: !result.error });
+        const result = await this.workspaceManager.getWorkspaceInfo(workspaceId);
+        void this.log.debug("工具调用完成", { toolName, ok: !result.error, workspaceId });
         return result;
       }
       if (toolName === "run_command") {
