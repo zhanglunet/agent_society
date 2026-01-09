@@ -1306,6 +1306,62 @@ body {
   background-color: #06ad56;
 }
 
+/* ========== LLM 服务选择样式 ========== */
+.llm-service-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-llm-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.edit-llm-btn:hover {
+  opacity: 1;
+}
+
+.llm-service-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.llm-service-edit.hidden {
+  display: none;
+}
+
+.llm-service-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #fff;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.llm-service-select:focus {
+  outline: none;
+  border-color: #07c160;
+}
+
+.llm-service-select:hover {
+  border-color: #ccc;
+}
+
 /* ========== 工具调用消息样式 ========== */
 .message-item.tool-call {
   flex-direction: row;

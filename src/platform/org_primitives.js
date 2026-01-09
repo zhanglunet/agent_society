@@ -391,8 +391,8 @@ export class OrgPrimitives {
   /**
    * 更新岗位信息。
    * @param {string} roleId - 岗位ID
-   * @param {{rolePrompt?: string}} updates - 要更新的字段
-   * @returns {Promise<{id:string, name:string, rolePrompt:string}|null>}
+   * @param {{rolePrompt?: string, llmServiceId?: string|null}} updates - 要更新的字段
+   * @returns {Promise<{id:string, name:string, rolePrompt:string, llmServiceId:string|null}|null>}
    */
   async updateRole(roleId, updates) {
     const role = this._roles.get(roleId);
@@ -406,10 +406,15 @@ export class OrgPrimitives {
       role.rolePrompt = updates.rolePrompt;
     }
     
+    // 更新 LLM 服务 ID（允许设置为 null 表示使用默认服务）
+    if (updates.llmServiceId !== undefined) {
+      role.llmServiceId = updates.llmServiceId === "" ? null : (updates.llmServiceId ?? null);
+    }
+    
     role.updatedAt = formatLocalTimestamp();
     
     await this.persist();
-    void this.log.info("更新岗位", { id: roleId, name: role.name });
+    void this.log.info("更新岗位", { id: roleId, name: role.name, llmServiceId: role.llmServiceId });
     return role;
   }
 

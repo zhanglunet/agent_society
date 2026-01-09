@@ -258,6 +258,7 @@ export class HTTPServer {
     if (this._messagesById.has(message.id)) {
       return;
     }
+    
     this._messagesById.set(message.id, message);
 
     const { from, to } = message;
@@ -363,11 +364,21 @@ export class HTTPServer {
    * @returns {Promise<void>}
    */
   async _storeToolCall(event) {
-    const { agentId, toolName, args, result, taskId, callId, timestamp } = event;
+    const { agentId, toolName, args, result, taskId, callId, timestamp, reasoningContent } = event;
     if (!agentId) return;
 
     // send_message 已经作为消息显示，不需要重复显示为工具调用
-    if (toolName === "send_message") return;
+    // 但需要将 reasoning_content 关联到发送的消息
+    if (toolName === "send_message") {
+      if (reasoningContent && result && result.messageId) {
+        // 更新已存储的消息，添加 reasoning_content
+        const message = this._messagesById.get(result.messageId);
+        if (message) {
+          message.reasoning_content = reasoningContent;
+        }
+      }
+      return;
+    }
 
     // 创建工具调用消息
     const toolCallMessage = {
@@ -383,6 +394,11 @@ export class HTTPServer {
       },
       createdAt: timestamp
     };
+    
+    // 如果有思考内容，添加到消息中
+    if (reasoningContent) {
+      toolCallMessage.reasoning_content = reasoningContent;
+    }
 
     // 存储到智能体的消息列表
     if (!this._messagesByAgent.has(agentId)) {
@@ -586,6 +602,18 @@ export class HTTPServer {
         }
       } else if (method === "GET" && pathname === "/api/agent-custom-names") {
         this._handleGetCustomNames(res);
+      } else if (method === "GET" && pathname === "/api/llm-services") {
+        // 获取 LLM 服务列表
+        this._handleGetLlmServices(res);
+      } else if (method === "POST" && pathname.startsWith("/api/role/") && pathname.endsWith("/llm-service")) {
+        // 更新岗位 LLM 服务: POST /api/role/:roleId/llm-service
+        const match = pathname.match(/^\/api\/role\/(.+)\/llm-service$/);
+        if (match) {
+          const roleId = decodeURIComponent(match[1]);
+          this._handleUpdateRoleLlmService(req, roleId, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
       } else if (method === "POST" && pathname.startsWith("/api/role/") && pathname.endsWith("/prompt")) {
         // 提取 roleId: /api/role/:roleId/prompt
         const match = pathname.match(/^\/api\/role\/(.+)\/prompt$/);
@@ -871,7 +899,8 @@ export class HTTPServer {
           rolePrompt: "系统根智能体",
           createdBy: null,
           createdAt: null,
-          agentCount: 1
+          agentCount: 1,
+          llmServiceId: null
         },
         {
           id: "user",
@@ -879,7 +908,8 @@ export class HTTPServer {
           rolePrompt: "用户端点",
           createdBy: null,
           createdAt: null,
-          agentCount: 1
+          agentCount: 1,
+          llmServiceId: null
         },
         ...roles.map(r => ({
           id: r.id,
@@ -887,7 +917,8 @@ export class HTTPServer {
           rolePrompt: r.rolePrompt,
           createdBy: r.createdBy,
           createdAt: r.createdAt,
-          agentCount: agentCountByRole.get(r.id) ?? 0
+          agentCount: agentCountByRole.get(r.id) ?? 0,
+          llmServiceId: r.llmServiceId ?? null
         }))
       ];
 
@@ -958,8 +989,9 @@ export class HTTPServer {
       const data = JSON.parse(content);
       const messages = data.messages || [];
 
-      // 提取 reasoning_content，建立 tool_call_id 到 reasoning_content 的映射
+      // 提取 reasoning_content，建立多种 key 到 reasoning_content 的映射
       const thinkingMap = {};
+      let msgIndex = 0;
       for (const msg of messages) {
         if (msg.role === "assistant" && msg.reasoning_content) {
           // 如果有 tool_calls，用第一个 tool_call 的 id 作为 key
@@ -969,12 +1001,15 @@ export class HTTPServer {
               thinkingMap[callId] = msg.reasoning_content;
             }
           }
-          // 也用消息内容的哈希作为备用 key（用于没有 tool_calls 的情况）
+          // 用消息内容作为备用 key（用于没有 tool_calls 的情况）
           if (msg.content) {
             const contentKey = `content:${msg.content.substring(0, 100)}`;
             thinkingMap[contentKey] = msg.reasoning_content;
           }
+          // 用消息索引作为兜底 key（用于 content 为空且没有 tool_calls 的情况）
+          thinkingMap[`index:${msgIndex}`] = msg.reasoning_content;
         }
+        msgIndex++;
       }
 
       void this.log.debug("HTTP查询智能体对话历史", { agentId, messageCount: messages.length, thinkingCount: Object.keys(thinkingMap).length });
@@ -1433,6 +1468,94 @@ export class HTTPServer {
         });
       } catch (saveErr) {
         void this.log.error("更新岗位职责提示词失败", { roleId, error: saveErr.message });
+        this._sendJson(res, 500, { error: "update_failed", message: saveErr.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 GET /api/llm-services - 获取所有 LLM 服务列表。
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetLlmServices(res) {
+    try {
+      if (!this.society || !this.society.runtime) {
+        this._sendJson(res, 500, { error: "society_not_initialized" });
+        return;
+      }
+
+      const runtime = this.society.runtime;
+      const serviceRegistry = runtime.serviceRegistry;
+      
+      if (!serviceRegistry) {
+        // 如果没有服务注册表，返回空列表
+        this._sendJson(res, 200, { services: [], count: 0 });
+        return;
+      }
+
+      const services = serviceRegistry.getServices().map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description || "",
+        capabilityTags: s.capabilityTags || [],
+        model: s.model
+      }));
+
+      void this.log.debug("HTTP查询LLM服务列表", { count: services.length });
+      this._sendJson(res, 200, { services, count: services.length });
+    } catch (err) {
+      void this.log.error("查询LLM服务列表失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 POST /api/role/:roleId/llm-service - 更新岗位的 LLM 服务。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} roleId - 岗位ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleUpdateRoleLlmService(req, roleId, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      // llmServiceId 可以是字符串或 null（表示使用默认服务）
+      const llmServiceId = body?.llmServiceId;
+      if (llmServiceId !== null && llmServiceId !== undefined && typeof llmServiceId !== "string") {
+        this._sendJson(res, 400, { error: "invalid_llm_service_id", message: "llmServiceId 必须是字符串或 null" });
+        return;
+      }
+
+      // 检查是否是系统岗位
+      if (roleId === "root" || roleId === "user") {
+        this._sendJson(res, 400, { error: "cannot_modify_system_role", message: "不能修改系统岗位" });
+        return;
+      }
+
+      try {
+        if (!this.society || !this.society.runtime || !this.society.runtime.org) {
+          this._sendJson(res, 500, { error: "society_not_initialized" });
+          return;
+        }
+
+        const org = this.society.runtime.org;
+        const updatedRole = await org.updateRole(roleId, { llmServiceId: llmServiceId ?? null });
+        
+        if (!updatedRole) {
+          this._sendJson(res, 404, { error: "role_not_found", message: "岗位不存在" });
+          return;
+        }
+
+        void this.log.info("更新岗位LLM服务", { roleId, llmServiceId: updatedRole.llmServiceId });
+        this._sendJson(res, 200, { 
+          ok: true, 
+          role: updatedRole
+        });
+      } catch (saveErr) {
+        void this.log.error("更新岗位LLM服务失败", { roleId, error: saveErr.message });
         this._sendJson(res, 500, { error: "update_failed", message: saveErr.message });
       }
     });

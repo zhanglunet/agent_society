@@ -1911,7 +1911,8 @@ export class Runtime {
           result,
           taskId: message?.taskId ?? null,
           callId: call.id,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          reasoningContent: msg.reasoning_content ?? null
         });
         
         conv.push({

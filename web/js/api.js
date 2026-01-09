@@ -162,6 +162,26 @@ const API = {
   },
 
   /**
+   * 获取所有 LLM 服务列表
+   * @returns {Promise<{services: Array, count: number}>} LLM 服务列表
+   */
+  async getLlmServices() {
+    return this.get('/llm-services');
+  },
+
+  /**
+   * 更新岗位的 LLM 服务
+   * @param {string} roleId - 岗位 ID
+   * @param {string|null} llmServiceId - LLM 服务 ID（null 表示使用默认服务）
+   * @returns {Promise<object>} 更新结果
+   */
+  async updateRoleLlmService(roleId, llmServiceId) {
+    return this.post(`/role/${encodeURIComponent(roleId)}/llm-service`, {
+      llmServiceId: llmServiceId,
+    });
+  },
+
+  /**
    * 获取指定智能体的对话历史（包含思考过程）
    * @param {string} agentId - 智能体 ID
    * @returns {Promise<{agentId: string, messages: Array, thinkingMap: object}>} 对话历史

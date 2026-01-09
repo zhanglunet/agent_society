@@ -11,6 +11,9 @@ const RoleDetailModal = {
   
   // 当前显示的岗位
   currentRole: null,
+  
+  // LLM 服务列表缓存
+  llmServices: null,
 
   /**
    * 初始化组件
@@ -41,6 +44,22 @@ const RoleDetailModal = {
         this.hide();
       }
     });
+    
+    // 预加载 LLM 服务列表
+    this.loadLlmServices();
+  },
+
+  /**
+   * 加载 LLM 服务列表
+   */
+  async loadLlmServices() {
+    try {
+      const result = await API.getLlmServices();
+      this.llmServices = result.services || [];
+    } catch (error) {
+      console.error('加载 LLM 服务列表失败:', error);
+      this.llmServices = [];
+    }
   },
 
   /**
@@ -80,6 +99,11 @@ const RoleDetailModal = {
     // 获取该岗位下的所有智能体
     const agents = this.getAgentsByRole(role.id);
     
+    // 确保 LLM 服务列表已加载
+    if (!this.llmServices) {
+      await this.loadLlmServices();
+    }
+    
     this.renderContent(role, agents);
     
     if (this.overlay) {
@@ -118,6 +142,9 @@ const RoleDetailModal = {
     const activeAgents = agents.filter(a => a.status !== 'terminated');
     const terminatedAgents = agents.filter(a => a.status === 'terminated');
     const isSystemRole = role.id === 'root' || role.id === 'user';
+    
+    // 获取当前 LLM 服务名称
+    const currentServiceName = this.getLlmServiceName(role.llmServiceId);
 
     const html = `
       <!-- 基本信息 -->
@@ -139,6 +166,29 @@ const RoleDetailModal = {
           <div class="detail-label">创建时间</div>
           <div class="detail-value">${this.formatTime(role.createdAt)}</div>
         </div>
+      </div>
+
+      <!-- 大模型服务 -->
+      <div class="detail-section">
+        <h4 class="section-title">大模型服务</h4>
+        <div id="llm-service-view" class="detail-item">
+          <div class="detail-label">当前服务</div>
+          <div class="detail-value llm-service-display">
+            <span id="llm-service-name">${this.escapeHtml(currentServiceName)}</span>
+            ${!isSystemRole ? `<button class="edit-llm-btn" onclick="RoleDetailModal.toggleLlmEditMode()" title="修改">✏️</button>` : ''}
+          </div>
+        </div>
+        <div id="llm-service-edit" class="llm-service-edit hidden">
+          <select id="llm-service-select" class="llm-service-select">
+            <option value="">使用默认服务</option>
+            ${this.renderLlmServiceOptions(role.llmServiceId)}
+          </select>
+          <div class="edit-actions">
+            <button class="cancel-btn" onclick="RoleDetailModal.cancelLlmEdit()">取消</button>
+            <button class="save-btn" onclick="RoleDetailModal.saveLlmService()">保存</button>
+          </div>
+        </div>
+        ${isSystemRole ? `<div class="hint-text">系统岗位不可修改</div>` : ''}
       </div>
 
       <!-- 智能体统计 -->
@@ -189,6 +239,118 @@ const RoleDetailModal = {
     `;
 
     this.body.innerHTML = html;
+  },
+
+  /**
+   * 获取 LLM 服务名称
+   * @param {string|null} serviceId - 服务 ID
+   * @returns {string} 服务名称
+   */
+  getLlmServiceName(serviceId) {
+    if (!serviceId) {
+      return '默认服务';
+    }
+    if (!this.llmServices) {
+      return serviceId;
+    }
+    const service = this.llmServices.find(s => s.id === serviceId);
+    return service ? service.name : serviceId;
+  },
+
+  /**
+   * 渲染 LLM 服务选项
+   * @param {string|null} currentServiceId - 当前选中的服务 ID
+   * @returns {string} HTML 字符串
+   */
+  renderLlmServiceOptions(currentServiceId) {
+    if (!this.llmServices || this.llmServices.length === 0) {
+      return '';
+    }
+    return this.llmServices.map(service => {
+      const selected = service.id === currentServiceId ? 'selected' : '';
+      const tags = service.capabilityTags?.join(', ') || '';
+      const title = tags ? `${service.description || ''}\n能力标签: ${tags}` : (service.description || '');
+      return `<option value="${this.escapeHtml(service.id)}" ${selected} title="${this.escapeHtml(title)}">${this.escapeHtml(service.name)}</option>`;
+    }).join('');
+  },
+
+  /**
+   * 切换 LLM 服务编辑模式
+   */
+  toggleLlmEditMode() {
+    const viewEl = document.getElementById('llm-service-view');
+    const editEl = document.getElementById('llm-service-edit');
+    
+    if (viewEl && editEl) {
+      viewEl.classList.add('hidden');
+      editEl.classList.remove('hidden');
+      
+      // 聚焦到选择框
+      const select = document.getElementById('llm-service-select');
+      if (select) {
+        select.focus();
+      }
+    }
+  },
+
+  /**
+   * 取消 LLM 服务编辑
+   */
+  cancelLlmEdit() {
+    const viewEl = document.getElementById('llm-service-view');
+    const editEl = document.getElementById('llm-service-edit');
+    const select = document.getElementById('llm-service-select');
+    
+    if (viewEl && editEl) {
+      viewEl.classList.remove('hidden');
+      editEl.classList.add('hidden');
+      
+      // 恢复原始选择
+      if (select && this.currentRole) {
+        select.value = this.currentRole.llmServiceId || '';
+      }
+    }
+  },
+
+  /**
+   * 保存 LLM 服务设置
+   */
+  async saveLlmService() {
+    if (!this.currentRole) return;
+    
+    const select = document.getElementById('llm-service-select');
+    const newServiceId = select?.value || null;
+    
+    try {
+      const result = await API.updateRoleLlmService(this.currentRole.id, newServiceId);
+      
+      if (result.ok && result.role) {
+        // 更新本地数据
+        this.currentRole.llmServiceId = result.role.llmServiceId;
+        
+        // 更新 App 中的岗位数据
+        if (window.App?.roles) {
+          const roleIndex = window.App.roles.findIndex(r => r.id === this.currentRole.id);
+          if (roleIndex !== -1) {
+            window.App.roles[roleIndex].llmServiceId = result.role.llmServiceId;
+          }
+        }
+        
+        // 更新显示
+        const nameEl = document.getElementById('llm-service-name');
+        if (nameEl) {
+          nameEl.textContent = this.getLlmServiceName(result.role.llmServiceId);
+        }
+        
+        // 退出编辑模式
+        this.cancelLlmEdit();
+        
+        Toast.show('大模型服务已更新', 'success');
+      }
+    } catch (error) {
+      console.error('保存大模型服务失败:', error);
+      Toast.show('保存失败: ' + error.message, 'error');
+    }
   },
 
   /**

@@ -192,7 +192,7 @@ const ChatPanel = {
    * 加载思考过程内容
    */
   async loadThinkingContent() {
-    if (!this.currentAgentId || this.currentAgentId === 'user' || this.currentAgentId === 'root') {
+    if (!this.currentAgentId || this.currentAgentId === 'user') {
       this.thinkingMap = {};
       return;
     }
