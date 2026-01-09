@@ -2570,6 +2570,7 @@ body {
 }
 
 .artifact-list.icon-view .artifact-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2674,8 +2675,53 @@ body {
   color: #858585;
 }
 
+.col-action {
+  flex: 0 0 30px;
+  text-align: center;
+}
+
 .artifact-icon-small {
   font-size: 16px;
+}
+
+/* 工件来源跳转按钮 */
+.artifact-source-btn {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background-color: rgba(60, 60, 60, 0.8);
+  color: #858585;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.artifact-item:hover .artifact-source-btn {
+  opacity: 1;
+}
+
+.artifact-source-btn:hover {
+  background-color: #0e639c;
+  color: #fff;
+}
+
+/* 详情视图中的来源按钮 */
+.artifact-list.detail-view .artifact-source-btn {
+  position: static;
+  opacity: 0;
+}
+
+.artifact-list.detail-view .artifact-item:hover .artifact-source-btn {
+  opacity: 1;
 }
 
 /* 工件查看器弹窗 */

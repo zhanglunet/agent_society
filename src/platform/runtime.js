@@ -989,7 +989,7 @@ export class Runtime {
         function: {
           name: "run_javascript",
           description:
-            "运行一段 JavaScript 代码（在 new Function 中执行）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算，不要靠大模型猜测。每次调用都是全新执行环境：不带任何上下文、不保留任何状态、不支持跨调用变量引用。参数 input 会作为变量 input 传入代码。code 必须是“函数体”形式的代码（可包含多行语句），需要显式 return 一个可 JSON 序列化的值；如果返回 Promise，会等待其 resolve 后再作为工具结果返回。为降低风险：本工具不会注入/提供文件系统、进程、OS、网络等能力，也不会传入 require/process/fs/os 等对象；但这不是安全沙箱，请不要尝试任何带副作用或越权的代码。【Canvas 绘图】本工具支持 Canvas 绘图功能。调用 getCanvas(width, height) 获取 Canvas 对象（默认尺寸 800x600），然后使用 getContext('2d') 进行绘图。脚本执行完成后，Canvas 内容会自动导出为 PNG 图像并保存到工件库，返回结果中包含 images 数组。示例：const canvas = getCanvas(400, 300); const ctx = canvas.getContext('2d'); ctx.fillStyle = 'red'; ctx.fillRect(50, 50, 100, 100); return 'done';",
+            "运行一段 JavaScript 代码（在 new Function 中执行）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算，不要靠大模型猜测。每次调用都是全新执行环境：不带任何上下文、不保留任何状态、不支持跨调用变量引用。参数 input 会作为变量 input 传入代码。code 必须是“函数体”形式的代码（可包含多行语句），需要显式 return 一个可 JSON 序列化的值；如果返回 Promise，会等待其 resolve 后再作为工具结果返回。为降低风险：本工具不会注入/提供文件系统、进程、OS、网络等能力，也不会传入 require/process/fs/os 等对象；但这不是安全沙箱，请不要尝试任何带副作用或越权的代码。【Canvas 绘图】本工具支持 Canvas 绘图功能。调用 getCanvas(width, height) 获取 Canvas 对象（默认尺寸 800x600），然后使用 getContext('2d') 进行绘图。脚本执行完成后，Canvas 内容会自动导出为 PNG 图像并保存到工件库，返回结果中包含 images 数组。示例：const canvas = getCanvas(400, 300); const ctx = canvas.getContext('2d'); ctx.fillStyle = 'red'; ctx.fillRect(50, 50, 100, 100); return 'done';【中文字体】绘制中文文本时必须指定中文字体，否则会显示方块。可用字体：'Microsoft YaHei'（微软雅黑）、'SimHei'（黑体）、'SimSun'（宋体）、'KaiTi'（楷体）、'DengXian'（等线）。示例：ctx.font = '24px Microsoft YaHei'; ctx.fillText('你好', 50, 50);",
           parameters: {
             type: "object",
             properties: {
@@ -1464,9 +1464,10 @@ export class Runtime {
         return result;
       }
       if (toolName === "put_artifact") {
-        const ref = await ctx.tools.putArtifact({ type: args.type, content: args.content, meta: args.meta });
+        const messageId = ctx.currentMessage?.id ?? null;
+        const ref = await ctx.tools.putArtifact({ type: args.type, content: args.content, meta: args.meta, messageId });
         const result = { artifactRef: ref };
-        void this.log.debug("工具调用完成", { toolName, ok: true, artifactRef: ref });
+        void this.log.debug("工具调用完成", { toolName, ok: true, artifactRef: ref, messageId });
         return result;
       }
       if (toolName === "get_artifact") {
@@ -2547,7 +2548,7 @@ export class Runtime {
     let canvasError = null;
     let createCanvasFn = null;
 
-    // 预加载 @napi-rs/canvas 库
+    // 预加载 @napi-rs/canvas 库（会自动加载系统字体，包括中文字体）
     try {
       const canvasModule = await import("@napi-rs/canvas");
       createCanvasFn = canvasModule.createCanvas;
@@ -2619,25 +2620,26 @@ export class Runtime {
   }
 
   _detectBlockedJavaScriptTokens(code) {
-    const tokens = [
-      "require",
-      "process",
-      "child_process",
-      "fs",
-      "os",
-      "net",
-      "http",
-      "https",
-      "dgram",
-      "worker_threads",
-      "vm",
-      "import(",
-      "Deno",
-      "Bun"
+    // 使用正则匹配完整单词边界，避免误报（如 "required" 匹配 "require"）
+    const patterns = [
+      { name: "require", regex: /\brequire\s*\(/ },
+      { name: "process", regex: /\bprocess\./ },
+      { name: "child_process", regex: /\bchild_process\b/ },
+      { name: "fs", regex: /\bfs\./ },
+      { name: "os", regex: /\bos\./ },
+      { name: "net", regex: /\bnet\./ },
+      { name: "http", regex: /\bhttp\./ },
+      { name: "https", regex: /\bhttps\./ },
+      { name: "dgram", regex: /\bdgram\./ },
+      { name: "worker_threads", regex: /\bworker_threads\b/ },
+      { name: "vm", regex: /\bvm\./ },
+      { name: "import()", regex: /\bimport\s*\(/ },
+      { name: "Deno", regex: /\bDeno\./ },
+      { name: "Bun", regex: /\bBun\./ }
     ];
     const found = [];
-    for (const t of tokens) {
-      if (code.includes(t)) found.push(t);
+    for (const p of patterns) {
+      if (p.regex.test(code)) found.push(p.name);
     }
     return found;
   }

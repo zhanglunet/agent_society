@@ -448,6 +448,15 @@ class ArtifactManager {
         }
       });
     });
+
+    // 附加来源按钮点击事件
+    this.listPanel.querySelectorAll(".artifact-source-btn").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation(); // 阻止冒泡，避免触发双击打开
+        const id = btn.dataset.id;
+        await this._navigateToArtifactSource(id);
+      });
+    });
   }
 
   /**
@@ -458,6 +467,7 @@ class ArtifactManager {
       const type = artifact.type || "unknown";
       const displayName = artifact.actualFilename || artifact.filename;
       const isImage = this._isImageType(type);
+      const sourceBtn = `<button class="artifact-source-btn" data-id="${artifact.id}" title="跳转到来源消息">↗</button>`;
       
       // 图片类型显示缩略图
       if (isImage && artifact.content) {
@@ -468,6 +478,7 @@ class ArtifactManager {
               <img src="${imageUrl}" alt="${this._escapeHtml(displayName)}" onerror="this.parentElement.innerHTML='🖼️'">
             </div>
             <div class="artifact-item-name">${this._escapeHtml(this._truncateName(displayName, 20))}</div>
+            ${sourceBtn}
           </div>
         `;
       }
@@ -478,6 +489,7 @@ class ArtifactManager {
         <div class="artifact-item" data-id="${artifact.id}" title="${this._escapeHtml(displayName)}">
           <div class="artifact-icon">${icon}</div>
           <div class="artifact-item-name">${this._escapeHtml(this._truncateName(displayName, 20))}</div>
+          ${sourceBtn}
         </div>
       `;
     }).join("");
@@ -493,6 +505,7 @@ class ArtifactManager {
         <span class="col-type">类型</span>
         <span class="col-size">大小</span>
         <span class="col-date">创建时间</span>
+        <span class="col-action"></span>
       </div>
     ` + this.filteredArtifacts.map(artifact => {
       const type = artifact.type || "unknown";
@@ -507,6 +520,9 @@ class ArtifactManager {
           <span class="col-type">${type}</span>
           <span class="col-size">${this._formatSize(artifact.size)}</span>
           <span class="col-date">${new Date(artifact.createdAt).toLocaleString()}</span>
+          <span class="col-action">
+            <button class="artifact-source-btn" data-id="${artifact.id}" title="跳转到来源消息">↗</button>
+          </span>
         </div>
       `;
     }).join("");
@@ -733,6 +749,31 @@ class ArtifactManager {
     this.hide();
     const event = new CustomEvent("navigateToMessage", { detail: { messageId } });
     window.dispatchEvent(event);
+  }
+
+  /**
+   * 根据工件 ID 导航到来源消息
+   */
+  async _navigateToArtifactSource(artifactId) {
+    try {
+      this.logger.log("正在获取工件元数据", { artifactId });
+      const metadata = await this.api.get(`/artifacts/${artifactId}/metadata`);
+      this.logger.log("获取到工件元数据", { artifactId, metadata });
+      if (metadata?.messageId) {
+        this.navigateToSourceMessage(metadata.messageId);
+      } else {
+        this.logger.warn("该工件没有关联的来源消息", { artifactId });
+        // 显示提示
+        if (window.Toast) {
+          window.Toast.warning("该工件没有关联的来源消息");
+        }
+      }
+    } catch (err) {
+      this.logger.error("获取工件元数据失败", err);
+      if (window.Toast) {
+        window.Toast.error("获取工件元数据失败");
+      }
+    }
   }
 
   /**
