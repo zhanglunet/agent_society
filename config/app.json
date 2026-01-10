@@ -13,7 +13,7 @@
     "maxConcurrentRequests": 2
   },
   "contextLimit": {
-    "maxTokens": 12000,
+    "maxTokens": 12000000,
     "warningThreshold": 0.7,
     "criticalThreshold": 0.9,
     "hardLimitThreshold": 0.95
