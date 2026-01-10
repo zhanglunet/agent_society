@@ -7,8 +7,7 @@
       "model": "vision-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["视觉理解", "图像分析", "多模态"],
-      "description": "专门用于图像内容理解和分析的模型",
-      "maxConcurrentRequests": 2
+      "description": "专门用于图像内容理解和分析的模型"
     },
     {
       "id": "coding-model",
@@ -17,8 +16,7 @@
       "model": "coding-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["编程", "代码生成", "代码审查"],
-      "description": "专门用于代码生成和编程任务的模型",
-      "maxConcurrentRequests": 3
+      "description": "专门用于代码生成和编程任务的模型"
     },
     {
       "id": "high-intelligence-model",
@@ -27,8 +25,7 @@
       "model": "high-intelligence-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["高智能", "复杂推理", "深度分析"],
-      "description": "适用于复杂推理和深度分析任务的高智能模型",
-      "maxConcurrentRequests": 2
+      "description": "适用于复杂推理和深度分析任务的高智能模型"
     },
     {
       "id": "low-cost-model",
@@ -37,8 +34,7 @@
       "model": "low-cost-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["低成本", "快速响应", "简单任务"],
-      "description": "适用于简单任务的低成本快速模型",
-      "maxConcurrentRequests": 5
+      "description": "适用于简单任务的低成本快速模型"
     },
     {
       "id": "humanized-model",
@@ -47,8 +43,7 @@
       "model": "humanized-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["人性化", "情感理解", "自然对话"],
-      "description": "专注于自然对话和情感理解的人性化模型",
-      "maxConcurrentRequests": 3
+      "description": "专注于自然对话和情感理解的人性化模型"
     },
     {
       "id": "audio-model",
@@ -57,8 +52,7 @@
       "model": "audio-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["音频处理", "语音识别", "音频分析"],
-      "description": "专门用于音频处理和语音识别的模型",
-      "maxConcurrentRequests": 2
+      "description": "专门用于音频处理和语音识别的模型"
     },
     {
       "id": "game-model",
@@ -67,8 +61,7 @@
       "model": "game-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["游戏化", "互动体验", "创意生成"],
-      "description": "适用于游戏化场景和创意生成的模型",
-      "maxConcurrentRequests": 3
+      "description": "适用于游戏化场景和创意生成的模型"
     }
   ]
 }

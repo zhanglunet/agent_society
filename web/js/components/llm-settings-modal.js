@@ -26,7 +26,6 @@ const LlmSettingsModal = {
   serviceBaseUrlInput: null,
   serviceModelInput: null,
   serviceApiKeyInput: null,
-  serviceMaxConcurrentInput: null,
   serviceCapabilityTagsInput: null,
   serviceDescriptionInput: null,
   
@@ -139,16 +138,10 @@ const LlmSettingsModal = {
                     <input type="password" id="service-api-key" placeholder="sk-...">
                   </div>
                 </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="service-max-concurrent">最大并发</label>
-                    <input type="number" id="service-max-concurrent" min="1" max="10" value="2">
-                  </div>
-                  <div class="form-group">
-                    <label for="service-capability-tags">能力标签</label>
-                    <input type="text" id="service-capability-tags" placeholder="编程, 逻辑推理">
-                    <span class="form-hint">用逗号分隔</span>
-                  </div>
+                <div class="form-group">
+                  <label for="service-capability-tags">能力标签</label>
+                  <input type="text" id="service-capability-tags" placeholder="编程, 逻辑推理">
+                  <span class="form-hint">用逗号分隔</span>
                 </div>
                 <div class="form-group">
                   <label for="service-description">描述</label>
@@ -193,7 +186,6 @@ const LlmSettingsModal = {
     this.serviceBaseUrlInput = this.overlay.querySelector('#service-base-url');
     this.serviceModelInput = this.overlay.querySelector('#service-model');
     this.serviceApiKeyInput = this.overlay.querySelector('#service-api-key');
-    this.serviceMaxConcurrentInput = this.overlay.querySelector('#service-max-concurrent');
     this.serviceCapabilityTagsInput = this.overlay.querySelector('#service-capability-tags');
     this.serviceDescriptionInput = this.overlay.querySelector('#service-description');
     this.cancelServiceBtn = this.overlay.querySelector('#cancel-service-btn');
@@ -411,7 +403,6 @@ const LlmSettingsModal = {
       this.serviceModelInput.value = service.model || '';
       this.serviceApiKeyInput.value = '';
       this.serviceApiKeyInput.placeholder = service.apiKey ? `当前: ${service.apiKey}` : 'sk-...';
-      this.serviceMaxConcurrentInput.value = service.maxConcurrentRequests || 2;
       this.serviceCapabilityTagsInput.value = (service.capabilityTags || []).join(', ');
       this.serviceDescriptionInput.value = service.description || '';
     } else {
@@ -424,7 +415,6 @@ const LlmSettingsModal = {
       this.serviceModelInput.value = '';
       this.serviceApiKeyInput.value = '';
       this.serviceApiKeyInput.placeholder = 'sk-...';
-      this.serviceMaxConcurrentInput.value = 2;
       this.serviceCapabilityTagsInput.value = '';
       this.serviceDescriptionInput.value = '';
     }
@@ -548,7 +538,6 @@ const LlmSettingsModal = {
       name: this.serviceNameInput.value.trim(),
       baseURL: this.serviceBaseUrlInput.value.trim(),
       model: this.serviceModelInput.value.trim(),
-      maxConcurrentRequests: parseInt(this.serviceMaxConcurrentInput.value) || 2,
       capabilityTags: this.serviceCapabilityTagsInput.value
         .split(',')
         .map(t => t.trim())

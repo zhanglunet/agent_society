@@ -14,8 +14,7 @@ const validServiceConfigArb = fc.record({
   model: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
   apiKey: fc.string({ minLength: 0, maxLength: 100 }),
   capabilityTags: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { minLength: 0, maxLength: 10 }),
-  description: fc.string({ minLength: 0, maxLength: 500 }),
-  maxConcurrentRequests: fc.option(fc.integer({ min: 1, max: 10 }), { nil: undefined })
+  description: fc.string({ minLength: 0, maxLength: 500 })
 });
 
 // 生成无效的服务配置（缺少必填字段）

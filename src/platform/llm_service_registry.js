@@ -51,7 +51,6 @@ function validateServiceConfig(service) {
  * @property {string} apiKey - API 密钥
  * @property {string[]} capabilityTags - 能力标签
  * @property {string} description - 服务描述
- * @property {number} [maxConcurrentRequests] - 最大并发请求数
  */
 
 /**
@@ -142,8 +141,7 @@ export class LlmServiceRegistry {
             model: service.model,
             apiKey: service.apiKey,
             capabilityTags: service.capabilityTags,
-            description: service.description,
-            maxConcurrentRequests: service.maxConcurrentRequests
+            description: service.description
           };
           this._services.set(service.id, normalizedService);
         } else {
