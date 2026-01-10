@@ -20,8 +20,13 @@ import { createNoopModuleLogger } from "./logger.js";
  * - POST /api/agent/:agentId/custom-name - 设置智能体自定义名称
  * - GET /api/agent-custom-names - 获取所有智能体自定义名称
  * - POST /api/role/:roleId/prompt - 更新岗位职责提示词
+ * - GET /api/workspaces - 获取工作空间列表
+ * - GET /api/workspaces/:workspaceId - 获取工作空间文件列表
+ * - GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件内容
+ * - GET /api/workspaces/:workspaceId/meta - 获取工作空间元信息
  * - GET /web/* - 静态文件服务
  * - GET /artifacts/* - 工件文件服务
+ * - GET /workspace-files/:workspaceId/:filePath - 工作空间文件服务
  */
 export class HTTPServer {
   /**
@@ -656,12 +661,50 @@ export class HTTPServer {
           void this.log.error("处理工件文件请求失败", { pathname, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
+      } else if (method === "GET" && pathname.startsWith("/workspace-files/")) {
+        // 工作空间文件服务
+        this._handleWorkspaceFile(pathname, res).catch(err => {
+          void this.log.error("处理工作空间文件请求失败", { pathname, error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
       } else if (pathname.startsWith("/api/modules")) {
         // 模块 API 路由
         this._handleModuleApi(req, res, method, pathname).catch(err => {
           void this.log.error("处理模块 API 请求失败", { pathname, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
+      } else if (method === "GET" && pathname === "/api/workspaces") {
+        // 获取工作空间列表
+        this._handleGetWorkspaces(res).catch(err => {
+          void this.log.error("处理工作空间列表请求失败", { error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "GET" && pathname.startsWith("/api/workspaces/")) {
+        // 工作空间相关API
+        const parts = pathname.slice("/api/workspaces/".length).split("/");
+        const workspaceId = decodeURIComponent(parts[0]);
+        if (parts.length === 1 || (parts.length === 2 && parts[1] === "")) {
+          // 获取工作空间文件列表: GET /api/workspaces/:workspaceId
+          this._handleGetWorkspaceFiles(workspaceId, res).catch(err => {
+            void this.log.error("处理工作空间文件列表请求失败", { workspaceId, error: err.message, stack: err.stack });
+            this._sendJson(res, 500, { error: "internal_error", message: err.message });
+          });
+        } else if (parts[1] === "file") {
+          // 获取工作空间文件内容: GET /api/workspaces/:workspaceId/file?path=xxx
+          const filePath = url.searchParams.get("path") || "";
+          this._handleGetWorkspaceFile(workspaceId, filePath, res).catch(err => {
+            void this.log.error("处理工作空间文件内容请求失败", { workspaceId, filePath, error: err.message, stack: err.stack });
+            this._sendJson(res, 500, { error: "internal_error", message: err.message });
+          });
+        } else if (parts[1] === "meta") {
+          // 获取工作空间元信息: GET /api/workspaces/:workspaceId/meta
+          this._handleGetWorkspaceMeta(workspaceId, res).catch(err => {
+            void this.log.error("处理工作空间元信息请求失败", { workspaceId, error: err.message, stack: err.stack });
+            this._sendJson(res, 500, { error: "internal_error", message: err.message });
+          });
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
       } else {
         this._sendJson(res, 404, { error: "not_found", path: pathname });
       }
@@ -2104,6 +2147,394 @@ export class HTTPServer {
     } catch (err) {
       void this.log.error("查询工件元数据失败", { id: artifactId, error: err.message });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 获取工作空间目录路径。
+   * @returns {string|null}
+   */
+  _getWorkspacesDir() {
+    if (!this._runtimeDir) return null;
+    // 工作空间目录在 runtimeDir 的上一级的 workspaces 目录
+    const dataDir = path.dirname(this._runtimeDir);
+    return path.join(dataDir, "workspaces");
+  }
+
+  /**
+   * 处理 GET /api/workspaces - 获取工作空间列表。
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetWorkspaces(res) {
+    try {
+      const workspacesDir = this._getWorkspacesDir();
+      if (!workspacesDir) {
+        this._sendJson(res, 200, { workspaces: [], count: 0 });
+        return;
+      }
+
+      const { readdirSync, statSync, existsSync, readFileSync } = require("node:fs");
+      
+      if (!existsSync(workspacesDir)) {
+        this._sendJson(res, 200, { workspaces: [], count: 0 });
+        return;
+      }
+
+      const entries = readdirSync(workspacesDir, { withFileTypes: true });
+      const workspaces = [];
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const workspaceId = entry.name;
+          const workspacePath = path.join(workspacesDir, workspaceId);
+          const stat = statSync(workspacePath);
+          
+          // 尝试读取元信息文件
+          let metadata = null;
+          const metaFilePath = path.join(workspacesDir, `${workspaceId}.meta.json`);
+          if (existsSync(metaFilePath)) {
+            try {
+              const metaContent = readFileSync(metaFilePath, "utf8");
+              metadata = JSON.parse(metaContent);
+            } catch (e) {
+              // 忽略元信息读取错误
+            }
+          }
+
+          // 统计文件数量
+          let fileCount = 0;
+          try {
+            const files = readdirSync(workspacePath);
+            fileCount = files.length;
+          } catch (e) {
+            // 忽略读取错误
+          }
+
+          workspaces.push({
+            id: workspaceId,
+            name: metadata?.name || workspaceId,
+            createdAt: metadata?.createdAt || stat.birthtime?.toISOString() || stat.mtime?.toISOString(),
+            modifiedAt: stat.mtime?.toISOString(),
+            fileCount,
+            metadata
+          });
+        }
+      }
+
+      // 按修改时间降序排列
+      workspaces.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
+
+      void this.log.debug("HTTP查询工作空间列表", { count: workspaces.length });
+      this._sendJson(res, 200, { workspaces, count: workspaces.length });
+    } catch (err) {
+      void this.log.error("查询工作空间列表失败", { error: err.message });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/workspaces/:workspaceId - 获取工作空间文件列表。
+   * @param {string} workspaceId
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetWorkspaceFiles(workspaceId, res) {
+    try {
+      const workspacesDir = this._getWorkspacesDir();
+      if (!workspacesDir) {
+        this._sendJson(res, 500, { error: "workspaces_dir_not_set" });
+        return;
+      }
+
+      const { readdirSync, statSync, existsSync, readFileSync } = require("node:fs");
+      const workspacePath = path.join(workspacesDir, workspaceId);
+
+      if (!existsSync(workspacePath)) {
+        this._sendJson(res, 404, { error: "workspace_not_found", id: workspaceId });
+        return;
+      }
+
+      // 读取工作空间元信息
+      let workspaceMeta = null;
+      const metaFilePath = path.join(workspacesDir, `${workspaceId}.meta.json`);
+      if (existsSync(metaFilePath)) {
+        try {
+          const metaContent = readFileSync(metaFilePath, "utf8");
+          workspaceMeta = JSON.parse(metaContent);
+        } catch (e) {
+          // 忽略元信息读取错误
+        }
+      }
+
+      // 递归获取所有文件
+      const files = [];
+      const collectFiles = (dirPath, relativePath = "") => {
+        const entries = readdirSync(dirPath, { withFileTypes: true });
+        for (const entry of entries) {
+          const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+          const entryFullPath = path.join(dirPath, entry.name);
+          
+          if (entry.isDirectory()) {
+            collectFiles(entryFullPath, entryRelativePath);
+          } else {
+            const stat = statSync(entryFullPath);
+            const extension = path.extname(entry.name).toLowerCase();
+            
+            // 从工作空间元信息中获取文件的元信息
+            const fileMeta = workspaceMeta?.files?.[entryRelativePath] || null;
+            
+            files.push({
+              name: entry.name,
+              path: entryRelativePath,
+              size: stat.size,
+              extension,
+              createdAt: stat.birthtime?.toISOString() || stat.mtime?.toISOString(),
+              modifiedAt: stat.mtime?.toISOString(),
+              messageId: fileMeta?.messageId || null,
+              agentId: fileMeta?.agentId || null,
+              meta: fileMeta
+            });
+          }
+        }
+      };
+
+      collectFiles(workspacePath);
+
+      // 按修改时间降序排列
+      files.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
+
+      void this.log.debug("HTTP查询工作空间文件列表", { workspaceId, count: files.length });
+      this._sendJson(res, 200, { 
+        workspaceId,
+        name: workspaceMeta?.name || workspaceId,
+        files, 
+        count: files.length,
+        metadata: workspaceMeta
+      });
+    } catch (err) {
+      void this.log.error("查询工作空间文件列表失败", { workspaceId, error: err.message });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件内容。
+   * @param {string} workspaceId
+   * @param {string} filePath
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetWorkspaceFile(workspaceId, filePath, res) {
+    try {
+      const workspacesDir = this._getWorkspacesDir();
+      if (!workspacesDir) {
+        this._sendJson(res, 500, { error: "workspaces_dir_not_set" });
+        return;
+      }
+
+      if (!filePath) {
+        this._sendJson(res, 400, { error: "file_path_required" });
+        return;
+      }
+
+      const { existsSync, readFileSync, statSync } = require("node:fs");
+      const workspacePath = path.join(workspacesDir, workspaceId);
+
+      if (!existsSync(workspacePath)) {
+        this._sendJson(res, 404, { error: "workspace_not_found", id: workspaceId });
+        return;
+      }
+
+      // 安全检查：防止路径遍历
+      const normalizedPath = path.normalize(filePath);
+      if (normalizedPath.startsWith("..") || path.isAbsolute(normalizedPath)) {
+        this._sendJson(res, 403, { error: "path_traversal_blocked" });
+        return;
+      }
+
+      const fullPath = path.join(workspacePath, normalizedPath);
+      const resolvedPath = path.resolve(fullPath);
+      const resolvedWorkspace = path.resolve(workspacePath);
+
+      if (!resolvedPath.startsWith(resolvedWorkspace)) {
+        this._sendJson(res, 403, { error: "path_traversal_blocked" });
+        return;
+      }
+
+      if (!existsSync(fullPath)) {
+        this._sendJson(res, 404, { error: "file_not_found", path: filePath });
+        return;
+      }
+
+      const stat = statSync(fullPath);
+      if (stat.isDirectory()) {
+        this._sendJson(res, 400, { error: "is_directory", path: filePath });
+        return;
+      }
+
+      // 读取工作空间元信息获取文件的元信息
+      let fileMeta = null;
+      const metaFilePath = path.join(workspacesDir, `${workspaceId}.meta.json`);
+      if (existsSync(metaFilePath)) {
+        try {
+          const metaContent = readFileSync(metaFilePath, "utf8");
+          const workspaceMeta = JSON.parse(metaContent);
+          fileMeta = workspaceMeta?.files?.[normalizedPath] || null;
+        } catch (e) {
+          // 忽略元信息读取错误
+        }
+      }
+
+      // 读取文件内容
+      const content = readFileSync(fullPath, "utf8");
+      const extension = path.extname(filePath).toLowerCase();
+
+      void this.log.debug("HTTP读取工作空间文件", { workspaceId, filePath });
+      this._sendJson(res, 200, {
+        workspaceId,
+        path: normalizedPath,
+        name: path.basename(filePath),
+        content,
+        size: stat.size,
+        extension,
+        modifiedAt: stat.mtime?.toISOString(),
+        messageId: fileMeta?.messageId || null,
+        agentId: fileMeta?.agentId || null,
+        meta: fileMeta
+      });
+    } catch (err) {
+      void this.log.error("读取工作空间文件失败", { workspaceId, filePath, error: err.message });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/workspaces/:workspaceId/meta - 获取工作空间元信息。
+   * @param {string} workspaceId
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetWorkspaceMeta(workspaceId, res) {
+    try {
+      const workspacesDir = this._getWorkspacesDir();
+      if (!workspacesDir) {
+        this._sendJson(res, 500, { error: "workspaces_dir_not_set" });
+        return;
+      }
+
+      const { existsSync, readFileSync, statSync } = require("node:fs");
+      const workspacePath = path.join(workspacesDir, workspaceId);
+
+      if (!existsSync(workspacePath)) {
+        this._sendJson(res, 404, { error: "workspace_not_found", id: workspaceId });
+        return;
+      }
+
+      const metaFilePath = path.join(workspacesDir, `${workspaceId}.meta.json`);
+      let metadata = null;
+
+      if (existsSync(metaFilePath)) {
+        try {
+          const metaContent = readFileSync(metaFilePath, "utf8");
+          metadata = JSON.parse(metaContent);
+        } catch (e) {
+          // 元信息文件解析失败
+        }
+      }
+
+      const stat = statSync(workspacePath);
+
+      void this.log.debug("HTTP查询工作空间元信息", { workspaceId });
+      this._sendJson(res, 200, {
+        workspaceId,
+        name: metadata?.name || workspaceId,
+        createdAt: metadata?.createdAt || stat.birthtime?.toISOString(),
+        modifiedAt: stat.mtime?.toISOString(),
+        metadata
+      });
+    } catch (err) {
+      void this.log.error("查询工作空间元信息失败", { workspaceId, error: err.message });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /workspace-files/:workspaceId/:filePath - 工作空间文件静态服务。
+   * @param {string} pathname
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleWorkspaceFile(pathname, res) {
+    const workspacesDir = this._getWorkspacesDir();
+    if (!workspacesDir) {
+      this._sendJson(res, 500, { error: "workspaces_not_configured", message: "工作空间目录未配置" });
+      return;
+    }
+
+    // 移除 /workspace-files/ 前缀，获取相对路径
+    let relativePath = pathname.replace(/^\/workspace-files\/?/, "");
+    if (!relativePath || relativePath === "") {
+      this._sendJson(res, 400, { error: "invalid_path", message: "文件路径不能为空" });
+      return;
+    }
+
+    // 解析 workspaceId 和文件路径
+    const parts = relativePath.split("/");
+    if (parts.length < 2) {
+      this._sendJson(res, 400, { error: "invalid_path", message: "路径格式错误" });
+      return;
+    }
+
+    const workspaceId = decodeURIComponent(parts[0]);
+    const filePath = parts.slice(1).map(p => decodeURIComponent(p)).join("/");
+
+    // 构建文件路径
+    const fullPath = path.join(workspacesDir, workspaceId, filePath);
+
+    // 安全检查：防止路径遍历攻击
+    const resolvedWorkspacesDir = path.resolve(workspacesDir);
+    const resolvedPath = path.resolve(fullPath);
+    if (!resolvedPath.startsWith(resolvedWorkspacesDir)) {
+      this._sendJson(res, 403, { error: "forbidden", message: "路径访问被拒绝" });
+      return;
+    }
+
+    try {
+      // 检查文件是否存在
+      if (!existsSync(resolvedPath)) {
+        void this.log.warn("工作空间文件不存在", { workspaceId, filePath, resolvedPath });
+        this._sendJson(res, 404, { error: "not_found", path: pathname });
+        return;
+      }
+
+      // 读取文件内容
+      const content = await readFile(resolvedPath);
+
+      // 根据文件扩展名设置 Content-Type
+      const ext = path.extname(filePath).toLowerCase();
+      const contentTypes = {
+        ".html": "text/html; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".js": "application/javascript; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".webp": "image/webp",
+        ".ico": "image/x-icon",
+        ".txt": "text/plain; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".xml": "application/xml; charset=utf-8",
+        ".pdf": "application/pdf"
+      };
+      const contentType = contentTypes[ext] ?? "application/octet-stream";
+
+      res.setHeader("Content-Type", contentType);
+      res.writeHead(200);
+      res.end(content);
+
+      void this.log.debug("HTTP工作空间文件", { workspaceId, filePath });
+    } catch (err) {
+      void this.log.error("读取工作空间文件失败", { workspaceId, filePath, error: err.message });
+      this._sendJson(res, 500, { error: "read_file_failed", message: err.message });
     }
   }
 }

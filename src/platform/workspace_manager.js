@@ -198,9 +198,10 @@ export class WorkspaceManager {
    * @param {string} taskId
    * @param {string} relativePath
    * @param {string} content
+   * @param {{messageId?: string, agentId?: string, [key: string]: any}} [meta] - 可选的元信息
    * @returns {Promise<{ok: boolean, error?: string}>}
    */
-  async writeFile(taskId, relativePath, content) {
+  async writeFile(taskId, relativePath, content, meta = null) {
     const workspacePath = this.getWorkspacePath(taskId);
     if (!workspacePath) {
       return { ok: false, error: "workspace_not_bound" };
@@ -226,6 +227,12 @@ export class WorkspaceManager {
       
       await writeFile(fullPath, content, "utf8");
       void this.log.debug("写入文件成功", { taskId, relativePath });
+
+      // 如果提供了元信息，保存到工作空间元信息文件
+      if (meta && (meta.messageId || meta.agentId || Object.keys(meta).length > 0)) {
+        await this._updateWorkspaceMeta(taskId, relativePath, meta);
+      }
+
       return { ok: true };
     } catch (err) {
       if (err && typeof err === "object" && "code" in err && err.code === "EACCES") {
@@ -233,6 +240,58 @@ export class WorkspaceManager {
       }
       const message = err && typeof err === "object" && "message" in err ? err.message : String(err);
       return { ok: false, error: `write_failed: ${message}` };
+    }
+  }
+
+  /**
+   * 更新工作空间元信息文件
+   * @param {string} taskId - 工作空间ID
+   * @param {string} relativePath - 文件相对路径
+   * @param {object} fileMeta - 文件元信息
+   * @returns {Promise<void>}
+   */
+  async _updateWorkspaceMeta(taskId, relativePath, fileMeta) {
+    const entry = this._workspaces.get(taskId);
+    if (!entry) {
+      return;
+    }
+
+    // 元信息文件保存在工作空间目录的上一级，与工作空间同名
+    const workspacesDir = path.dirname(entry.workspacePath);
+    const metaFilePath = path.join(workspacesDir, `${taskId}.meta.json`);
+
+    try {
+      // 读取现有的元信息
+      let workspaceMeta = {
+        workspaceId: taskId,
+        createdAt: entry.createdAt,
+        files: {}
+      };
+
+      try {
+        const existingContent = await readFile(metaFilePath, "utf8");
+        workspaceMeta = JSON.parse(existingContent);
+        if (!workspaceMeta.files) {
+          workspaceMeta.files = {};
+        }
+      } catch (err) {
+        // 文件不存在或解析失败，使用默认值
+      }
+
+      // 更新文件元信息
+      const normalizedPath = path.normalize(relativePath).replace(/\\/g, "/");
+      workspaceMeta.files[normalizedPath] = {
+        ...fileMeta,
+        updatedAt: new Date().toISOString()
+      };
+
+      // 写入元信息文件
+      await writeFile(metaFilePath, JSON.stringify(workspaceMeta, null, 2), "utf8");
+      void this.log.debug("更新工作空间元信息成功", { taskId, relativePath });
+    } catch (err) {
+      // 元信息写入失败不影响主流程
+      const message = err && typeof err === "object" && "message" in err ? err.message : String(err);
+      void this.log.warn("更新工作空间元信息失败", { taskId, relativePath, error: message });
     }
   }
 
