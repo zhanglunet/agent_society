@@ -19,8 +19,29 @@ import { ModuleLoader } from "./module_loader.js";
 import { LlmServiceRegistry } from "./llm_service_registry.js";
 import { ModelSelector } from "./model_selector.js";
 
+// 导入子模块
+import { JavaScriptExecutor } from "./runtime/javascript_executor.js";
+import { ContextBuilder } from "./runtime/context_builder.js";
+import { AgentManager } from "./runtime/agent_manager.js";
+import { MessageProcessor } from "./runtime/message_processor.js";
+import { ToolExecutor } from "./runtime/tool_executor.js";
+import { LlmHandler } from "./runtime/llm_handler.js";
+import { ShutdownManager } from "./runtime/shutdown_manager.js";
+
 /**
  * 运行时：将平台能力（org/message/artifact/prompt）与智能体行为连接起来。
+ * 
+ * 【模块化架构】
+ * Runtime 类作为核心协调器，将具体功能委托给以下子模块：
+ * - JavaScriptExecutor: JavaScript 代码执行
+ * - ContextBuilder: 上下文构建
+ * - AgentManager: 智能体生命周期管理
+ * - MessageProcessor: 消息调度和处理
+ * - ToolExecutor: 工具定义和执行
+ * - LlmHandler: LLM 交互处理
+ * - ShutdownManager: 优雅关闭管理
+ * 
+ * 公共 API 保持不变，内部实现委托给子模块。
  */
 export class Runtime {
   /**
@@ -69,6 +90,23 @@ export class Runtime {
     this.modelSelector = null;
     /** @type {Map<string, LlmClient>} */
     this.llmClientPool = new Map();
+    
+    // 初始化子模块（模块化架构）
+    // 这些子模块封装了 Runtime 的具体功能实现
+    /** @type {JavaScriptExecutor} JavaScript 执行器 */
+    this._jsExecutor = new JavaScriptExecutor(this);
+    /** @type {ContextBuilder} 上下文构建器 */
+    this._contextBuilder = new ContextBuilder(this);
+    /** @type {AgentManager} 智能体管理器 */
+    this._agentManager = new AgentManager(this);
+    /** @type {MessageProcessor} 消息处理器 */
+    this._messageProcessor = new MessageProcessor(this);
+    /** @type {ToolExecutor} 工具执行器 */
+    this._toolExecutor = new ToolExecutor(this);
+    /** @type {LlmHandler} LLM 处理器 */
+    this._llmHandler = new LlmHandler(this);
+    /** @type {ShutdownManager} 关闭管理器 */
+    this._shutdownManager = new ShutdownManager(this);
   }
 
   /**
