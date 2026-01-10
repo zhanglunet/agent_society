@@ -1070,20 +1070,10 @@ class ArtifactManager {
         };
       } else {
         // 普通工件
-        // JSON 文件：通过 API 加载内容
-        if (artifact.extension === ".json") {
-          fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
-          // 加载元数据
-          metadata = await this.api.get(`/artifacts/${artifact.id}/metadata`);
-        } else {
-          // 非 JSON 文件：直接使用文件信息
-          fullArtifact = {
-            id: artifact.id,
-            type: artifact.type,
-            content: artifact.filename,
-            meta: {}
-          };
-        }
+        // 通过 API 加载内容（支持 JSON 和非 JSON 文件）
+        fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
+        // 加载元数据
+        metadata = await this.api.get(`/artifacts/${artifact.id}/metadata`);
       }
       
       this.selectedArtifact.messageId = metadata.messageId;

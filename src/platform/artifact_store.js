@@ -232,6 +232,9 @@ export class ArtifactStore {
     // 写入文件（原始内容）
     await writeFile(filePath, buffer);
     
+    // 如果客户端传来的 mimeType 是通用类型，尝试根据扩展名推断正确的 MIME 类型
+    const resolvedMimeType = this._resolveMimeType(mimeType, extension);
+    
     // 构建元信息
     const metadata = {
       id,
@@ -239,7 +242,7 @@ export class ArtifactStore {
       type,
       filename: filename || fullFilename,
       size: buffer.length,
-      mimeType: mimeType || "application/octet-stream",
+      mimeType: resolvedMimeType,
       createdAt,
       ...otherMeta
     };
@@ -254,6 +257,69 @@ export class ArtifactStore {
       artifactRef,
       metadata
     };
+  }
+
+  /**
+   * 根据扩展名和客户端 MIME 类型解析最终的 MIME 类型。
+   * 当客户端传来的是通用类型（如 application/octet-stream）时，尝试根据扩展名推断。
+   * @param {string} clientMimeType - 客户端传来的 MIME 类型
+   * @param {string} extension - 文件扩展名（包含点号）
+   * @returns {string} 解析后的 MIME 类型
+   * @private
+   */
+  _resolveMimeType(clientMimeType, extension) {
+    // 如果客户端提供了具体的 MIME 类型（非通用类型），直接使用
+    const genericTypes = ["application/octet-stream", "", null, undefined];
+    if (!genericTypes.includes(clientMimeType)) {
+      return clientMimeType;
+    }
+    
+    // 根据扩展名推断 MIME 类型
+    const extToMime = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".bmp": "image/bmp",
+      ".svg": "image/svg+xml",
+      ".avif": "image/avif",
+      ".pdf": "application/pdf",
+      ".txt": "text/plain",
+      ".md": "text/markdown",
+      ".json": "application/json",
+      ".xml": "application/xml",
+      ".html": "text/html",
+      ".htm": "text/html",
+      ".css": "text/css",
+      ".js": "text/javascript",
+      ".mjs": "text/javascript",
+      ".ts": "text/typescript",
+      ".tsx": "text/typescript",
+      ".jsx": "text/javascript",
+      ".zip": "application/zip",
+      ".rar": "application/x-rar-compressed",
+      ".7z": "application/x-7z-compressed",
+      ".tar": "application/x-tar",
+      ".gz": "application/gzip",
+      ".csv": "text/csv",
+      ".yaml": "text/yaml",
+      ".yml": "text/yaml",
+      ".py": "text/x-python",
+      ".java": "text/x-java",
+      ".c": "text/x-c",
+      ".cpp": "text/x-c++",
+      ".h": "text/x-c",
+      ".hpp": "text/x-c++",
+      ".sh": "text/x-shellscript",
+      ".bat": "text/x-batch",
+      ".ps1": "text/x-powershell",
+      ".sql": "text/x-sql",
+      ".log": "text/plain"
+    };
+    
+    const ext = extension?.toLowerCase();
+    return extToMime[ext] || "application/octet-stream";
   }
 
   /**
