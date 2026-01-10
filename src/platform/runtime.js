@@ -21,6 +21,7 @@ import { ModelSelector } from "./model_selector.js";
 
 // 导入子模块
 import { JavaScriptExecutor } from "./runtime/javascript_executor.js";
+import { BrowserJavaScriptExecutor } from "./runtime/browser_javascript_executor.js";
 import { ContextBuilder } from "./runtime/context_builder.js";
 import { AgentManager } from "./runtime/agent_manager.js";
 import { MessageProcessor } from "./runtime/message_processor.js";
@@ -93,8 +94,10 @@ export class Runtime {
     
     // 初始化子模块（模块化架构）
     // 这些子模块封装了 Runtime 的具体功能实现
-    /** @type {JavaScriptExecutor} JavaScript 执行器 */
+    /** @type {JavaScriptExecutor} JavaScript 执行器（Node.js 降级模式） */
     this._jsExecutor = new JavaScriptExecutor(this);
+    /** @type {BrowserJavaScriptExecutor} 浏览器 JavaScript 执行器 */
+    this._browserJsExecutor = new BrowserJavaScriptExecutor(this);
     /** @type {ContextBuilder} 上下文构建器 */
     this._contextBuilder = new ContextBuilder(this);
     /** @type {AgentManager} 智能体管理器 */
@@ -376,8 +379,12 @@ export class Runtime {
       });
     }
 
+    // 初始化浏览器 JavaScript 执行器
+    await this._browserJsExecutor.init();
+
     void this.log.info("运行时初始化完成", {
-      agents: this._agents.size
+      agents: this._agents.size,
+      browserJsExecutorAvailable: this._browserJsExecutor.isBrowserAvailable()
     });
   }
 
@@ -2692,104 +2699,13 @@ export class Runtime {
   }
 
   async _runJavaScriptTool(args, messageId = null, agentId = null) {
-    const code = args?.code;
-    const input = args?.input;
-    if (typeof code !== "string") return { error: "invalid_args", message: "code must be a string" };
-    if (code.length > 20000) return { error: "code_too_large", maxLength: 20000, length: code.length };
-
-    const blocked = this._detectBlockedJavaScriptTokens(code);
-    if (blocked.length > 0) return { error: "blocked_code", blocked };
-
-    // Canvas 支持：预加载 canvas 库并创建容器变量
-    let canvasInstance = null;
-    let canvasError = null;
-    let createCanvasFn = null;
-
-    // 预加载 @napi-rs/canvas 库（会自动加载系统字体，包括中文字体）
-    try {
-      const canvasModule = await import("@napi-rs/canvas");
-      createCanvasFn = canvasModule.createCanvas;
-    } catch (err) {
-      // Canvas 库不可用，但不影响普通 JS 执行
-      canvasError = err;
-    }
-
-    // 定义 getCanvas 函数（单例模式）
-    const getCanvas = (width = 800, height = 600) => {
-      if (canvasInstance) {
-        return canvasInstance;
-      }
-      if (!createCanvasFn) {
-        throw new Error("Canvas 功能不可用，请确保 @napi-rs/canvas 包已安装");
-      }
-      canvasInstance = createCanvasFn(width, height);
-      return canvasInstance;
-    };
-
-    try {
-      const prelude =
-        '"use strict";\n' +
-        "const require=undefined, process=undefined, globalThis=undefined, module=undefined, exports=undefined, __filename=undefined, __dirname=undefined;\n" +
-        "const fetch=undefined, XMLHttpRequest=undefined, WebSocket=undefined;\n";
-      const fn = new Function("input", "getCanvas", prelude + String(code));
-      let value = fn(input, getCanvas);
-      if (value && (typeof value === "object" || typeof value === "function") && typeof value.then === "function") {
-        value = await value;
-      }
-      const jsonSafe = this._toJsonSafeValue(value);
-      if (jsonSafe.error) return jsonSafe;
-
-      // 如果使用了 Canvas，自动导出并保存
-      if (canvasInstance) {
-        try {
-          const { randomUUID } = await import("node:crypto");
-          const { writeFile } = await import("node:fs/promises");
-          const pngBuffer = canvasInstance.toBuffer("image/png");
-          const artifactId = randomUUID();
-          const extension = ".png";
-          const fileName = `${artifactId}${extension}`;
-          const filePath = path.resolve(this.artifacts.artifactsDir, fileName);
-          const createdAt = new Date().toISOString();
-          
-          await this.artifacts.ensureReady();
-          await writeFile(filePath, pngBuffer);
-          
-          // 写入元信息文件
-          const metadata = {
-            id: artifactId,
-            extension,
-            type: "image",
-            createdAt,
-            messageId: messageId,
-            agentId: agentId,
-            width: canvasInstance.width,
-            height: canvasInstance.height,
-            source: "canvas"
-          };
-          await this.artifacts._writeMetadata(artifactId, metadata);
-          
-          void this.log.info("保存 Canvas 图像", {
-            fileName,
-            width: canvasInstance.width,
-            height: canvasInstance.height
-          });
-          
-          return { result: jsonSafe.value, images: [fileName] };
-        } catch (exportErr) {
-          const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
-          return { result: jsonSafe.value, error: "canvas_export_failed", message: exportMessage };
-        }
-      }
-
-      return jsonSafe.value;
-    } catch (err) {
-      const message = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
-      // 检查是否是 Canvas 库加载错误
-      if (canvasError) {
-        return { error: "canvas_not_available", message: "Canvas 功能不可用，请安装 @napi-rs/canvas 包" };
-      }
-      return { error: "js_execution_failed", message };
-    }
+    // 使用浏览器 JavaScript 执行器
+    // 浏览器执行器会自动处理：
+    // - 代码验证
+    // - 异步代码支持（Promise/await）
+    // - Canvas 绘图和导出
+    // - 浏览器不可用时降级到 Node.js 执行
+    return await this._browserJsExecutor.execute(args, messageId, agentId);
   }
 
   _detectBlockedJavaScriptTokens(code) {
@@ -3171,6 +3087,17 @@ export class Runtime {
       } catch (err) {
         const message = err && typeof err.message === "string" ? err.message : String(err);
         void this.log.error("HTTP服务器关闭失败", { error: message });
+      }
+    }
+
+    // 步骤4.5: 关闭浏览器 JavaScript 执行器
+    if (this._browserJsExecutor) {
+      try {
+        await this._browserJsExecutor.shutdown();
+        void this.log.info("浏览器 JavaScript 执行器已关闭");
+      } catch (err) {
+        const message = err && typeof err.message === "string" ? err.message : String(err);
+        void this.log.error("浏览器 JavaScript 执行器关闭失败", { error: message });
       }
     }
 

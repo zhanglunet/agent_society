@@ -2854,6 +2854,16 @@ body {
   border-radius: 0;
 }
 
+/* 查看器全屏模式 - 覆盖整个视口 */
+.artifact-viewer-modal.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+}
+
 .viewer-maximize-btn {
   width: 28px;
   height: 28px;

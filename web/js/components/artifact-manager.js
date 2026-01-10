@@ -525,7 +525,14 @@ class ArtifactManager {
     this.isViewerOpen = false;
     this.selectedArtifact = null;
     this.currentTextContent = null;
+    
+    // 如果是全屏状态，先移回原位置
+    if (this.isViewerMaximized) {
+      this.viewerModal?.classList.remove("fullscreen");
+      this.container.appendChild(this.viewerModal);
+    }
     this.isViewerMaximized = false;
+    
     this.viewerDialog?.classList.remove("maximized");
     this.viewerMaximizeBtn.textContent = "⬜";
     this.viewerModal?.classList.add("hidden");
@@ -540,6 +547,17 @@ class ArtifactManager {
    */
   toggleViewerMaximize() {
     this.isViewerMaximized = !this.isViewerMaximized;
+    
+    if (this.isViewerMaximized) {
+      // 全屏：将modal移动到body下，脱离transform的影响
+      document.body.appendChild(this.viewerModal);
+      this.viewerModal?.classList.add("fullscreen");
+    } else {
+      // 还原：将modal移回原位置
+      this.viewerModal?.classList.remove("fullscreen");
+      this.container.appendChild(this.viewerModal);
+    }
+    
     this.viewerDialog?.classList.toggle("maximized", this.isViewerMaximized);
     this.viewerMaximizeBtn.textContent = this.isViewerMaximized ? "❐" : "⬜";
     this.viewerMaximizeBtn.title = this.isViewerMaximized ? "还原" : "最大化";

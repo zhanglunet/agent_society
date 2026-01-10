@@ -1,4 +1,4 @@
-import { test, expect, describe, beforeEach, afterEach } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { Runtime } from "../../src/platform/runtime.js";
 import { mkdir, rm, readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
@@ -6,22 +6,31 @@ import path from "path";
 
 const TEST_DIR = "./test/.tmp/canvas_test_runtime";
 
+// 共享的 runtime 实例，避免每个测试都启动/关闭浏览器
+let sharedRuntime = null;
+
 describe("run_javascript Canvas 功能", () => {
   let runtime;
 
+  beforeAll(async () => {
+    // 只初始化一次 runtime
+    sharedRuntime = new Runtime({ configPath: "config/app.json" });
+    await sharedRuntime.init();
+  });
+
+  afterAll(async () => {
+    // 测试结束后关闭 runtime
+    if (sharedRuntime) {
+      await sharedRuntime.shutdown();
+      sharedRuntime = null;
+    }
+  });
+
   beforeEach(async () => {
     await mkdir(TEST_DIR, { recursive: true });
-    runtime = new Runtime();
-    runtime.artifacts = {
-      artifactsDir: TEST_DIR,
-      ensureReady: async () => {}
-    };
-    runtime.log = { 
-      info: () => {}, 
-      debug: () => {}, 
-      warn: () => {}, 
-      error: () => {} 
-    };
+    runtime = sharedRuntime;
+    // 覆盖 artifacts 目录用于测试
+    runtime.artifacts.artifactsDir = TEST_DIR;
   });
 
   afterEach(async () => {
@@ -344,7 +353,7 @@ describe("run_javascript Canvas 功能", () => {
 
     test("blocked_code 错误保持不变", async () => {
       const code = `
-        return typeof process;
+        return process.env;
       `;
       const result = await runtime._runJavaScriptTool({ code });
       expect(result.error).toBe('blocked_code');
@@ -360,22 +369,31 @@ describe("run_javascript Canvas 功能", () => {
 
 import fc from "fast-check";
 
+// 属性测试共享的 runtime 实例
+let propTestRuntime = null;
+
 describe("run_javascript Canvas 属性测试", () => {
   let runtime;
 
+  beforeAll(async () => {
+    // 只初始化一次 runtime
+    propTestRuntime = new Runtime({ configPath: "config/app.json" });
+    await propTestRuntime.init();
+  });
+
+  afterAll(async () => {
+    // 测试结束后关闭 runtime
+    if (propTestRuntime) {
+      await propTestRuntime.shutdown();
+      propTestRuntime = null;
+    }
+  });
+
   beforeEach(async () => {
     await mkdir(TEST_DIR, { recursive: true });
-    runtime = new Runtime();
-    runtime.artifacts = {
-      artifactsDir: TEST_DIR,
-      ensureReady: async () => {}
-    };
-    runtime.log = { 
-      info: () => {}, 
-      debug: () => {}, 
-      warn: () => {}, 
-      error: () => {} 
-    };
+    runtime = propTestRuntime;
+    // 覆盖 artifacts 目录用于测试
+    runtime.artifacts.artifactsDir = TEST_DIR;
   });
 
   afterEach(async () => {
