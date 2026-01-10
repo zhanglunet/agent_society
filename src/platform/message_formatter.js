@@ -177,3 +177,171 @@ export function getImageAttachments(message) {
   return attachments.filter(att => att.type === 'image');
 }
 
+/**
+ * 检查消息是否包含非图片附件（文件）
+ * @param {Object} message - 消息对象
+ * @returns {boolean}
+ */
+export function hasFileAttachments(message) {
+  const payload = message?.payload;
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+  
+  const attachments = payload.attachments;
+  if (!Array.isArray(attachments)) {
+    return false;
+  }
+  
+  return attachments.some(att => att.type !== 'image');
+}
+
+/**
+ * 获取消息中的非图片附件（文件）
+ * @param {Object} message - 消息对象
+ * @returns {Array<{type: string, artifactRef: string, filename: string}>}
+ */
+export function getFileAttachments(message) {
+  const payload = message?.payload;
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+  
+  const attachments = payload.attachments;
+  if (!Array.isArray(attachments)) {
+    return [];
+  }
+  
+  return attachments.filter(att => att.type !== 'image');
+}
+
+/**
+ * 支持的文本文件扩展名列表
+ * 这些文件类型的内容会被读取并发送给 LLM
+ */
+const TEXT_FILE_EXTENSIONS = new Set([
+  // 代码文件
+  '.js', '.ts', '.jsx', '.tsx', '.mjs', '.cjs',
+  '.py', '.pyw',
+  '.java', '.kt', '.kts',
+  '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx',
+  '.cs', '.fs', '.fsx',
+  '.go',
+  '.rs',
+  '.rb', '.erb',
+  '.php',
+  '.swift',
+  '.scala', '.sc',
+  '.r', '.R',
+  '.lua',
+  '.pl', '.pm',
+  '.sh', '.bash', '.zsh', '.fish',
+  '.ps1', '.psm1', '.psd1',
+  '.bat', '.cmd',
+  // 标记语言和配置文件
+  '.html', '.htm', '.xhtml',
+  '.xml', '.xsl', '.xslt',
+  '.css', '.scss', '.sass', '.less',
+  '.json', '.jsonc', '.json5',
+  '.yaml', '.yml',
+  '.toml',
+  '.ini', '.cfg', '.conf',
+  '.env',
+  '.properties',
+  // 文档文件
+  '.md', '.markdown',
+  '.txt', '.text',
+  '.rst',
+  '.adoc', '.asciidoc',
+  '.tex', '.latex',
+  '.csv', '.tsv',
+  // 其他
+  '.sql',
+  '.graphql', '.gql',
+  '.proto',
+  '.dockerfile',
+  '.gitignore', '.gitattributes',
+  '.editorconfig',
+  '.eslintrc', '.prettierrc',
+  '.npmrc', '.yarnrc',
+  'makefile', '.mk',
+  '.vue', '.svelte',
+]);
+
+/**
+ * 检查文件是否为文本文件（可以读取内容发送给 LLM）
+ * @param {string} filename - 文件名
+ * @returns {boolean}
+ */
+export function isTextFile(filename) {
+  if (!filename) return false;
+  const lowerName = filename.toLowerCase();
+  
+  // 检查特殊文件名（无扩展名）
+  const specialNames = ['makefile', 'dockerfile', 'readme', 'license', 'changelog'];
+  if (specialNames.some(name => lowerName === name || lowerName.endsWith('/' + name))) {
+    return true;
+  }
+  
+  // 检查扩展名
+  const lastDot = lowerName.lastIndexOf('.');
+  if (lastDot === -1) return false;
+  
+  const ext = lowerName.slice(lastDot);
+  return TEXT_FILE_EXTENSIONS.has(ext);
+}
+
+/**
+ * 格式化文件附件内容，将文件内容添加到消息中
+ * 
+ * @param {string} textContent - 原始文本内容
+ * @param {Array<{type: string, artifactRef: string, filename: string}>} attachments - 附件列表
+ * @param {function} getFileContent - 获取文件内容的函数 (artifactRef) => Promise<{content: string, metadata: object}|null>
+ * @returns {Promise<string>} 包含文件内容的文本
+ */
+export async function formatFileAttachmentContent(textContent, attachments, getFileContent) {
+  if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+    return textContent;
+  }
+  
+  const fileAttachments = attachments.filter(att => att.type !== 'image');
+  if (fileAttachments.length === 0) {
+    return textContent;
+  }
+  
+  const fileContents = [];
+  
+  for (const att of fileAttachments) {
+    const filename = att.filename || 'unknown';
+    
+    // 检查是否为文本文件
+    if (!isTextFile(filename)) {
+      fileContents.push(`\n\n【附件: ${filename}】\n[二进制文件，无法显示内容]`);
+      continue;
+    }
+    
+    try {
+      const fileData = await getFileContent(att.artifactRef);
+      if (fileData && fileData.content) {
+        // 限制文件内容长度，避免超出上下文限制
+        const maxLength = 50000; // 约 50KB 文本
+        let content = fileData.content;
+        let truncated = false;
+        
+        if (content.length > maxLength) {
+          content = content.slice(0, maxLength);
+          truncated = true;
+        }
+        
+        fileContents.push(`\n\n【附件: ${filename}】\n\`\`\`\n${content}${truncated ? '\n... [内容已截断]' : ''}\n\`\`\``);
+      } else {
+        fileContents.push(`\n\n【附件: ${filename}】\n[文件读取失败]`);
+      }
+    } catch (err) {
+      fileContents.push(`\n\n【附件: ${filename}】\n[文件读取错误: ${err?.message || '未知错误'}]`);
+    }
+  }
+  
+  return textContent + fileContents.join('');
+}
+

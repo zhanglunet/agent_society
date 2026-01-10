@@ -32,7 +32,7 @@
  * @module runtime/llm_handler
  */
 
-import { hasImageAttachments, getImageAttachments, formatMultimodalContent } from "../message_formatter.js";
+import { hasImageAttachments, getImageAttachments, formatMultimodalContent, hasFileAttachments, getFileAttachments, formatFileAttachmentContent } from "../message_formatter.js";
 
 /**
  * LLM 处理器类
@@ -136,17 +136,64 @@ export class LlmHandler {
     
     // 注入上下文状态提示
     const contextStatusPrompt = runtime._conversationManager?.buildContextStatusPrompt?.(agentId) ?? "";
-    const userTextContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
+    let userTextContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
     
-    // 检查是否有图片附件，构建多模态内容
-    let userContent = userTextContent;
+    // 检查是否有附件
     const hasImages = hasImageAttachments(message);
+    const hasFiles = hasFileAttachments(message);
     void runtime.log?.info?.("检查消息附件", {
       agentId,
       hasImages,
+      hasFiles,
       payloadType: typeof message?.payload,
       attachmentsCount: message?.payload?.attachments?.length ?? 0
     });
+    
+    // 处理非图片附件（文件）：读取文件内容并添加到文本中
+    if (hasFiles) {
+      const attachments = message?.payload?.attachments ?? [];
+      
+      // 创建获取文件内容的函数
+      const getFileContent = async (artifactRef) => {
+        void runtime.log?.info?.("获取文件内容", { artifactRef });
+        try {
+          if (runtime.artifacts && typeof runtime.artifacts.getUploadedFile === 'function') {
+            const fileData = await runtime.artifacts.getUploadedFile(artifactRef);
+            if (fileData && fileData.buffer) {
+              // 尝试将 buffer 转换为文本
+              const content = fileData.buffer.toString('utf-8');
+              void runtime.log?.info?.("文件内容获取成功", { 
+                artifactRef, 
+                contentLength: content.length,
+                mimeType: fileData.metadata?.mimeType 
+              });
+              return {
+                content,
+                metadata: fileData.metadata
+              };
+            }
+          }
+          void runtime.log?.warn?.("获取文件内容失败: 文件不存在或格式错误", { artifactRef });
+          return null;
+        } catch (err) {
+          void runtime.log?.error?.("获取文件内容异常", { artifactRef, error: err?.message, stack: err?.stack });
+          return null;
+        }
+      };
+      
+      try {
+        userTextContent = await formatFileAttachmentContent(userTextContent, attachments, getFileContent);
+        void runtime.log?.info?.("文件附件内容已添加到消息", {
+          agentId,
+          fileCount: getFileAttachments(message).length
+        });
+      } catch (err) {
+        void runtime.log?.error?.("处理文件附件失败", { error: err?.message, stack: err?.stack });
+      }
+    }
+    
+    // 检查是否有图片附件，构建多模态内容
+    let userContent = userTextContent;
     
     if (hasImages) {
       const attachments = message?.payload?.attachments ?? [];
