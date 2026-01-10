@@ -306,6 +306,58 @@ const API = {
   async deleteLlmServiceConfig(serviceId) {
     return this.delete(`/config/llm-services/${encodeURIComponent(serviceId)}`);
   },
+
+  /**
+   * 上传文件
+   * @param {File|Blob} file - 文件对象
+   * @param {string} type - 文件类型 ('image' | 'file')
+   * @param {string} filename - 文件名
+   * @param {function} [onProgress] - 进度回调 (progress: number) => void
+   * @returns {Promise<{ok: boolean, artifactRef?: string, metadata?: object, error?: string}>}
+   */
+  async uploadFile(file, type, filename, onProgress) {
+    // 使用 UploadService 进行上传
+    if (window.UploadService) {
+      return UploadService.upload(file, { type, filename, onProgress });
+    }
+    
+    // 备用方案：使用 fetch
+    const formData = new FormData();
+    formData.append('file', file, filename);
+    formData.append('type', type);
+    formData.append('filename', filename);
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP 错误: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      return { ok: false, error: 'upload_failed', message: error.message };
+    }
+  },
+
+  /**
+   * 发送带附件的消息
+   * @param {string} toAgentId - 目标智能体 ID
+   * @param {string} message - 消息内容
+   * @param {Array<{type: string, artifactRef: string, filename: string}>} attachments - 附件列表
+   * @returns {Promise<object>} 发送结果
+   */
+  async sendMessageWithAttachments(toAgentId, message, attachments) {
+    return this.post('/send', {
+      to: toAgentId,
+      message: message,
+      attachments: attachments
+    });
+  },
 };
 
 // 导出 API 对象供其他模块使用

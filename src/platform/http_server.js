@@ -587,6 +587,12 @@ export class HTTPServer {
         this._handleSubmit(req, res);
       } else if (method === "POST" && pathname === "/api/send") {
         this._handleSend(req, res);
+      } else if (method === "POST" && pathname === "/api/upload") {
+        // 文件上传: POST /api/upload
+        this._handleUpload(req, res).catch(err => {
+          void this.log.error("处理文件上传请求失败", { error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
       } else if (method === "GET" && pathname.startsWith("/api/messages/")) {
         const taskId = pathname.slice("/api/messages/".length);
         this._handleGetMessages(taskId, res);
@@ -841,14 +847,17 @@ export class HTTPServer {
       const agentId = body?.agentId ?? body?.to;
       const text = body?.text ?? body?.message;
       const taskId = body?.taskId;
+      const attachments = body?.attachments; // 附件数组
 
       if (!agentId || typeof agentId !== "string") {
         this._sendJson(res, 400, { error: "missing_agent_id", message: "请求体必须包含agentId或to字段" });
         return;
       }
 
-      if (!text || typeof text !== "string") {
-        this._sendJson(res, 400, { error: "missing_text", message: "请求体必须包含text或message字段" });
+      // 允许空文本（如果有附件）
+      const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+      if ((!text || typeof text !== "string") && !hasAttachments) {
+        this._sendJson(res, 400, { error: "missing_text", message: "请求体必须包含text或message字段，或者包含attachments" });
         return;
       }
 
@@ -857,16 +866,30 @@ export class HTTPServer {
         return;
       }
 
+      // 构建消息 payload
+      let messagePayload = text || "";
+      if (hasAttachments) {
+        // 如果有附件，将消息转换为带附件的格式
+        messagePayload = {
+          text: text || "",
+          attachments: attachments.map(att => ({
+            type: att.type,
+            artifactRef: att.artifactRef,
+            filename: att.filename
+          }))
+        };
+      }
+
       // 调用User_Endpoint将消息发送到指定智能体
       const options = taskId ? { taskId } : {};
-      const result = this.society.sendTextToAgent(agentId, text, options);
+      const result = this.society.sendTextToAgent(agentId, messagePayload, options);
 
       if (result.error) {
         this._sendJson(res, 400, { error: result.error });
         return;
       }
 
-      void this.log.info("HTTP发送消息", { agentId, taskId: result.taskId });
+      void this.log.info("HTTP发送消息", { agentId, taskId: result.taskId, hasAttachments });
       this._sendJson(res, 200, { 
         ok: true,
         messageId: randomUUID(), // 生成消息ID用于追踪
@@ -874,6 +897,274 @@ export class HTTPServer {
         to: result.to
       });
     });
+  }
+
+  /**
+   * 处理 POST /api/upload - 文件上传。
+   * Content-Type: multipart/form-data
+   * 
+   * Request:
+   *   - file: 文件数据
+   *   - type: 'image' | 'file'
+   *   - filename: 原始文件名
+   *
+   * Response:
+   *   {
+   *     ok: true,
+   *     artifactRef: "artifact:uuid",
+   *     metadata: {
+   *       id: "uuid",
+   *       type: "image",
+   *       filename: "photo.jpg",
+   *       size: 12345,
+   *       mimeType: "image/jpeg",
+   *       createdAt: "2026-01-10T..."
+   *     }
+   *   }
+   * 
+   * @param {import("node:http").IncomingMessage} req
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleUpload(req, res) {
+    // 最大文件大小 10MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    
+    // 检查 Content-Type
+    const contentType = req.headers["content-type"] || "";
+    if (!contentType.includes("multipart/form-data")) {
+      void this.log.warn("文件上传失败: Content-Type 错误", { contentType });
+      this._sendJson(res, 400, { error: "invalid_content_type", message: "Content-Type 必须是 multipart/form-data" });
+      return;
+    }
+
+    // 检查 artifactStore 是否可用
+    if (!this.society || !this.society.runtime || !this.society.runtime.artifacts) {
+      void this.log.error("文件上传失败: artifact store 未初始化", {
+        hasSociety: !!this.society,
+        hasRuntime: !!(this.society && this.society.runtime),
+        hasArtifacts: !!(this.society && this.society.runtime && this.society.runtime.artifacts)
+      });
+      this._sendJson(res, 500, { error: "artifact_store_not_initialized", message: "工件存储服务未初始化" });
+      return;
+    }
+
+    const artifactStore = this.society.runtime.artifacts;
+
+    try {
+      // 解析 multipart/form-data
+      const { fields, file } = await this._parseMultipartFormData(req, MAX_FILE_SIZE);
+      
+      if (!file || !file.buffer || file.buffer.length === 0) {
+        void this.log.warn("文件上传失败: 请求中缺少文件");
+        this._sendJson(res, 400, { error: "missing_file", message: "请求中缺少文件" });
+        return;
+      }
+
+      // 检查文件大小
+      if (file.buffer.length > MAX_FILE_SIZE) {
+        void this.log.warn("文件上传失败: 文件过大", { size: file.buffer.length, maxSize: MAX_FILE_SIZE });
+        this._sendJson(res, 413, { error: "file_too_large", message: `文件大小超过限制（最大 ${MAX_FILE_SIZE / 1024 / 1024}MB）` });
+        return;
+      }
+
+      // 获取文件类型和文件名
+      const type = fields.type || "file";
+      const filename = fields.filename || file.filename || `upload_${Date.now()}`;
+      const mimeType = file.mimeType || "application/octet-stream";
+
+      // 保存文件到 artifact store
+      const result = await artifactStore.saveUploadedFile(file.buffer, {
+        type,
+        filename,
+        mimeType
+      });
+
+      void this.log.info("文件上传成功", { 
+        artifactRef: result.artifactRef, 
+        filename, 
+        size: file.buffer.length,
+        type,
+        mimeType
+      });
+
+      this._sendJson(res, 200, {
+        ok: true,
+        artifactRef: result.artifactRef,
+        metadata: result.metadata
+      });
+    } catch (err) {
+      void this.log.error("文件上传失败", { error: err.message, stack: err.stack });
+      
+      // 检查是否是文件大小超限错误
+      if (err.message && err.message.includes("too large")) {
+        this._sendJson(res, 413, { error: "file_too_large", message: err.message });
+        return;
+      }
+      
+      this._sendJson(res, 500, { error: "upload_failed", message: err.message });
+    }
+  }
+
+  /**
+   * 解析 multipart/form-data 请求。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {number} maxSize - 最大文件大小
+   * @returns {Promise<{fields: object, file: {buffer: Buffer, filename: string, mimeType: string}|null}>}
+   * @private
+   */
+  async _parseMultipartFormData(req, maxSize) {
+    return new Promise((resolve, reject) => {
+      const contentType = req.headers["content-type"] || "";
+      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+      if (!boundaryMatch) {
+        reject(new Error("无法解析 boundary"));
+        return;
+      }
+      const boundary = boundaryMatch[1] || boundaryMatch[2];
+      const delimiter = Buffer.from(`--${boundary}`);
+      const closeDelimiter = Buffer.from(`--${boundary}--`);
+
+      const chunks = [];
+      let totalSize = 0;
+
+      req.on("data", (chunk) => {
+        totalSize += chunk.length;
+        if (totalSize > maxSize + 10000) { // 额外允许一些头部空间
+          req.destroy();
+          reject(new Error(`文件大小超过限制（最大 ${maxSize / 1024 / 1024}MB）`));
+          return;
+        }
+        chunks.push(chunk);
+      });
+
+      req.on("end", () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const result = this._parseMultipartBuffer(buffer, delimiter, closeDelimiter);
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      req.on("error", (err) => {
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * 解析 multipart buffer。
+   * @param {Buffer} buffer
+   * @param {Buffer} delimiter
+   * @param {Buffer} closeDelimiter
+   * @returns {{fields: object, file: {buffer: Buffer, filename: string, mimeType: string}|null}}
+   * @private
+   */
+  _parseMultipartBuffer(buffer, delimiter, closeDelimiter) {
+    const fields = {};
+    let file = null;
+
+    // 分割各个部分
+    let start = 0;
+    let delimiterIndex = buffer.indexOf(delimiter, start);
+    
+    while (delimiterIndex !== -1) {
+      // 跳过 delimiter
+      start = delimiterIndex + delimiter.length;
+      
+      // 检查是否是结束标记
+      if (buffer.slice(start, start + 2).toString() === "--") {
+        break;
+      }
+      
+      // 跳过 CRLF
+      if (buffer[start] === 0x0d && buffer[start + 1] === 0x0a) {
+        start += 2;
+      }
+      
+      // 找到下一个 delimiter
+      let nextDelimiter = buffer.indexOf(delimiter, start);
+      if (nextDelimiter === -1) {
+        nextDelimiter = buffer.indexOf(closeDelimiter, start);
+      }
+      if (nextDelimiter === -1) {
+        break;
+      }
+      
+      // 提取这个部分的内容
+      const partBuffer = buffer.slice(start, nextDelimiter);
+      
+      // 解析这个部分
+      const part = this._parseMultipartPart(partBuffer);
+      if (part) {
+        if (part.isFile) {
+          file = {
+            buffer: part.content,
+            filename: part.filename || "upload",
+            mimeType: part.contentType || "application/octet-stream"
+          };
+        } else if (part.name) {
+          fields[part.name] = part.content.toString("utf8");
+        }
+      }
+      
+      delimiterIndex = nextDelimiter;
+    }
+
+    return { fields, file };
+  }
+
+  /**
+   * 解析单个 multipart 部分。
+   * @param {Buffer} partBuffer
+   * @returns {{name?: string, filename?: string, contentType?: string, content: Buffer, isFile: boolean}|null}
+   * @private
+   */
+  _parseMultipartPart(partBuffer) {
+    // 找到头部和内容的分隔（双 CRLF）
+    const headerEndIndex = partBuffer.indexOf(Buffer.from("\r\n\r\n"));
+    if (headerEndIndex === -1) {
+      return null;
+    }
+
+    const headerStr = partBuffer.slice(0, headerEndIndex).toString("utf8");
+    let content = partBuffer.slice(headerEndIndex + 4);
+    
+    // 移除末尾的 CRLF
+    if (content.length >= 2 && content[content.length - 2] === 0x0d && content[content.length - 1] === 0x0a) {
+      content = content.slice(0, -2);
+    }
+
+    // 解析头部
+    const headers = {};
+    const headerLines = headerStr.split("\r\n");
+    for (const line of headerLines) {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex > 0) {
+        const key = line.slice(0, colonIndex).trim().toLowerCase();
+        const value = line.slice(colonIndex + 1).trim();
+        headers[key] = value;
+      }
+    }
+
+    // 解析 Content-Disposition
+    const disposition = headers["content-disposition"] || "";
+    const nameMatch = disposition.match(/name="([^"]+)"/);
+    const filenameMatch = disposition.match(/filename="([^"]+)"/);
+    
+    const name = nameMatch ? nameMatch[1] : null;
+    const filename = filenameMatch ? filenameMatch[1] : null;
+    const contentType = headers["content-type"] || null;
+    const isFile = !!filename || !!contentType;
+
+    return {
+      name,
+      filename,
+      contentType,
+      content,
+      isFile
+    };
   }
 
   /**
@@ -1753,6 +2044,8 @@ export class HTTPServer {
       return;
     }
 
+    const { ArtifactStore } = require("./artifact_store.js");
+
     // 移除 /artifacts/ 前缀，获取相对路径
     let relativePath = pathname.replace(/^\/artifacts\/?/, "");
     if (!relativePath || relativePath === "") {
@@ -1765,7 +2058,7 @@ export class HTTPServer {
 
     // 安全检查：防止路径遍历攻击
     const artifactsDir = path.resolve(this._artifactsDir);
-    const resolvedPath = path.resolve(filePath);
+    let resolvedPath = path.resolve(filePath);
     if (!resolvedPath.startsWith(artifactsDir)) {
       this._sendJson(res, 403, { error: "forbidden", message: "路径访问被拒绝" });
       return;
@@ -1774,9 +2067,52 @@ export class HTTPServer {
     try {
       // 检查文件是否存在
       if (!existsSync(resolvedPath)) {
-        void this.log.warn("工件文件不存在", { path: relativePath, resolvedPath });
-        this._sendJson(res, 404, { error: "not_found", path: pathname });
-        return;
+        // 文件不存在时，检查是否有同名的 .meta 文件
+        // 从 relativePath 中提取可能的 artifactId（去掉扩展名）
+        const artifactId = path.basename(relativePath, path.extname(relativePath)) || relativePath;
+        const metaFilePath = path.join(this._artifactsDir, `${artifactId}${ArtifactStore.META_EXTENSION}`);
+        
+        if (existsSync(metaFilePath)) {
+          try {
+            const metaContent = await readFile(metaFilePath, "utf8");
+            const metadata = JSON.parse(metaContent);
+            const extension = metadata.extension || ".json";
+            
+            // 使用 .meta 文件中的扩展名构建实际文件路径
+            const actualFilePath = path.join(this._artifactsDir, `${artifactId}${extension}`);
+            const actualResolvedPath = path.resolve(actualFilePath);
+            
+            // 再次进行安全检查
+            if (!actualResolvedPath.startsWith(artifactsDir)) {
+              this._sendJson(res, 403, { error: "forbidden", message: "路径访问被拒绝" });
+              return;
+            }
+            
+            if (existsSync(actualResolvedPath)) {
+              // 找到了实际文件，更新路径
+              resolvedPath = actualResolvedPath;
+              relativePath = `${artifactId}${extension}`;
+              void this.log.debug("通过 .meta 文件找到工件", { artifactId, extension, actualPath: relativePath });
+            } else {
+              void this.log.warn("工件文件不存在（.meta 文件存在但工件文件缺失）", { 
+                path: relativePath, 
+                metaFile: metaFilePath,
+                expectedFile: actualFilePath 
+              });
+              this._sendJson(res, 404, { error: "not_found", path: pathname });
+              return;
+            }
+          } catch (e) {
+            // .meta 文件解析失败，返回 404
+            void this.log.warn("工件文件不存在（.meta 文件解析失败）", { path: relativePath, error: e.message });
+            this._sendJson(res, 404, { error: "not_found", path: pathname });
+            return;
+          }
+        } else {
+          void this.log.warn("工件文件不存在", { path: relativePath, resolvedPath });
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+          return;
+        }
       }
 
       // 读取文件内容

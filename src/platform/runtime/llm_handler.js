@@ -14,6 +14,7 @@
  * 2. 管理工具调用循环
  * 3. 处理 LLM 错误和中断
  * 4. 向父智能体发送错误通知
+ * 5. 支持多模态消息（图片附件）
  * 
  * 【处理流程】
  * 1. 检查上下文限制
@@ -30,6 +31,8 @@
  * 
  * @module runtime/llm_handler
  */
+
+import { hasImageAttachments, getImageAttachments, formatMultimodalContent } from "../message_formatter.js";
 
 /**
  * LLM 处理器类
@@ -133,7 +136,62 @@ export class LlmHandler {
     
     // 注入上下文状态提示
     const contextStatusPrompt = runtime._conversationManager?.buildContextStatusPrompt?.(agentId) ?? "";
-    const userContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
+    const userTextContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
+    
+    // 检查是否有图片附件，构建多模态内容
+    let userContent = userTextContent;
+    const hasImages = hasImageAttachments(message);
+    void runtime.log?.info?.("检查消息附件", {
+      agentId,
+      hasImages,
+      payloadType: typeof message?.payload,
+      attachmentsCount: message?.payload?.attachments?.length ?? 0
+    });
+    
+    if (hasImages) {
+      const attachments = message?.payload?.attachments ?? [];
+      
+      // 创建获取图片 base64 数据的函数
+      const getImageBase64 = async (artifactRef) => {
+        void runtime.log?.info?.("获取图片 base64 数据", { artifactRef });
+        try {
+          // 从 artifact store 获取图片数据
+          if (runtime.artifacts && typeof runtime.artifacts.getUploadedFile === 'function') {
+            const fileData = await runtime.artifacts.getUploadedFile(artifactRef);
+            if (fileData && fileData.buffer) {
+              void runtime.log?.info?.("图片数据获取成功", { 
+                artifactRef, 
+                bufferSize: fileData.buffer.length,
+                mimeType: fileData.metadata?.mimeType 
+              });
+              return {
+                data: fileData.buffer.toString('base64'),
+                mimeType: fileData.metadata?.mimeType || 'image/jpeg'
+              };
+            }
+          }
+          void runtime.log?.warn?.("获取图片数据失败: 文件不存在或格式错误", { artifactRef });
+          return null;
+        } catch (err) {
+          void runtime.log?.error?.("获取图片数据异常", { artifactRef, error: err?.message, stack: err?.stack });
+          return null;
+        }
+      };
+      
+      try {
+        userContent = await formatMultimodalContent(userTextContent, attachments, getImageBase64);
+        void runtime.log?.info?.("构建多模态消息内容完成", {
+          agentId,
+          imageCount: getImageAttachments(message).length,
+          isMultimodal: Array.isArray(userContent),
+          contentType: Array.isArray(userContent) ? 'array' : typeof userContent
+        });
+      } catch (err) {
+        void runtime.log?.error?.("构建多模态内容失败，使用纯文本", { error: err?.message, stack: err?.stack });
+        userContent = userTextContent;
+      }
+    }
+    
     conv.push({ role: "user", content: userContent });
 
     // 检查上下文长度

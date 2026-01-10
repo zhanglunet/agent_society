@@ -7,7 +7,7 @@
  *   node start.js [数据目录] [选项]
  * 
  * 选项:
- *   --port, -p <端口>  HTTP 服务器端口 (默认: 3000)
+ *   --port, -p <端口>  HTTP 服务器端口 (覆盖配置文件)
  *   --no-browser       不自动打开浏览器
  * 
  * 示例:
@@ -18,6 +18,7 @@
  */
 
 import { AgentSociety } from "./src/platform/agent_society.js";
+import { loadConfig } from "./src/platform/config.js";
 import { exec } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -26,11 +27,11 @@ import path from "node:path";
 /**
  * 解析命令行参数
  * @param {string[]} args - process.argv.slice(2)
- * @returns {{dataDir: string, port: number, openBrowser: boolean}}
+ * @returns {{dataDir: string, port: number|null, openBrowser: boolean}}
  */
 export function parseArgs(args) {
   let dataDir = "./agent-society-data";
-  let port = 3000;
+  let port = null;
   let openBrowser = true;
 
   for (let i = 0; i < args.length; i++) {
@@ -98,10 +99,16 @@ export async function openBrowserUrl(url) {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const { dataDir, port, openBrowser } = parseArgs(args);
+  const { dataDir, port: cliPort, openBrowser } = parseArgs(args);
   
   // 解析绝对路径
   const absoluteDataDir = path.resolve(dataDir);
+
+  // 1. 先读配置文件
+  const config = await loadConfig("config/app.json", { dataDir: absoluteDataDir });
+  
+  // 2. 命令行参数覆盖配置文件
+  const port = cliPort ?? config.httpPort;
   
   console.log("╔════════════════════════════════════════════════════════════╗");
   console.log("║           Agent Society Server                             ║");
@@ -118,8 +125,9 @@ async function main() {
   }
 
   try {
-    // 初始化 AgentSociety，仅启动 HTTP 服务器
+    // 3. 把配置传给 AgentSociety
     const society = new AgentSociety({
+      config,
       dataDir: absoluteDataDir,
       enableHttp: true,
       httpPort: port

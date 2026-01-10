@@ -46,9 +46,10 @@ import { ShutdownManager } from "./runtime/shutdown_manager.js";
  */
 export class Runtime {
   /**
-   * @param {{maxSteps?:number, configPath?:string, maxToolRounds?:number, idleWarningMs?:number, dataDir?:string}} options
+   * @param {{config?:object, maxSteps?:number, configPath?:string, maxToolRounds?:number, idleWarningMs?:number, dataDir?:string}} options
    */
   constructor(options = {}) {
+    this._passedConfig = options.config ?? null; // 外部传入的配置
     this.maxSteps = options.maxSteps ?? 200;
     this.configPath = options.configPath ?? "config/app.json";
     this.maxToolRounds = options.maxToolRounds ?? 200;
@@ -242,7 +243,8 @@ export class Runtime {
    * @returns {Promise<void>}
    */
   async init() {
-    this.config = await loadConfig(this.configPath, { dataDir: this.dataDir });
+    // 优先使用外部传入的配置，否则自己读取
+    this.config = this._passedConfig ?? await loadConfig(this.configPath, { dataDir: this.dataDir });
     this.maxSteps = this.config.maxSteps ?? this.maxSteps;
     this.maxToolRounds = this.config.maxToolRounds ?? this.maxToolRounds;
     this.idleWarningMs = this.config.idleWarningMs ?? this.idleWarningMs;
@@ -1782,62 +1784,8 @@ export class Runtime {
    * @returns {Promise<void>}
    */
   async _handleWithLlm(ctx, message) {
-    // 获取智能体应使用的 LlmClient
-    const agentId = ctx.agent?.id ?? null;
-    const llmClient = this.getLlmClientForAgent(agentId) ?? this.llm;
-    
-    if (!llmClient) return;
-
-    // 设置初始状态为处理中
-    this.setAgentComputeStatus(agentId, 'processing');
-
-    // 检查上下文是否已超过硬性限制
-    if (agentId && this._conversationManager.isContextExceeded(agentId)) {
-      const status = this._conversationManager.getContextStatus(agentId);
-      void this.log.error("上下文超过硬性限制，拒绝 LLM 调用", {
-        agentId,
-        usedTokens: status.usedTokens,
-        maxTokens: status.maxTokens,
-        usagePercent: (status.usagePercent * 100).toFixed(1) + '%'
-      });
-      
-      // 向父智能体发送错误通知
-      const parentAgentId = this._agentMetaById.get(agentId)?.parentAgentId ?? null;
-      if (parentAgentId && this._agents.has(parentAgentId)) {
-        this.bus.send({
-          to: parentAgentId,
-          from: agentId,
-          taskId: message?.taskId ?? null,
-          payload: {
-            kind: "error",
-            errorType: "context_limit_exceeded",
-            message: `智能体 ${agentId} 上下文超过硬性限制 (${(status.usagePercent * 100).toFixed(1)}%)，无法继续处理`,
-            agentId,
-            usedTokens: status.usedTokens,
-            maxTokens: status.maxTokens,
-            usagePercent: status.usagePercent,
-            originalMessageId: message?.id ?? null
-          }
-        });
-      }
-      // 重置为空闲状态
-      this.setAgentComputeStatus(agentId, 'idle');
-      return;
-    }
-
-    ctx.currentMessage = message;
-    const systemPrompt = this._buildSystemPromptForAgent(ctx);
-    const conv = this._ensureConversation(ctx.agent.id, systemPrompt);
-    
-    // 使用 try-finally 确保对话历史被持久化
-    try {
-      await this._doLlmProcessing(ctx, message, conv, agentId, llmClient);
-    } finally {
-      // 持久化对话历史
-      if (agentId) {
-        void this._conversationManager.persistConversation(agentId);
-      }
-    }
+    // 委托给 LlmHandler 处理
+    return await this._llmHandler.handleWithLlm(ctx, message);
   }
 
   /**

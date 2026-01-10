@@ -10,6 +10,7 @@ const ChatPanel = {
   messages: [],          // 消息列表
   messagesById: new Map(), // 消息 ID 索引
   thinkingMap: {},       // 思考过程映射（tool_call_id -> reasoning_content）
+  isUploading: false,    // 是否正在上传附件
 
   // DOM 元素引用
   headerTitle: null,
@@ -18,6 +19,11 @@ const ChatPanel = {
   messageList: null,
   chatInput: null,
   sendBtn: null,
+  imageUploadBtn: null,
+  fileUploadBtn: null,
+  imageInput: null,
+  fileInput: null,
+  attachmentPreview: null,
 
   /**
    * 初始化组件
@@ -29,6 +35,13 @@ const ChatPanel = {
     this.messageList = document.getElementById('message-list');
     this.chatInput = document.getElementById('chat-input');
     this.sendBtn = document.getElementById('send-btn');
+    
+    // 上传相关元素
+    this.imageUploadBtn = document.getElementById('image-upload-btn');
+    this.fileUploadBtn = document.getElementById('file-upload-btn');
+    this.imageInput = document.getElementById('image-input');
+    this.fileInput = document.getElementById('file-input');
+    this.attachmentPreview = document.getElementById('attachment-preview');
 
     // 绑定发送按钮事件
     if (this.sendBtn) {
@@ -43,6 +56,159 @@ const ChatPanel = {
           this.sendMessage();
         }
       });
+    }
+    
+    // 初始化附件管理器
+    if (this.attachmentPreview && window.AttachmentManager) {
+      AttachmentManager.init(this.attachmentPreview, (state) => {
+        this._onAttachmentStateChange(state);
+      });
+    }
+    
+    // 绑定上传按钮事件
+    this._bindUploadEvents();
+  },
+
+  /**
+   * 绑定上传相关事件
+   * @private
+   */
+  _bindUploadEvents() {
+    // 图片上传按钮
+    if (this.imageUploadBtn && this.imageInput) {
+      this.imageUploadBtn.addEventListener('click', () => {
+        this.imageInput.click();
+      });
+      
+      this.imageInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        for (const file of files) {
+          await this._handleImageSelect(file);
+        }
+        // 清空 input 以便重复选择同一文件
+        this.imageInput.value = '';
+      });
+    }
+    
+    // 文件上传按钮
+    if (this.fileUploadBtn && this.fileInput) {
+      this.fileUploadBtn.addEventListener('click', () => {
+        this.fileInput.click();
+      });
+      
+      this.fileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        for (const file of files) {
+          await this._handleFileSelect(file);
+        }
+        // 清空 input 以便重复选择同一文件
+        this.fileInput.value = '';
+      });
+    }
+  },
+
+  /**
+   * 处理图片选择
+   * @param {File} file - 图片文件
+   * @private
+   */
+  async _handleImageSelect(file) {
+    if (!window.ImageConverter || !window.AttachmentManager) {
+      Toast.show('图片上传功能未就绪', 'error');
+      return;
+    }
+    
+    // 验证文件大小
+    if (window.UploadService) {
+      const validation = UploadService.validateFileSize(file);
+      if (!validation.valid) {
+        Toast.show(validation.error, 'error');
+        return;
+      }
+    }
+    
+    // 检查是否为支持的图片格式
+    const isSupported = await ImageConverter.isSupportedImage(file);
+    if (!isSupported) {
+      Toast.show('不支持的图片格式', 'error');
+      return;
+    }
+    
+    try {
+      // 转换为 JPEG
+      const result = await ImageConverter.convertToJpeg(file);
+      
+      // 创建缩略图预览
+      const thumbnail = await ImageConverter.createThumbnail(file);
+      
+      // 添加到附件管理器
+      const attachmentId = AttachmentManager.add(result.blob, 'image', thumbnail);
+      
+      // 更新附件的文件名（使用原始文件名但改为 .jpg 扩展名）
+      const originalName = file.name || 'image';
+      const baseName = originalName.replace(/\.[^.]+$/, '');
+      AttachmentManager.update(attachmentId, { filename: baseName + '.jpg' });
+      
+    } catch (err) {
+      console.error('[ChatPanel] 图片处理失败:', {
+        filename: file.name,
+        type: file.type,
+        size: file.size,
+        error: err.message,
+        stack: err.stack
+      });
+      Toast.show('图片处理失败: ' + err.message, 'error');
+    }
+  },
+
+  /**
+   * 处理文件选择
+   * @param {File} file - 文件
+   * @private
+   */
+  async _handleFileSelect(file) {
+    if (!window.AttachmentManager) {
+      Toast.show('文件上传功能未就绪', 'error');
+      return;
+    }
+    
+    // 验证文件大小
+    if (window.UploadService) {
+      const validation = UploadService.validateFileSize(file);
+      if (!validation.valid) {
+        Toast.show(validation.error, 'error');
+        return;
+      }
+    }
+    
+    // 检查是否为图片，如果是则作为图片处理
+    if (window.ImageConverter && file.type.startsWith('image/')) {
+      const isSupported = await ImageConverter.isSupportedImage(file);
+      if (isSupported) {
+        await this._handleImageSelect(file);
+        return;
+      }
+    }
+    
+    // 作为普通文件添加
+    AttachmentManager.add(file, 'file');
+  },
+
+  /**
+   * 附件状态变化回调
+   * @param {object} state - 状态对象
+   * @private
+   */
+  _onAttachmentStateChange(state) {
+    // 更新发送按钮状态
+    if (this.sendBtn) {
+      if (state.hasUploading) {
+        this.sendBtn.disabled = true;
+        this.sendBtn.classList.add('uploading');
+      } else {
+        this.sendBtn.disabled = false;
+        this.sendBtn.classList.remove('uploading');
+      }
     }
   },
 
@@ -388,6 +554,9 @@ const ChatPanel = {
       
       // 构建图片缩略图
       const imagesHtml = this.renderMessageImages(message);
+      
+      // 构建附件显示
+      const attachmentsHtml = this.renderMessageAttachments(message);
 
       return `
         <div class="message-item ${messageClass}" data-message-id="${message.id}">
@@ -400,6 +569,7 @@ const ChatPanel = {
             ${thinkingHtml}
             <div class="message-bubble">${this.escapeHtml(messageText)}</div>
             ${imagesHtml}
+            ${attachmentsHtml}
             <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
               详情
             </button>
@@ -529,6 +699,9 @@ const ChatPanel = {
     // 构建图片缩略图
     const imagesHtml = this.renderMessageImages(message);
     
+    // 构建附件显示
+    const attachmentsHtml = this.renderMessageAttachments(message);
+    
     // 生成唯一 ID 用于折叠控制
     const detailsId = `tool-details-${message.id}`;
 
@@ -559,6 +732,7 @@ const ChatPanel = {
             </div>
           </div>
           ${imagesHtml}
+          ${attachmentsHtml}
           <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
             详情
           </button>
@@ -728,7 +902,10 @@ const ChatPanel = {
     if (!this.chatInput || !this.currentAgentId) return;
 
     const text = this.chatInput.value.trim();
-    if (!text) return;
+    const hasAttachments = window.AttachmentManager && AttachmentManager.hasAttachments();
+    
+    // 必须有文本或附件
+    if (!text && !hasAttachments) return;
 
     // 确定消息发送目标
     let targetAgentId = this.currentAgentId;
@@ -749,9 +926,81 @@ const ChatPanel = {
     }
 
     try {
-      await API.sendMessage(targetAgentId, text);
+      let attachments = [];
+      
+      // 如果有附件，先上传
+      if (hasAttachments) {
+        this.isUploading = true;
+        if (this.sendBtn) {
+          this.sendBtn.classList.add('uploading');
+        }
+        
+        // 上传所有待上传的附件
+        const pendingFiles = AttachmentManager.getFilesForUpload();
+        if (pendingFiles.length > 0 && window.UploadService) {
+          const results = await UploadService.uploadAll(
+            pendingFiles.map(item => ({
+              file: item.file,
+              options: item.options
+            })),
+            (index, progress) => {
+              // 更新单个附件的进度
+              const item = pendingFiles[index];
+              if (item) {
+                AttachmentManager.setProgress(item.id, progress);
+              }
+            }
+          );
+          
+          // 处理上传结果
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const item = pendingFiles[i];
+            if (result.ok) {
+              AttachmentManager.setReady(item.id, result.artifactRef);
+            } else {
+              console.error('[ChatPanel] 附件上传失败:', {
+                filename: item.options.filename,
+                type: item.options.type,
+                error: result.error,
+                message: result.message
+              });
+              AttachmentManager.setError(item.id, result.message || '上传失败');
+              Toast.show(`文件 ${item.options.filename} 上传失败: ${result.message}`, 'error');
+            }
+          }
+        }
+        
+        // 获取所有已上传的附件引用
+        attachments = AttachmentManager.getArtifactRefs();
+        
+        // 检查是否有上传失败的附件
+        if (AttachmentManager.attachments.some(a => a.status === 'error')) {
+          Toast.show('部分附件上传失败，请重试', 'warning');
+          this.isUploading = false;
+          if (this.sendBtn) {
+            this.sendBtn.disabled = false;
+            this.sendBtn.classList.remove('uploading');
+          }
+          return;
+        }
+      }
+      
+      // 发送消息
+      if (window.API && window.API.sendMessageWithAttachments && attachments.length > 0) {
+        await API.sendMessageWithAttachments(targetAgentId, text || '', attachments);
+      } else {
+        await API.sendMessage(targetAgentId, text);
+      }
+      
       // 清空输入框
       this.chatInput.value = '';
+      
+      // 清空附件
+      if (hasAttachments) {
+        AttachmentManager.clear();
+      }
+      
       // 显示成功提示
       const targetName = this.currentAgentId === 'user' ? `给 ${targetAgentId} ` : '';
       Toast.show(`消息${targetName}已发送`, 'success');
@@ -760,8 +1009,10 @@ const ChatPanel = {
       Toast.show('发送失败: ' + error.message, 'error');
     } finally {
       // 恢复发送按钮
+      this.isUploading = false;
       if (this.sendBtn) {
         this.sendBtn.disabled = false;
+        this.sendBtn.classList.remove('uploading');
       }
     }
   },
@@ -798,7 +1049,7 @@ const ChatPanel = {
     if (images.length === 0) return '';
     
     // 生成唯一 ID 用于存储图片数组
-    const imagesId = `images_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const imagesId = `images_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     // 将图片数组存储到全局，供点击时使用
     window._chatPanelImages = window._chatPanelImages || {};
     window._chatPanelImages[imagesId] = images;
@@ -816,6 +1067,53 @@ const ChatPanel = {
         `).join('')}
       </div>
     `;
+  },
+
+  /**
+   * 渲染消息中的附件
+   * @param {object} message - 消息对象
+   * @returns {string} HTML 字符串
+   */
+  renderMessageAttachments(message) {
+    const payload = message?.payload;
+    if (!payload || typeof payload !== 'object') return '';
+    
+    const attachments = payload.attachments;
+    if (!Array.isArray(attachments) || attachments.length === 0) return '';
+    
+    const html = attachments.map((att, idx) => {
+      const isImage = att.type === 'image';
+      const artifactId = att.artifactRef?.replace('artifact:', '') || '';
+      
+      if (isImage) {
+        // 图片附件：显示缩略图
+        const imagesId = `msg_att_${message.id}_${idx}`;
+        window._chatPanelImages = window._chatPanelImages || {};
+        window._chatPanelImages[imagesId] = [artifactId];
+        
+        return `
+          <div class="message-attachment-item image" title="${this.escapeHtml(att.filename)}">
+            <img 
+              class="message-attachment-thumbnail" 
+              src="/artifacts/${this.escapeHtml(artifactId)}" 
+              alt="${this.escapeHtml(att.filename)}"
+              onclick="ImageViewer.show(window._chatPanelImages['${imagesId}'], 0)"
+              onerror="this.parentElement.innerHTML='<span class=\\'message-attachment-icon\\'>🖼️</span><span class=\\'message-attachment-name\\'>${this.escapeHtml(att.filename)}</span>'"
+            />
+          </div>
+        `;
+      } else {
+        // 文件附件：显示图标和文件名
+        return `
+          <a class="message-attachment-item file" href="/artifacts/${this.escapeHtml(artifactId)}" target="_blank" title="${this.escapeHtml(att.filename)}">
+            <span class="message-attachment-icon">📄</span>
+            <span class="message-attachment-name">${this.escapeHtml(att.filename)}</span>
+          </a>
+        `;
+      }
+    }).join('');
+    
+    return `<div class="message-attachments">${html}</div>`;
   },
 };
 

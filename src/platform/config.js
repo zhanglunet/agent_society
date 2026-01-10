@@ -92,6 +92,8 @@ export async function loadConfig(configPath = "config/app.json", options = {}) {
     runtimeDir: dataDir ? path.resolve(dataDir, "state") : path.resolve(process.cwd(), cfg.runtimeDir),
     maxSteps: Number.isFinite(cfg.maxSteps) ? cfg.maxSteps : 200,
     maxToolRounds: Number.isFinite(cfg.maxToolRounds) ? cfg.maxToolRounds : 200,
+    httpPort: Number.isFinite(cfg.httpPort) ? cfg.httpPort : 3000,
+    enableHttp: typeof cfg.enableHttp === "boolean" ? cfg.enableHttp : false,
     llm: cfg.llm
       ? {
           baseURL: String(cfg.llm.baseURL ?? ""),

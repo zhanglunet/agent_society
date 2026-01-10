@@ -14,7 +14,7 @@ import { createNoopModuleLogger } from "./logger.js";
  */
 export class AgentSociety {
   /**
-   * @param {{configPath?:string, maxSteps?:number, httpPort?:number, enableHttp?:boolean, shutdownTimeoutMs?:number, dataDir?:string}} [options]
+   * @param {{config?:object, configPath?:string, maxSteps?:number, httpPort?:number, enableHttp?:boolean, shutdownTimeoutMs?:number, dataDir?:string}} [options]
    */
   constructor(options = {}) {
     this.runtime = new Runtime(options);
@@ -38,15 +38,6 @@ export class AgentSociety {
     await this.runtime.init();
     this.log = this.runtime.loggerRoot.forModule("society");
     this._rootPrompt = await this.runtime.prompts.loadSystemPromptFile("root.txt");
-    
-    // 从配置文件读取HTTP设置
-    const config = this.runtime.config ?? {};
-    if (config.httpPort !== undefined) {
-      this._httpPort = config.httpPort;
-    }
-    if (config.enableHttp !== undefined) {
-      this._enableHttp = config.enableHttp;
-    }
     
     this._registerUserEndpointAgent();
     this._registerRootAgent();
@@ -118,14 +109,25 @@ export class AgentSociety {
       return { error: "不能向用户端点发送消息，请指定其他智能体ID" };
     }
     const taskId = options?.taskId ?? randomUUID();
+    
+    // 构建 payload：支持字符串或带附件的对象
+    let payload;
+    if (typeof text === 'object' && text !== null) {
+      // 已经是对象格式（带 attachments），直接使用
+      payload = text;
+    } else {
+      // 纯文本格式
+      payload = { text: String(text ?? "") };
+    }
+    
     // 直接发送到目标智能体，from="user"
     this.runtime.bus.send({
       to: toAgentId,
       from: "user",
       taskId,
-      payload: { text: String(text ?? "") }
+      payload
     });
-    void this.log.info("用户消息已发送", { toAgentId, taskId });
+    void this.log.info("用户消息已发送", { toAgentId, taskId, hasAttachments: !!(payload.attachments?.length) });
     return { taskId, to: toAgentId };
   }
 

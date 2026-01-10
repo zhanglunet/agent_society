@@ -87,8 +87,17 @@
         </div>
       </div>
       
+      <!-- 附件预览区域 -->
+      <div id="attachment-preview" class="attachment-preview-area"></div>
+      
       <!-- 消息输入区域 -->
       <div class="chat-input-area">
+        <div class="chat-input-buttons">
+          <button id="image-upload-btn" class="upload-btn" title="上传图片">📷</button>
+          <button id="file-upload-btn" class="upload-btn" title="上传文件">📎</button>
+          <input type="file" id="image-input" accept="image/*" multiple style="display: none;">
+          <input type="file" id="file-input" multiple style="display: none;">
+        </div>
         <textarea id="chat-input" class="chat-input" placeholder="输入消息（以 user 身份发送）..." rows="1"></textarea>
         <button id="send-btn" class="send-btn">发送</button>
       </div>
@@ -149,12 +158,15 @@
   <script src="js/utils/sort.js"></script>
   <script src="js/utils/filter.js"></script>
   <script src="js/utils/tree.js"></script>
+  <script src="js/utils/image-converter.js"></script>
+  <script src="js/utils/upload-service.js"></script>
   <!-- API 模块 -->
   <script src="js/api.js"></script>
   <!-- 组件 -->
   <script src="js/components/toast.js"></script>
   <script src="js/components/error-modal.js"></script>
   <script src="js/components/llm-settings-modal.js"></script>
+  <script src="js/components/attachment-manager.js"></script>
   <script src="js/components/agent-list.js"></script>
   <script src="js/components/chat-panel.js"></script>
   <script src="js/components/message-modal.js"></script>
