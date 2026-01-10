@@ -223,6 +223,13 @@ export class Runtime {
     this.systemBasePrompt = await this.prompts.loadSystemPromptFile("base.txt");
     this.systemComposeTemplate = await this.prompts.loadSystemPromptFile("compose.txt");
     this.systemToolRules = await this.prompts.loadSystemPromptFile("tool_rules.txt");
+    // 加载工作空间使用指南（可选，文件不存在时使用空字符串）
+    try {
+      this.systemWorkspacePrompt = await this.prompts.loadSystemPromptFile("workspace.txt");
+    } catch {
+      this.systemWorkspacePrompt = "";
+      void this.log.debug("工作空间提示词文件不存在，跳过加载");
+    }
     this.llm = this.config.llm ? new LlmClient({ ...this.config.llm, logger: this.loggerRoot.forModule("llm") }) : null;
     this.httpClient = new HttpClient({ logger: this.loggerRoot.forModule("http") });
     // 重新初始化 WorkspaceManager 和 CommandExecutor 带 logger
@@ -2174,7 +2181,8 @@ export class Runtime {
       base,
       composeTemplate: ctx.systemComposeTemplate ?? "{{BASE}}\n{{ROLE}}\n{{TASK}}",
       rolePrompt: role,
-      taskText: ""
+      taskText: "",
+      workspace: ctx.systemWorkspacePrompt ?? ""
     });
     return composed + runtimeInfo + taskBriefText + contactsText + toolRules;
   }
@@ -2290,6 +2298,7 @@ export class Runtime {
       systemBasePrompt: this.systemBasePrompt,
       systemComposeTemplate: this.systemComposeTemplate,
       systemToolRules: this.systemToolRules,
+      systemWorkspacePrompt: this.systemWorkspacePrompt,
       tools,
       agent: agent ?? null
     };

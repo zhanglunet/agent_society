@@ -34,14 +34,15 @@ export class PromptLoader {
 
   /**
    * 使用拼接模板将系统预置提示词、岗位提示词与任务内容装配为最终提示词。
-   * @param {{base:string, composeTemplate:string, rolePrompt:string, taskText:string}} parts
+   * @param {{base:string, composeTemplate:string, rolePrompt:string, taskText:string, workspace?:string}} parts
    * @returns {string} 最终提示词
    */
   compose(parts) {
-    const { base, composeTemplate, rolePrompt, taskText } = parts;
+    const { base, composeTemplate, rolePrompt, taskText, workspace } = parts;
     return composeTemplate
       .replaceAll("{{BASE}}", base ?? "")
       .replaceAll("{{ROLE}}", rolePrompt ?? "")
-      .replaceAll("{{TASK}}", taskText ?? "");
+      .replaceAll("{{TASK}}", taskText ?? "")
+      .replaceAll("{{WORKSPACE}}", workspace ?? "");
   }
 }

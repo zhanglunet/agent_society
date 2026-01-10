@@ -264,7 +264,8 @@ config/
 | `root.txt` | 根智能体专用提示词 |
 | `compose.txt` | 提示词拼接模板 |
 | `tool_rules.txt` | 工具使用规则说明 |
-| `model_selector.txt` | **[新增]** 模型选择器的系统提示词，指导如何根据岗位选择 LLM |
+| `workspace.txt` | 工作空间使用指南，说明文件操作工具的使用场景和方法 |
+| `model_selector.txt` | 模型选择器的系统提示词，指导如何根据岗位选择 LLM |
 | `context_status.txt` | 上下文状态信息模板 |
 | `context_warning.txt` | 上下文警告提示模板 |
 | `context_critical.txt` | 上下文临界提示模板 |

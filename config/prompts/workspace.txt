@@ -1,0 +1,95 @@
+【工作空间（Workspace）使用指南】
+
+工作空间是智能体执行工作时的隔离文件系统环境，用于存放代码、文档、数据等文件。
+
+## 核心概念
+
+1) 路径隔离：只能访问工作空间内的文件，无法访问外部文件系统
+2) 相对路径：所有文件操作必须使用相对路径（相对于工作空间根目录）
+
+## 可用工具
+
+### read_file - 读取文件
+```
+read_file({ path: "src/main.js" })
+```
+返回：{ content: "文件内容" } 或 { error: "错误类型" }
+
+### write_file - 写入文件
+```
+write_file({ path: "src/main.js", content: "代码内容" })
+```
+返回：{ ok: true } 或 { ok: false, error: "错误类型" }
+- 父目录不存在时自动创建
+- 文件已存在时覆盖
+
+### list_files - 列出目录
+```
+list_files({ path: "src" })  // 或省略 path 列出根目录
+```
+返回：{ files: [{ name: "main.js", type: "file", size: 1024 }, ...] }
+
+### get_workspace_info - 获取工作空间信息
+```
+get_workspace_info({})
+```
+返回：{ fileCount: 10, dirCount: 3, totalSize: 51200, lastModified: "2024-01-01T00:00:00Z" }
+
+### run_command - 执行命令
+```
+run_command({ command: "node main.js", timeoutMs: 30000 })
+```
+返回：{ stdout: "输出", stderr: "错误输出", exitCode: 0 }
+- 命令在工作空间目录下执行
+- 危险命令会被拦截
+
+## 重要规则
+
+1) 路径安全：
+   - 必须使用相对路径，禁止使用绝对路径
+   - 禁止使用 ".." 进行路径遍历
+   - 违规操作会返回 "path_traversal_blocked" 错误
+
+2) 常见错误：
+   - workspace_not_assigned：未分配工作空间
+   - file_not_found：文件不存在
+   - permission_denied：权限不足
+   - not_a_directory：路径不是目录
+
+3) 最佳实践：
+   - 先用 list_files 了解现有文件结构
+   - 写入前确认路径正确
+   - 用 get_workspace_info 检查空间使用情况
+
+## 工作空间 vs 工件（重要）
+
+| 特性 | 工作空间（Workspace） | 工件（Artifact） |
+|------|----------------------|------------------|
+| 用途 | 多智能体协作的共享文件系统 | 单个交付物的存储和传递 |
+| 访问范围 | 同一工作空间内的所有智能体共享 | 通过 artifactRef 点对点传递 |
+| 适用场景 | 系统性工程、多文件项目、协作开发 | 单一文件交付、简单结果传递 |
+
+### 何时使用工作空间
+
+当多个智能体需要协作完成系统性工作时，必须使用工作空间：
+- 开发包含多个文件的项目（如网站、应用程序）
+- 多个智能体分工协作（如：架构师设计接口、开发者实现代码、测试者编写测试）
+- 需要相互引用的文件（如：代码引用配置文件、模块间相互依赖）
+- 需要执行命令验证结果（如：运行测试、构建项目）
+- 多智能体协作编写的多文件合集（如：分卷的书籍、课程）
+
+### 何时使用工件
+
+当只需要传递单个独立文件时，使用工件更简单：
+- 生成一份报告或文档
+- 返回一个计算结果
+- 传递一张图片
+
+### 协作示例
+
+多智能体开发一个网站：
+1) 架构师智能体：write_file("design/api.md", "接口设计...")
+2) 前端智能体：read_file("design/api.md") → write_file("src/app.js", "前端代码...")
+3) 后端智能体：read_file("design/api.md") → write_file("src/server.js", "后端代码...")
+4) 测试智能体：read_file("src/*.js") → write_file("test/test.js", "测试代码...") → run_command("npm test")
+
