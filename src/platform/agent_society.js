@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { Agent } from "../agents/agent.js";
 import { Runtime } from "./runtime.js";
 import { HTTPServer } from "./http_server.js";
+import { ConfigService } from "./config_service.js";
 import { createNoopModuleLogger } from "./logger.js";
 
 /**
@@ -245,6 +247,19 @@ export class AgentSociety {
         logger: this.runtime.loggerRoot.forModule("http")
       });
       this._httpServer.setSociety(this);
+      
+      // 设置配置服务，用于配置管理 API
+      if (this.runtime.configPath) {
+        const configDir = path.dirname(this.runtime.configPath);
+        const configService = new ConfigService(
+          configDir,
+          this.runtime.loggerRoot.forModule("config")
+        );
+        this._httpServer.setConfigService(configService);
+        void this.log.info("HTTP服务器配置服务已设置", { configDir });
+      } else {
+        void this.log.warn("HTTP服务器配置服务未设置，配置目录未知");
+      }
       
       // 设置运行时目录，用于消息持久化
       if (this.runtime.config?.runtimeDir) {

@@ -28,6 +28,7 @@ const App = {
     // 初始化所有组件
     Toast.init();
     ErrorModal.init();
+    LlmSettingsModal.init();
     AgentList.init();
     ChatPanel.init();
     OverviewPanel.init();
@@ -38,6 +39,9 @@ const App = {
 
     // 绑定视图切换按钮
     this.bindViewToggle();
+
+    // 检查配置状态，决定是否自动弹出设置页面
+    await this.checkConfigStatus();
 
     // 加载初始数据
     await this.loadInitialData();
@@ -56,6 +60,7 @@ const App = {
     const overviewBtn = document.getElementById('view-overview-btn');
     const modulesBtn = document.getElementById('view-modules-btn');
     const openArtifactsBtn = document.getElementById('open-artifacts-btn');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
 
     if (listBtn) {
       listBtn.addEventListener('click', () => this.switchToListView());
@@ -68,6 +73,9 @@ const App = {
     }
     if (openArtifactsBtn) {
       openArtifactsBtn.addEventListener('click', () => this.openArtifactManager());
+    }
+    if (openSettingsBtn) {
+      openSettingsBtn.addEventListener('click', () => this.openSettings());
     }
 
     // 监听导航到消息事件（从工件管理器触发）
@@ -128,6 +136,40 @@ const App = {
       });
     }
     this.artifactManager.show();
+  },
+
+  /**
+   * 打开 LLM 设置页面
+   * @param {object} options - 可选参数
+   * @param {string} options.errorMessage - 错误消息
+   */
+  openSettings(options = {}) {
+    LlmSettingsModal.open(options);
+  },
+
+  /**
+   * 检查配置状态，决定是否自动弹出设置页面
+   */
+  async checkConfigStatus() {
+    try {
+      const status = await API.getConfigStatus();
+      
+      // 首次启动（没有 app.local.json）时自动弹出设置页面
+      if (!status.hasLocalConfig) {
+        console.log('首次启动，自动打开 LLM 设置页面');
+        this.openSettings({ errorMessage: '首次启动，请配置 LLM 连接参数' });
+        return;
+      }
+      
+      // LLM 连接错误时自动弹出设置页面
+      if (status.llmStatus === 'error' && status.lastError) {
+        console.log('LLM 连接错误，自动打开设置页面');
+        this.openSettings({ errorMessage: `LLM 连接错误: ${status.lastError}` });
+      }
+    } catch (err) {
+      // 配置状态检查失败，不影响正常使用
+      console.warn('检查配置状态失败:', err);
+    }
   },
 
   /**
@@ -426,6 +468,9 @@ const App = {
       // 检查其他智能体是否有新消息（限制并发）
       await this.checkNewMessages();
 
+      // 检查 LLM 连接状态
+      await this.checkLlmStatus();
+
     } catch (error) {
       this.consecutiveErrors++;
       // 只在首次错误或错误次数变化时打印日志，避免刷屏
@@ -464,6 +509,23 @@ const App = {
         // 单个智能体请求失败，跳过继续
         break; // 如果有错误，停止检查其他智能体
       }
+    }
+  },
+
+  /**
+   * 检查 LLM 连接状态，错误时自动弹出设置页面
+   */
+  async checkLlmStatus() {
+    try {
+      const status = await API.getConfigStatus();
+      
+      // LLM 连接错误时自动弹出设置页面（如果设置页面未打开）
+      if (status.llmStatus === 'error' && status.lastError && !LlmSettingsModal.isOpen) {
+        console.log('检测到 LLM 连接错误，自动打开设置页面');
+        this.openSettings({ errorMessage: `LLM 连接错误: ${status.lastError}` });
+      }
+    } catch (err) {
+      // 状态检查失败，忽略
     }
   },
 

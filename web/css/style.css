@@ -3528,3 +3528,300 @@ body {
 .back-to-artifacts-btn.hidden {
   display: none;
 }
+
+/* ========== LLM 设置模态框 ========== */
+.llm-settings-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.llm-settings-body {
+  padding: 0;
+}
+
+.llm-settings-error {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+  padding: 12px 16px;
+  margin: 16px;
+  border-radius: 4px;
+}
+
+.llm-settings-error.hidden {
+  display: none;
+}
+
+/* 标签页导航 */
+.llm-settings-tabs {
+  display: flex;
+  border-bottom: 1px solid #e8e8e8;
+  background-color: #fafafa;
+}
+
+.llm-tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.llm-tab-btn:hover {
+  color: #07c160;
+}
+
+.llm-tab-btn.active {
+  color: #07c160;
+  border-bottom-color: #07c160;
+  background-color: #fff;
+}
+
+/* 标签页内容 */
+.llm-tab-content {
+  display: none;
+  padding: 16px;
+}
+
+.llm-tab-content.active {
+  display: block;
+}
+
+/* 配置表单 */
+.llm-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.form-group label .required {
+  color: #ff4d4f;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #07c160;
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.1);
+}
+
+.form-group input.error,
+.form-group textarea.error {
+  border-color: #ff4d4f;
+}
+
+.form-group .form-error {
+  font-size: 12px;
+  color: #ff4d4f;
+  min-height: 16px;
+}
+
+.form-group .form-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 按钮样式 */
+.btn-primary {
+  padding: 8px 16px;
+  background-color: #07c160;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #06b150;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: #07c160;
+  color: #07c160;
+}
+
+.btn-icon {
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+  opacity: 1;
+}
+
+/* 服务管理 */
+.llm-services-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.llm-services-count {
+  font-size: 13px;
+  color: #666;
+}
+
+.llm-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.llm-service-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.llm-service-item:hover {
+  border-color: #07c160;
+}
+
+.service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.service-details {
+  font-size: 12px;
+  color: #888;
+  display: flex;
+  gap: 12px;
+}
+
+.service-model {
+  color: #07c160;
+}
+
+.service-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.service-tags .tag {
+  padding: 2px 8px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-radius: 2px;
+  font-size: 11px;
+}
+
+.service-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* 服务编辑表单 */
+.service-form-container {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.service-form-container.hidden {
+  display: none;
+}
+
+.service-form-container h4 {
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 设置按钮 */
+.settings-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.settings-btn:hover {
+  background-color: #3a3a3a;
+  color: #fff;
+}

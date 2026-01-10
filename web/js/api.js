@@ -243,6 +243,69 @@ const API = {
       deletedBy: deletedBy,
     });
   },
+
+  // ==================== Config API ====================
+
+  /**
+   * 获取配置状态
+   * @returns {Promise<{hasLocalConfig: boolean, llmStatus: string, lastError: string|null}>}
+   */
+  async getConfigStatus() {
+    return this.get('/config/status');
+  },
+
+  /**
+   * 获取 LLM 配置
+   * @returns {Promise<{llm: object, source: string}>}
+   */
+  async getLlmConfig() {
+    return this.get('/config/llm');
+  },
+
+  /**
+   * 保存 LLM 配置
+   * @param {object} config - LLM 配置
+   * @returns {Promise<{ok: boolean, llm: object}>}
+   */
+  async saveLlmConfig(config) {
+    return this.post('/config/llm', config);
+  },
+
+  /**
+   * 获取 LLM 服务列表配置
+   * @returns {Promise<{services: Array, source: string}>}
+   */
+  async getLlmServicesConfig() {
+    return this.get('/config/llm-services');
+  },
+
+  /**
+   * 添加 LLM 服务
+   * @param {object} service - 服务配置
+   * @returns {Promise<{ok: boolean, service: object}>}
+   */
+  async addLlmServiceConfig(service) {
+    return this.post('/config/llm-services', service);
+  },
+
+  /**
+   * 更新 LLM 服务
+   * @param {string} serviceId - 服务 ID
+   * @param {object} service - 服务配置
+   * @returns {Promise<{ok: boolean, service: object}>}
+   */
+  async updateLlmServiceConfig(serviceId, service) {
+    return this.post(`/config/llm-services/${encodeURIComponent(serviceId)}`, service);
+  },
+
+  /**
+   * 删除 LLM 服务
+   * @param {string} serviceId - 服务 ID
+   * @returns {Promise<{ok: boolean, deletedId: string}>}
+   */
+  async deleteLlmServiceConfig(serviceId) {
+    return this.delete(`/config/llm-services/${encodeURIComponent(serviceId)}`);
+  },
 };
 
 // 导出 API 对象供其他模块使用

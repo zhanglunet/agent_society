@@ -20,6 +20,13 @@ import { createNoopModuleLogger } from "./logger.js";
  * - POST /api/agent/:agentId/custom-name - 设置智能体自定义名称
  * - GET /api/agent-custom-names - 获取所有智能体自定义名称
  * - POST /api/role/:roleId/prompt - 更新岗位职责提示词
+ * - GET /api/config/status - 获取配置状态
+ * - GET /api/config/llm - 获取 LLM 配置
+ * - POST /api/config/llm - 保存 LLM 配置
+ * - GET /api/config/llm-services - 获取 LLM 服务列表配置
+ * - POST /api/config/llm-services - 添加 LLM 服务
+ * - POST /api/config/llm-services/:serviceId - 更新 LLM 服务
+ * - DELETE /api/config/llm-services/:serviceId - 删除 LLM 服务
  * - GET /api/workspaces - 获取工作空间列表
  * - GET /api/workspaces/:workspaceId - 获取工作空间文件列表
  * - GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件内容
@@ -30,7 +37,7 @@ import { createNoopModuleLogger } from "./logger.js";
  */
 export class HTTPServer {
   /**
-   * @param {{port?:number, society?:any, logger?:any, runtimeDir?:string, artifactsDir?:string}} options
+   * @param {{port?:number, society?:any, logger?:any, runtimeDir?:string, artifactsDir?:string, configService?:any}} options
    */
   constructor(options = {}) {
     this.port = options.port ?? 3000;
@@ -48,6 +55,32 @@ export class HTTPServer {
     
     // 自定义名称存储
     this._customNames = new Map(); // agentId -> customName
+    
+    // 配置服务
+    this._configService = options.configService ?? null;
+    
+    // LLM 连接状态跟踪
+    this._llmStatus = "unknown"; // "connected" | "disconnected" | "error" | "unknown"
+    this._llmLastError = null;
+  }
+
+  /**
+   * 设置配置服务。
+   * @param {any} configService - ConfigService 实例
+   */
+  setConfigService(configService) {
+    this._configService = configService;
+  }
+
+  /**
+   * 设置 LLM 连接状态。
+   * @param {"connected"|"disconnected"|"error"} status - 连接状态
+   * @param {string|null} error - 错误消息（仅当 status 为 "error" 时）
+   */
+  setLlmStatus(status, error = null) {
+    this._llmStatus = status;
+    this._llmLastError = error;
+    void this.log.debug("LLM 状态更新", { status, error });
   }
 
   /**
@@ -622,6 +655,35 @@ export class HTTPServer {
         }
       } else if (method === "GET" && pathname === "/api/agent-custom-names") {
         this._handleGetCustomNames(res);
+      } else if (method === "GET" && pathname === "/api/config/status") {
+        // 获取配置状态
+        this._handleGetConfigStatus(res);
+      } else if (method === "GET" && pathname === "/api/config/llm") {
+        // 获取 LLM 配置
+        this._handleGetLlmConfig(res).catch(err => {
+          void this.log.error("处理获取 LLM 配置请求失败", { error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "POST" && pathname === "/api/config/llm") {
+        // 保存 LLM 配置
+        this._handleSaveLlmConfig(req, res);
+      } else if (method === "GET" && pathname === "/api/config/llm-services") {
+        // 获取 LLM 服务列表配置
+        this._handleGetLlmServicesConfig(res).catch(err => {
+          void this.log.error("处理获取 LLM 服务配置请求失败", { error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "POST" && pathname === "/api/config/llm-services") {
+        // 添加 LLM 服务
+        this._handleAddLlmServiceConfig(req, res);
+      } else if (method === "POST" && pathname.startsWith("/api/config/llm-services/")) {
+        // 更新 LLM 服务: POST /api/config/llm-services/:serviceId
+        const serviceId = decodeURIComponent(pathname.slice("/api/config/llm-services/".length));
+        this._handleUpdateLlmServiceConfig(req, serviceId, res);
+      } else if (method === "DELETE" && pathname.startsWith("/api/config/llm-services/")) {
+        // 删除 LLM 服务: DELETE /api/config/llm-services/:serviceId
+        const serviceId = decodeURIComponent(pathname.slice("/api/config/llm-services/".length));
+        this._handleDeleteLlmServiceConfig(serviceId, res);
       } else if (method === "GET" && pathname === "/api/llm-services") {
         // 获取 LLM 服务列表
         this._handleGetLlmServices(res);
@@ -2535,6 +2597,307 @@ export class HTTPServer {
     } catch (err) {
       void this.log.error("读取工作空间文件失败", { workspaceId, filePath, error: err.message });
       this._sendJson(res, 500, { error: "read_file_failed", message: err.message });
+    }
+  }
+
+  // ==================== Config API Handlers ====================
+
+  /**
+   * 处理 GET /api/config/status - 获取配置状态。
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetConfigStatus(res) {
+    try {
+      const hasLocalConfig = this._configService ? this._configService.hasLocalConfig() : false;
+      
+      this._sendJson(res, 200, {
+        hasLocalConfig,
+        llmStatus: this._llmStatus,
+        lastError: this._llmLastError
+      });
+    } catch (err) {
+      void this.log.error("获取配置状态失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/config/llm - 获取 LLM 配置。
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetLlmConfig(res) {
+    if (!this._configService) {
+      this._sendJson(res, 500, { error: "config_service_not_initialized" });
+      return;
+    }
+
+    try {
+      const result = await this._configService.getLlmConfig();
+      
+      // 掩码 API Key
+      const maskedLlm = {
+        ...result.llm,
+        apiKey: this._configService.maskApiKey(result.llm.apiKey)
+      };
+
+      this._sendJson(res, 200, {
+        llm: maskedLlm,
+        source: result.source
+      });
+    } catch (err) {
+      void this.log.error("获取 LLM 配置失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 POST /api/config/llm - 保存 LLM 配置。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleSaveLlmConfig(req, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      if (!this._configService) {
+        this._sendJson(res, 500, { error: "config_service_not_initialized" });
+        return;
+      }
+
+      try {
+        // 验证配置
+        const validation = this._configService.validateLlmConfig(body);
+        if (!validation.valid) {
+          this._sendJson(res, 400, { error: "validation_error", details: validation.errors });
+          return;
+        }
+
+        // 保存配置
+        await this._configService.saveLlmConfig(body);
+
+        // 触发 LLM Client 重新加载
+        await this._reloadLlmClient();
+
+        // 返回掩码后的配置
+        const maskedLlm = {
+          baseURL: body.baseURL,
+          model: body.model,
+          apiKey: this._configService.maskApiKey(body.apiKey),
+          maxConcurrentRequests: body.maxConcurrentRequests ?? 2
+        };
+
+        void this.log.info("LLM 配置已保存");
+        this._sendJson(res, 200, { ok: true, llm: maskedLlm });
+      } catch (err) {
+        void this.log.error("保存 LLM 配置失败", { error: err.message, stack: err.stack });
+        this._sendJson(res, 500, { error: "internal_error", message: err.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 GET /api/config/llm-services - 获取 LLM 服务列表配置。
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleGetLlmServicesConfig(res) {
+    if (!this._configService) {
+      this._sendJson(res, 500, { error: "config_service_not_initialized" });
+      return;
+    }
+
+    try {
+      const result = await this._configService.getLlmServices();
+      
+      // 掩码所有服务的 API Key
+      const maskedServices = result.services.map(s => ({
+        ...s,
+        apiKey: this._configService.maskApiKey(s.apiKey)
+      }));
+
+      this._sendJson(res, 200, {
+        services: maskedServices,
+        source: result.source
+      });
+    } catch (err) {
+      void this.log.error("获取 LLM 服务配置失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 POST /api/config/llm-services - 添加 LLM 服务。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleAddLlmServiceConfig(req, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      if (!this._configService) {
+        this._sendJson(res, 500, { error: "config_service_not_initialized" });
+        return;
+      }
+
+      try {
+        // 验证服务配置
+        const validation = this._configService.validateLlmService(body);
+        if (!validation.valid) {
+          this._sendJson(res, 400, { error: "validation_error", details: validation.errors });
+          return;
+        }
+
+        // 添加服务
+        const service = await this._configService.addLlmService(body);
+
+        // 触发 LLM Service Registry 重新加载
+        await this._reloadLlmServiceRegistry();
+
+        void this.log.info("LLM 服务已添加", { serviceId: body.id });
+        this._sendJson(res, 200, { ok: true, service });
+      } catch (err) {
+        // 检查是否是重复 ID 错误
+        if (err.message && err.message.includes("已存在")) {
+          this._sendJson(res, 409, { error: "duplicate_id", message: err.message });
+          return;
+        }
+        void this.log.error("添加 LLM 服务失败", { error: err.message, stack: err.stack });
+        this._sendJson(res, 500, { error: "internal_error", message: err.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 POST /api/config/llm-services/:serviceId - 更新 LLM 服务。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} serviceId - 服务 ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleUpdateLlmServiceConfig(req, serviceId, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      if (!this._configService) {
+        this._sendJson(res, 500, { error: "config_service_not_initialized" });
+        return;
+      }
+
+      try {
+        // 验证服务配置
+        const validation = this._configService.validateLlmService(body);
+        if (!validation.valid) {
+          this._sendJson(res, 400, { error: "validation_error", details: validation.errors });
+          return;
+        }
+
+        // 更新服务
+        const service = await this._configService.updateLlmService(serviceId, body);
+
+        // 触发 LLM Service Registry 重新加载
+        await this._reloadLlmServiceRegistry();
+
+        void this.log.info("LLM 服务已更新", { serviceId });
+        this._sendJson(res, 200, { ok: true, service });
+      } catch (err) {
+        // 检查是否是服务不存在错误
+        if (err.message && err.message.includes("不存在")) {
+          this._sendJson(res, 404, { error: "not_found", message: err.message });
+          return;
+        }
+        void this.log.error("更新 LLM 服务失败", { serviceId, error: err.message, stack: err.stack });
+        this._sendJson(res, 500, { error: "internal_error", message: err.message });
+      }
+    });
+  }
+
+  /**
+   * 处理 DELETE /api/config/llm-services/:serviceId - 删除 LLM 服务。
+   * @param {string} serviceId - 服务 ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  async _handleDeleteLlmServiceConfig(serviceId, res) {
+    if (!this._configService) {
+      this._sendJson(res, 500, { error: "config_service_not_initialized" });
+      return;
+    }
+
+    try {
+      // 删除服务
+      await this._configService.deleteLlmService(serviceId);
+
+      // 触发 LLM Service Registry 重新加载
+      await this._reloadLlmServiceRegistry();
+
+      void this.log.info("LLM 服务已删除", { serviceId });
+      this._sendJson(res, 200, { ok: true, deletedId: serviceId });
+    } catch (err) {
+      // 检查是否是服务不存在错误
+      if (err.message && err.message.includes("不存在")) {
+        this._sendJson(res, 404, { error: "not_found", message: err.message });
+        return;
+      }
+      void this.log.error("删除 LLM 服务失败", { serviceId, error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 重新加载 LLM Client。
+   * 配置保存后调用此方法使新配置立即生效。
+   * @returns {Promise<void>}
+   */
+  async _reloadLlmClient() {
+    if (!this.society || !this.society.runtime) {
+      void this.log.warn("无法重新加载 LLM Client：society 或 runtime 未初始化");
+      return;
+    }
+
+    try {
+      const runtime = this.society.runtime;
+      if (typeof runtime.reloadLlmClient === "function") {
+        await runtime.reloadLlmClient();
+        this.setLlmStatus("connected");
+        void this.log.info("LLM Client 已重新加载");
+      } else {
+        void this.log.warn("runtime 不支持 reloadLlmClient 方法");
+      }
+    } catch (err) {
+      this.setLlmStatus("error", err.message);
+      void this.log.error("重新加载 LLM Client 失败", { error: err.message });
+      throw err;
+    }
+  }
+
+  /**
+   * 重新加载 LLM Service Registry。
+   * 服务配置变更后调用此方法使新配置立即生效。
+   * @returns {Promise<void>}
+   */
+  async _reloadLlmServiceRegistry() {
+    if (!this.society || !this.society.runtime) {
+      void this.log.warn("无法重新加载 LLM Service Registry：society 或 runtime 未初始化");
+      return;
+    }
+
+    try {
+      const runtime = this.society.runtime;
+      if (typeof runtime.reloadLlmServiceRegistry === "function") {
+        await runtime.reloadLlmServiceRegistry();
+        void this.log.info("LLM Service Registry 已重新加载");
+      } else {
+        void this.log.warn("runtime 不支持 reloadLlmServiceRegistry 方法");
+      }
+    } catch (err) {
+      void this.log.error("重新加载 LLM Service Registry 失败", { error: err.message });
+      throw err;
     }
   }
 }
