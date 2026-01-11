@@ -378,6 +378,18 @@ const API = {
       attachments: attachments
     });
   },
+
+  // ==================== Events API ====================
+
+  /**
+   * 获取最近的错误和重试事件
+   * @param {string} [since] - 只返回此时间戳之后的事件
+   * @returns {Promise<{errors: Array, retries: Array, timestamp: string}>}
+   */
+  async getEvents(since) {
+    const params = since ? `?since=${encodeURIComponent(since)}` : '';
+    return this.get(`/events${params}`);
+  },
 };
 
 // 导出 API 对象供其他模块使用

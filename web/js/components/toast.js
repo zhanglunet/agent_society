@@ -71,9 +71,10 @@ const Toast = {
   /**
    * 显示警告消息
    * @param {string} message - 消息内容
+   * @param {number} [duration] - 显示时长（毫秒）
    */
-  warning(message) {
-    this.show(message, 'warning');
+  warning(message, duration) {
+    this.show(message, 'warning', duration);
   },
 
   /**

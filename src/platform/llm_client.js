@@ -7,7 +7,7 @@ import { ConcurrencyController } from "./concurrency_controller.js";
  */
 export class LlmClient {
   /**
-   * @param {{baseURL:string, model:string, apiKey:string, maxRetries?:number, maxConcurrentRequests?:number, logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}} options
+   * @param {{baseURL:string, model:string, apiKey:string, maxRetries?:number, maxConcurrentRequests?:number, logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}, onRetry?: (event: {agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}) => void}} options
    */
   constructor(options) {
     this.baseURL = options.baseURL;
@@ -15,6 +15,8 @@ export class LlmClient {
     this.apiKey = options.apiKey;
     this.maxRetries = options.maxRetries ?? 3;
     this.log = options.logger ?? createNoopModuleLogger();
+    // 重试事件回调
+    this._onRetry = options.onRetry ?? null;
     this._client = new OpenAI({
       apiKey: this.apiKey,
       baseURL: this.baseURL
@@ -232,6 +234,22 @@ export class LlmClient {
           delayMs,
           stack: err?.stack ?? null
         });
+        
+        // 触发重试事件（用于前端显示）
+        if (this._onRetry && meta?.agentId) {
+          try {
+            this._onRetry({
+              agentId: meta.agentId,
+              attempt: attempt + 1,
+              maxRetries,
+              delayMs,
+              errorMessage: text,
+              timestamp: new Date().toISOString()
+            });
+          } catch (retryErr) {
+            void this.log.warn("触发重试事件失败", { error: retryErr?.message ?? String(retryErr) });
+          }
+        }
         
         await this._sleep(delayMs, signal);
       }

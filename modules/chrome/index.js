@@ -99,6 +99,8 @@ export default {
           return await pageActions.screenshot(args.tabId, { ...args, ctx });
         case "chrome_get_text":
           return await pageActions.getText(args.tabId, args.selector);
+        case "chrome_get_elements":
+          return await pageActions.getElements(args.tabId, args);
         
         // 页面交互
         case "chrome_click":

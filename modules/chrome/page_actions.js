@@ -280,6 +280,371 @@ export class PageActions {
     }
   }
 
+  /**
+   * 获取页面可交互元素的结构化信息
+   * @param {string} tabId
+   * @param {{selector?: string, types?: string[], maxElements?: number}} options
+   */
+  async getElements(tabId, options = {}) {
+    const result = this._getPage(tabId);
+    if ("error" in result) return result;
+    
+    const { page } = result;
+    const { types, maxElements = 100 } = options;
+
+    // 清理选择器（如果提供）
+    let cleanedSelector = options.selector;
+    let originalSelector;
+    let selectorModified = false;
+    if (options.selector) {
+      const sanitized = this._sanitizeSelector(options.selector);
+      cleanedSelector = sanitized.cleaned;
+      originalSelector = sanitized.original;
+      selectorModified = sanitized.modified;
+      if (selectorModified) {
+        this.log.info?.("选择器已清理", { tabId, original: originalSelector, cleaned: cleanedSelector });
+      }
+    }
+
+    // 类型别名映射：查询某类型时自动包含相关类型
+    const typeAliases = {
+      input: ['input', 'textarea'],           // 输入类控件
+      button: ['button'],                      // 按钮类
+      link: ['link'],                          // 链接类
+      text: ['text'],                          // 文本类
+      image: ['image'],                        // 图片类
+      select: ['select', 'checkbox', 'radio'], // 选择类控件
+      checkbox: ['checkbox'],
+      radio: ['radio'],
+      textarea: ['textarea']
+    };
+
+    // 展开类型别名
+    let expandedTypes = types;
+    if (types && types.length > 0) {
+      const typeSet = new Set();
+      for (const t of types) {
+        const aliases = typeAliases[t] || [t];
+        aliases.forEach(a => typeSet.add(a));
+      }
+      expandedTypes = Array.from(typeSet);
+    }
+
+    this.log.info?.("获取页面元素", { tabId, selector: cleanedSelector, types, expandedTypes, maxElements });
+
+    try {
+      const elements = await page.evaluate((opts) => {
+        const { rootSelector, filterTypes, limit } = opts;
+        
+        // 获取根元素
+        const root = rootSelector ? document.querySelector(rootSelector) : document.body;
+        if (!root) return { error: "root_not_found" };
+
+        const results = [];
+        
+        // 检查元素是否可见
+        function isVisible(el) {
+          if (!el) return false;
+          const style = window.getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+            return false;
+          }
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }
+
+        // 生成元素的唯一选择器
+        function getSelector(el) {
+          // 优先使用 id
+          if (el.id) {
+            return `#${CSS.escape(el.id)}`;
+          }
+          
+          // 尝试使用 name 属性
+          if (el.name) {
+            const byName = document.querySelectorAll(`[name="${CSS.escape(el.name)}"]`);
+            if (byName.length === 1) {
+              return `[name="${el.name}"]`;
+            }
+          }
+          
+          // 使用标签名 + 类名 + nth-child
+          let selector = el.tagName.toLowerCase();
+          if (el.className && typeof el.className === 'string') {
+            const classes = el.className.trim().split(/\s+/).filter(c => c && !c.includes(':'));
+            if (classes.length > 0) {
+              selector += '.' + classes.slice(0, 2).map(c => CSS.escape(c)).join('.');
+            }
+          }
+          
+          // 添加 nth-child 确保唯一性
+          const parent = el.parentElement;
+          if (parent) {
+            const siblings = Array.from(parent.children).filter(c => c.tagName === el.tagName);
+            if (siblings.length > 1) {
+              const index = siblings.indexOf(el) + 1;
+              selector += `:nth-child(${index})`;
+            }
+          }
+          
+          return selector;
+        }
+
+        // 获取元素的文本内容（截断）
+        function getText(el, maxLen = 100) {
+          const text = (el.innerText || el.textContent || '').trim();
+          return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+        }
+
+        // 获取元素位置信息
+        function getPosition(el) {
+          const rect = el.getBoundingClientRect();
+          return {
+            x: Math.round(rect.left + rect.width / 2),
+            y: Math.round(rect.top + rect.height / 2),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height)
+          };
+        }
+
+        // 处理链接
+        function processLinks() {
+          if (filterTypes && !filterTypes.includes('link')) return;
+          root.querySelectorAll('a[href]').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'link',
+              selector: getSelector(el),
+              text: getText(el),
+              href: el.href,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理按钮
+        function processButtons() {
+          if (filterTypes && !filterTypes.includes('button')) return;
+          // button 标签
+          root.querySelectorAll('button').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'button',
+              selector: getSelector(el),
+              text: getText(el),
+              disabled: el.disabled,
+              position: getPosition(el)
+            });
+          });
+          // input[type=button/submit/reset]
+          root.querySelectorAll('input[type="button"], input[type="submit"], input[type="reset"]').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'button',
+              selector: getSelector(el),
+              text: el.value || el.placeholder || '',
+              disabled: el.disabled,
+              position: getPosition(el)
+            });
+          });
+          // role="button"
+          root.querySelectorAll('[role="button"]').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            if (el.tagName === 'BUTTON') return; // 避免重复
+            results.push({
+              type: 'button',
+              selector: getSelector(el),
+              text: getText(el),
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理输入框
+        function processInputs() {
+          if (filterTypes && !filterTypes.includes('input')) return;
+          root.querySelectorAll('input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'input',
+              selector: getSelector(el),
+              inputType: el.type || 'text',
+              name: el.name || null,
+              placeholder: el.placeholder || null,
+              value: el.type === 'password' ? '***' : (el.value || null),
+              disabled: el.disabled,
+              readonly: el.readOnly,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理文本域
+        function processTextareas() {
+          if (filterTypes && !filterTypes.includes('textarea')) return;
+          root.querySelectorAll('textarea').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'textarea',
+              selector: getSelector(el),
+              name: el.name || null,
+              placeholder: el.placeholder || null,
+              value: getText(el, 200),
+              disabled: el.disabled,
+              readonly: el.readOnly,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理下拉框
+        function processSelects() {
+          if (filterTypes && !filterTypes.includes('select')) return;
+          root.querySelectorAll('select').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            const options = Array.from(el.options).map(opt => ({
+              value: opt.value,
+              text: opt.text,
+              selected: opt.selected
+            }));
+            results.push({
+              type: 'select',
+              selector: getSelector(el),
+              name: el.name || null,
+              options: options.slice(0, 20), // 限制选项数量
+              selectedValue: el.value,
+              disabled: el.disabled,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理复选框
+        function processCheckboxes() {
+          if (filterTypes && !filterTypes.includes('checkbox')) return;
+          root.querySelectorAll('input[type="checkbox"]').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            // 尝试获取关联的 label
+            let label = '';
+            if (el.id) {
+              const labelEl = document.querySelector(`label[for="${el.id}"]`);
+              if (labelEl) label = getText(labelEl);
+            }
+            if (!label && el.parentElement?.tagName === 'LABEL') {
+              label = getText(el.parentElement);
+            }
+            results.push({
+              type: 'checkbox',
+              selector: getSelector(el),
+              name: el.name || null,
+              label: label || null,
+              checked: el.checked,
+              disabled: el.disabled,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理单选框
+        function processRadios() {
+          if (filterTypes && !filterTypes.includes('radio')) return;
+          root.querySelectorAll('input[type="radio"]').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            let label = '';
+            if (el.id) {
+              const labelEl = document.querySelector(`label[for="${el.id}"]`);
+              if (labelEl) label = getText(labelEl);
+            }
+            if (!label && el.parentElement?.tagName === 'LABEL') {
+              label = getText(el.parentElement);
+            }
+            results.push({
+              type: 'radio',
+              selector: getSelector(el),
+              name: el.name || null,
+              value: el.value || null,
+              label: label || null,
+              checked: el.checked,
+              disabled: el.disabled,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理图片
+        function processImages() {
+          if (filterTypes && !filterTypes.includes('image')) return;
+          root.querySelectorAll('img').forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            results.push({
+              type: 'image',
+              selector: getSelector(el),
+              src: el.src,
+              alt: el.alt || null,
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 处理文本块（标题、段落等）
+        function processTexts() {
+          if (filterTypes && !filterTypes.includes('text')) return;
+          const textSelectors = 'h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label';
+          root.querySelectorAll(textSelectors).forEach(el => {
+            if (!isVisible(el) || results.length >= limit) return;
+            // 只处理叶子节点或直接包含文本的元素
+            const directText = Array.from(el.childNodes)
+              .filter(n => n.nodeType === Node.TEXT_NODE)
+              .map(n => n.textContent.trim())
+              .join(' ')
+              .trim();
+            if (!directText || directText.length < 2) return;
+            // 避免重复（已经作为其他类型处理的元素）
+            if (el.tagName === 'LABEL' && el.htmlFor) return;
+            results.push({
+              type: 'text',
+              selector: getSelector(el),
+              tag: el.tagName.toLowerCase(),
+              text: getText(el, 200),
+              position: getPosition(el)
+            });
+          });
+        }
+
+        // 按优先级处理各类元素
+        processButtons();
+        processLinks();
+        processInputs();
+        processTextareas();
+        processSelects();
+        processCheckboxes();
+        processRadios();
+        processImages();
+        processTexts();
+
+        return results;
+      }, {
+        rootSelector: cleanedSelector,
+        filterTypes: expandedTypes,
+        limit: maxElements
+      });
+
+      if (elements.error) {
+        return { error: elements.error, selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined };
+      }
+
+      return { 
+        ok: true, 
+        elements,
+        count: elements.length,
+        truncated: elements.length >= maxElements
+      };
+    } catch (err) {
+      const message = err?.message ?? String(err);
+      return { error: "get_elements_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };
+    }
+  }
+
   // ==================== 页面交互 ====================
 
   /**

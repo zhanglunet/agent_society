@@ -86,6 +86,10 @@ export class Runtime {
     this.contactManager = new ContactManager();
     // 工具调用事件监听器
     this._toolCallListeners = new Set();
+    // 错误事件监听器（用于向前端广播错误）
+    this._errorListeners = new Set();
+    // LLM 重试事件监听器
+    this._llmRetryListeners = new Set();
     // 模块加载器（在 init() 中会重新初始化带 logger）
     this.moduleLoader = new ModuleLoader();
     // LLM 服务注册表和模型选择器（在 init() 中初始化）
@@ -136,6 +140,54 @@ export class Runtime {
         listener(event);
       } catch (err) {
         void this.log?.warn?.("工具调用事件监听器执行失败", { error: err?.message ?? String(err) });
+      }
+    }
+  }
+
+  /**
+   * 注册错误事件监听器。
+   * @param {(event: {agentId: string, errorType: string, message: string, timestamp: string, [key: string]: any}) => void} listener
+   */
+  onError(listener) {
+    if (typeof listener === "function") {
+      this._errorListeners.add(listener);
+    }
+  }
+
+  /**
+   * 触发错误事件（用于向前端广播错误）。
+   * @param {{agentId: string, errorType: string, message: string, timestamp: string, [key: string]: any}} event
+   */
+  _emitError(event) {
+    for (const listener of this._errorListeners) {
+      try {
+        listener(event);
+      } catch (err) {
+        void this.log?.warn?.("错误事件监听器执行失败", { error: err?.message ?? String(err) });
+      }
+    }
+  }
+
+  /**
+   * 注册 LLM 重试事件监听器。
+   * @param {(event: {agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}) => void} listener
+   */
+  onLlmRetry(listener) {
+    if (typeof listener === "function") {
+      this._llmRetryListeners.add(listener);
+    }
+  }
+
+  /**
+   * 触发 LLM 重试事件。
+   * @param {{agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}} event
+   */
+  _emitLlmRetry(event) {
+    for (const listener of this._llmRetryListeners) {
+      try {
+        listener(event);
+      } catch (err) {
+        void this.log?.warn?.("LLM 重试事件监听器执行失败", { error: err?.message ?? String(err) });
       }
     }
   }
@@ -276,7 +328,11 @@ export class Runtime {
       this.systemWorkspacePrompt = "";
       void this.log.debug("工作空间提示词文件不存在，跳过加载");
     }
-    this.llm = this.config.llm ? new LlmClient({ ...this.config.llm, logger: this.loggerRoot.forModule("llm") }) : null;
+    this.llm = this.config.llm ? new LlmClient({ 
+      ...this.config.llm, 
+      logger: this.loggerRoot.forModule("llm"),
+      onRetry: (event) => this._emitLlmRetry(event)
+    }) : null;
     this.httpClient = new HttpClient({ logger: this.loggerRoot.forModule("http") });
     // 重新初始化 WorkspaceManager 和 CommandExecutor 带 logger
     this.workspaceManager = new WorkspaceManager({ logger: this.loggerRoot.forModule("workspace") });
@@ -2264,7 +2320,7 @@ export class Runtime {
   }
 
   /**
-   * 向父智能体发送错误通知的统一方法。
+   * 向父智能体发送错误通知的统一方法，同时触发全局错误事件。
    * @param {string} agentId - 当前智能体ID
    * @param {any} originalMessage - 原始消息
    * @param {{errorType: string, message: string, [key: string]: any}} errorInfo - 错误信息
@@ -2274,9 +2330,23 @@ export class Runtime {
   async _sendErrorNotificationToParent(agentId, originalMessage, errorInfo) {
     if (!agentId) return;
     
+    const timestamp = new Date().toISOString();
+    const errorEvent = {
+      agentId,
+      errorType: errorInfo.errorType,
+      message: errorInfo.message,
+      originalMessageId: originalMessage?.id ?? null,
+      taskId: originalMessage?.taskId ?? null,
+      timestamp,
+      ...errorInfo
+    };
+    
+    // 触发全局错误事件（用于前端显示）
+    this._emitError(errorEvent);
+    
     const parentAgentId = this._agentMetaById.get(agentId)?.parentAgentId ?? null;
     if (!parentAgentId || !this._agents.has(parentAgentId)) {
-      void this.log.debug("未找到父智能体，跳过错误通知", { 
+      void this.log.debug("未找到父智能体，跳过向父智能体发送错误通知", { 
         agentId, 
         parentAgentId,
         errorType: errorInfo.errorType 
@@ -2295,7 +2365,7 @@ export class Runtime {
           message: errorInfo.message,
           agentId,
           originalMessageId: originalMessage?.id ?? null,
-          timestamp: new Date().toISOString(),
+          timestamp,
           ...errorInfo // 包含其他错误详情
         }
       });
@@ -2520,7 +2590,8 @@ export class Runtime {
         model: serviceConfig.model,
         apiKey: serviceConfig.apiKey,
         maxConcurrentRequests: serviceConfig.maxConcurrentRequests ?? 2,
-        logger: this.loggerRoot.forModule(`llm_${serviceId}`)
+        logger: this.loggerRoot.forModule(`llm_${serviceId}`),
+        onRetry: (event) => this._emitLlmRetry(event)
       });
 
       // 存入池中
@@ -2596,7 +2667,8 @@ export class Runtime {
       // 创建新的 LlmClient 实例
       const newLlmClient = new LlmClient({
         ...newConfig.llm,
-        logger: this.loggerRoot.forModule("llm")
+        logger: this.loggerRoot.forModule("llm"),
+        onRetry: (event) => this._emitLlmRetry(event)
       });
 
       // 替换旧的 LlmClient

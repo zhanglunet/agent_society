@@ -162,6 +162,30 @@ export function getToolDefinitions() {
         }
       }
     },
+    {
+      type: "function",
+      function: {
+        name: "chrome_get_elements",
+        description: "获取页面可交互元素的结构化信息（JSON格式）。返回所有可见的文本、链接、按钮、输入框等控件信息，包含元素的选择器、文本内容、类型等，便于智能体分析页面并决策下一步操作（如点击、输入等）。",
+        parameters: {
+          type: "object",
+          properties: {
+            tabId: { type: "string", description: "标签页 ID" },
+            selector: { type: "string", description: "限定范围的 CSS 选择器（可选），不指定则获取整个页面的元素" },
+            types: { 
+              type: "array", 
+              items: { 
+                type: "string",
+                enum: ["link", "button", "input", "text", "image", "select", "textarea", "checkbox", "radio"]
+              },
+              description: "要获取的元素类型（可选），不指定则获取所有类型。可选值：link（链接）、button（按钮）、input（输入框，自动包含 textarea）、text（文本块）、image（图片）、select（下拉框，自动包含 checkbox 和 radio）、textarea（文本域）、checkbox（复选框）、radio（单选框）"
+            },
+            maxElements: { type: "number", description: "最大返回元素数量（可选），默认 100，避免返回过多数据" }
+          },
+          required: ["tabId"]
+        }
+      }
+    },
 
     // ==================== 页面交互 ====================
     {

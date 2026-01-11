@@ -64,6 +64,11 @@ export class HTTPServer {
     // LLM 连接状态跟踪
     this._llmStatus = "unknown"; // "connected" | "disconnected" | "error" | "unknown"
     this._llmLastError = null;
+    
+    // 错误和重试事件存储（用于前端轮询）
+    this._recentErrors = []; // 最近的错误事件
+    this._recentRetries = []; // 最近的重试事件
+    this._maxRecentEvents = 50; // 最多保留的事件数量
   }
 
   /**
@@ -395,7 +400,65 @@ export class HTTPServer {
           void this._storeToolCall(event);
         });
       }
+      
+      // 监听错误事件（如果 runtime 支持）
+      if (society.runtime && typeof society.runtime.onError === "function") {
+        society.runtime.onError((event) => {
+          this._storeErrorEvent(event);
+        });
+      }
+      
+      // 监听 LLM 重试事件（如果 runtime 支持）
+      if (society.runtime && typeof society.runtime.onLlmRetry === "function") {
+        society.runtime.onLlmRetry((event) => {
+          this._storeRetryEvent(event);
+        });
+      }
     }
+  }
+  
+  /**
+   * 存储错误事件。
+   * @param {{agentId: string, errorType: string, message: string, timestamp: string, [key: string]: any}} event
+   */
+  _storeErrorEvent(event) {
+    this._recentErrors.push(event);
+    // 限制存储数量
+    if (this._recentErrors.length > this._maxRecentEvents) {
+      this._recentErrors.shift();
+    }
+    void this.log.debug("存储错误事件", { agentId: event.agentId, errorType: event.errorType });
+  }
+  
+  /**
+   * 存储重试事件。
+   * @param {{agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}} event
+   */
+  _storeRetryEvent(event) {
+    this._recentRetries.push(event);
+    // 限制存储数量
+    if (this._recentRetries.length > this._maxRecentEvents) {
+      this._recentRetries.shift();
+    }
+    void this.log.debug("存储重试事件", { agentId: event.agentId, attempt: event.attempt, maxRetries: event.maxRetries });
+  }
+  
+  /**
+   * 获取最近的错误事件（并清除已获取的）。
+   * @param {string} [since] - 只返回此时间戳之后的事件
+   * @returns {{errors: Array, retries: Array}}
+   */
+  getRecentEvents(since) {
+    let errors = this._recentErrors;
+    let retries = this._recentRetries;
+    
+    if (since) {
+      const sinceTime = new Date(since).getTime();
+      errors = errors.filter(e => new Date(e.timestamp).getTime() > sinceTime);
+      retries = retries.filter(e => new Date(e.timestamp).getTime() > sinceTime);
+    }
+    
+    return { errors, retries };
   }
 
   /**
@@ -600,6 +663,9 @@ export class HTTPServer {
         this._handleGetMessages(taskId, res);
       } else if (method === "GET" && pathname === "/api/agents") {
         this._handleGetAgents(res);
+      } else if (method === "GET" && pathname === "/api/events") {
+        // 获取最近的错误和重试事件
+        this._handleGetEvents(req, res);
       } else if (method === "GET" && pathname === "/api/roles") {
         this._handleGetRoles(res);
       } else if (method === "GET" && pathname === "/api/tool-groups") {
@@ -1290,6 +1356,29 @@ export class HTTPServer {
       });
     } catch (err) {
       void this.log.error("查询智能体列表失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/events - 获取最近的错误和重试事件。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetEvents(req, res) {
+    try {
+      const url = new URL(req.url, `http://localhost:${this.port}`);
+      const since = url.searchParams.get("since");
+      
+      const { errors, retries } = this.getRecentEvents(since);
+      
+      this._sendJson(res, 200, { 
+        errors,
+        retries,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      void this.log.error("获取事件失败", { error: err.message, stack: err.stack });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
     }
   }

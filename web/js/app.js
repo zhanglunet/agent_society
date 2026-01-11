@@ -470,6 +470,9 @@ const App = {
 
       // 检查 LLM 连接状态
       await this.checkLlmStatus();
+      
+      // 检查错误和重试事件
+      await this.checkEvents();
 
     } catch (error) {
       this.consecutiveErrors++;
@@ -557,6 +560,91 @@ const App = {
     }
     
     return false;
+  },
+
+  // 上次检查事件的时间戳
+  _lastEventCheckTime: null,
+
+  /**
+   * 检查错误和重试事件
+   */
+  async checkEvents() {
+    try {
+      const result = await API.getEvents(this._lastEventCheckTime);
+      this._lastEventCheckTime = result.timestamp;
+      
+      // 处理错误事件
+      if (result.errors && result.errors.length > 0) {
+        for (const error of result.errors) {
+          // 显示错误弹窗
+          if (window.ErrorModal) {
+            window.ErrorModal.show({
+              title: this._getErrorTitle(error.errorType),
+              message: error.message,
+              errorType: error.errorType,
+              agentId: error.agentId,
+              originalError: error.originalError,
+              errorName: error.errorName,
+              taskId: error.taskId,
+              originalMessageId: error.originalMessageId,
+              timestamp: error.timestamp
+            });
+          }
+        }
+      }
+      
+      // 处理重试事件
+      if (result.retries && result.retries.length > 0) {
+        for (const retry of result.retries) {
+          // 显示重试提示
+          const agentName = this._getAgentDisplayName(retry.agentId);
+          Toast.warning(`${agentName} LLM 调用失败，正在重试 (${retry.attempt}/${retry.maxRetries})...`, 5000);
+        }
+      }
+    } catch (err) {
+      // 事件检查失败，忽略
+      console.warn('检查事件失败:', err);
+    }
+  },
+
+  /**
+   * 获取错误标题
+   * @param {string} errorType - 错误类型
+   * @returns {string} 错误标题
+   */
+  _getErrorTitle(errorType) {
+    const titles = {
+      'llm_call_failed': 'LLM 调用失败',
+      'llm_call_aborted': 'LLM 调用已中断',
+      'context_limit_exceeded': '上下文超出限制',
+      'max_tool_rounds_exceeded': '工具调用次数超限',
+      'agent_message_processing_failed': '智能体处理异常',
+      'network_error': '网络错误',
+      'api_error': 'API 错误'
+    };
+    return titles[errorType] || '发生错误';
+  },
+
+  /**
+   * 获取智能体显示名称
+   * @param {string} agentId - 智能体 ID
+   * @returns {string} 显示名称
+   */
+  _getAgentDisplayName(agentId) {
+    if (!agentId) return '未知';
+    if (agentId === 'user' || agentId === 'root') {
+      return agentId;
+    }
+    const agent = this.agentsById.get(agentId);
+    if (agent) {
+      if (agent.customName) {
+        return agent.customName;
+      }
+      if (agent.roleName) {
+        return `${agent.roleName}（${agentId}）`;
+      }
+    }
+    return agentId;
   },
 };
 
