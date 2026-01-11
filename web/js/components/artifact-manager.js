@@ -1070,8 +1070,21 @@ class ArtifactManager {
         };
       } else {
         // 普通工件
-        // 通过 API 加载内容（支持 JSON 和非 JSON 文件）
-        fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
+        const isImage = this._isImageType(artifact.type);
+        
+        if (isImage) {
+          // 图片类型：不需要通过 API 加载内容，直接使用文件名
+          // 图片会通过 /artifacts/ 路径直接加载
+          fullArtifact = {
+            id: artifact.id,
+            type: artifact.type,
+            content: artifact.filename, // 使用文件名作为内容引用
+            extension: artifact.extension
+          };
+        } else {
+          // 非图片类型：通过 API 加载内容
+          fullArtifact = await this.api.get(`/artifacts/${artifact.id}`);
+        }
         // 加载元数据
         metadata = await this.api.get(`/artifacts/${artifact.id}/metadata`);
       }
