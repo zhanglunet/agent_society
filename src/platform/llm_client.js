@@ -210,6 +210,26 @@ export class LlmClient {
           errorMessage: text
         }, meta);
         
+        // 触发重试/失败事件（用于前端显示）
+        // 注意：attempt 从 0 开始，所以 attempt + 1 表示当前是第几次尝试
+        if (this._onRetry && meta?.agentId) {
+          const isLastAttempt = attempt >= maxRetries - 1;
+          const delayMs = isLastAttempt ? 0 : Math.pow(2, attempt) * 1000;
+          try {
+            this._onRetry({
+              agentId: meta.agentId,
+              attempt: attempt + 1,
+              maxRetries,
+              delayMs,
+              errorMessage: text,
+              isFinalFailure: isLastAttempt,
+              timestamp: new Date().toISOString()
+            });
+          } catch (retryErr) {
+            void this.log.warn("触发重试事件失败", { error: retryErr?.message ?? String(retryErr) });
+          }
+        }
+
         // 如果是最后一次尝试，不再重试
         if (attempt >= maxRetries - 1) {
           void this.log.error("LLM 请求失败（已达最大重试次数）", { 
@@ -234,22 +254,6 @@ export class LlmClient {
           delayMs,
           stack: err?.stack ?? null
         });
-        
-        // 触发重试事件（用于前端显示）
-        if (this._onRetry && meta?.agentId) {
-          try {
-            this._onRetry({
-              agentId: meta.agentId,
-              attempt: attempt + 1,
-              maxRetries,
-              delayMs,
-              errorMessage: text,
-              timestamp: new Date().toISOString()
-            });
-          } catch (retryErr) {
-            void this.log.warn("触发重试事件失败", { error: retryErr?.message ?? String(retryErr) });
-          }
-        }
         
         await this._sleep(delayMs, signal);
       }

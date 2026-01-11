@@ -783,16 +783,20 @@ const ChatPanel = {
     };
     const errorTypeName = errorTypeNames[errorType] || errorType;
     
-    // 构建详细信息
+    // 构建详细信息（更完整的错误日志）
     const details = [];
+    details.push(`错误类型: ${errorType}`);
     if (payload.agentId) details.push(`智能体: ${payload.agentId}`);
-    if (payload.originalError) details.push(`原始错误: ${payload.originalError}`);
     if (payload.errorName) details.push(`错误名称: ${payload.errorName}`);
+    if (payload.originalError) details.push(`原始错误: ${payload.originalError}`);
+    if (payload.taskId) details.push(`任务ID: ${payload.taskId}`);
+    if (payload.originalMessageId) details.push(`消息ID: ${payload.originalMessageId}`);
+    if (payload.timestamp) details.push(`时间: ${new Date(payload.timestamp).toLocaleString('zh-CN')}`);
     const detailsText = details.join('\n');
 
     return `
       <div class="message-item error-message" data-message-id="${message.id}">
-        <div class="message-avatar">⚠️</div>
+        <div class="message-avatar">❌</div>
         <div class="message-content">
           <div class="message-header">
             <a class="message-sender" href="#" onclick="ChatPanel.navigateToSender('${message.from}', '${message.id}'); return false;">
@@ -802,8 +806,8 @@ const ChatPanel = {
             <span class="message-time">${time}</span>
           </div>
           <div class="message-bubble error-bubble">
-            <div class="error-message-content">${this.escapeHtml(errorMessage)}</div>
-            ${detailsText ? `<pre class="error-message-details">${this.escapeHtml(detailsText)}</pre>` : ''}
+            <div class="error-message-content">⚠️ ${this.escapeHtml(errorMessage)}</div>
+            <pre class="error-message-details">${this.escapeHtml(detailsText)}</pre>
           </div>
           <div class="error-message-actions">
             <button class="error-view-btn" onclick="ChatPanel.showErrorDetail('${message.id}')">

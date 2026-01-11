@@ -2528,6 +2528,22 @@ body {
 /* ========== 错误消息样式（聊天面板中） ========== */
 .message-item.error-message {
   flex-direction: row;
+  animation: error-pulse 0.5s ease-out;
+}
+
+@keyframes error-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 8px rgba(255, 107, 107, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+  }
 }
 
 .message-item.error-message .message-avatar {
@@ -2542,9 +2558,10 @@ body {
 
 .message-item.error-message .message-bubble {
   background-color: #fff5f5;
-  border: 1px solid #ffcdd2;
+  border: 2px solid #ef5350;
   color: #c62828;
   max-width: 500px;
+  box-shadow: 0 2px 8px rgba(239, 83, 80, 0.25);
 }
 
 .message-item.error-message .message-bubble::after {
@@ -2555,19 +2572,21 @@ body {
   font-size: 14px;
   line-height: 1.5;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .error-message-details {
   margin: 8px 0 0 0;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background-color: #ffebee;
-  border-radius: 4px;
+  border: 1px solid #ffcdd2;
+  border-radius: 6px;
   font-size: 12px;
   font-family: 'Consolas', 'Monaco', monospace;
   color: #b71c1c;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 100px;
+  max-height: 150px;
   overflow-y: auto;
 }
 

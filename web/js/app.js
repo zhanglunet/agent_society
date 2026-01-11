@@ -562,8 +562,8 @@ const App = {
     return false;
   },
 
-  // 上次检查事件的时间戳
-  _lastEventCheckTime: null,
+  // 上次检查事件的时间戳（初始化为当前时间，避免显示历史事件）
+  _lastEventCheckTime: new Date().toISOString(),
 
   /**
    * 检查错误和重试事件
@@ -598,9 +598,15 @@ const App = {
       if (result.retries && result.retries.length > 0) {
         console.log('[checkEvents] 收到重试事件:', result.retries);
         for (const retry of result.retries) {
-          // 显示重试提示
           const agentName = this._getAgentDisplayName(retry.agentId);
-          Toast.warning(`${agentName} LLM 调用失败，正在重试 (${retry.attempt}/${retry.maxRetries})...`, 5000);
+          
+          if (retry.isFinalFailure) {
+            // 最后一次尝试也失败了，显示错误提示
+            Toast.error(`${agentName} LLM 调用失败 (${retry.attempt}/${retry.maxRetries})，所有重试已用尽`, 8000);
+          } else {
+            // 还有重试机会，显示重试提示
+            Toast.warning(`${agentName} LLM 调用失败，正在重试 (${retry.attempt}/${retry.maxRetries})...`, 5000);
+          }
         }
       }
     } catch (err) {
