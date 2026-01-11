@@ -211,7 +211,13 @@ const renderComputeStatus = (agent) => {
   }
   
   if (computeStatus === 'processing') {
-    return '<span class="compute-status processing" title="处理中">⚙️</span>';
+    // 处理中状态也显示停止按钮，允许用户中断工具调用循环
+    return `
+      <span class="compute-status processing" title="处理中">⚙️</span>
+      <button class="abort-btn" 
+              onclick="event.stopPropagation(); AgentList.abortLlmCall('${agent.id}')" 
+              title="停止处理">⏹</button>
+    `;
   }
   
   return '';
@@ -262,7 +268,7 @@ describe('功能: llm-call-abort, 属性 1: 停止按钮可见性', () => {
     );
   });
 
-  test('当 computeStatus 为 processing 时，不应渲染停止按钮', () => {
+  test('当 computeStatus 为 processing 时，应渲染停止按钮', () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -272,10 +278,13 @@ describe('功能: llm-call-abort, 属性 1: 停止按钮可见性', () => {
         (agent) => {
           const html = renderComputeStatus(agent);
           
-          // 验证不包含停止按钮，但包含处理中状态
-          expect(html).not.toContain('abort-btn');
+          // 验证包含停止按钮和处理中状态
+          expect(html).toContain('abort-btn');
+          expect(html).toContain('停止处理');
+          expect(html).toContain('⏹');
           expect(html).toContain('processing');
           expect(html).toContain('⚙️');
+          expect(html).toContain(agent.id);
           
           return true;
         }

@@ -237,32 +237,40 @@ export class Runtime {
     }
 
     const currentStatus = this.getAgentComputeStatus(agentId);
-    if (currentStatus !== 'waiting_llm') {
-      return { ok: true, aborted: false, reason: 'not_waiting_llm' };
+    // 允许在 waiting_llm 和 processing 状态下中断
+    // waiting_llm: 正在等待 LLM 响应
+    // processing: 正在处理工具调用，可能会发起下一次 LLM 请求
+    if (currentStatus !== 'waiting_llm' && currentStatus !== 'processing') {
+      return { ok: true, aborted: false, reason: 'not_active' };
     }
 
     // 调用 LLM 客户端的 abort 方法
     const aborted = this.llm?.abort(agentId) ?? false;
     
+    // 无论是否成功中断 LLM 调用，都设置状态为 idle
+    // 这样可以阻止智能体继续处理
+    this.setAgentComputeStatus(agentId, 'idle');
+    
     if (aborted) {
-      this.setAgentComputeStatus(agentId, 'idle');
-      void this.log.info("LLM 调用已中断", { agentId });
-      
-      // 记录中断事件，用于调试和监控
-      void this.loggerRoot.logAgentLifecycleEvent("llm_call_aborted", {
-        agentId,
-        timestamp: new Date().toISOString(),
-        reason: "user_requested"
-      });
+      void this.log.info("LLM 调用已中断", { agentId, previousStatus: currentStatus });
     } else {
-      void this.log.warn("LLM 中断请求失败", { 
+      void this.log.info("智能体处理已停止", { 
         agentId, 
-        currentStatus,
-        hasLlmClient: !!this.llm 
+        previousStatus: currentStatus,
+        hadActiveLlmCall: false
       });
     }
+    
+    // 记录中断事件，用于调试和监控
+    void this.loggerRoot.logAgentLifecycleEvent("llm_call_aborted", {
+      agentId,
+      timestamp: new Date().toISOString(),
+      reason: "user_requested",
+      previousStatus: currentStatus,
+      llmCallAborted: aborted
+    });
 
-    return { ok: true, aborted };
+    return { ok: true, aborted: aborted || currentStatus === 'processing' };
   }
 
   /**

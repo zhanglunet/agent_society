@@ -379,7 +379,13 @@ const AgentList = {
     }
     
     if (computeStatus === 'processing') {
-      return '<span class="compute-status processing" title="处理中">⚙️</span>';
+      // 处理中状态也显示停止按钮，允许用户中断工具调用循环
+      return `
+        <span class="compute-status processing" title="处理中">⚙️</span>
+        <button class="abort-btn" 
+                onclick="event.stopPropagation(); AgentList.abortLlmCall('${agent.id}')" 
+                title="停止处理">⏹</button>
+      `;
     }
     
     return '';

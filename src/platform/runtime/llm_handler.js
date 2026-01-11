@@ -247,6 +247,16 @@ export class LlmHandler {
     const tools = runtime.getToolDefinitions();
     
     for (let i = 0; i < runtime.maxToolRounds; i += 1) {
+      // 检查是否被用户中断（状态被设置为 idle）
+      const currentStatus = runtime.getAgentComputeStatus?.(agentId);
+      if (currentStatus === 'idle') {
+        void runtime.log?.info?.("检测到用户中断，停止处理", {
+          agentId: ctx.agent?.id ?? null,
+          round: i + 1
+        });
+        return;
+      }
+      
       let msg = null;
       try {
         const llmMeta = {
@@ -412,6 +422,15 @@ export class LlmHandler {
       });
 
       for (const call of toolCalls) {
+        // 在每个工具调用前检查是否被用户中断
+        const statusBeforeTool = runtime.getAgentComputeStatus?.(agentId);
+        if (statusBeforeTool === 'idle') {
+          void runtime.log?.info?.("检测到用户中断，停止工具调用处理", {
+            agentId: ctx.agent?.id ?? null,
+            toolName: call?.function?.name ?? 'unknown'
+          });
+          return;
+        }
         await this._processToolCall(ctx, call, conv, msg, message);
       }
       
