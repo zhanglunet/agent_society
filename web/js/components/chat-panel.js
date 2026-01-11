@@ -354,15 +354,15 @@ const ChatPanel = {
     this.scrollToBottom();
     this.updateInputPlaceholder();
     
-    // 检查最近的错误消息并显示弹窗（只显示最近5分钟内的错误）
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    for (let i = this.messages.length - 1; i >= 0; i--) {
-      const msg = this.messages[i];
-      if (msg.payload && msg.payload.kind === 'error') {
-        const msgTime = new Date(msg.createdAt).getTime();
-        if (msgTime > fiveMinutesAgo && window.ErrorModal) {
-          window.ErrorModal.checkAndShowError(msg);
-          break; // 只显示最近的一个错误
+    // 检查最后一条消息是否是错误消息，如果是则显示弹窗
+    if (this.messages.length > 0) {
+      const lastMsg = this.messages[this.messages.length - 1];
+      if (lastMsg.payload && lastMsg.payload.kind === 'error' && window.ErrorModal) {
+        // 只显示最近5分钟内的错误
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        const msgTime = new Date(lastMsg.createdAt).getTime();
+        if (msgTime > fiveMinutesAgo) {
+          window.ErrorModal.checkAndShowError(lastMsg);
         }
       }
     }

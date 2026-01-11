@@ -277,6 +277,15 @@ export class LlmHandler {
           stack: err?.stack ?? null
         });
 
+        // 从对话历史中移除导致失败的用户消息，避免下次调用时再次发送
+        if (i === 0 && conv.length > 0 && conv[conv.length - 1].role === "user") {
+          conv.pop();
+          void runtime.log?.info?.("已从对话历史中移除导致失败的用户消息", {
+            agentId: ctx.agent?.id ?? null,
+            messageId: message?.id ?? null
+          });
+        }
+
         if (errorType === "AbortError") {
           void runtime.log?.info?.("LLM 调用被用户中断", { 
             agentId: ctx.agent?.id ?? null,
@@ -550,9 +559,52 @@ export class LlmHandler {
     
     if (!agentId) return;
     
+    const timestamp = new Date().toISOString();
+    
+    // 构建错误消息 payload
+    const errorPayload = {
+      kind: "error",
+      errorType: errorInfo.errorType,
+      message: errorInfo.message,
+      agentId,
+      originalMessageId: originalMessage?.id ?? null,
+      taskId: originalMessage?.taskId ?? null,
+      timestamp,
+      ...errorInfo
+    };
+
+    // 1. 直接存储错误消息到聊天记录（不通过 bus.send，避免触发消息处理）
+    const errorMessageId = runtime._generateUUID?.() ?? Date.now().toString();
+    const errorMessage = {
+      id: errorMessageId,
+      from: agentId,
+      to: agentId,
+      taskId: originalMessage?.taskId ?? null,
+      payload: errorPayload,
+      createdAt: timestamp
+    };
+    
+    if (typeof runtime._storeErrorMessageCallback === 'function') {
+      try {
+        runtime._storeErrorMessageCallback(errorMessage);
+        void runtime.log?.info?.("已保存错误消息到智能体聊天记录", {
+          agentId,
+          errorType: errorInfo.errorType,
+          messageId: errorMessageId
+        });
+      } catch (storeErr) {
+        void runtime.log?.error?.("保存错误消息到聊天记录失败", {
+          agentId,
+          errorType: errorInfo.errorType,
+          error: storeErr?.message ?? String(storeErr)
+        });
+      }
+    }
+
+    // 2. 向父智能体发送错误通知（通过 bus.send，让父智能体知道子智能体出错了）
     const parentAgentId = runtime._agentMetaById.get(agentId)?.parentAgentId ?? null;
     if (!parentAgentId || !runtime._agents.has(parentAgentId)) {
-      void runtime.log?.debug?.("未找到父智能体，跳过错误通知", { 
+      void runtime.log?.debug?.("未找到父智能体，跳过向父智能体发送错误通知", { 
         agentId, 
         parentAgentId,
         errorType: errorInfo.errorType 
@@ -565,15 +617,7 @@ export class LlmHandler {
         to: parentAgentId,
         from: agentId,
         taskId: originalMessage?.taskId ?? null,
-        payload: {
-          kind: "error",
-          errorType: errorInfo.errorType,
-          message: errorInfo.message,
-          agentId,
-          originalMessageId: originalMessage?.id ?? null,
-          timestamp: new Date().toISOString(),
-          ...errorInfo
-        }
+        payload: errorPayload
       });
       
       void runtime.log?.info?.("已向父智能体发送错误通知", {

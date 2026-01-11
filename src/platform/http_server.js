@@ -414,6 +414,13 @@ export class HTTPServer {
           this._storeRetryEvent(event);
         });
       }
+      
+      // 注册错误消息存储回调到 runtime
+      if (society.runtime) {
+        society.runtime._storeErrorMessageCallback = (message) => {
+          void this._storeMessage(message);
+        };
+      }
     }
   }
   
