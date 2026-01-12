@@ -136,6 +136,10 @@ class ArtifactManager {
                 <button class="text-mode-btn active" data-mode="text">纯文本</button>
                 <button class="text-mode-btn" data-mode="markdown">Markdown</button>
               </div>
+              <div class="json-mode-toggle" style="display: none;">
+                <button class="json-mode-btn active" data-mode="text">文本</button>
+                <button class="json-mode-btn" data-mode="json">JSON</button>
+              </div>
               <button class="copy-artifact-btn" title="复制内容">📋</button>
               <button class="download-artifact-btn" title="下载">⬇️</button>
               <button class="viewer-maximize-btn" title="最大化/还原">⬜</button>
@@ -176,6 +180,8 @@ class ArtifactManager {
     this.closeWindowBtn = this.container.querySelector(".close-btn");
     this.textModeToggle = this.container.querySelector(".text-mode-toggle");
     this.textModeButtons = this.container.querySelectorAll(".text-mode-btn");
+    this.jsonModeToggle = this.container.querySelector(".json-mode-toggle");
+    this.jsonModeButtons = this.container.querySelectorAll(".json-mode-btn");
     this.copyArtifactBtn = this.container.querySelector(".copy-artifact-btn");
     this.downloadArtifactBtn = this.container.querySelector(".download-artifact-btn");
     this.viewerMaximizeBtn = this.container.querySelector(".viewer-maximize-btn");
@@ -185,6 +191,11 @@ class ArtifactManager {
     this.textDisplayMode = "text"; // "text" 或 "markdown"
     this.currentTextContent = null; // 当前文本内容
     this.isViewerMaximized = false; // 查看器是否最大化
+    
+    // JSON显示模式
+    this.jsonDisplayMode = "text"; // "text" 或 "json"
+    this.currentJsonContent = null; // 当前JSON内容（解析后的对象）
+    this.currentJsonRaw = null; // 当前JSON原始文本
   }
 
   /**
@@ -279,6 +290,14 @@ class ArtifactManager {
       btn.addEventListener("click", (e) => {
         const mode = e.target.dataset.mode;
         this.setTextDisplayMode(mode);
+      });
+    });
+
+    // JSON模式切换
+    this.jsonModeButtons?.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const mode = e.target.dataset.mode;
+        this.setJsonDisplayMode(mode);
       });
     });
 
@@ -525,6 +544,8 @@ class ArtifactManager {
     this.isViewerOpen = false;
     this.selectedArtifact = null;
     this.currentTextContent = null;
+    this.currentJsonContent = null;
+    this.currentJsonRaw = null;
     
     // 如果是全屏状态，先移回原位置
     if (this.isViewerMaximized) {
@@ -540,6 +561,7 @@ class ArtifactManager {
     this.artifactNameSpan.textContent = "未选择工件";
     this.viewSourceBtn.style.display = "none";
     this.textModeToggle.style.display = "none";
+    this.jsonModeToggle.style.display = "none";
   }
 
   /**
@@ -699,6 +721,69 @@ class ArtifactManager {
     if (this.currentTextContent !== null) {
       this._renderTextContent(this.currentTextContent);
     }
+  }
+
+  /**
+   * 设置JSON显示模式
+   * @param {string} mode - "text" 或 "json"
+   */
+  setJsonDisplayMode(mode) {
+    this.jsonDisplayMode = mode;
+    this.jsonModeButtons?.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+    
+    // 重新渲染JSON内容
+    if (this.currentJsonContent !== null || this.currentJsonRaw !== null) {
+      this.viewerPanel.innerHTML = "";
+      if (mode === "json") {
+        this._renderJsonTreeView(this.currentJsonContent);
+      } else {
+        this._renderJsonTextView(this.currentJsonRaw);
+      }
+    }
+  }
+
+  /**
+   * 渲染JSON树状视图
+   * @param {any} data - 解析后的JSON数据
+   */
+  _renderJsonTreeView(data) {
+    const viewer = new JSONViewer({ container: this.viewerPanel });
+    viewer.render(data);
+    this.currentViewer = viewer;
+  }
+
+  /**
+   * 渲染JSON文本视图
+   * @param {string} content - JSON文本内容
+   */
+  _renderJsonTextView(content) {
+    const maxLength = 5000;
+    let displayContent = content || "";
+    let isTruncated = false;
+    
+    if (displayContent.length > maxLength) {
+      displayContent = displayContent.substring(0, maxLength);
+      isTruncated = true;
+    }
+    
+    const wrapper = document.createElement("div");
+    wrapper.className = "json-text-viewer";
+    
+    const pre = document.createElement("pre");
+    pre.className = "json-text-content";
+    pre.textContent = displayContent;
+    wrapper.appendChild(pre);
+    
+    if (isTruncated) {
+      const truncateInfo = document.createElement("div");
+      truncateInfo.className = "json-truncate-info";
+      truncateInfo.textContent = `内容已截断，共 ${content.length} 字符，显示前 ${maxLength} 字符`;
+      wrapper.appendChild(truncateInfo);
+    }
+    
+    this.viewerPanel.appendChild(wrapper);
   }
 
   /**
@@ -1006,6 +1091,11 @@ class ArtifactManager {
     // HTML 类型使用 iframe 查看器
     if (lowerType === "html") return "html";
     
+    // JSON 类型检查：通过 type 或 MIME 类型判断
+    if (lowerType === "json" || lowerType === "application/json") {
+      return "json";
+    }
+    
     // 检查内容类型
     if (typeof content === "string") {
       // 字符串内容使用文本查看器
@@ -1116,12 +1206,37 @@ class ArtifactManager {
   _displayArtifact(artifact, viewerType) {
     this.viewerPanel.innerHTML = "";
     this.textModeToggle.style.display = "none";
+    this.jsonModeToggle.style.display = "none";
     this.currentTextContent = null;
+    this.currentJsonContent = null;
+    this.currentJsonRaw = null;
 
     if (viewerType === "json") {
-      const viewer = new JSONViewer({ container: this.viewerPanel });
-      viewer.render(artifact.content);
-      this.currentViewer = viewer;
+      // 使用JSON解析器处理可能的双重编码
+      const parseResult = window.JsonParser 
+        ? window.JsonParser.parseJsonContent(artifact.content)
+        : { data: artifact.content, isValid: true };
+      
+      // 保存解析后的JSON内容
+      this.currentJsonContent = parseResult.data;
+      this.currentJsonRaw = typeof artifact.content === "string" 
+        ? artifact.content 
+        : JSON.stringify(artifact.content, null, 2);
+      
+      // 如果解析后是对象，格式化为字符串用于文本视图
+      if (typeof this.currentJsonContent === "object" && this.currentJsonContent !== null) {
+        this.currentJsonRaw = JSON.stringify(this.currentJsonContent, null, 2);
+      }
+      
+      // 显示JSON模式切换按钮
+      this.jsonModeToggle.style.display = "flex";
+      
+      // 根据当前模式渲染
+      if (this.jsonDisplayMode === "json") {
+        this._renderJsonTreeView(this.currentJsonContent);
+      } else {
+        this._renderJsonTextView(this.currentJsonRaw);
+      }
     } else if (viewerType === "text") {
       // 显示文本模式切换按钮
       this.textModeToggle.style.display = "flex";

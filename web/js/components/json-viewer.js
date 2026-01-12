@@ -45,7 +45,7 @@ class JSONViewer {
     if (isExpandable) {
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "json-toggle-btn";
-      toggleBtn.textContent = "▼";
+      toggleBtn.textContent = "▶"; // 默认收缩状态
       toggleBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this._toggleNode(nodeId, toggleBtn, content);

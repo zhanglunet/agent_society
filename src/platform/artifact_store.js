@@ -75,8 +75,27 @@ export class ArtifactStore {
     const filePath = path.resolve(this.artifactsDir, `${id}${extension}`);
     const createdAt = new Date().toISOString();
     
-    // 工件文件只保存原始内容
-    await writeFile(filePath, JSON.stringify(artifact.content, null, 2), "utf8");
+    // 工件文件只保存原始内容，避免双重编码
+    // 如果content已经是字符串且是有效的JSON，直接保存
+    // 否则序列化为JSON
+    let contentToWrite;
+    if (typeof artifact.content === "string") {
+      // 检查是否已经是有效的JSON字符串
+      try {
+        JSON.parse(artifact.content);
+        // 是有效的JSON字符串，直接保存（避免双重编码）
+        contentToWrite = artifact.content;
+        void this.log.debug("工件内容已是JSON字符串，直接保存", { id });
+      } catch {
+        // 不是有效的JSON，作为普通字符串序列化
+        contentToWrite = JSON.stringify(artifact.content, null, 2);
+      }
+    } else {
+      // 对象或其他类型，序列化为JSON
+      contentToWrite = JSON.stringify(artifact.content, null, 2);
+    }
+    
+    await writeFile(filePath, contentToWrite, "utf8");
     
     // 元信息保存到独立的 .meta 文件
     const metadata = {

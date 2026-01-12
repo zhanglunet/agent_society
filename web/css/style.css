@@ -3159,6 +3159,67 @@ body {
   color: #fff;
 }
 
+/* JSON模式切换按钮 - 与文本模式切换按钮样式一致 */
+.json-mode-toggle {
+  display: flex;
+  gap: 2px;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.json-mode-btn {
+  padding: 4px 10px;
+  border: none;
+  background-color: #3c3c3c;
+  color: #d4d4d4;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.2s;
+}
+
+.json-mode-btn:hover {
+  background-color: #454545;
+}
+
+.json-mode-btn.active {
+  background-color: #07c160;
+  color: #fff;
+}
+
+/* JSON文本视图样式 */
+.json-text-viewer {
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+
+.json-text-content {
+  margin: 0;
+  padding: 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: auto;
+}
+
+.json-truncate-info {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #3c3c3c;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  color: #ffc107;
+  font-size: 12px;
+  text-align: center;
+}
+
 .artifact-name {
   font-size: 13px;
   font-weight: 500;
