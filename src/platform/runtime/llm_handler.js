@@ -415,7 +415,7 @@ export class LlmHandler {
             contentPreview: content.substring(0, 100)
           });
           
-          const messageId = ctx.tools.sendMessage({
+          const sendResult = ctx.tools.sendMessage({
             to: targetId,
             from: currentAgentId,
             taskId: currentTaskId,
@@ -424,7 +424,7 @@ export class LlmHandler {
           
           void runtime.loggerRoot?.logAgentLifecycleEvent?.("agent_message_sent", {
             agentId: currentAgentId,
-            messageId,
+            messageId: sendResult?.messageId ?? null,
             to: targetId,
             taskId: currentTaskId,
             autoSent: true

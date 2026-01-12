@@ -215,7 +215,9 @@ export class ContextBuilder {
       },
       sendMessage: (message) => {
         const to = message?.to ?? null;
-        if (!to || !runtime._agents.has(String(to))) {
+        // 允许发送给特殊收件人 (user, root) 或已注册的智能体
+        const isSpecialRecipient = to === "user" || to === "root";
+        if (!to || (!isSpecialRecipient && !runtime._agents.has(String(to)))) {
           void runtime.log?.warn?.("发送消息收件人不存在（已拦截）", { to: to ?? null, from: message?.from ?? null });
           return null;
         }

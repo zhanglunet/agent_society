@@ -123,3 +123,12 @@ send_message({
 - 参数 keepRecentCount（可选）：保留最近多少条消息，默认10条
 - 调用时机：当收到上下文过长警告时，或主动判断历史信息过多时
 - 注意：压缩是不可逆的，确保摘要包含所有重要信息
+
+[send_message 支持计划任务]
+1) send_message 支持可选的参数 delayMs，用于延迟若干毫秒再投递消息。
+2) 你可以在 send_message 中指定 delayMs，实现计划任务。
+3) delayMs 为 0 时，消息会立即投递。
+4) delayMs 为 1000 时，消息会在 1 秒后投递。
+5) 可以向自己发送消息，以实现定时提醒或计划任务。
+
+计划任务一定不要用JavaScript实现，必须用 send_message的延迟消息实现。

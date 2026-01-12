@@ -1847,21 +1847,26 @@ export class Runtime {
           });
         }
         
-        const messageId = ctx.tools.sendMessage({
+        const sendResult = ctx.tools.sendMessage({
           to: recipientId,
           from: senderId, // 系统自动填充 from 字段
           taskId: currentTaskId, // 系统自动传递 taskId
-          payload: args.payload
+          payload: args.payload,
+          delayMs: args.delayMs  // 传递延迟参数
         });
-        const result = { messageId };
-        void this.log.debug("工具调用完成", { toolName, ok: true, messageId });
+        const result = sendResult ? { 
+          messageId: sendResult.messageId,
+          ...(sendResult.scheduledDeliveryTime ? { scheduledDeliveryTime: sendResult.scheduledDeliveryTime } : {})
+        } : { messageId: null };
+        void this.log.debug("工具调用完成", { toolName, ok: true, messageId: result.messageId, delayMs: args.delayMs ?? null });
         
         // 记录智能体发送消息的生命周期事件
         void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
           agentId: senderId,
-          messageId,
+          messageId: result.messageId,
           to: recipientId,
-          taskId: currentTaskId
+          taskId: currentTaskId,
+          delayMs: args.delayMs ?? null
         });
         
         return result;
@@ -2210,7 +2215,7 @@ export class Runtime {
             contentPreview: content.substring(0, 100)
           });
           
-          const messageId = ctx.tools.sendMessage({
+          const sendResult = ctx.tools.sendMessage({
             to: targetId,
             from: currentAgentId,
             taskId: currentTaskId,
@@ -2220,7 +2225,7 @@ export class Runtime {
           // 记录智能体发送消息的生命周期事件
           void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
             agentId: currentAgentId,
-            messageId,
+            messageId: sendResult?.messageId ?? null,
             to: targetId,
             taskId: currentTaskId,
             autoSent: true
@@ -2994,7 +2999,7 @@ export class Runtime {
     };
 
     // 发送任务消息给新创建的智能体
-    const messageId = this.bus.send({
+    const sendResult = this.bus.send({
       to: newAgentId,
       from: creatorId,
       taskId,
@@ -3006,14 +3011,14 @@ export class Runtime {
       newAgentId,
       roleId: spawnResult.roleId,
       roleName: spawnResult.roleName,
-      messageId,
+      messageId: sendResult.messageId,
       taskId
     });
 
     // 记录智能体发送消息的生命周期事件
     void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
       agentId: creatorId,
-      messageId,
+      messageId: sendResult.messageId,
       to: newAgentId,
       taskId
     });
@@ -3022,7 +3027,7 @@ export class Runtime {
       id: newAgentId,
       roleId: spawnResult.roleId,
       roleName: spawnResult.roleName,
-      messageId
+      messageId: sendResult.messageId
     };
   }
 

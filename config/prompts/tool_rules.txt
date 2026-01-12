@@ -109,7 +109,3 @@ spawn_agent_with_task({
 1) 父智能体在创建你时通过 taskBrief.collaborators 预设
 2) 向已认识的智能体请求介绍（发送 introduction_request）
 3) 收到其他智能体的首次消息后自动添加
-
-【from 字段自动填充】
-send_message 的 from 字段由系统自动填充为你的智能体ID，无需手动指定。
-接收方可以通过消息中的 from 字段知道消息来自谁，并使用该ID回复。

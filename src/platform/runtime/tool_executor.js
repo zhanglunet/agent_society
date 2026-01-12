@@ -175,12 +175,16 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "send_message",
-          description: "发送异步消息。from 默认使用当前智能体 id。taskId 由系统自动处理，无需传入。",
+          description: "发送异步消息。from 默认使用当前智能体 id。",
           parameters: {
             type: "object",
             properties: {
               to: { type: "string" },
-              payload: { type: "object" }
+              payload: { type: "object" },
+              delayMs: { 
+                type: "number", 
+                description: "延迟投递时间（毫秒），消息将在指定时间后才进入收件人队列。不指定或为0则立即投递。可以用于一段时间之后的提醒，比如闹钟、计划任务等。" 
+              }
             },
             required: ["to", "payload"]
           }
@@ -626,7 +630,7 @@ export class ToolExecutor {
       ...args.initialMessage
     };
 
-    const messageId = runtime.bus.send({
+    const sendResult = runtime.bus.send({
       to: newAgentId,
       from: creatorId,
       taskId,
@@ -637,7 +641,7 @@ export class ToolExecutor {
       creatorId,
       newAgentId,
       roleId: spawnResult.roleId,
-      messageId,
+      messageId: sendResult.messageId,
       taskId
     });
 
@@ -645,7 +649,7 @@ export class ToolExecutor {
       id: newAgentId,
       roleId: spawnResult.roleId,
       roleName: spawnResult.roleName,
-      messageId
+      messageId: sendResult.messageId
     };
   }
 
@@ -701,21 +705,23 @@ export class ToolExecutor {
     }
 
     const currentTaskId = ctx.currentMessage?.taskId ?? null;
-    const messageId = ctx.tools.sendMessage({
+    const result = ctx.tools.sendMessage({
       to: recipientId,
       from: senderId,
       taskId: currentTaskId,
-      payload: args.payload
+      payload: args.payload,
+      delayMs: args.delayMs  // 传递延迟参数
     });
 
     void runtime.loggerRoot?.logAgentLifecycleEvent?.("agent_message_sent", {
       agentId: senderId,
-      messageId,
+      messageId: result.messageId,
       to: recipientId,
-      taskId: currentTaskId
+      taskId: currentTaskId,
+      delayMs: args.delayMs ?? null
     });
 
-    return { messageId };
+    return result;
   }
 
   async _executePutArtifact(ctx, args) {

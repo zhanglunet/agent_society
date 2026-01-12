@@ -10,22 +10,59 @@ export class MessageBus {
    */
   constructor(options = {}) {
     this._queues = new Map();
+    this._delayedMessages = [];  // 延迟消息队列，按 deliverAt 排序
     this._waiters = new Set();
     this.log = options.logger ?? createNoopModuleLogger();
   }
 
   /**
-   * 发送异步消息。
-   * @param {{to:string, from:string, payload:any, taskId?:string}} message
-   * @returns {string} message_id
+   * 发送异步消息（支持延迟投递）。
+   * @param {{to:string, from:string, payload:any, taskId?:string, delayMs?:number|string}} message
+   * @returns {{messageId:string, scheduledDeliveryTime?:string}} 消息ID和预计投递时间（延迟消息）
    */
   send(message) {
     const id = randomUUID();
+    const now = Date.now();
+    // 支持字符串形式的数字（LLM 可能传递字符串）
+    const rawDelayMs = message.delayMs;
+    const parsedDelayMs = typeof rawDelayMs === "number" ? rawDelayMs : 
+                          typeof rawDelayMs === "string" ? Number(rawDelayMs) : 0;
+    const delayMs = Math.max(0, Number.isFinite(parsedDelayMs) ? parsedDelayMs : 0);
+    
     const envelope = {
       id,
-      createdAt: new Date().toISOString(),
-      ...message
+      createdAt: new Date(now).toISOString(),
+      to: message.to,
+      from: message.from,
+      payload: message.payload,
+      taskId: message.taskId
     };
+
+    // 延迟投递
+    if (delayMs > 0) {
+      const deliverAt = now + delayMs;
+      this._delayedMessages.push({ ...envelope, deliverAt });
+      // 按投递时间排序，保持稳定排序以维持发送顺序
+      this._delayedMessages.sort((a, b) => a.deliverAt - b.deliverAt);
+      
+      void this.log.info("发送延迟消息", {
+        agentId: envelope.from,
+        id,
+        to: envelope.to,
+        from: envelope.from,
+        taskId: envelope.taskId ?? null,
+        payload: envelope.payload ?? null,
+        delayMs,
+        deliverAt: new Date(deliverAt).toISOString()
+      });
+      
+      return { 
+        messageId: id, 
+        scheduledDeliveryTime: new Date(deliverAt).toISOString() 
+      };
+    }
+
+    // 立即投递（原有逻辑）
     const q = this._queues.get(envelope.to) ?? [];
     const queueSizeBefore = q.length;
     q.push(envelope);
@@ -42,7 +79,7 @@ export class MessageBus {
     });
     for (const w of this._waiters) w();
     this._waiters.clear();
-    return id;
+    return { messageId: id };
   }
 
   /**
@@ -142,6 +179,84 @@ export class MessageBus {
     for (const q of this._queues.values()) {
       count += q.length;
     }
+    return count;
+  }
+
+  /**
+   * 检查并投递到期的延迟消息。
+   * @returns {number} 投递的消息数量
+   */
+  deliverDueMessages() {
+    const now = Date.now();
+    let deliveredCount = 0;
+    
+    while (this._delayedMessages.length > 0) {
+      const msg = this._delayedMessages[0];
+      if (msg.deliverAt > now) break;
+      
+      // 移除延迟队列
+      this._delayedMessages.shift();
+      
+      // 投递到立即队列
+      const { deliverAt, ...envelope } = msg;
+      const q = this._queues.get(envelope.to) ?? [];
+      q.push(envelope);
+      this._queues.set(envelope.to, q);
+      
+      deliveredCount++;
+      
+      void this.log.info("延迟消息已投递", {
+        id: envelope.id,
+        to: envelope.to,
+        from: envelope.from,
+        scheduledAt: new Date(deliverAt).toISOString(),
+        actualDeliveryAt: new Date(now).toISOString(),
+        delayDrift: now - deliverAt
+      });
+    }
+    
+    if (deliveredCount > 0) {
+      for (const w of this._waiters) w();
+      this._waiters.clear();
+    }
+    
+    return deliveredCount;
+  }
+
+  /**
+   * 获取延迟消息数量。
+   * @param {string} [recipientId] - 可选，指定收件人
+   * @returns {number}
+   */
+  getDelayedCount(recipientId) {
+    if (recipientId) {
+      return this._delayedMessages.filter(m => m.to === recipientId).length;
+    }
+    return this._delayedMessages.length;
+  }
+
+  /**
+   * 强制投递所有延迟消息（用于关闭时）。
+   * @returns {number} 投递的消息数量
+   */
+  forceDeliverAllDelayed() {
+    const count = this._delayedMessages.length;
+    
+    for (const msg of this._delayedMessages) {
+      const { deliverAt, ...envelope } = msg;
+      const q = this._queues.get(envelope.to) ?? [];
+      q.push(envelope);
+      this._queues.set(envelope.to, q);
+    }
+    
+    this._delayedMessages.length = 0;
+    
+    if (count > 0) {
+      void this.log.info("强制投递所有延迟消息", { count });
+      for (const w of this._waiters) w();
+      this._waiters.clear();
+    }
+    
     return count;
   }
 }
