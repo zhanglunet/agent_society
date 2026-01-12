@@ -303,11 +303,33 @@ export class LlmHandler {
             taskId: message?.taskId ?? null
           });
           
-          await this.sendErrorNotificationToParent(agentId, message, {
-            errorType: "llm_call_aborted",
-            message: "LLM 调用被用户中断",
-            originalError: text
-          });
+          // 用户中断不是错误，不向父智能体发送错误通知
+          // 只记录一条简单的中断消息到当前智能体的聊天记录
+          const timestamp = new Date().toISOString();
+          const abortMessageId = runtime._generateUUID?.() ?? Date.now().toString();
+          const abortMessage = {
+            id: abortMessageId,
+            from: agentId,
+            to: agentId,
+            taskId: message?.taskId ?? null,
+            payload: {
+              kind: "abort",
+              errorType: "llm_call_aborted",
+              message: "LLM 调用被用户中断"
+            },
+            createdAt: timestamp
+          };
+          
+          if (typeof runtime._storeErrorMessageCallback === 'function') {
+            try {
+              runtime._storeErrorMessageCallback(abortMessage);
+            } catch (storeErr) {
+              void runtime.log?.error?.("保存中断消息失败", {
+                agentId,
+                error: storeErr?.message ?? String(storeErr)
+              });
+            }
+          }
           
           return;
         } else {

@@ -577,7 +577,14 @@ const App = {
       if (result.errors && result.errors.length > 0) {
         console.log('[checkEvents] 收到错误事件:', result.errors);
         for (const error of result.errors) {
-          // 显示错误弹窗
+          // 用户中断不是严重错误，使用 Toast 警告提示
+          if (error.errorType === 'llm_call_aborted') {
+            const agentName = this._getAgentDisplayName(error.agentId);
+            Toast.warning(`${agentName} 的 LLM 调用已被中断`, 3000);
+            continue;
+          }
+          
+          // 其他错误显示错误弹窗
           if (window.ErrorModal) {
             window.ErrorModal.show({
               title: this._getErrorTitle(error.errorType),

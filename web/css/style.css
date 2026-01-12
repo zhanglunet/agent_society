@@ -2616,6 +2616,54 @@ body {
 }
 
 
+/* ========== 中断消息样式（用户中断，橙色警告） ========== */
+.message-item.abort-message {
+  flex-direction: row;
+}
+
+.message-item.abort-message .message-avatar {
+  background-color: #ff9800;
+  color: #fff;
+  font-size: 16px;
+}
+
+.message-item.abort-message .message-content {
+  align-items: flex-start;
+}
+
+.message-item.abort-message .message-bubble {
+  background-color: #fff8e1;
+  border: 1px solid #ffcc80;
+  color: #e65100;
+  max-width: 400px;
+}
+
+.message-item.abort-message .message-bubble::after {
+  border-right-color: #fff8e1;
+}
+
+.abort-message-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: #fff3e0;
+  color: #e65100;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.abort-message-content {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.abort-bubble {
+  border-radius: 8px !important;
+}
+
+
 /* ========== 工件管理器浮动窗口样式 ========== */
 .artifact-window {
   position: fixed;

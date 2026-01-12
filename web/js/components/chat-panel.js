@@ -357,6 +357,7 @@ const ChatPanel = {
     // 检查最后一条消息是否是错误消息，如果是则显示弹窗
     if (this.messages.length > 0) {
       const lastMsg = this.messages[this.messages.length - 1];
+      // 只对真正的错误消息显示弹窗，中断消息（kind === 'abort'）不显示
       if (lastMsg.payload && lastMsg.payload.kind === 'error' && window.ErrorModal) {
         // 只显示最近5分钟内的错误
         const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
@@ -405,7 +406,7 @@ const ChatPanel = {
     this.messages.push(message);
     this.messagesById.set(message.id, message);
     
-    // 检查是否是错误消息，如果是则显示错误弹窗
+    // 检查是否是错误消息，如果是则显示错误弹窗（中断消息不显示）
     if (window.ErrorModal && message.payload && message.payload.kind === 'error') {
       window.ErrorModal.checkAndShowError(message);
     }
@@ -527,6 +528,11 @@ const ChatPanel = {
       // 检查是否为错误消息
       if (message.payload && message.payload.kind === 'error') {
         return this.renderErrorMessage(message);
+      }
+      
+      // 检查是否为中断消息（用户中断，使用橙色警告样式）
+      if (message.payload && message.payload.kind === 'abort') {
+        return this.renderAbortMessage(message);
       }
       
       const isSent = this.isSentMessage(message);
@@ -757,6 +763,34 @@ const ChatPanel = {
       contentEl.classList.toggle('hidden');
       arrowEl.textContent = contentEl.classList.contains('hidden') ? '▶' : '▼';
     }
+  },
+
+  /**
+   * 渲染中断消息（用户中断，橙色警告样式）
+   * @param {object} message - 中断消息对象
+   * @returns {string} HTML 字符串
+   */
+  renderAbortMessage(message) {
+    const time = this.formatMessageTime(message.createdAt);
+    const senderName = this.getSenderName(message);
+    const payload = message.payload || {};
+    const abortMessage = payload.message || 'LLM 调用已中断';
+
+    return `
+      <div class="message-item abort-message" data-message-id="${message.id}">
+        <div class="message-avatar">⏹️</div>
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-sender">${this.escapeHtml(senderName)}</span>
+            <span class="abort-message-indicator">已中断</span>
+            <span class="message-time">${time}</span>
+          </div>
+          <div class="message-bubble abort-bubble">
+            <span class="abort-message-content">⚠️ ${this.escapeHtml(abortMessage)}</span>
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   /**
