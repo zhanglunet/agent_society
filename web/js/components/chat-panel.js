@@ -599,6 +599,9 @@ const ChatPanel = {
       
       // 构建附件显示
       const attachmentsHtml = this.renderMessageAttachments(message);
+      
+      // 构建快速回复按钮（仅对收到的消息显示）
+      const quickRepliesHtml = !isSent ? this.renderQuickReplies(message) : '';
 
       return `
         <div class="message-item ${messageClass}" data-message-id="${message.id}">
@@ -613,6 +616,7 @@ const ChatPanel = {
             <div class="message-bubble">${this.escapeHtml(messageText)}</div>
             ${imagesHtml}
             ${attachmentsHtml}
+            ${quickRepliesHtml}
             <button class="message-detail-btn" onclick="MessageModal.show('${message.id}')">
               详情
             </button>
@@ -1120,6 +1124,9 @@ const ChatPanel = {
         AttachmentManager.clear();
       }
       
+      // 禁用所有快速回复按钮（用户已发送自定义回复）
+      this.disableAllQuickReplies();
+      
       // 显示成功提示
       const targetName = this.currentAgentId === 'user' ? `给 ${targetAgentId} ` : '';
       Toast.show(`消息${targetName}已发送`, 'success');
@@ -1186,6 +1193,107 @@ const ChatPanel = {
         `).join('')}
       </div>
     `;
+  },
+
+  /**
+   * 渲染快速回复按钮
+   * @param {object} message - 消息对象
+   * @returns {string} HTML 字符串
+   */
+  renderQuickReplies(message) {
+    const quickReplies = message.payload?.quickReplies;
+    if (!Array.isArray(quickReplies) || quickReplies.length === 0) {
+      return '';
+    }
+    
+    const messageId = message.id;
+    const buttons = quickReplies.map((text, idx) => `
+      <button 
+        class="quick-reply-btn" 
+        data-message-id="${messageId}"
+        data-reply-index="${idx}"
+        onclick="ChatPanel.handleQuickReply('${messageId}', ${idx})"
+      >
+        ${this.escapeHtml(text)}
+      </button>
+    `).join('');
+    
+    return `<div class="quick-replies" data-message-id="${messageId}">${buttons}</div>`;
+  },
+
+  /**
+   * 处理快速回复点击
+   * @param {string} messageId - 消息 ID
+   * @param {number} replyIndex - 回复选项索引
+   */
+  async handleQuickReply(messageId, replyIndex) {
+    const message = this.messagesById.get(messageId);
+    if (!message || !message.payload?.quickReplies) return;
+    
+    const replyText = message.payload.quickReplies[replyIndex];
+    if (!replyText) return;
+    
+    // 禁用该消息的所有快速回复按钮
+    this.disableQuickReplies(messageId);
+    
+    // 确定消息发送目标
+    let targetAgentId = message.from;
+    
+    // 如果发送者是当前智能体自己，则不发送
+    if (targetAgentId === this.currentAgentId) {
+      Toast.show('无法回复自己发送的消息', 'warning');
+      return;
+    }
+    
+    try {
+      await API.sendMessage(targetAgentId, replyText);
+      Toast.show('快速回复已发送', 'success');
+    } catch (error) {
+      console.error('快速回复发送失败:', error);
+      Toast.show('发送失败: ' + error.message, 'error');
+      // 恢复按钮可点击状态
+      this.enableQuickReplies(messageId);
+    }
+  },
+
+  /**
+   * 禁用指定消息的快速回复按钮
+   * @param {string} messageId - 消息 ID
+   */
+  disableQuickReplies(messageId) {
+    const container = document.querySelector(`.quick-replies[data-message-id="${messageId}"]`);
+    if (container) {
+      container.classList.add('disabled');
+      container.querySelectorAll('.quick-reply-btn').forEach(btn => {
+        btn.disabled = true;
+      });
+    }
+  },
+
+  /**
+   * 启用指定消息的快速回复按钮
+   * @param {string} messageId - 消息 ID
+   */
+  enableQuickReplies(messageId) {
+    const container = document.querySelector(`.quick-replies[data-message-id="${messageId}"]`);
+    if (container) {
+      container.classList.remove('disabled');
+      container.querySelectorAll('.quick-reply-btn').forEach(btn => {
+        btn.disabled = false;
+      });
+    }
+  },
+
+  /**
+   * 禁用所有快速回复按钮（用户发送自定义回复后调用）
+   */
+  disableAllQuickReplies() {
+    document.querySelectorAll('.quick-replies').forEach(container => {
+      container.classList.add('disabled');
+      container.querySelectorAll('.quick-reply-btn').forEach(btn => {
+        btn.disabled = true;
+      });
+    });
   },
 
   /**

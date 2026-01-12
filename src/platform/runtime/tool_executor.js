@@ -184,6 +184,12 @@ export class ToolExecutor {
               delayMs: { 
                 type: "number", 
                 description: "延迟投递时间（毫秒），消息将在指定时间后才进入收件人队列。不指定或为0则立即投递。可以用于一段时间之后的提醒，比如闹钟、计划任务等。" 
+              },
+              quickReplies: {
+                type: "array",
+                items: { type: "string" },
+                maxItems: 10,
+                description: "可选的快速回复建议列表。这些只是建议选项，收件方可以从中选择一个快速回复，也可以完全忽略这些建议自行编写回复内容。最多10个选项。"
               }
             },
             required: ["to", "payload"]
@@ -704,12 +710,30 @@ export class ToolExecutor {
       });
     }
 
+    // 验证 quickReplies 参数
+    const quickRepliesValidation = this._validateQuickReplies(args.quickReplies);
+    if (!quickRepliesValidation.valid) {
+      return { 
+        error: quickRepliesValidation.error, 
+        message: quickRepliesValidation.message 
+      };
+    }
+
+    // 构建最终的 payload，如果有有效的 quickReplies 则添加到 payload 中
+    let finalPayload = args.payload;
+    if (quickRepliesValidation.quickReplies) {
+      finalPayload = {
+        ...args.payload,
+        quickReplies: quickRepliesValidation.quickReplies
+      };
+    }
+
     const currentTaskId = ctx.currentMessage?.taskId ?? null;
     const result = ctx.tools.sendMessage({
       to: recipientId,
       from: senderId,
       taskId: currentTaskId,
-      payload: args.payload,
+      payload: finalPayload,
       delayMs: args.delayMs  // 传递延迟参数
     });
 
@@ -722,6 +746,49 @@ export class ToolExecutor {
     });
 
     return result;
+  }
+
+  /**
+   * 验证 quickReplies 参数
+   * 
+   * @param {any} quickReplies - 快速回复选项
+   * @returns {{valid: boolean, quickReplies?: string[], error?: string, message?: string}}
+   */
+  _validateQuickReplies(quickReplies) {
+    // 未提供或空数组，视为有效但忽略
+    if (!quickReplies || !Array.isArray(quickReplies) || quickReplies.length === 0) {
+      return { valid: true, quickReplies: null };
+    }
+    
+    // 长度检查
+    if (quickReplies.length > 10) {
+      return { 
+        valid: false, 
+        error: "quickReplies_too_many", 
+        message: "快速回复选项不能超过10个" 
+      };
+    }
+    
+    // 元素类型检查
+    for (let i = 0; i < quickReplies.length; i++) {
+      const item = quickReplies[i];
+      if (typeof item !== "string") {
+        return { 
+          valid: false, 
+          error: "quickReplies_invalid_type", 
+          message: `快速回复选项[${i}]必须是字符串` 
+        };
+      }
+      if (item.trim() === "") {
+        return { 
+          valid: false, 
+          error: "quickReplies_empty_string", 
+          message: `快速回复选项[${i}]不能为空` 
+        };
+      }
+    }
+    
+    return { valid: true, quickReplies };
   }
 
   async _executePutArtifact(ctx, args) {
