@@ -5,7 +5,7 @@ import { MessageBus } from "./message_bus.js";
 import { OrgPrimitives } from "./org_primitives.js";
 import { PromptLoader } from "./prompt_loader.js";
 import { LlmClient } from "./llm_client.js";
-import { Logger, createNoopModuleLogger, normalizeLoggingConfig } from "./logger.js";
+import { Logger, createNoopModuleLogger, normalizeLoggingConfig, formatLocalTime } from "./logger.js";
 import { Agent } from "../agents/agent.js";
 import { ConversationManager } from "./conversation_manager.js";
 import { HttpClient } from "./http_client.js";
@@ -264,7 +264,7 @@ export class Runtime {
     // 记录中断事件，用于调试和监控
     void this.loggerRoot.logAgentLifecycleEvent("llm_call_aborted", {
       agentId,
-      timestamp: new Date().toISOString(),
+      timestamp: formatLocalTime(),
       reason: "user_requested",
       previousStatus: currentStatus,
       llmCallAborted: aborted
@@ -281,7 +281,7 @@ export class Runtime {
   _emitComputeStatusChange(agentId, status) {
     for (const listener of this._computeStatusListeners ?? []) {
       try {
-        listener({ agentId, status, timestamp: new Date().toISOString() });
+        listener({ agentId, status, timestamp: formatLocalTime() });
       } catch (err) {
         void this.log?.warn?.("运算状态事件监听器执行失败", { error: err?.message ?? String(err) });
       }

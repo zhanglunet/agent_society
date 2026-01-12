@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, appendFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger, formatLocalTime } from "./logger.js";
 
 /**
  * HTTP服务器组件：提供REST API接口与Agent Society交互。
@@ -419,7 +419,7 @@ export class HTTPServer {
             to: msg.to,
             taskId: msg.taskId,
             payload: msg.payload,
-            createdAt: new Date().toISOString(),
+            createdAt: formatLocalTime(),
             scheduledDeliveryTime: result.scheduledDeliveryTime ?? null  // 延迟消息的预计到达时间
           });
           return result;
@@ -434,7 +434,7 @@ export class HTTPServer {
             taskId: message.taskId,
             payload: message.payload,
             createdAt: message.createdAt,
-            deliveredAt: new Date().toISOString()  // 实际投递时间
+            deliveredAt: formatLocalTime()  // 实际投递时间
           });
         });
       }
@@ -1427,7 +1427,7 @@ export class HTTPServer {
       this._sendJson(res, 200, { 
         errors,
         retries,
-        timestamp: new Date().toISOString()
+        timestamp: formatLocalTime()
       });
     } catch (err) {
       void this.log.error("获取事件失败", { error: err.message, stack: err.stack });
@@ -1958,7 +1958,7 @@ export class HTTPServer {
         agentId, 
         aborted: result.aborted,
         reason: result.reason ?? null,
-        timestamp: new Date().toISOString()
+        timestamp: formatLocalTime()
       });
     } catch (err) {
       const errorMessage = err?.message ?? String(err);

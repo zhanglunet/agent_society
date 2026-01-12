@@ -2,7 +2,7 @@
  * 最小异步消息总线：按收件人队列缓存消息，运行时循环拉取并投递。
  */
 import { randomUUID } from "node:crypto";
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger, formatLocalTime } from "./logger.js";
 
 export class MessageBus {
   /**
@@ -56,7 +56,7 @@ export class MessageBus {
     
     const envelope = {
       id,
-      createdAt: new Date(now).toISOString(),
+      createdAt: formatLocalTime(new Date(now)),
       to: message.to,
       from: message.from,
       payload: message.payload,
@@ -78,12 +78,12 @@ export class MessageBus {
         taskId: envelope.taskId ?? null,
         payload: envelope.payload ?? null,
         delayMs,
-        deliverAt: new Date(deliverAt).toISOString()
+        deliverAt: formatLocalTime(new Date(deliverAt))
       });
       
       return { 
         messageId: id, 
-        scheduledDeliveryTime: new Date(deliverAt).toISOString() 
+        scheduledDeliveryTime: formatLocalTime(new Date(deliverAt))
       };
     }
 
@@ -237,8 +237,8 @@ export class MessageBus {
         id: envelope.id,
         to: envelope.to,
         from: envelope.from,
-        scheduledAt: new Date(deliverAt).toISOString(),
-        actualDeliveryAt: new Date(now).toISOString(),
+        scheduledAt: formatLocalTime(new Date(deliverAt)),
+        actualDeliveryAt: formatLocalTime(new Date(now)),
         delayDrift: now - deliverAt
       });
     }

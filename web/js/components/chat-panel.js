@@ -459,7 +459,16 @@ const ChatPanel = {
       second: '2-digit',
     });
     
-    return `<span class="scheduled-delivery-time" title="预计到达时间: ${message.scheduledDeliveryTime}">⏰ ${formattedTime}</span>`;
+    const fullTime = scheduledTime.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    
+    return `<span class="scheduled-delivery-time" title="预计到达时间: ${fullTime}">⏰ ${formattedTime}</span>`;
   },
 
   /**

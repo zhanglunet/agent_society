@@ -3,6 +3,22 @@ import path from "node:path";
 import { inspect } from "node:util";
 
 /**
+ * 格式化日期为本地时间字符串（ISO 格式但使用本地时区）
+ * @param {Date} [date] - 日期对象，默认为当前时间
+ * @returns {string} 格式化后的时间字符串，如 "2026-01-12T15:30:45.123"
+ */
+export function formatLocalTime(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const ms = String(date.getMilliseconds()).padStart(3, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`;
+}
+
+/**
  * @typedef {"trace"|"debug"|"info"|"warn"|"error"} LogLevel
  */
 
@@ -373,7 +389,8 @@ function _formatLine(moduleName, level, message, data) {
  * @returns {string}
  */
 function _formatTimestamp(date) {
-  return date.toISOString().replace("T", " ");
+  // 使用本地时间格式：YYYY-MM-DD HH:mm:ss.SSS
+  return formatLocalTime(date).replace('T', ' ');
 }
 
 /**
