@@ -1708,6 +1708,99 @@ body {
   border-color: #c6f6d5;
 }
 
+/* ========== 工具调用组样式 ========== */
+.tool-call-group .tool-call-count {
+  background-color: #1976d2;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.tool-call-summary {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0 8px 0;
+  padding: 6px 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.tool-call-group-wrapper {
+  margin-top: 8px;
+}
+
+.tool-call-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1976d2;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.tool-call-group-toggle:hover {
+  background-color: #bbdefb;
+}
+
+.tool-call-group-content {
+  margin-top: 8px;
+  border-left: 3px solid #1976d2;
+  padding-left: 12px;
+}
+
+.tool-call-group-content.hidden {
+  display: none;
+}
+
+.tool-call-item {
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.tool-call-item:last-child {
+  margin-bottom: 0;
+}
+
+.tool-call-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tool-call-item-index {
+  background-color: #1976d2;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tool-call-item-header .tool-name {
+  flex: 1;
+}
+
+.tool-call-item-header .message-time {
+  font-size: 11px;
+}
+
+.tool-call-item-detail-btn {
+  opacity: 1 !important;
+  margin-top: 0 !important;
+}
+
 
 /* ========== 智能体运算状态指示器 ========== */
 .agent-name-row {

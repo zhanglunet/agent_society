@@ -548,10 +548,20 @@ const ChatPanel = {
       return;
     }
 
-    const html = this.messages.map(message => {
-      // 检查是否为工具调用消息
+    // 将连续的工具调用消息分组
+    const groupedMessages = this.groupConsecutiveToolCalls(this.messages);
+
+    const html = groupedMessages.map(item => {
+      // 如果是工具调用组
+      if (item.type === 'tool_call_group') {
+        return this.renderToolCallGroup(item.messages);
+      }
+      
+      const message = item;
+      
+      // 检查是否为单个工具调用消息（不应该出现，但作为后备）
       if (message.type === 'tool_call') {
-        return this.renderToolCallMessage(message);
+        return this.renderToolCallGroup([message]);
       }
       
       // 检查是否为错误消息
@@ -626,6 +636,182 @@ const ChatPanel = {
     }).join('');
 
     this.messageList.innerHTML = html;
+  },
+
+  /**
+   * 将连续的工具调用消息分组
+   * @param {Array} messages - 消息数组
+   * @returns {Array} 分组后的消息数组，工具调用组为 { type: 'tool_call_group', messages: [...] }
+   */
+  groupConsecutiveToolCalls(messages) {
+    const result = [];
+    let currentToolCallGroup = [];
+
+    for (const message of messages) {
+      if (message.type === 'tool_call') {
+        currentToolCallGroup.push(message);
+      } else {
+        // 如果有累积的工具调用组，先添加到结果
+        if (currentToolCallGroup.length > 0) {
+          result.push({ type: 'tool_call_group', messages: currentToolCallGroup });
+          currentToolCallGroup = [];
+        }
+        result.push(message);
+      }
+    }
+
+    // 处理末尾的工具调用组
+    if (currentToolCallGroup.length > 0) {
+      result.push({ type: 'tool_call_group', messages: currentToolCallGroup });
+    }
+
+    return result;
+  },
+
+  /**
+   * 渲染工具调用组（多个连续工具调用合并为一条消息）
+   * @param {Array} toolCallMessages - 工具调用消息数组
+   * @returns {string} HTML 字符串
+   */
+  renderToolCallGroup(toolCallMessages) {
+    if (toolCallMessages.length === 0) return '';
+
+    const firstMessage = toolCallMessages[0];
+    const lastMessage = toolCallMessages[toolCallMessages.length - 1];
+    const startTime = this.formatMessageTime(firstMessage.createdAt);
+    const endTime = this.formatMessageTime(lastMessage.createdAt);
+    const timeDisplay = toolCallMessages.length > 1 ? `${startTime} - ${endTime}` : startTime;
+    
+    // 生成组的唯一 ID
+    const groupId = `tool-group-${firstMessage.id}`;
+    
+    // 渲染每个工具调用的详情
+    const toolCallsHtml = toolCallMessages.map((message, index) => {
+      return this.renderToolCallItem(message, index, groupId);
+    }).join('');
+
+    // 工具名称列表（用于显示摘要）
+    const toolNames = toolCallMessages.map(m => m.payload?.toolName || '未知工具');
+    const toolNamesDisplay = toolNames.length <= 3 
+      ? toolNames.join(', ') 
+      : `${toolNames.slice(0, 3).join(', ')} 等 ${toolNames.length} 个工具`;
+
+    return `
+      <div class="message-item tool-call tool-call-group" data-message-id="${firstMessage.id}">
+        <div class="message-avatar">🔧</div>
+        <div class="message-content">
+          <div class="message-header">
+            <span class="tool-call-label">工具调用</span>
+            <span class="tool-call-count">${toolCallMessages.length} 次</span>
+            <span class="message-time">${timeDisplay}</span>
+          </div>
+          <div class="tool-call-summary">
+            ${this.escapeHtml(toolNamesDisplay)}
+          </div>
+          <div class="tool-call-group-wrapper">
+            <div class="tool-call-group-toggle" onclick="ChatPanel.toggleToolCallGroup('${groupId}')">
+              <span class="tool-call-toggle-arrow" id="${groupId}-arrow">▶</span>
+              <span class="tool-call-toggle-label">展开全部工具调用</span>
+            </div>
+            <div class="tool-call-group-content hidden" id="${groupId}">
+              ${toolCallsHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 渲染单个工具调用项（用于组内显示）
+   * @param {object} message - 工具调用消息对象
+   * @param {number} index - 在组内的索引
+   * @param {string} groupId - 组的 ID
+   * @returns {string} HTML 字符串
+   */
+  renderToolCallItem(message, index, groupId) {
+    const time = this.formatMessageTime(message.createdAt);
+    const toolName = message.payload?.toolName || '未知工具';
+    const args = message.payload?.args || {};
+    const result = message.payload?.result;
+    
+    // 格式化参数显示
+    let argsDisplay = '';
+    try {
+      argsDisplay = JSON.stringify(args, null, 2);
+    } catch {
+      argsDisplay = String(args);
+    }
+    
+    // 格式化结果显示
+    let resultDisplay = '';
+    try {
+      if (result !== undefined && result !== null) {
+        const resultStr = JSON.stringify(result, null, 2);
+        resultDisplay = resultStr.length > 50000 ? resultStr.substring(0, 50000) + '...' : resultStr;
+      } else {
+        resultDisplay = '(无返回值)';
+      }
+    } catch {
+      resultDisplay = String(result);
+    }
+
+    // 构建思考过程折叠标签
+    const thinkingHtml = this.renderThinkingSection(message);
+    
+    // 生成唯一 ID 用于折叠控制
+    const detailsId = `tool-details-${message.id}`;
+
+    return `
+      <div class="tool-call-item" data-message-id="${message.id}">
+        <div class="tool-call-item-header">
+          <span class="tool-call-item-index">#${index + 1}</span>
+          <span class="tool-name">${this.escapeHtml(toolName)}</span>
+          <span class="message-time">${time}</span>
+          <button class="message-detail-btn tool-call-item-detail-btn" onclick="MessageModal.show('${message.id}')">
+            详情
+          </button>
+        </div>
+        ${thinkingHtml}
+        <div class="tool-call-details-wrapper">
+          <div class="tool-call-toggle" onclick="ChatPanel.toggleToolDetails('${detailsId}')">
+            <span class="tool-call-toggle-arrow" id="${detailsId}-arrow">▶</span>
+            <span class="tool-call-toggle-label">参数与结果</span>
+          </div>
+          <div class="tool-call-details hidden" id="${detailsId}">
+            <div class="tool-call-section">
+              <span class="tool-call-section-label">参数:</span>
+              <pre class="tool-call-args">${this.escapeHtml(argsDisplay)}</pre>
+            </div>
+            <div class="tool-call-section">
+              <span class="tool-call-section-label">结果:</span>
+              <pre class="tool-call-result">${this.escapeHtml(resultDisplay)}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 切换工具调用组的展开/折叠状态
+   * @param {string} groupId - 组的 ID
+   */
+  toggleToolCallGroup(groupId) {
+    const contentEl = document.getElementById(groupId);
+    const arrowEl = document.getElementById(`${groupId}-arrow`);
+    const toggleEl = arrowEl?.parentElement;
+    
+    if (contentEl && arrowEl) {
+      const isHidden = contentEl.classList.toggle('hidden');
+      arrowEl.textContent = isHidden ? '▶' : '▼';
+      if (toggleEl) {
+        const label = toggleEl.querySelector('.tool-call-toggle-label');
+        if (label) {
+          label.textContent = isHidden ? '展开全部工具调用' : '收起工具调用';
+        }
+      }
+    }
   },
 
   /**

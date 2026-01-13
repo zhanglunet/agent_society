@@ -23,16 +23,36 @@ echo           Agent Society 启动脚本
 echo ============================================================
 echo.
 
-REM 尝试更新代码（忽略错误）
-echo [0/3] 尝试更新代码...
-git pull 2>nul || echo      git pull 跳过（可能未安装 git 或网络问题）
-echo.
+REM ============================================================
+REM 步骤 0: 检查是否需要更新代码
+REM ============================================================
+if exist ".git" (
+    echo [0/3] 尝试更新代码...
+    git pull 2>nul || echo      git pull 跳过（可能未安装 git 或网络问题）
+    echo.
+) else (
+    echo [0/3] 跳过代码更新（分发包模式）
+    echo.
+)
 
-REM 检测 bun
+REM ============================================================
+REM 步骤 1: 检测 bun 运行时
+REM ============================================================
 echo [1/3] 检测 bun 运行时...
+
+REM 首先检查本地 runtime 目录
+set "LOCAL_BUN=%~dp0runtime\bun.exe"
+if exist "%LOCAL_BUN%" (
+    echo      使用本地 bun: %LOCAL_BUN%
+    set "BUN_CMD=%LOCAL_BUN%"
+    goto :install_deps
+)
+
+REM 检查系统 PATH 中的 bun
 where bun >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo      bun 已安装
+    echo      使用系统 bun
+    set "BUN_CMD=bun"
     goto :install_deps
 )
 
@@ -86,14 +106,15 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 echo      bun 安装成功
+set "BUN_CMD=bun"
 
 :install_deps
 REM 安装依赖
 echo.
 echo [2/3] 安装项目依赖...
-echo      执行: bun install
+echo      执行: %BUN_CMD% install
 echo.
-call bun install
+call "%BUN_CMD%" install
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -106,4 +127,4 @@ REM 启动服务器
 echo.
 echo [3/3] 启动服务器...
 echo.
-call bun run start.js %*
+call "%BUN_CMD%" run start.js %*
