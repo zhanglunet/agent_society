@@ -328,16 +328,12 @@ const ChatPanel = {
     // 确定消息发送目标
     let targetId = this.currentAgentId;
     if (this.currentAgentId === 'user') {
-      // user 界面时，目标是最后给 user 发消息的智能体
-      targetId = this.getLastSenderId();
+      // user 界面时，目标是最后给 user 发消息的智能体，如果没有则是 root
+      targetId = this.getLastSenderId() || 'root';
     }
     
-    if (targetId) {
-      const displayName = this.getAgentDisplayName(targetId);
-      this.chatInput.placeholder = `向 ${displayName} 发送消息...`;
-    } else {
-      this.chatInput.placeholder = '等待智能体发送消息...';
-    }
+    const displayName = this.getAgentDisplayName(targetId);
+    this.chatInput.placeholder = `向 ${displayName} 发送消息...`;
   },
 
   /**
@@ -1220,13 +1216,10 @@ const ChatPanel = {
     let targetAgentId = this.currentAgentId;
     
     // 如果当前是 user 界面，消息应该发送给最后给 user 发消息的智能体
+    // 如果 user 从未收到过消息，则发送给 root
     if (this.currentAgentId === 'user') {
       const lastSenderId = this.getLastSenderId();
-      if (!lastSenderId) {
-        Toast.show('没有可回复的智能体，请等待智能体先发送消息', 'warning');
-        return;
-      }
-      targetAgentId = lastSenderId;
+      targetAgentId = lastSenderId || 'root';
     }
 
     // 禁用发送按钮
