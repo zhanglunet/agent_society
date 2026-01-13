@@ -188,6 +188,11 @@ class JSONViewer {
    * 显示右键菜单
    */
   _showContextMenu(e, key, value) {
+    // 先关闭所有已存在的 JSON 右键菜单
+    document.querySelectorAll('.json-context-menu').forEach(menu => {
+      menu.remove();
+    });
+    
     const menu = document.createElement("div");
     menu.className = "json-context-menu";
     menu.style.position = "fixed";
@@ -225,21 +230,25 @@ class JSONViewer {
       btn.textContent = item.label;
       btn.addEventListener("click", () => {
         item.action();
-        document.body.removeChild(menu);
+        menu.remove();
       });
       menu.appendChild(btn);
     });
 
     document.body.appendChild(menu);
 
-    // 点击外部关闭菜单
-    const closeMenu = () => {
-      if (document.body.contains(menu)) {
-        document.body.removeChild(menu);
-      }
+    // 点击外部或右键点击时关闭菜单
+    const closeMenu = (evt) => {
+      // 如果点击的是菜单内部，不关闭
+      if (menu.contains(evt.target)) return;
+      menu.remove();
       document.removeEventListener("click", closeMenu);
+      document.removeEventListener("contextmenu", closeMenu);
     };
-    setTimeout(() => document.addEventListener("click", closeMenu), 0);
+    setTimeout(() => {
+      document.addEventListener("click", closeMenu);
+      document.addEventListener("contextmenu", closeMenu);
+    }, 0);
   }
 
   /**

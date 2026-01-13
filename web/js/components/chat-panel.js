@@ -529,6 +529,9 @@ const ChatPanel = {
    */
   render() {
     if (!this.messageList) return;
+    
+    // 清空待渲染的 JSON 查看器列表
+    this._pendingJsonViewers = [];
 
     if (!this.currentAgentId) {
       this.messageList.innerHTML = `
@@ -632,6 +635,39 @@ const ChatPanel = {
     }).join('');
 
     this.messageList.innerHTML = html;
+    
+    // 渲染完成后初始化 JSON 查看器
+    this._initPendingJsonViewers();
+  },
+  
+  /**
+   * 初始化待渲染的 JSON 查看器
+   * @private
+   */
+  _initPendingJsonViewers() {
+    if (!this._pendingJsonViewers || this._pendingJsonViewers.length === 0) return;
+    
+    this._pendingJsonViewers.forEach(item => {
+      const argsContainer = document.getElementById(item.argsContainerId);
+      const resultContainer = document.getElementById(item.resultContainerId);
+      
+      if (argsContainer && typeof JSONViewer !== 'undefined') {
+        const argsViewer = new JSONViewer({ container: argsContainer });
+        argsViewer.render(item.args);
+      }
+      
+      if (resultContainer && typeof JSONViewer !== 'undefined') {
+        const resultViewer = new JSONViewer({ container: resultContainer });
+        if (item.result !== undefined && item.result !== null) {
+          resultViewer.render(item.result);
+        } else {
+          resultContainer.innerHTML = '<span class="json-null">(无返回值)</span>';
+        }
+      }
+    });
+    
+    // 清空待渲染列表
+    this._pendingJsonViewers = [];
   },
 
   /**
@@ -730,33 +766,23 @@ const ChatPanel = {
     const toolName = message.payload?.toolName || '未知工具';
     const args = message.payload?.args || {};
     const result = message.payload?.result;
-    
-    // 格式化参数显示
-    let argsDisplay = '';
-    try {
-      argsDisplay = JSON.stringify(args, null, 2);
-    } catch {
-      argsDisplay = String(args);
-    }
-    
-    // 格式化结果显示
-    let resultDisplay = '';
-    try {
-      if (result !== undefined && result !== null) {
-        const resultStr = JSON.stringify(result, null, 2);
-        resultDisplay = resultStr.length > 50000 ? resultStr.substring(0, 50000) + '...' : resultStr;
-      } else {
-        resultDisplay = '(无返回值)';
-      }
-    } catch {
-      resultDisplay = String(result);
-    }
 
     // 构建思考过程折叠标签
     const thinkingHtml = this.renderThinkingSection(message);
     
-    // 生成唯一 ID 用于折叠控制
+    // 生成唯一 ID 用于折叠控制和 JSON 查看器容器
     const detailsId = `tool-details-${message.id}`;
+    const argsContainerId = `tool-args-json-${message.id}`;
+    const resultContainerId = `tool-result-json-${message.id}`;
+    
+    // 存储数据供后续渲染 JSON 查看器使用
+    this._pendingJsonViewers = this._pendingJsonViewers || [];
+    this._pendingJsonViewers.push({
+      argsContainerId,
+      resultContainerId,
+      args,
+      result
+    });
 
     return `
       <div class="tool-call-item" data-message-id="${message.id}">
@@ -777,11 +803,11 @@ const ChatPanel = {
           <div class="tool-call-details hidden" id="${detailsId}">
             <div class="tool-call-section">
               <span class="tool-call-section-label">参数:</span>
-              <pre class="tool-call-args">${this.escapeHtml(argsDisplay)}</pre>
+              <div class="tool-call-json-viewer" id="${argsContainerId}"></div>
             </div>
             <div class="tool-call-section">
               <span class="tool-call-section-label">结果:</span>
-              <pre class="tool-call-result">${this.escapeHtml(resultDisplay)}</pre>
+              <div class="tool-call-json-viewer" id="${resultContainerId}"></div>
             </div>
           </div>
         </div>
@@ -899,28 +925,6 @@ const ChatPanel = {
     const toolName = message.payload?.toolName || '未知工具';
     const args = message.payload?.args || {};
     const result = message.payload?.result;
-    
-    // 格式化参数显示
-    let argsDisplay = '';
-    try {
-      argsDisplay = JSON.stringify(args, null, 2);
-    } catch {
-      argsDisplay = String(args);
-    }
-    
-    // 格式化结果显示（简化版）
-    let resultDisplay = '';
-    try {
-      if (result !== undefined && result !== null) {
-        const resultStr = JSON.stringify(result, null, 2);
-        // 如果结果太长，截断显示
-        resultDisplay = resultStr.length > 50000 ? resultStr.substring(0, 50000) + '...' : resultStr;
-      } else {
-        resultDisplay = '(无返回值)';
-      }
-    } catch {
-      resultDisplay = String(result);
-    }
 
     // 构建思考过程折叠标签
     const thinkingHtml = this.renderThinkingSection(message);
@@ -931,8 +935,19 @@ const ChatPanel = {
     // 构建附件显示
     const attachmentsHtml = this.renderMessageAttachments(message);
     
-    // 生成唯一 ID 用于折叠控制
+    // 生成唯一 ID 用于折叠控制和 JSON 查看器容器
     const detailsId = `tool-details-${message.id}`;
+    const argsContainerId = `tool-args-json-${message.id}`;
+    const resultContainerId = `tool-result-json-${message.id}`;
+    
+    // 存储数据供后续渲染 JSON 查看器使用
+    this._pendingJsonViewers = this._pendingJsonViewers || [];
+    this._pendingJsonViewers.push({
+      argsContainerId,
+      resultContainerId,
+      args,
+      result
+    });
 
     return `
       <div class="message-item tool-call" data-message-id="${message.id}">
@@ -952,11 +967,11 @@ const ChatPanel = {
             <div class="tool-call-details hidden" id="${detailsId}">
               <div class="tool-call-section">
                 <span class="tool-call-section-label">参数:</span>
-                <pre class="tool-call-args">${this.escapeHtml(argsDisplay)}</pre>
+                <div class="tool-call-json-viewer" id="${argsContainerId}"></div>
               </div>
               <div class="tool-call-section">
                 <span class="tool-call-section-label">结果:</span>
-                <pre class="tool-call-result">${this.escapeHtml(resultDisplay)}</pre>
+                <div class="tool-call-json-viewer" id="${resultContainerId}"></div>
               </div>
             </div>
           </div>

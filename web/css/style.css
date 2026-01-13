@@ -1708,6 +1708,28 @@ body {
   border-color: #c6f6d5;
 }
 
+/* JSON 查看器容器样式 */
+.tool-call-json-viewer {
+  background-color: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.tool-call-json-viewer .json-tree {
+  font-size: 12px;
+}
+
+.tool-call-json-viewer .json-node {
+  margin-left: 16px;
+}
+
+.tool-call-json-viewer .json-node[data-depth="0"] {
+  margin-left: 0;
+}
+
 /* ========== 工具调用组样式 ========== */
 .tool-call-group .tool-call-count {
   background-color: #1976d2;
