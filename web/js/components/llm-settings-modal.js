@@ -3,6 +3,31 @@
  * 用于配置默认 LLM 参数和管理 LLM 服务列表
  */
 
+/**
+ * 标准能力类型定义
+ */
+const STANDARD_CAPABILITIES = {
+  input: [
+    { value: 'text', label: '文本', icon: '📝', description: '文本对话' },
+    { value: 'vision', label: '视觉', icon: '👁️', description: '视觉理解（图片）' },
+    { value: 'audio', label: '音频', icon: '🎵', description: '音频理解' },
+    { value: 'file', label: '文件', icon: '📄', description: '文件阅读' }
+  ],
+  output: [
+    { value: 'text', label: '文本', icon: '📝', description: '文本输出' },
+    { value: 'structured_output', label: '结构化', icon: '📊', description: '结构化输出（JSON）' },
+    { value: 'tool_calling', label: '工具', icon: '🔧', description: '工具调用' }
+  ]
+};
+
+/**
+ * 默认能力配置
+ */
+const DEFAULT_CAPABILITIES = {
+  input: ['text'],
+  output: ['text']
+};
+
 const LlmSettingsModal = {
   // DOM 元素引用
   overlay: null,
@@ -28,6 +53,16 @@ const LlmSettingsModal = {
   serviceApiKeyInput: null,
   serviceCapabilityTagsInput: null,
   serviceDescriptionInput: null,
+  
+  // 能力配置元素
+  serviceCapabilitiesSection: null,
+  capabilitiesToggleBtn: null,
+  
+  // 默认配置能力配置元素
+  defaultCapabilitiesSection: null,
+  defaultCapabilitiesToggleBtn: null,
+  defaultInputCapabilitiesContainer: null,
+  defaultOutputCapabilitiesContainer: null,
   
   // 状态
   isOpen: false,
@@ -90,6 +125,31 @@ const LlmSettingsModal = {
                 <label for="llm-max-concurrent">最大并发请求数</label>
                 <input type="number" id="llm-max-concurrent" min="1" max="10" value="2">
               </div>
+              
+              <!-- 默认模型能力配置区域 -->
+              <div class="capabilities-section" id="default-capabilities-section">
+                <div class="capabilities-header">
+                  <label>模型能力配置</label>
+                  <button type="button" class="capabilities-toggle-btn" id="default-capabilities-toggle-btn" title="展开/折叠">▼</button>
+                </div>
+                <div class="capabilities-content">
+                  <!-- 输入能力 -->
+                  <div class="capability-group">
+                    <span class="capability-group-label">输入能力</span>
+                    <div class="capability-checkboxes" id="default-input-capabilities">
+                      <!-- 动态生成 -->
+                    </div>
+                  </div>
+                  <!-- 输出能力 -->
+                  <div class="capability-group">
+                    <span class="capability-group-label">输出能力</span>
+                    <div class="capability-checkboxes" id="default-output-capabilities">
+                      <!-- 动态生成 -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div class="form-actions">
                 <button type="submit" class="btn-primary">保存配置</button>
               </div>
@@ -141,8 +201,33 @@ const LlmSettingsModal = {
                 <div class="form-group">
                   <label for="service-capability-tags">能力标签</label>
                   <input type="text" id="service-capability-tags" placeholder="编程, 逻辑推理">
-                  <span class="form-hint">用逗号分隔</span>
+                  <span class="form-hint">用逗号分隔，用于模型选择时的标签显示</span>
                 </div>
+                
+                <!-- 模型能力配置区域 -->
+                <div class="capabilities-section" id="service-capabilities-section">
+                  <div class="capabilities-header">
+                    <label>模型能力配置</label>
+                    <button type="button" class="capabilities-toggle-btn" id="capabilities-toggle-btn" title="展开/折叠">▼</button>
+                  </div>
+                  <div class="capabilities-content">
+                    <!-- 输入能力 -->
+                    <div class="capability-group">
+                      <span class="capability-group-label">输入能力</span>
+                      <div class="capability-checkboxes" id="input-capabilities">
+                        <!-- 动态生成 -->
+                      </div>
+                    </div>
+                    <!-- 输出能力 -->
+                    <div class="capability-group">
+                      <span class="capability-group-label">输出能力</span>
+                      <div class="capability-checkboxes" id="output-capabilities">
+                        <!-- 动态生成 -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
                 <div class="form-group">
                   <label for="service-description">描述</label>
                   <textarea id="service-description" rows="2" placeholder="服务描述..."></textarea>
@@ -189,6 +274,22 @@ const LlmSettingsModal = {
     this.serviceCapabilityTagsInput = this.overlay.querySelector('#service-capability-tags');
     this.serviceDescriptionInput = this.overlay.querySelector('#service-description');
     this.cancelServiceBtn = this.overlay.querySelector('#cancel-service-btn');
+    
+    // 能力配置元素
+    this.serviceCapabilitiesSection = this.overlay.querySelector('#service-capabilities-section');
+    this.capabilitiesToggleBtn = this.overlay.querySelector('#capabilities-toggle-btn');
+    this.inputCapabilitiesContainer = this.overlay.querySelector('#input-capabilities');
+    this.outputCapabilitiesContainer = this.overlay.querySelector('#output-capabilities');
+    
+    // 默认配置能力配置元素
+    this.defaultCapabilitiesSection = this.overlay.querySelector('#default-capabilities-section');
+    this.defaultCapabilitiesToggleBtn = this.overlay.querySelector('#default-capabilities-toggle-btn');
+    this.defaultInputCapabilitiesContainer = this.overlay.querySelector('#default-input-capabilities');
+    this.defaultOutputCapabilitiesContainer = this.overlay.querySelector('#default-output-capabilities');
+    
+    // 初始化能力配置复选框
+    this._initCapabilitiesCheckboxes();
+    this._initDefaultCapabilitiesCheckboxes();
   },
 
   /**
@@ -234,6 +335,197 @@ const LlmSettingsModal = {
     
     // 取消服务编辑
     this.cancelServiceBtn.addEventListener('click', () => this._hideServiceForm());
+    
+    // 能力配置区域折叠/展开
+    this.capabilitiesToggleBtn.addEventListener('click', () => this._toggleCapabilitiesSection());
+    this.serviceCapabilitiesSection.querySelector('.capabilities-header').addEventListener('click', (e) => {
+      if (e.target !== this.capabilitiesToggleBtn) {
+        this._toggleCapabilitiesSection();
+      }
+    });
+    
+    // 默认配置能力配置区域折叠/展开
+    this.defaultCapabilitiesToggleBtn.addEventListener('click', () => this._toggleDefaultCapabilitiesSection());
+    this.defaultCapabilitiesSection.querySelector('.capabilities-header').addEventListener('click', (e) => {
+      if (e.target !== this.defaultCapabilitiesToggleBtn) {
+        this._toggleDefaultCapabilitiesSection();
+      }
+    });
+  },
+  
+  /**
+   * 初始化能力配置复选框
+   */
+  _initCapabilitiesCheckboxes() {
+    // 生成输入能力复选框
+    this.inputCapabilitiesContainer.innerHTML = STANDARD_CAPABILITIES.input.map(cap => `
+      <label class="capability-checkbox" title="${cap.description}">
+        <input type="checkbox" value="${cap.value}" data-direction="input">
+        <span class="capability-icon">${cap.icon}</span>
+        <span class="capability-name">${cap.value}</span>
+      </label>
+    `).join('');
+    
+    // 生成输出能力复选框
+    this.outputCapabilitiesContainer.innerHTML = STANDARD_CAPABILITIES.output.map(cap => `
+      <label class="capability-checkbox" title="${cap.description}">
+        <input type="checkbox" value="${cap.value}" data-direction="output">
+        <span class="capability-icon">${cap.icon}</span>
+        <span class="capability-name">${cap.value}</span>
+      </label>
+    `).join('');
+  },
+  
+  /**
+   * 初始化默认配置能力配置复选框
+   */
+  _initDefaultCapabilitiesCheckboxes() {
+    // 生成默认配置输入能力复选框
+    this.defaultInputCapabilitiesContainer.innerHTML = STANDARD_CAPABILITIES.input.map(cap => `
+      <label class="capability-checkbox" title="${cap.description}">
+        <input type="checkbox" value="${cap.value}" data-direction="input">
+        <span class="capability-icon">${cap.icon}</span>
+        <span class="capability-name">${cap.value}</span>
+      </label>
+    `).join('');
+    
+    // 生成默认配置输出能力复选框
+    this.defaultOutputCapabilitiesContainer.innerHTML = STANDARD_CAPABILITIES.output.map(cap => `
+      <label class="capability-checkbox" title="${cap.description}">
+        <input type="checkbox" value="${cap.value}" data-direction="output">
+        <span class="capability-icon">${cap.icon}</span>
+        <span class="capability-name">${cap.value}</span>
+      </label>
+    `).join('');
+  },
+  
+  /**
+   * 切换能力配置区域展开/折叠
+   */
+  _toggleCapabilitiesSection() {
+    this.serviceCapabilitiesSection.classList.toggle('collapsed');
+  },
+  
+  /**
+   * 切换默认配置能力配置区域展开/折叠
+   */
+  _toggleDefaultCapabilitiesSection() {
+    this.defaultCapabilitiesSection.classList.toggle('collapsed');
+  },
+  
+  /**
+   * 获取选中的能力配置
+   * @returns {{input: string[], output: string[]}}
+   */
+  _getSelectedCapabilities() {
+    const inputCaps = Array.from(this.inputCapabilitiesContainer.querySelectorAll('input:checked'))
+      .map(cb => cb.value);
+    const outputCaps = Array.from(this.outputCapabilitiesContainer.querySelectorAll('input:checked'))
+      .map(cb => cb.value);
+    
+    // 如果没有选择任何能力，使用默认值
+    return {
+      input: inputCaps.length > 0 ? inputCaps : DEFAULT_CAPABILITIES.input,
+      output: outputCaps.length > 0 ? outputCaps : DEFAULT_CAPABILITIES.output
+    };
+  },
+  
+  /**
+   * 设置能力配置（用于编辑时回显）
+   * @param {object} capabilities - 能力配置对象
+   */
+  _setCapabilities(capabilities) {
+    const caps = capabilities || DEFAULT_CAPABILITIES;
+    const inputCaps = caps.input || DEFAULT_CAPABILITIES.input;
+    const outputCaps = caps.output || DEFAULT_CAPABILITIES.output;
+    
+    // 设置输入能力复选框
+    this.inputCapabilitiesContainer.querySelectorAll('input').forEach(cb => {
+      cb.checked = inputCaps.includes(cb.value);
+    });
+    
+    // 设置输出能力复选框
+    this.outputCapabilitiesContainer.querySelectorAll('input').forEach(cb => {
+      cb.checked = outputCaps.includes(cb.value);
+    });
+  },
+  
+  /**
+   * 获取默认配置选中的能力配置
+   * @returns {{input: string[], output: string[]}}
+   */
+  _getDefaultSelectedCapabilities() {
+    const inputCaps = Array.from(this.defaultInputCapabilitiesContainer.querySelectorAll('input:checked'))
+      .map(cb => cb.value);
+    const outputCaps = Array.from(this.defaultOutputCapabilitiesContainer.querySelectorAll('input:checked'))
+      .map(cb => cb.value);
+    
+    // 如果没有选择任何能力，使用默认值
+    return {
+      input: inputCaps.length > 0 ? inputCaps : DEFAULT_CAPABILITIES.input,
+      output: outputCaps.length > 0 ? outputCaps : DEFAULT_CAPABILITIES.output
+    };
+  },
+  
+  /**
+   * 设置默认配置能力配置（用于加载时回显）
+   * @param {object} capabilities - 能力配置对象
+   */
+  _setDefaultCapabilities(capabilities) {
+    const caps = capabilities || DEFAULT_CAPABILITIES;
+    const inputCaps = caps.input || DEFAULT_CAPABILITIES.input;
+    const outputCaps = caps.output || DEFAULT_CAPABILITIES.output;
+    
+    // 设置默认配置输入能力复选框
+    this.defaultInputCapabilitiesContainer.querySelectorAll('input').forEach(cb => {
+      cb.checked = inputCaps.includes(cb.value);
+    });
+    
+    // 设置默认配置输出能力复选框
+    this.defaultOutputCapabilitiesContainer.querySelectorAll('input').forEach(cb => {
+      cb.checked = outputCaps.includes(cb.value);
+    });
+  },
+  
+  /**
+   * 渲染能力徽章（用于服务列表显示）
+   * @param {object} capabilities - 能力配置对象
+   * @returns {string} HTML 字符串
+   */
+  _renderCapabilityBadges(capabilities) {
+    const caps = capabilities || DEFAULT_CAPABILITIES;
+    const inputCaps = caps.input || DEFAULT_CAPABILITIES.input;
+    const outputCaps = caps.output || DEFAULT_CAPABILITIES.output;
+    
+    // 获取能力图标
+    const getIcon = (value, direction) => {
+      const list = direction === 'input' ? STANDARD_CAPABILITIES.input : STANDARD_CAPABILITIES.output;
+      const cap = list.find(c => c.value === value);
+      return cap ? cap.icon : '❓';
+    };
+    
+    // 获取能力描述
+    const getDescription = (value, direction) => {
+      const list = direction === 'input' ? STANDARD_CAPABILITIES.input : STANDARD_CAPABILITIES.output;
+      const cap = list.find(c => c.value === value);
+      return cap ? cap.description : value;
+    };
+    
+    const inputBadges = inputCaps.map(cap => 
+      `<span class="capability-badge input" title="输入: ${getDescription(cap, 'input')}">${getIcon(cap, 'input')}</span>`
+    ).join('');
+    
+    const outputBadges = outputCaps.map(cap => 
+      `<span class="capability-badge output" title="输出: ${getDescription(cap, 'output')}">${getIcon(cap, 'output')}</span>`
+    ).join('');
+    
+    return `
+      <div class="service-capabilities">
+        ${inputBadges}
+        <span class="capability-divider">→</span>
+        ${outputBadges}
+      </div>
+    `;
   },
 
   /**
@@ -308,9 +600,13 @@ const LlmSettingsModal = {
       this.apiKeyInput.value = ''; // API Key 不回显，显示占位符
       this.apiKeyInput.placeholder = this.config.apiKey ? `当前: ${this.config.apiKey}` : 'sk-...';
       this.maxConcurrentInput.value = this.config.maxConcurrentRequests || 2;
+      
+      // 设置默认配置的能力配置
+      this._setDefaultCapabilities(this.config.capabilities);
     } catch (err) {
       console.error('加载 LLM 配置失败:', err);
-      // 如果加载失败，保持表单为空
+      // 如果加载失败，保持表单为空，设置默认能力
+      this._setDefaultCapabilities(DEFAULT_CAPABILITIES);
     }
   },
 
@@ -353,6 +649,7 @@ const LlmSettingsModal = {
             <span class="service-model">${this._escapeHtml(service.model)}</span>
             <span class="service-url">${this._escapeHtml(service.baseURL)}</span>
           </div>
+          ${this._renderCapabilityBadges(service.capabilities)}
           ${service.capabilityTags && service.capabilityTags.length > 0 ? `
             <div class="service-tags">
               ${service.capabilityTags.map(tag => `<span class="tag">${this._escapeHtml(tag)}</span>`).join('')}
@@ -405,6 +702,9 @@ const LlmSettingsModal = {
       this.serviceApiKeyInput.placeholder = service.apiKey ? `当前: ${service.apiKey}` : 'sk-...';
       this.serviceCapabilityTagsInput.value = (service.capabilityTags || []).join(', ');
       this.serviceDescriptionInput.value = service.description || '';
+      
+      // 设置能力配置
+      this._setCapabilities(service.capabilities);
     } else {
       // 新增模式
       this.serviceFormTitle.textContent = '添加服务';
@@ -417,6 +717,9 @@ const LlmSettingsModal = {
       this.serviceApiKeyInput.placeholder = 'sk-...';
       this.serviceCapabilityTagsInput.value = '';
       this.serviceDescriptionInput.value = '';
+      
+      // 设置默认能力配置
+      this._setCapabilities(DEFAULT_CAPABILITIES);
     }
     
     this.serviceFormContainer.classList.remove('hidden');
@@ -497,7 +800,8 @@ const LlmSettingsModal = {
     const config = {
       baseURL: this.baseUrlInput.value.trim(),
       model: this.modelInput.value.trim(),
-      maxConcurrentRequests: parseInt(this.maxConcurrentInput.value) || 2
+      maxConcurrentRequests: parseInt(this.maxConcurrentInput.value) || 2,
+      capabilities: this._getDefaultSelectedCapabilities()
     };
     
     // 只有输入了新的 API Key 才更新
@@ -542,6 +846,7 @@ const LlmSettingsModal = {
         .split(',')
         .map(t => t.trim())
         .filter(t => t),
+      capabilities: this._getSelectedCapabilities(),
       description: this.serviceDescriptionInput.value.trim()
     };
     

@@ -218,6 +218,11 @@ if exist "!PACK_DIR!\config\llmservices.json" (
     echo [DEBUG] 已排除 llmservices.json
 )
 
+if exist "!PACK_DIR!\config\llmservices.local.json" (
+    del "!PACK_DIR!\config\llmservices.local.json"
+    echo [DEBUG] 已排除 llmservices.json
+)
+
 echo      复制 modules...
 if exist "%PROJECT_ROOT%\modules" (
     xcopy "%PROJECT_ROOT%\modules" "!PACK_DIR!\modules" /E /I /Q >nul

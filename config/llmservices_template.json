@@ -1,13 +1,43 @@
 {
   "services": [
     {
+      "id": "text-model",
+      "name": "纯文本模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "text-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["文本对话", "工具调用"],
+      "capabilities": {
+        "input": ["text"],
+        "output": ["text", "structured_output", "tool_calling"]
+      },
+      "description": "纯文本对话模型，不支持多模态输入"
+    },
+    {
       "id": "vision-model",
       "name": "视觉理解模型",
       "baseURL": "http://127.0.0.1:1234/v1",
       "model": "vision-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["视觉理解", "图像分析", "多模态"],
-      "description": "专门用于图像内容理解和分析的模型"
+      "capabilities": {
+        "input": ["text", "vision"],
+        "output": ["text", "structured_output"]
+      },
+      "description": "支持图片理解的视觉模型"
+    },
+    {
+      "id": "multimodal-model",
+      "name": "多模态模型",
+      "baseURL": "http://127.0.0.1:1234/v1",
+      "model": "multimodal-model-name",
+      "apiKey": "NOT_NEEDED",
+      "capabilityTags": ["多模态", "视觉理解", "音频理解", "文件阅读"],
+      "capabilities": {
+        "input": ["text", "vision", "audio", "file"],
+        "output": ["text", "structured_output", "tool_calling"]
+      },
+      "description": "支持多种输入类型的全能模型"
     },
     {
       "id": "coding-model",
@@ -16,7 +46,11 @@
       "model": "coding-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["编程", "代码生成", "代码审查"],
-      "description": "专门用于代码生成和编程任务的模型"
+      "capabilities": {
+        "input": ["text", "file"],
+        "output": ["text", "structured_output", "tool_calling"]
+      },
+      "description": "专门用于代码生成和编程任务的模型，支持文件阅读"
     },
     {
       "id": "high-intelligence-model",
@@ -25,6 +59,10 @@
       "model": "high-intelligence-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["高智能", "复杂推理", "深度分析"],
+      "capabilities": {
+        "input": ["text"],
+        "output": ["text", "structured_output", "tool_calling"]
+      },
       "description": "适用于复杂推理和深度分析任务的高智能模型"
     },
     {
@@ -34,16 +72,11 @@
       "model": "low-cost-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["低成本", "快速响应", "简单任务"],
+      "capabilities": {
+        "input": ["text"],
+        "output": ["text"]
+      },
       "description": "适用于简单任务的低成本快速模型"
-    },
-    {
-      "id": "humanized-model",
-      "name": "人性化模型",
-      "baseURL": "http://127.0.0.1:1234/v1",
-      "model": "humanized-model-name",
-      "apiKey": "NOT_NEEDED",
-      "capabilityTags": ["人性化", "情感理解", "自然对话"],
-      "description": "专注于自然对话和情感理解的人性化模型"
     },
     {
       "id": "audio-model",
@@ -52,16 +85,11 @@
       "model": "audio-model-name",
       "apiKey": "NOT_NEEDED",
       "capabilityTags": ["音频处理", "语音识别", "音频分析"],
+      "capabilities": {
+        "input": ["text", "audio"],
+        "output": ["text", "structured_output"]
+      },
       "description": "专门用于音频处理和语音识别的模型"
-    },
-    {
-      "id": "game-model",
-      "name": "游戏化模型",
-      "baseURL": "http://127.0.0.1:1234/v1",
-      "model": "game-model-name",
-      "apiKey": "NOT_NEEDED",
-      "capabilityTags": ["游戏化", "互动体验", "创意生成"],
-      "description": "适用于游戏化场景和创意生成的模型"
     }
   ]
 }

@@ -4,12 +4,86 @@ import path from "node:path";
 import { createNoopModuleLogger } from "./logger.js";
 
 /**
+ * 默认的模型能力配置（仅文本）
+ */
+const DEFAULT_CAPABILITIES = {
+  input: ["text"],
+  output: ["text"]
+};
+
+/**
+ * 验证 capabilities 配置是否有效
+ * @param {any} capabilities - capabilities 配置对象
+ * @returns {{valid: boolean, errors: string[], normalized: {input: string[], output: string[]}}}
+ */
+function validateCapabilities(capabilities) {
+  const errors = [];
+  
+  // 如果没有 capabilities，使用默认值
+  if (capabilities === undefined || capabilities === null) {
+    return { valid: true, errors: [], normalized: { ...DEFAULT_CAPABILITIES } };
+  }
+  
+  // capabilities 必须是对象
+  if (typeof capabilities !== "object" || Array.isArray(capabilities)) {
+    errors.push("capabilities必须是对象");
+    return { valid: false, errors, normalized: { ...DEFAULT_CAPABILITIES } };
+  }
+  
+  const normalized = {
+    input: [],
+    output: []
+  };
+  
+  // 验证 input 数组
+  if (capabilities.input !== undefined) {
+    if (!Array.isArray(capabilities.input)) {
+      errors.push("capabilities.input必须是数组");
+    } else {
+      for (let i = 0; i < capabilities.input.length; i++) {
+        const item = capabilities.input[i];
+        if (typeof item !== "string" || item.length === 0) {
+          errors.push(`capabilities.input[${i}]必须是非空字符串`);
+        } else {
+          normalized.input.push(item);
+        }
+      }
+    }
+  } else {
+    // 如果没有指定 input，默认为 text
+    normalized.input = ["text"];
+  }
+  
+  // 验证 output 数组
+  if (capabilities.output !== undefined) {
+    if (!Array.isArray(capabilities.output)) {
+      errors.push("capabilities.output必须是数组");
+    } else {
+      for (let i = 0; i < capabilities.output.length; i++) {
+        const item = capabilities.output[i];
+        if (typeof item !== "string" || item.length === 0) {
+          errors.push(`capabilities.output[${i}]必须是非空字符串`);
+        } else {
+          normalized.output.push(item);
+        }
+      }
+    }
+  } else {
+    // 如果没有指定 output，默认为 text
+    normalized.output = ["text"];
+  }
+  
+  return { valid: errors.length === 0, errors, normalized };
+}
+
+/**
  * 验证服务配置条目是否有效
  * @param {any} service - 服务配置对象
- * @returns {{valid: boolean, errors: string[]}}
+ * @returns {{valid: boolean, errors: string[], capabilitiesWarnings?: string[]}}
  */
 function validateServiceConfig(service) {
   const errors = [];
+  const capabilitiesWarnings = [];
   
   if (!service || typeof service !== "object") {
     errors.push("服务配置必须是对象");
@@ -39,8 +113,20 @@ function validateServiceConfig(service) {
     errors.push("服务description必须是字符串");
   }
   
-  return { valid: errors.length === 0, errors };
+  // 验证 capabilities（可选字段，有错误时记录警告但不阻止加载）
+  const capValidation = validateCapabilities(service.capabilities);
+  if (!capValidation.valid) {
+    capabilitiesWarnings.push(...capValidation.errors);
+  }
+  
+  return { valid: errors.length === 0, errors, capabilitiesWarnings };
 }
+
+/**
+ * @typedef {Object} ModelCapabilities
+ * @property {string[]} input - 支持的输入能力类型
+ * @property {string[]} output - 支持的输出能力类型
+ */
 
 /**
  * @typedef {Object} LlmServiceConfig
@@ -50,6 +136,7 @@ function validateServiceConfig(service) {
  * @property {string} model - 模型名称
  * @property {string} apiKey - API 密钥
  * @property {string[]} capabilityTags - 能力标签
+ * @property {ModelCapabilities} capabilities - 模型能力配置
  * @property {string} description - 服务描述
  */
 
@@ -133,6 +220,17 @@ export class LlmServiceRegistry {
         const validation = validateServiceConfig(service);
         
         if (validation.valid) {
+          // 验证并标准化 capabilities
+          const capValidation = validateCapabilities(service.capabilities);
+          
+          // 如果 capabilities 有警告，记录日志
+          if (validation.capabilitiesWarnings && validation.capabilitiesWarnings.length > 0) {
+            void this.log.warn("服务capabilities配置有问题，使用默认值", {
+              serviceId: service.id,
+              warnings: validation.capabilitiesWarnings
+            });
+          }
+          
           // 标准化服务配置
           const normalizedService = {
             id: service.id,
@@ -141,6 +239,7 @@ export class LlmServiceRegistry {
             model: service.model,
             apiKey: service.apiKey,
             capabilityTags: service.capabilityTags,
+            capabilities: capValidation.normalized,
             description: service.description
           };
           this._services.set(service.id, normalizedService);
@@ -235,4 +334,63 @@ export class LlmServiceRegistry {
   isLoaded() {
     return this._loaded;
   }
+
+  /**
+   * 检查服务是否支持指定能力
+   * @param {string} serviceId - 服务ID
+   * @param {string} capabilityType - 能力类型
+   * @param {'input' | 'output' | 'both'} [direction='input'] - 方向
+   * @returns {boolean}
+   */
+  hasCapability(serviceId, capabilityType, direction = 'input') {
+    const service = this._services.get(serviceId);
+    if (!service || !service.capabilities) {
+      return false;
+    }
+    
+    const caps = service.capabilities;
+    
+    if (direction === 'both') {
+      const hasInput = Array.isArray(caps.input) && caps.input.includes(capabilityType);
+      const hasOutput = Array.isArray(caps.output) && caps.output.includes(capabilityType);
+      return hasInput && hasOutput;
+    } else if (direction === 'output') {
+      return Array.isArray(caps.output) && caps.output.includes(capabilityType);
+    } else {
+      // 默认检查 input
+      return Array.isArray(caps.input) && caps.input.includes(capabilityType);
+    }
+  }
+
+  /**
+   * 获取服务的所有能力
+   * @param {string} serviceId - 服务ID
+   * @returns {ModelCapabilities | null}
+   */
+  getCapabilities(serviceId) {
+    const service = this._services.get(serviceId);
+    if (!service) {
+      return null;
+    }
+    return service.capabilities ?? null;
+  }
+
+  /**
+   * 根据能力类型查询支持的服务
+   * @param {string} capabilityType - 能力类型
+   * @param {'input' | 'output' | 'both'} [direction='input'] - 方向
+   * @returns {LlmServiceConfig[]}
+   */
+  getServicesByCapability(capabilityType, direction = 'input') {
+    const result = [];
+    for (const service of this._services.values()) {
+      if (this.hasCapability(service.id, capabilityType, direction)) {
+        result.push(service);
+      }
+    }
+    return result;
+  }
 }
+
+// 导出验证函数供测试使用
+export { validateCapabilities, DEFAULT_CAPABILITIES };

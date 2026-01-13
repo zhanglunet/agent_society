@@ -127,7 +127,8 @@ export class ConfigService {
       apiKey: llmConfig.apiKey || existingApiKey,
       maxConcurrentRequests: typeof llmConfig.maxConcurrentRequests === "number" 
         ? llmConfig.maxConcurrentRequests 
-        : 2
+        : 2,
+      capabilities: llmConfig.capabilities || { input: ["text"], output: ["text"] }
     };
 
     // 保存配置
@@ -213,6 +214,7 @@ export class ConfigService {
         ? service.maxConcurrentRequests 
         : 2,
       capabilityTags: Array.isArray(service.capabilityTags) ? service.capabilityTags : [],
+      capabilities: service.capabilities || { input: ["text"], output: ["text"] },
       description: service.description || ""
     };
 
@@ -262,6 +264,7 @@ export class ConfigService {
         ? service.maxConcurrentRequests 
         : 2,
       capabilityTags: Array.isArray(service.capabilityTags) ? service.capabilityTags : [],
+      capabilities: service.capabilities || existingService.capabilities || { input: ["text"], output: ["text"] },
       description: service.description || ""
     };
 

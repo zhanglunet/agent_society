@@ -19,6 +19,8 @@ import { ModuleLoader } from "./module_loader.js";
 import { LlmServiceRegistry } from "./llm_service_registry.js";
 import { ModelSelector } from "./model_selector.js";
 import { ToolGroupManager } from "./tool_group_manager.js";
+import { CapabilityRouter } from "./capability_router.js";
+import { ContentAdapter } from "./content_adapter.js";
 
 // 导入子模块
 import { JavaScriptExecutor } from "./runtime/javascript_executor.js";
@@ -95,6 +97,9 @@ export class Runtime {
     // LLM 服务注册表和模型选择器（在 init() 中初始化）
     this.serviceRegistry = null;
     this.modelSelector = null;
+    // 能力路由器和内容适配器（在 init() 中初始化）
+    this.capabilityRouter = null;
+    this.contentAdapter = null;
     /** @type {Map<string, LlmClient>} */
     this.llmClientPool = new Map();
     // 工具组管理器（在 init() 中会重新初始化带 logger）
@@ -405,6 +410,18 @@ export class Runtime {
         hasPromptTemplate: !!modelSelectorPrompt
       });
     }
+
+    // 初始化内容适配器和能力路由器
+    this.contentAdapter = new ContentAdapter({
+      serviceRegistry: this.serviceRegistry,
+      logger: this.loggerRoot.forModule("content_adapter")
+    });
+    this.capabilityRouter = new CapabilityRouter({
+      serviceRegistry: this.serviceRegistry,
+      contentAdapter: this.contentAdapter,
+      logger: this.loggerRoot.forModule("capability_router")
+    });
+    void this.log.info("能力路由器初始化完成");
 
     // 加载上下文限制配置并更新 ConversationManager
     if (this.config.contextLimit) {
@@ -2714,6 +2731,34 @@ export class Runtime {
       llmServiceId: role.llmServiceId
     });
     return this.llm;
+  }
+
+  /**
+   * 获取智能体使用的 LLM 服务 ID
+   * @param {string} agentId - 智能体ID
+   * @returns {string|null} LLM 服务 ID，如果使用默认服务则返回 null
+   */
+  getLlmServiceIdForAgent(agentId) {
+    if (!agentId) {
+      return null;
+    }
+
+    const agent = this._agents.get(agentId);
+    if (!agent) {
+      return null;
+    }
+
+    const role = this.org.getRole(agent.roleId);
+    if (!role || !role.llmServiceId) {
+      return null;
+    }
+
+    // 检查服务是否存在
+    if (this.serviceRegistry?.getService?.(role.llmServiceId)) {
+      return role.llmServiceId;
+    }
+
+    return null;
   }
 
   /**
