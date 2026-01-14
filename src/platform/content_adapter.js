@@ -107,7 +107,6 @@ export class ContentAdapter {
     }
     
     lines.push("");
-    lines.push("当前模型不支持直接处理此类型内容。");
     lines.push(`如需处理此${typeLabel}，可以使用 send_message 工具将其转发给具备${this._getCapabilityLabel(capabilityType)}能力的智能体。`);
     
     if (suggestedAgents.length > 0) {

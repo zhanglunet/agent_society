@@ -324,7 +324,7 @@ export class LlmHandler {
         // 将图片附件转换为文本描述，而不是直接发送
         const imageAttachments = getImageAttachments(message);
         const imageDescriptions = imageAttachments.map(att => {
-          return `\n\n【图片附件: ${att.filename || '未命名图片'}】\n工件ID: ${att.artifactRef}\n[当前模型不支持视觉理解，无法处理图片内容]`;
+          return `\n\n【图片附件: ${att.filename || '未命名图片'}】\n工件ID: ${att.artifactRef}\n[需要新的智能体配合视觉理解任务]`;
         }).join('');
         
         if (typeof userContent === 'string') {
@@ -674,11 +674,84 @@ export class LlmHandler {
       reasoningContent: msg.reasoning_content ?? null
     });
     
+    // Special handling for get_artifact with routing field
+    if (toolName === "get_artifact" && result && result.routing) {
+      const toolResponse = this._formatArtifactToolResponse(result);
+      conv.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: toolResponse.content,
+        // If multimodal content, add to content array
+        ...(toolResponse.multimodal && { content: toolResponse.multimodalContent })
+      });
+      return;
+    }
+    
     conv.push({
       role: "tool",
       tool_call_id: call.id,
       content: JSON.stringify(result ?? null)
     });
+  }
+
+  /**
+   * Format get_artifact tool response based on routing type
+   * 
+   * @param {Object} result - Route result from ArtifactContentRouter
+   * @returns {Object} Formatted response
+   * @private
+   */
+  _formatArtifactToolResponse(result) {
+    switch (result.routing) {
+      case "image_url":
+        return {
+          multimodal: true,
+          multimodalContent: [
+            { 
+              type: "text", 
+              text: `Artifact content (${result.metadata?.filename || result.metadata?.id}):` 
+            },
+            result.imageUrl
+          ],
+          content: JSON.stringify({ 
+            status: "success", 
+            contentType: result.contentType,
+            routing: result.routing,
+            metadata: result.metadata 
+          })
+        };
+      
+      case "file":
+        return {
+          multimodal: true,
+          multimodalContent: [
+            { 
+              type: "text", 
+              text: `Artifact content (${result.metadata?.filename || result.metadata?.id}):` 
+            },
+            result.file
+          ],
+          content: JSON.stringify({ 
+            status: "success", 
+            contentType: result.contentType,
+            routing: result.routing,
+            metadata: result.metadata 
+          })
+        };
+      
+      case "text":
+      default:
+        return {
+          multimodal: false,
+          content: JSON.stringify({
+            status: "success",
+            contentType: result.contentType,
+            routing: result.routing,
+            content: result.content,
+            metadata: result.metadata
+          })
+        };
+    }
   }
 
   /**

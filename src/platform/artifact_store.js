@@ -161,7 +161,12 @@ export class ArtifactStore {
         type: metadata?.type || null,
         createdAt: metadata?.createdAt || new Date().toISOString(),
         messageId: metadata?.messageId || null,
-        meta: metadata?.meta || null,
+        meta: {
+          ...(metadata?.meta || {}),
+          // Include filename and size from metadata if available
+          ...(metadata?.filename && { filename: metadata.filename }),
+          ...(metadata?.size && { size: metadata.size })
+        },
         isBinary,
         mimeType: metadata?.mimeType || null
       };

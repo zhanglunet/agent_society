@@ -803,7 +803,69 @@ export class ToolExecutor {
   }
 
   async _executeGetArtifact(ctx, args) {
-    return await ctx.tools.getArtifact(args.ref);
+    const runtime = this.runtime;
+    
+    // 1. Read artifact
+    const artifact = await ctx.tools.getArtifact(args.ref);
+    if (!artifact) {
+      return { error: "artifact_not_found", ref: args.ref };
+    }
+    
+    // 2. Get current agent's LLM service ID
+    const serviceId = runtime._llmHandler?._getServiceIdForAgent?.(ctx.agent?.id) || null;
+    
+    // 3. If text content, return directly
+    if (!artifact.isBinary) {
+      return {
+        contentType: "text",
+        routing: "text",
+        content: artifact.content,
+        metadata: {
+          id: artifact.id,
+          type: artifact.type,
+          createdAt: artifact.createdAt
+        }
+      };
+    }
+    
+    // 4. Use ArtifactContentRouter to route binary content
+    if (!runtime.artifactContentRouter) {
+      // Fallback: return artifact as-is if router not initialized
+      void runtime.log?.warn?.("ArtifactContentRouter not initialized, returning artifact as-is");
+      return {
+        contentType: "binary",
+        routing: "text",
+        content: `[Binary content - Router not initialized] ${artifact.meta?.filename || artifact.id}`,
+        metadata: {
+          id: artifact.id,
+          type: artifact.type,
+          mimeType: artifact.mimeType || artifact.meta?.mimeType,
+          createdAt: artifact.createdAt
+        }
+      };
+    }
+    
+    try {
+      const routeResult = await runtime.artifactContentRouter.routeContent(artifact, serviceId);
+      return routeResult;
+    } catch (error) {
+      void runtime.log?.error?.("Error routing artifact content", {
+        artifactId: artifact.id,
+        error: error?.message
+      });
+      
+      // Fallback to text description
+      return {
+        contentType: "binary",
+        routing: "text",
+        content: `[Error reading artifact: ${artifact.meta?.filename || artifact.id}]`,
+        metadata: {
+          id: artifact.id,
+          type: artifact.type,
+          error: error?.message
+        }
+      };
+    }
   }
 
   _executeConsolePrint(ctx, args) {

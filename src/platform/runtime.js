@@ -21,6 +21,7 @@ import { ModelSelector } from "./model_selector.js";
 import { ToolGroupManager } from "./tool_group_manager.js";
 import { CapabilityRouter } from "./capability_router.js";
 import { ContentAdapter } from "./content_adapter.js";
+import { ArtifactContentRouter } from "./artifact_content_router.js";
 
 // 导入子模块
 import { JavaScriptExecutor } from "./runtime/javascript_executor.js";
@@ -422,6 +423,14 @@ export class Runtime {
       logger: this.loggerRoot.forModule("capability_router")
     });
     void this.log.info("能力路由器初始化完成");
+
+    // 初始化工件内容路由器
+    this.artifactContentRouter = new ArtifactContentRouter({
+      serviceRegistry: this.serviceRegistry,
+      binaryDetector: this.artifacts?.binaryDetector,
+      logger: this.loggerRoot.forModule("artifact_content_router")
+    });
+    void this.log.info("工件内容路由器初始化完成");
 
     // 加载上下文限制配置并更新 ConversationManager
     if (this.config.contextLimit) {
@@ -1908,11 +1917,6 @@ export class Runtime {
         const ref = await ctx.tools.putArtifact({ type: args.type, content: args.content, meta: args.meta, messageId });
         const result = { artifactRef: ref };
         void this.log.debug("工具调用完成", { toolName, ok: true, artifactRef: ref, messageId });
-        return result;
-      }
-      if (toolName === "get_artifact") {
-        const result = await ctx.tools.getArtifact(args.ref);
-        void this.log.debug("工具调用完成", { toolName, ok: true, found: Boolean(result) });
         return result;
       }
       if (toolName === "console_print") {
