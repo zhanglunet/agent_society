@@ -450,7 +450,7 @@ export class ArtifactContentRouter {
 - 让新代理专注于任务本身，而不是技术细节
 - 不要把你能力的确实作为对新的岗位和智能体的技术约束
 - 对新的岗位和智能体没有技术约束，不要说技术约束，不是编程任务
-注意: 创建角色时必须指定支持 ${requiredCapability} 能力的 llmServiceId。`;
+注意: 创建角色时必须指定支持 ${requiredCapability} 能力的。`;
   }
 
   /**
