@@ -113,3 +113,9 @@ spawn_agent_with_task({
 1) 父智能体在创建你时通过 taskBrief.collaborators 预设
 2) 向已认识的智能体请求介绍（发送 introduction_request）
 3) 收到其他智能体的首次消息后自动添加
+
+【工作成果】
+- 工作成果较少的时候（100字以内）应该使用 send_message 汇报发送给上级和user
+- 工作成果很多的时候（300字以上）应该使用 put_artifact 保存为文件，然后用 send_message 回传 artifactRef ，发送给上级和user
+- 你可以用 put_artifact 保存任何文件，包括图片、视频、文档、代码等
+- 超过100字，不到300字的，根据具体情况决定
