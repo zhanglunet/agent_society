@@ -437,7 +437,7 @@ export class ArtifactContentRouter {
 
 步骤:
 1. 使用 create_role 创建角色，指定支持 ${requiredCapability} 能力的大模型
-2. 使用 spawn_agent_with_task 创建代理并分配任务
+2. 使用 spawn_agent_with_task 创建智能体并分配任务
 3. 在任务中说明：
    - 需要读取工件 artifact:${artifactId}
    - 需要完成什么分析或处理
@@ -445,6 +445,7 @@ export class ArtifactContentRouter {
 4. 任务描述要简洁明确，只说明目标和期望的输出
 
 重要提示:
+- 创建角色时只分配任务，不要要求他用工件读取。创建智能体的时候以任务的方式告诉他需要从工件里读取，并告知工件ID。以此保持该岗位的通用性，将来可以复用。
 - 不要在任务中提及技术限制或能力约束
 - 不要解释为什么需要创建新代理
 - 让新代理专注于任务本身，而不是技术细节
