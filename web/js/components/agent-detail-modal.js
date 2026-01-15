@@ -57,10 +57,13 @@ const AgentDetailModal = {
 
     this.currentAgent = agent;
     
-    // 获取智能体的统计数据
-    const stats = await this.loadAgentStats(agentId);
+    // 获取智能体的统计数据和 system prompt
+    const [stats, systemPromptData] = await Promise.all([
+      this.loadAgentStats(agentId),
+      this.loadAgentSystemPrompt(agentId)
+    ]);
     
-    this.renderContent(agent, stats);
+    this.renderContent(agent, stats, systemPromptData);
     
     if (this.overlay) {
       this.overlay.classList.remove('hidden');
@@ -119,11 +122,34 @@ const AgentDetailModal = {
   },
 
   /**
+   * 加载智能体的 system prompt
+   * @param {string} agentId - 智能体 ID
+   * @returns {Promise<object>} system prompt 数据
+   */
+  async loadAgentSystemPrompt(agentId) {
+    try {
+      const res = await API.getAgentSystemPrompt(agentId);
+      return {
+        systemPrompt: res.systemPrompt || '',
+        length: res.length || 0
+      };
+    } catch (error) {
+      console.error('加载智能体 system prompt 失败:', error);
+      return {
+        systemPrompt: '',
+        length: 0,
+        error: error.message
+      };
+    }
+  },
+
+  /**
    * 渲染弹窗内容
    * @param {object} agent - 智能体对象
    * @param {object} stats - 统计数据
+   * @param {object} systemPromptData - system prompt 数据
    */
-  renderContent(agent, stats) {
+  renderContent(agent, stats, systemPromptData) {
     if (!this.body) return;
 
     const customName = agent.customName || '';
@@ -177,6 +203,24 @@ const AgentDetailModal = {
           <div class="detail-label">父智能体</div>
           <div class="detail-value">${this.escapeHtml(agent.parentAgentId || '无')}</div>
         </div>
+      </div>
+
+      <!-- System Prompt -->
+      <div class="detail-section">
+        <h4 class="section-title">System Prompt</h4>
+        ${systemPromptData.error ? `
+        <div class="error-message">加载失败: ${this.escapeHtml(systemPromptData.error)}</div>
+        ` : systemPromptData.systemPrompt ? `
+        <div class="detail-item">
+          <div class="detail-label">长度</div>
+          <div class="detail-value">${systemPromptData.length} 字符</div>
+        </div>
+        <div class="system-prompt-container">
+          <pre class="system-prompt-text">${this.escapeHtml(systemPromptData.systemPrompt)}</pre>
+        </div>
+        ` : `
+        <div class="hint-text">暂无 system prompt</div>
+        `}
       </div>
 
       <!-- 时间信息 -->

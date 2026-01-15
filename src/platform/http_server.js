@@ -17,6 +17,7 @@ import { createNoopModuleLogger, formatLocalTime } from "./logger.js";
  * - GET /api/tool-groups - 获取所有可用工具组列表
  * - POST /api/role/:roleId/tool-groups - 更新岗位工具组配置
  * - GET /api/agent-messages/:agentId - 查询智能体消息（按agentId）
+ * - GET /api/agent/:agentId/system-prompt - 获取智能体的完整 system prompt
  * - GET /api/org/tree - 获取组织层级树结构
  * - GET /api/org/role-tree - 获取岗位从属关系树结构
  * - POST /api/agent/:agentId/custom-name - 设置智能体自定义名称
@@ -754,6 +755,15 @@ export class HTTPServer {
           void this.log.error("处理智能体对话历史请求失败", { agentId, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
+      } else if (method === "GET" && pathname.startsWith("/api/agent/") && pathname.endsWith("/system-prompt")) {
+        // 获取智能体 system prompt: GET /api/agent/:agentId/system-prompt
+        const match = pathname.match(/^\/api\/agent\/(.+)\/system-prompt$/);
+        if (match) {
+          const agentId = decodeURIComponent(match[1]);
+          this._handleGetAgentSystemPrompt(agentId, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
       } else if (method === "GET" && pathname === "/api/artifacts") {
         // 获取工件列表
         this._handleGetArtifacts(res);
@@ -1604,6 +1614,88 @@ export class HTTPServer {
     const runtimeDir = this.society.runtime.config.runtimeDir;
     if (!runtimeDir) return null;
     return path.join(runtimeDir, "conversations");
+  }
+
+  /**
+   * 处理 GET /api/agent/:agentId/system-prompt - 获取智能体的完整 system prompt。
+   * @param {string} agentId
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetAgentSystemPrompt(agentId, res) {
+    if (!agentId || agentId.trim() === "") {
+      this._sendJson(res, 400, { error: "missing_agent_id" });
+      return;
+    }
+
+    try {
+      if (!this.society || !this.society.runtime) {
+        this._sendJson(res, 500, { error: "society_not_initialized" });
+        return;
+      }
+
+      const runtime = this.society.runtime;
+      
+      // 获取智能体信息（先从运行中的智能体获取，如果没有则从持久化数据获取）
+      let agent = runtime._agents.get(agentId);
+      let rolePrompt = "";
+      
+      if (!agent && agentId !== "root" && agentId !== "user") {
+        // 尝试从 OrgPrimitives 获取已终止的智能体信息
+        const org = runtime.org;
+        if (org) {
+          const persistedAgent = org.getAgent(agentId);
+          if (persistedAgent) {
+            // 获取岗位的 rolePrompt
+            const role = org.getRole(persistedAgent.roleId);
+            rolePrompt = role?.rolePrompt || "";
+            // 构造一个临时的 agent 对象
+            agent = {
+              id: persistedAgent.id,
+              roleId: persistedAgent.roleId,
+              roleName: role?.name || persistedAgent.roleId,
+              rolePrompt: rolePrompt
+            };
+          }
+        }
+        
+        // 如果还是找不到，返回 404
+        if (!agent) {
+          this._sendJson(res, 404, { error: "agent_not_found", agentId });
+          return;
+        }
+      }
+
+      // 构建上下文对象（模拟 LlmHandler 中的上下文构建）
+      const ctx = {
+        agent: agent || { id: agentId, rolePrompt: "" },
+        systemBasePrompt: runtime.systemBasePrompt || "",
+        systemComposeTemplate: runtime.systemComposeTemplate || "",
+        systemToolRules: runtime.systemToolRules || "",
+        systemWorkspacePrompt: runtime.systemWorkspacePrompt || "",
+        tools: {
+          composePrompt: (parts) => runtime.prompts.compose(parts)
+        }
+      };
+
+      // 使用 ContextBuilder 构建 system prompt
+      let systemPrompt = "";
+      if (runtime._contextBuilder && typeof runtime._contextBuilder.buildSystemPromptForAgent === "function") {
+        systemPrompt = runtime._contextBuilder.buildSystemPromptForAgent(ctx);
+      } else {
+        // 降级方案：使用旧的方法
+        systemPrompt = runtime._buildSystemPromptForAgent(ctx);
+      }
+
+      void this.log.debug("HTTP查询智能体 system prompt", { agentId, promptLength: systemPrompt.length });
+      this._sendJson(res, 200, {
+        agentId,
+        systemPrompt,
+        length: systemPrompt.length
+      });
+    } catch (err) {
+      void this.log.error("查询智能体 system prompt 失败", { agentId, error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "get_system_prompt_failed", message: err.message });
+    }
   }
 
   /**

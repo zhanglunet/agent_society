@@ -211,6 +211,15 @@ const API = {
   },
 
   /**
+   * 获取指定智能体的完整 system prompt
+   * @param {string} agentId - 智能体 ID
+   * @returns {Promise<{agentId: string, systemPrompt: string, length: number}>} system prompt 信息
+   */
+  async getAgentSystemPrompt(agentId) {
+    return this.get(`/agent/${encodeURIComponent(agentId)}/system-prompt`);
+  },
+
+  /**
    * 中断指定智能体的 LLM 调用
    * @param {string} agentId - 智能体 ID
    * @returns {Promise<{ok: boolean, agentId: string, aborted: boolean}>} 中断结果

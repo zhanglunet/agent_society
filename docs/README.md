@@ -17,6 +17,7 @@
 - [API 参考](./api-reference.md) - 完整的 API 文档
 - [配置说明](./configuration.md) - 配置文件详解
 - [工具参考](./tools.md) - 智能体可用工具详解
+- [System Prompt 查看功能](./system-prompt-viewer.md) - 查看智能体的完整 system prompt
 
 ### 教程
 
@@ -34,6 +35,7 @@
 | 查找 Web API | [API 参考 - Web API](./api-reference.md#web-api-端点) |
 | 配置系统 | [配置说明](./configuration.md) |
 | 了解可用工具 | [工具参考](./tools.md) |
+| 查看智能体 System Prompt | [System Prompt 查看功能](./system-prompt-viewer.md) |
 | 学习使用示例 | [示例教程](./examples.md) |
 
 ## 版本
