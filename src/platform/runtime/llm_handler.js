@@ -51,6 +51,66 @@ export class LlmHandler {
   }
 
   /**
+   * 检查并处理插话消息
+   * 
+   * 【功能说明】
+   * 在工具调用前检查是否有插话消息，如果有则：
+   * 1. 删除最后一条assistant消息（如果包含tool_calls）
+   * 2. 追加所有插话消息到对话历史
+   * 3. 清空插话队列
+   * 
+   * 【使用场景】
+   * - 在工具调用前检查插话
+   * - 在LLM完成回复时检查插话
+   * 
+   * @param {string} agentId - 智能体ID
+   * @param {Array} conv - 对话历史
+   * @param {object} ctx - 智能体上下文
+   * @returns {boolean} 是否有插话被处理
+   * 
+   * Requirements: 2.1, 2.2, 2.3, 2.4, 5.1, 5.2, 5.3, 5.4
+   */
+  checkAndHandleInterruptions(agentId, conv, ctx) {
+    const runtime = this.runtime;
+    const interruptions = runtime.getAndClearInterruptions(agentId);
+    
+    if (interruptions.length === 0) {
+      return false;
+    }
+    
+    void runtime.log.info("处理插话消息", {
+      agentId,
+      count: interruptions.length
+    });
+    
+    // 删除最后一条assistant消息（如果包含tool_calls）
+    if (conv.length > 0) {
+      const lastMsg = conv[conv.length - 1];
+      if (lastMsg.role === "assistant" && lastMsg.tool_calls && lastMsg.tool_calls.length > 0) {
+        conv.pop();
+        void runtime.log.info("删除最后一条assistant消息", {
+          agentId,
+          toolCallsCount: lastMsg.tool_calls.length
+        });
+      }
+    }
+    
+    // 追加所有插话消息
+    for (const interruption of interruptions) {
+      const userContent = runtime._formatMessageForLlm(ctx, interruption);
+      conv.push({ role: "user", content: userContent });
+    }
+    
+    void runtime.log.info("已追加插话消息到对话历史", {
+      agentId,
+      count: interruptions.length,
+      newConvLength: conv.length
+    });
+    
+    return true;
+  }
+
+  /**
    * 获取智能体使用的 LLM 服务 ID
    * 
    * @param {string|null} agentId - 智能体ID
@@ -169,50 +229,55 @@ export class LlmHandler {
   async doLlmProcessing(ctx, message, conv, agentId, llmClient) {
     const runtime = this.runtime;
     
-    // 注入上下文状态提示
-    const contextStatusPrompt = runtime._conversationManager?.buildContextStatusPrompt?.(agentId) ?? "";
-    let userTextContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
+    // 标记智能体为活跃处理状态（Requirements 1.2, 1.3）
+    runtime._activeProcessingAgents.add(agentId);
+    runtime.setAgentComputeStatus?.(agentId, 'processing');
     
-    // 检查是否有附件
-    const hasImages = hasImageAttachments(message);
-    const hasFiles = hasFileAttachments(message);
-    void runtime.log?.info?.("检查消息附件", {
-      agentId,
-      hasImages,
-      hasFiles,
-      payloadType: typeof message?.payload,
-      attachmentsCount: message?.payload?.attachments?.length ?? 0
-    });
+    try {
+      // 注入上下文状态提示
+      const contextStatusPrompt = runtime._conversationManager?.buildContextStatusPrompt?.(agentId) ?? "";
+      let userTextContent = runtime._formatMessageForLlm(ctx, message) + contextStatusPrompt;
     
-    // 获取当前智能体使用的 LLM 服务 ID
-    const serviceId = this._getServiceIdForAgent(agentId);
+      // 检查是否有附件
+      const hasImages = hasImageAttachments(message);
+      const hasFiles = hasFileAttachments(message);
+      void runtime.log?.info?.("检查消息附件", {
+        agentId,
+        hasImages,
+        hasFiles,
+        payloadType: typeof message?.payload,
+        attachmentsCount: message?.payload?.attachments?.length ?? 0
+      });
+      
+      // 获取当前智能体使用的 LLM 服务 ID
+      const serviceId = this._getServiceIdForAgent(agentId);
     
-    // 创建获取文件内容的函数
-    const getFileContent = async (artifactRef) => {
-      void runtime.log?.debug?.("获取文件内容", { artifactRef });
-      try {
-        if (runtime.artifacts && typeof runtime.artifacts.getUploadedFile === 'function') {
-          const fileData = await runtime.artifacts.getUploadedFile(artifactRef);
-          if (fileData && fileData.buffer) {
-            const content = fileData.buffer.toString('utf-8');
-            void runtime.log?.debug?.("文件内容获取成功", { 
-              artifactRef, 
-              contentLength: content.length,
-              mimeType: fileData.metadata?.mimeType 
-            });
-            return {
-              content,
-              metadata: fileData.metadata
-            };
+      // 创建获取文件内容的函数
+      const getFileContent = async (artifactRef) => {
+        void runtime.log?.debug?.("获取文件内容", { artifactRef });
+        try {
+          if (runtime.artifacts && typeof runtime.artifacts.getUploadedFile === 'function') {
+            const fileData = await runtime.artifacts.getUploadedFile(artifactRef);
+            if (fileData && fileData.buffer) {
+              const content = fileData.buffer.toString('utf-8');
+              void runtime.log?.debug?.("文件内容获取成功", { 
+                artifactRef, 
+                contentLength: content.length,
+                mimeType: fileData.metadata?.mimeType 
+              });
+              return {
+                content,
+                metadata: fileData.metadata
+              };
+            }
           }
+          void runtime.log?.warn?.("获取文件内容失败: 文件不存在或格式错误", { artifactRef });
+          return null;
+        } catch (err) {
+          void runtime.log?.error?.("获取文件内容异常", { artifactRef, error: err?.message, stack: err?.stack });
+          return null;
         }
-        void runtime.log?.warn?.("获取文件内容失败: 文件不存在或格式错误", { artifactRef });
-        return null;
-      } catch (err) {
-        void runtime.log?.error?.("获取文件内容异常", { artifactRef, error: err?.message, stack: err?.stack });
-        return null;
-      }
-    };
+      };
     
     // 创建获取图片 base64 数据的函数
     const getImageBase64 = async (artifactRef) => {
@@ -479,7 +544,14 @@ export class LlmHandler {
 
       const toolCalls = msg.tool_calls ?? [];
       if (!toolCalls || toolCalls.length === 0) {
-        // 检测工具调用意图
+        // LLM完成回复，检查插话（Requirements 2.1, 2.4, 3.1, 3.2）
+        const hasInterruption = this.checkAndHandleInterruptions(agentId, conv, ctx);
+        if (hasInterruption) {
+          // 有插话，继续循环处理
+          continue;
+        }
+        
+        // 无插话，检测工具调用意图
         const content = msg.content ?? "";
         const hasToolIntent = this._detectToolIntent(content);
         
@@ -537,6 +609,14 @@ export class LlmHandler {
         toolNames
       });
 
+      // 有工具调用，先检查插话（Requirements 2.1, 2.4, 3.1, 3.2）
+      const hasInterruption = this.checkAndHandleInterruptions(agentId, conv, ctx);
+      if (hasInterruption) {
+        // 有插话，跳过工具调用，继续循环
+        continue;
+      }
+
+      // 无插话，执行工具调用
       for (const call of toolCalls) {
         // 在每个工具调用前检查是否被用户中断
         const statusBeforeTool = runtime.getAgentComputeStatus?.(agentId);
@@ -571,6 +651,11 @@ export class LlmHandler {
         message: `智能体 ${agentId} 超过最大工具调用轮次限制 (${runtime.maxToolRounds})`,
         maxToolRounds: runtime.maxToolRounds
       });
+    }
+    } finally {
+      // 标记智能体为空闲状态（Requirements 1.2, 1.3, 3.1, 3.2, 3.3）
+      runtime._activeProcessingAgents.delete(agentId);
+      runtime.setAgentComputeStatus?.(agentId, 'idle');
     }
   }
 
@@ -751,6 +836,113 @@ export class LlmHandler {
             metadata: result.metadata
           })
         };
+    }
+  }
+
+  /**
+   * 检测智能体是否有待处理的工具调用
+   * 
+   * 【功能说明】
+   * 检查智能体是否正在等待 LLM 响应或处理工具调用循环。
+   * 这用于消息中断功能，判断是否需要取消当前的 LLM 调用。
+   * 
+   * @param {string} agentId - 智能体ID
+   * @returns {boolean} 是否有待处理的工具调用
+   */
+  detectPendingToolCall(agentId) {
+    const runtime = this.runtime;
+    
+    if (!agentId) {
+      return false;
+    }
+    
+    // 检查智能体的计算状态
+    const computeStatus = runtime.getAgentComputeStatus?.(agentId);
+    
+    // 如果智能体正在等待 LLM 响应或正在处理中，说明有待处理的工具调用
+    const hasPendingCall = computeStatus === 'waiting_llm' || computeStatus === 'processing';
+    
+    void runtime.log?.debug?.("检测待处理工具调用", {
+      agentId,
+      computeStatus,
+      hasPendingCall
+    });
+    
+    return hasPendingCall;
+  }
+
+  /**
+   * 取消智能体的待处理工具调用
+   * 
+   * 【功能说明】
+   * 当新消息到达时，取消智能体当前正在进行的 LLM 调用和工具调用循环。
+   * 这是消息中断功能的核心方法。
+   * 
+   * 【处理流程】
+   * 1. 检查智能体是否有活跃的 LLM 请求
+   * 2. 调用 LlmClient.abort() 取消 LLM 请求
+   * 3. 将智能体状态设置为 idle
+   * 4. 处理取消失败的情况
+   * 
+   * @param {string} agentId - 智能体ID
+   * @returns {boolean} 是否成功取消（true 表示成功取消，false 表示没有活跃请求或取消失败）
+   */
+  cancelPendingToolCall(agentId) {
+    const runtime = this.runtime;
+    
+    if (!agentId) {
+      void runtime.log?.warn?.("取消工具调用失败：缺少智能体ID");
+      return false;
+    }
+    
+    // 获取智能体使用的 LLM 客户端
+    const llmClient = runtime.getLlmClientForAgent?.(agentId) ?? runtime.llm;
+    
+    if (!llmClient) {
+      void runtime.log?.warn?.("取消工具调用失败：未找到 LLM 客户端", { agentId });
+      return false;
+    }
+    
+    // 检查是否有活跃的 LLM 请求
+    const hasActiveRequest = llmClient.hasActiveRequest?.(agentId);
+    
+    if (!hasActiveRequest) {
+      void runtime.log?.debug?.("没有活跃的 LLM 请求需要取消", { agentId });
+      return false;
+    }
+    
+    try {
+      // 调用 LlmClient.abort() 取消 LLM 请求
+      const cancelled = llmClient.abort?.(agentId);
+      
+      if (cancelled) {
+        // 将智能体状态设置为 idle
+        runtime.setAgentComputeStatus?.(agentId, 'idle');
+        
+        void runtime.log?.info?.("成功取消待处理工具调用", {
+          agentId,
+          previousStatus: runtime.getAgentComputeStatus?.(agentId)
+        });
+        
+        return true;
+      } else {
+        void runtime.log?.warn?.("取消工具调用失败：LLM 客户端返回 false", { agentId });
+        return false;
+      }
+    } catch (err) {
+      // 处理取消失败的情况
+      const errorMessage = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+      
+      void runtime.log?.error?.("取消工具调用时发生异常", {
+        agentId,
+        error: errorMessage,
+        stack: err?.stack ?? null
+      });
+      
+      // 即使取消失败，也尝试将状态设置为 idle，避免智能体卡住
+      runtime.setAgentComputeStatus?.(agentId, 'idle');
+      
+      return false;
     }
   }
 

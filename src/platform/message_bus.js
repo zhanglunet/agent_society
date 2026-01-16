@@ -6,7 +6,7 @@ import { createNoopModuleLogger, formatLocalTime } from "./logger.js";
 
 export class MessageBus {
   /**
-   * @param {{logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}, getAgentStatus?: (agentId: string) => string}} [options]
+   * @param {{logger?: {debug:(m:string,d?:any)=>Promise<void>, info:(m:string,d?:any)=>Promise<void>, warn:(m:string,d?:any)=>Promise<void>, error:(m:string,d?:any)=>Promise<void>}, getAgentStatus?: (agentId: string) => string, isAgentActivelyProcessing?: (agentId: string) => boolean, onInterruptionNeeded?: (agentId: string, message: any) => void}} [options]
    */
   constructor(options = {}) {
     this._queues = new Map();
@@ -15,6 +15,8 @@ export class MessageBus {
     this._deliveryListeners = new Set();  // 延迟消息投递监听器
     this.log = options.logger ?? createNoopModuleLogger();
     this._getAgentStatus = options.getAgentStatus ?? null;  // 获取智能体状态的回调函数
+    this._isAgentActivelyProcessing = options.isAgentActivelyProcessing ?? null;  // 检查智能体是否正在活跃处理消息
+    this._onInterruptionNeeded = options.onInterruptionNeeded ?? null;  // 当需要中断时的回调函数
   }
 
   /**
@@ -44,7 +46,7 @@ export class MessageBus {
   /**
    * 发送异步消息（支持延迟投递）。
    * @param {{to:string, from:string, payload:any, taskId?:string, delayMs?:number|string}} message
-   * @returns {{messageId:string, scheduledDeliveryTime?:string, rejected?:boolean, reason?:string}} 消息ID和预计投递时间（延迟消息）
+   * @returns {{messageId:string, scheduledDeliveryTime?:string, rejected?:boolean, reason?:string, interruptionTriggered?:boolean}} 消息ID和预计投递时间（延迟消息）
    */
   send(message) {
     // 检查目标智能体状态
@@ -65,13 +67,41 @@ export class MessageBus {
       }
     }
 
-    const id = randomUUID();
-    const now = Date.now();
-    // 支持字符串形式的数字（LLM 可能传递字符串）
+    // 检查目标智能体是否正在活跃处理消息（Requirements 1.1, 1.4, 5.1）
+    // 如果智能体正在处理消息且不是延迟消息，触发中断流程
     const rawDelayMs = message.delayMs;
     const parsedDelayMs = typeof rawDelayMs === "number" ? rawDelayMs : 
                           typeof rawDelayMs === "string" ? Number(rawDelayMs) : 0;
     const delayMs = Math.max(0, Number.isFinite(parsedDelayMs) ? parsedDelayMs : 0);
+    
+    let interruptionTriggered = false;
+    if (delayMs === 0 && this._isAgentActivelyProcessing && this._isAgentActivelyProcessing(message.to)) {
+      interruptionTriggered = true;
+      // 智能体正在活跃处理，需要触发中断流程
+      void this.log.info("检测到活跃处理智能体，触发中断流程", {
+        to: message.to,
+        from: message.from,
+        taskId: message.taskId ?? null
+      });
+      
+      // 触发中断回调（如果提供）
+      if (this._onInterruptionNeeded) {
+        try {
+          this._onInterruptionNeeded(message.to, message);
+        } catch (err) {
+          void this.log.warn("中断回调执行失败", { 
+            error: err?.message ?? String(err),
+            agentId: message.to
+          });
+        }
+      }
+      
+      // 继续正常的消息队列流程（消息仍然会被加入队列）
+      // 中断处理将由 Runtime 异步执行
+    }
+
+    const id = randomUUID();
+    const now = Date.now();
     
     const envelope = {
       id,
@@ -123,7 +153,13 @@ export class MessageBus {
     });
     for (const w of this._waiters) w();
     this._waiters.clear();
-    return { messageId: id };
+    
+    // 返回结果，包含是否触发了中断
+    const result = { messageId: id };
+    if (interruptionTriggered) {
+      result.interruptionTriggered = true;
+    }
+    return result;
   }
 
   /**

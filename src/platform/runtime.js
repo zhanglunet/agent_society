@@ -64,6 +64,7 @@ export class Runtime {
     this._processingLoopPromise = null;
     this._agents = new Map();
     this._activeProcessingAgents = new Set(); // 正在处理消息的智能体集合（用于并发控制）
+    this._interruptionQueues = new Map(); // 插话消息队列：agentId -> Array<Message>（Requirements 1.1, 4.1）
     this._behaviorRegistry = new Map();
     this._conversations = new Map();
     this._conversationManager = new ConversationManager({ 
@@ -221,6 +222,62 @@ export class Runtime {
   }
 
   /**
+   * 检查智能体是否正在活跃处理消息。
+   * @param {string} agentId - 智能体ID
+   * @returns {boolean} 是否正在活跃处理
+   */
+  isAgentActivelyProcessing(agentId) {
+    return this._activeProcessingAgents.has(agentId);
+  }
+
+  /**
+   * 添加插话消息到智能体的插话队列。
+   * 当智能体正在处理消息时收到新消息，新消息会被加入插话队列。
+   * 
+   * @param {string} agentId - 智能体ID
+   * @param {object} message - 插话消息
+   * @returns {void}
+   * 
+   * Requirements: 1.1, 4.1, 4.2, 4.3, 4.4
+   */
+  addInterruption(agentId, message) {
+    if (!this._interruptionQueues.has(agentId)) {
+      this._interruptionQueues.set(agentId, []);
+    }
+    this._interruptionQueues.get(agentId).push(message);
+    
+    void this.log.info("添加插话消息", {
+      agentId,
+      messageFrom: message.from,
+      messageId: message.id ?? 'unknown',
+      queueLength: this._interruptionQueues.get(agentId).length
+    });
+  }
+
+  /**
+   * 获取并清空智能体的插话队列。
+   * 返回所有待处理的插话消息，并清空队列。
+   * 
+   * @param {string} agentId - 智能体ID
+   * @returns {Array<object>} 插话消息数组（FIFO顺序）
+   * 
+   * Requirements: 1.1, 4.1, 4.2, 4.3, 4.4
+   */
+  getAndClearInterruptions(agentId) {
+    const interruptions = this._interruptionQueues.get(agentId) ?? [];
+    this._interruptionQueues.delete(agentId);
+    
+    if (interruptions.length > 0) {
+      void this.log.info("获取插话消息", {
+        agentId,
+        count: interruptions.length
+      });
+    }
+    
+    return interruptions;
+  }
+
+  /**
    * 获取所有智能体的运算状态。
    * @returns {Object.<string, 'idle'|'waiting_llm'|'processing'|'stopping'|'stopped'|'terminating'>} 智能体ID到运算状态的映射
    */
@@ -347,6 +404,58 @@ export class Runtime {
   }
 
   /**
+   * 处理消息中断（当新消息到达正在处理的智能体时）。
+   * 这个方法由 MessageBus 在检测到活跃处理智能体时调用。
+   * 
+   * @param {string} agentId - 智能体ID
+   * @param {object} newMessage - 新到达的消息
+   * @returns {void}
+   * 
+   * Requirements: 1.1, 1.4, 5.1
+   */
+  handleMessageInterruption(agentId, newMessage) {
+    // 异步处理中断，不阻塞消息发送
+    // 中断处理将在后台执行，消息已经被加入队列
+    void this._processInterruption(agentId, newMessage);
+  }
+
+  /**
+   * 异步处理中断逻辑。
+   * @param {string} agentId - 智能体ID
+   * @param {object} newMessage - 新到达的消息
+   * @private
+   */
+  async _processInterruption(agentId, newMessage) {
+    try {
+      void this.log.info("开始处理消息中断", {
+        agentId,
+        messageFrom: newMessage.from,
+        messageId: newMessage.id ?? 'unknown'
+      });
+
+      // 检查智能体是否仍在活跃处理中
+      if (!this.isAgentActivelyProcessing(agentId)) {
+        void this.log.info("智能体已不在活跃处理中，跳过中断", { agentId });
+        return;
+      }
+
+      // 将消息添加到插话队列
+      this.addInterruption(agentId, newMessage);
+      
+      void this.log.info("插话消息已添加到队列，将在下次检查点处理", {
+        agentId,
+        messageId: newMessage.id ?? 'unknown'
+      });
+    } catch (err) {
+      void this.log.error("处理消息中断时发生错误", {
+        agentId,
+        error: err?.message ?? String(err),
+        stack: err?.stack
+      });
+    }
+  }
+
+  /**
    * 注册运算状态变更事件监听器。
    * @param {(event: {agentId: string, status: string, timestamp: string}) => void} listener
    */
@@ -407,7 +516,9 @@ export class Runtime {
 
     this.bus = new MessageBus({ 
       logger: this.loggerRoot.forModule("bus"),
-      getAgentStatus: (agentId) => this.getAgentComputeStatus(agentId)
+      getAgentStatus: (agentId) => this.getAgentComputeStatus(agentId),
+      isAgentActivelyProcessing: (agentId) => this.isAgentActivelyProcessing(agentId),
+      onInterruptionNeeded: (agentId, message) => this.handleMessageInterruption(agentId, message)
     });
     this.artifacts = new ArtifactStore({ artifactsDir: this.config.artifactsDir, logger: this.loggerRoot.forModule("artifacts") });
     this.prompts = new PromptLoader({ promptsDir: this.config.promptsDir, logger: this.loggerRoot.forModule("prompts") });
