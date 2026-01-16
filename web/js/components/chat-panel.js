@@ -728,6 +728,9 @@ const ChatPanel = {
       ? toolNames.join(', ') 
       : `${toolNames.slice(0, 3).join(', ')} 等 ${toolNames.length} 个工具`;
 
+    // 收集所有工具调用中创建的工件（图片）
+    const groupArtifactsHtml = this.renderToolCallGroupArtifacts(toolCallMessages);
+
     return `
       <div class="message-item tool-call tool-call-group" data-message-id="${firstMessage.id}">
         <div class="message-avatar">🔧</div>
@@ -749,6 +752,57 @@ const ChatPanel = {
               ${toolCallsHtml}
             </div>
           </div>
+          ${groupArtifactsHtml}
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 渲染工具调用组中创建的所有工件缩略图
+   * @param {Array} toolCallMessages - 工具调用消息数组
+   * @returns {string} HTML 字符串
+   */
+  renderToolCallGroupArtifacts(toolCallMessages) {
+    // 收集所有工具调用中创建的图片工件
+    const allImages = [];
+    
+    for (const message of toolCallMessages) {
+      // 从 payload 或 result 中获取 images 数组
+      let images = [];
+      
+      if (message.payload) {
+        if (Array.isArray(message.payload.images)) {
+          images = message.payload.images;
+        } else if (message.payload.result && Array.isArray(message.payload.result.images)) {
+          images = message.payload.result.images;
+        }
+      }
+      
+      allImages.push(...images);
+    }
+    
+    if (allImages.length === 0) return '';
+    
+    // 生成唯一 ID 用于存储图片数组
+    const imagesId = `group_images_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // 将图片数组存储到全局，供点击时使用
+    window._chatPanelImages = window._chatPanelImages || {};
+    window._chatPanelImages[imagesId] = allImages;
+    
+    return `
+      <div class="tool-call-group-artifacts">
+        <div class="tool-call-group-artifacts-label">创建的工件:</div>
+        <div class="message-images">
+          ${allImages.map((img, idx) => `
+            <img 
+              class="message-thumbnail" 
+              src="/artifacts/${this.escapeHtml(img)}" 
+              alt="工件 ${idx + 1}"
+              onclick="ImageViewer.show(window._chatPanelImages['${imagesId}'], ${idx})"
+              onerror="this.classList.add('error'); this.alt='加载失败'"
+            />
+          `).join('')}
         </div>
       </div>
     `;

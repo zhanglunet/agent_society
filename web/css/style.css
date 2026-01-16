@@ -1812,6 +1812,28 @@ body {
   display: none;
 }
 
+/* 工具调用组创建的工件展示 */
+.tool-call-group-artifacts {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.tool-call-group-artifacts-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.tool-call-group-artifacts .message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .tool-call-item {
   background-color: #fafafa;
   border: 1px solid #e0e0e0;
