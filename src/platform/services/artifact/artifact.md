@@ -23,11 +23,17 @@
   - 根据文件扩展名判断
 
 ### content_router.js
-- **职责**：内容路由（合并 artifact_content_router 和 capability_router）
+- **职责**：统一的内容路由器（合并了 artifact_content_router 和 capability_router）
 - **功能**：
-  - 根据内容类型路由到不同的处理器
-  - 工件内容的格式化和转换
-  - 能力路由和分发
+  - 工件内容路由：根据工件类型（图片、文件等）和模型能力路由
+  - 消息内容路由：根据消息附件类型和模型能力路由
+  - 能力检查：检查模型是否支持特定内容类型
+  - 内容格式化：将内容格式化为模型可接受的格式
+  - 降级处理：为不支持的内容类型生成文本描述
+- **类**：ContentRouter
+- **依赖**：
+  - utils/content/content_type_utils.js（类型检测工具）
+  - utils/message/message_formatter.js（消息格式化）
 
 ## 依赖关系
 

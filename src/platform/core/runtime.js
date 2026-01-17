@@ -19,9 +19,8 @@ import { ModuleLoader } from "../extensions/module_loader.js";
 import { LlmServiceRegistry } from "../llm_service_registry.js";
 import { ModelSelector } from "../model_selector.js";
 import { ToolGroupManager } from "../extensions/tool_group_manager.js";
-import { CapabilityRouter } from "../utils/content/capability_router.js";
 import { ContentAdapter } from "../utils/content/content_adapter.js";
-import { ArtifactContentRouter } from "../artifact_content_router.js";
+import { ContentRouter } from "../services/artifact/content_router.js";
 
 // 导入子模块
 import { JavaScriptExecutor } from "../runtime/javascript_executor.js";
@@ -609,25 +608,21 @@ export class Runtime {
       });
     }
 
-    // 初始化内容适配器和能力路由器
+    // 初始化内容适配器
     this.contentAdapter = new ContentAdapter({
       serviceRegistry: this.serviceRegistry,
       logger: this.loggerRoot.forModule("content_adapter")
     });
-    this.capabilityRouter = new CapabilityRouter({
-      serviceRegistry: this.serviceRegistry,
-      contentAdapter: this.contentAdapter,
-      logger: this.loggerRoot.forModule("capability_router")
-    });
-    void this.log.info("能力路由器初始化完成");
 
-    // 初始化工件内容路由器
-    this.artifactContentRouter = new ArtifactContentRouter({
+    // 初始化内容路由器
+    this.contentRouter = new ContentRouter({
       serviceRegistry: this.serviceRegistry,
       binaryDetector: this.artifacts?.binaryDetector,
-      logger: this.loggerRoot.forModule("artifact_content_router")
+      contentAdapter: this.contentAdapter,
+      logger: this.loggerRoot.forModule("content_router")
     });
-    void this.log.info("工件内容路由器初始化完成");
+    
+    void this.log.info("内容路由器初始化完成");
 
     // 加载上下文限制配置并更新 ConversationManager
     if (this.config.contextLimit) {

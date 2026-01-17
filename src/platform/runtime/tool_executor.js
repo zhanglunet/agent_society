@@ -846,7 +846,7 @@ export class ToolExecutor {
     }
     
     try {
-      const routeResult = await runtime.artifactContentRouter.routeContent(artifact, serviceId);
+      const routeResult = await runtime.contentRouter.routeContent(artifact, serviceId);
       return routeResult;
     } catch (error) {
       void runtime.log?.error?.("Error routing artifact content", {

@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { ArtifactContentRouter } from '../../src/platform/artifact_content_router.js';
+import { ContentRouter } from '../../src/platform/services/artifact/content_router.js';
 
-describe('ArtifactContentRouter', () => {
+describe('ContentRouter', () => {
   let router;
   let mockServiceRegistry;
   let mockLogger;
@@ -35,7 +35,7 @@ describe('ArtifactContentRouter', () => {
       }
     };
 
-    router = new ArtifactContentRouter({
+    router = new ContentRouter({
       serviceRegistry: mockServiceRegistry,
       logger: mockLogger
     });
@@ -49,7 +49,7 @@ describe('ArtifactContentRouter', () => {
     });
 
     it('should handle empty parameters', () => {
-      const emptyRouter = new ArtifactContentRouter();
+      const emptyRouter = new ContentRouter();
       expect(emptyRouter).toBeDefined();
       expect(emptyRouter.serviceRegistry).toBeNull();
     });
@@ -149,7 +149,7 @@ describe('ArtifactContentRouter', () => {
     });
 
     it('should return false when serviceRegistry unavailable', () => {
-      const noRegistryRouter = new ArtifactContentRouter({ logger: mockLogger });
+      const noRegistryRouter = new ContentRouter({ logger: mockLogger });
       const result = noRegistryRouter.hasCapability('any-service', 'vision');
       expect(result).toBe(false);
     });
@@ -245,10 +245,10 @@ describe('ArtifactContentRouter', () => {
       const result = await router.routeContent(artifact, 'text-only-service');
       expect(result.routing).toBe('text');
       expect(result.contentType).toBe('image');
-      expect(result.content).toContain('Binary Content Not Supported');
+      expect(result.content).toContain('需要专门处理');
       expect(result.content).toContain('screenshot.png');
       expect(result.content).toContain('create_role');
-      expect(result.content).toContain('llmServiceId');
+      expect(result.content).toContain('spawn_agent_with_task');
       expect(result.content).toContain('vision');
     });
 
@@ -292,7 +292,7 @@ describe('ArtifactContentRouter', () => {
       expect(result.routing).toBe('file');
       expect(result.contentType).toBe('binary');
       expect(result.file).toBeDefined();
-      expect(result.file.type).toBe('file');
+      expect(result.file.type).toBe('file_url');
     });
 
     it('should route PDF to text without file capability', async () => {
@@ -306,9 +306,9 @@ describe('ArtifactContentRouter', () => {
       const result = await router.routeContent(artifact, 'text-only-service');
       expect(result.routing).toBe('text');
       expect(result.contentType).toBe('binary');
-      expect(result.content).toContain('Binary Content Not Supported');
+      expect(result.content).toContain('需要专门处理');
       expect(result.content).toContain('create_role');
-      expect(result.content).toContain('llmServiceId');
+      expect(result.content).toContain('spawn_agent_with_task');
     });
 
     it('should route audio file', async () => {
@@ -364,11 +364,11 @@ describe('ArtifactContentRouter', () => {
         meta: { filename: 'image.png' }
       };
       const description = router.generateTextDescription(artifact, 'image');
-      expect(description).toContain('Not Supported');
+      expect(description).toContain('需要专门处理');
       expect(description).toContain('vision');
       expect(description).toContain('create_role');
-      expect(description).toContain('llmServiceId');
-      expect(description).toContain('get_artifact');
+      expect(description).toContain('spawn_agent_with_task');
+      expect(description).toContain('artifact:test-3');
     });
 
     it('should NOT contain base64 data', () => {
@@ -454,7 +454,7 @@ describe('ArtifactContentRouter', () => {
       const result = await router.routeContent(artifact, 'text-only-service');
       expect(result.content).toContain('vision');
       expect(result.content).toContain('create_role');
-      expect(result.content).toContain('llmServiceId');
+      expect(result.content).toContain('spawn_agent_with_task');
     });
 
     it('should ensure description is much shorter than base64', async () => {
@@ -475,13 +475,13 @@ describe('ArtifactContentRouter', () => {
     it('should handle null artifact', async () => {
       const result = await router.routeContent(null, 'any-service');
       expect(result.routing).toBe('text');
-      expect(result.content).toContain('Error');
+      expect(result.content).toContain('错误');
     });
 
     it('should handle undefined artifact', async () => {
       const result = await router.routeContent(undefined, 'any-service');
       expect(result.routing).toBe('text');
-      expect(result.content).toContain('Error');
+      expect(result.content).toContain('错误');
     });
 
     it('should handle null serviceId', async () => {

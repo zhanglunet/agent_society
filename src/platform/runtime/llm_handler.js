@@ -309,10 +309,10 @@ export class LlmHandler {
     let userContent = userTextContent;
     const attachments = message?.payload?.attachments ?? [];
     
-    if (attachments.length > 0 && runtime.capabilityRouter && serviceId) {
-      // 使用能力路由器根据模型能力处理附件
+    if (attachments.length > 0 && runtime.contentRouter && serviceId) {
+      // 使用内容路由器根据模型能力处理附件
       try {
-        const routeResult = await runtime.capabilityRouter.routeContent(message, serviceId, {
+        const routeResult = await runtime.contentRouter.routeContent(message, serviceId, {
           getImageBase64,
           getFileContent,
           formattedTextContent: userTextContent  // 传入已格式化的文本内容

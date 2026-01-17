@@ -2,7 +2,7 @@
 
 ## 概述
 
-内容工具提供内容适配和能力路由功能，负责将不支持的内容类型转换为文本描述，并根据模型能力决定如何处理消息内容。
+内容工具提供内容适配和类型检测功能，负责将不支持的内容类型转换为文本描述，并提供通用的内容类型检测工具。
 
 ## 模块列表
 
@@ -19,34 +19,38 @@
   - `CONTENT_TYPE_TO_CAPABILITY` 常量
   - `CONTENT_TYPE_LABELS` 常量
 
-### capability_router.js
-- **职责**：能力路由器
+### content_type_utils.js
+- **职责**：内容类型检测工具
 - **功能**：
-  - 根据模型能力决定如何处理消息内容
-  - 支持的内容类型直接传递给 LLM
-  - 不支持的内容转换为文本描述
-  - 处理多模态内容（图片、文件等）
-  - 检查服务是否支持处理消息中的所有内容
+  - 检测二进制内容的具体类型（图片、音频、视频、文档等）
+  - 提供附件类型到能力类型的映射
+  - 获取友好的类型名称
 - **导出**：
-  - `CapabilityRouter` 类
+  - `detectBinaryType` 函数
+  - `getFriendlyTypeName` 函数
+  - `ATTACHMENT_TYPE_TO_CAPABILITY` 常量
 
 ## 依赖关系
 
 - `content_adapter.js` 依赖：
   - `../logger/logger.js` - 日志记录
-- `capability_router.js` 依赖：
-  - `../message/message_formatter.js` - 消息格式化
-  - `content_adapter.js` - 内容适配（可选）
+- `content_type_utils.js` 无外部依赖
 
 ## 使用场景
 
 1. **内容适配**：当智能体收到不支持的内容类型时，使用 ContentAdapter 将其转换为文本描述
-2. **能力路由**：在发送消息给 LLM 之前，使用 CapabilityRouter 根据模型能力处理消息内容
-3. **多模态处理**：处理包含图片、文件等附件的消息
+2. **类型检测**：使用 content_type_utils 检测二进制内容的具体类型
+3. **能力映射**：根据附件类型确定需要的模型能力
 
 ## 注意事项
 
 - 内容适配应该提供清晰的文本描述，让智能体可以理解并决定是否转发
-- 能力路由应该根据服务的实际能力进行路由，避免发送不支持的内容
+- 类型检测应该支持多种检测方式（MIME 类型、文件扩展名、文件头）
 - 文件内容读取应该有大小限制，避免内存溢出
 - 二进制文件应该提示需要专门的智能体处理
+
+## 迁移说明
+
+**注意**：`capability_router.js` 已经合并到 `services/artifact/content_router.js`。
+- 如果需要能力路由功能，请使用 `ContentRouter` 类（位于 `services/artifact/content_router.js`）
+- 本目录现在只包含通用的内容工具函数

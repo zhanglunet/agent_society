@@ -1,5 +1,5 @@
-/**
- * CapabilityRouter 测试
+﻿/**
+ * ContentRouter 测试
  * 
  * Property 2: Capability Routing for Supported Types
  * Property 3: Fallback Conversion for Unsupported Types
@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import * as fc from 'fast-check';
-import { CapabilityRouter } from '../../src/platform/utils/content/capability_router.js';
+import { ContentRouter } from '../../src/platform/services/artifact/content_router.js';
 import { ContentAdapter } from '../../src/platform/utils/content/content_adapter.js';
 
 // 模拟 LlmServiceRegistry
@@ -44,17 +44,17 @@ const messageArb = fc.record({
   })
 });
 
-describe('CapabilityRouter', () => {
+describe('ContentRouter', () => {
   describe('基础功能测试', () => {
-    it('创建实例不抛出异常', () => {
-      expect(() => new CapabilityRouter()).not.toThrow();
+    it('创建实例不抛出异�?, () => {
+      expect(() => new ContentRouter()).not.toThrow();
     });
 
-    it('处理无附件消息', async () => {
+    it('处理无附件消�?, async () => {
       const registry = createMockRegistry({
         'text-model': { capabilities: { input: ['text'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = { payload: { text: 'Hello' } };
       const result = await router.routeContent(message, 'text-model');
@@ -64,8 +64,8 @@ describe('CapabilityRouter', () => {
       expect(result.unsupportedAttachments).toEqual([]);
     });
 
-    it('处理空消息', async () => {
-      const router = new CapabilityRouter();
+    it('处理空消�?, async () => {
+      const router = new ContentRouter();
       const result = await router.routeContent(null, 'any');
       
       expect(result.canProcess).toBe(true);
@@ -74,16 +74,16 @@ describe('CapabilityRouter', () => {
   });
 
   describe('getRequiredCapabilities 方法', () => {
-    it('纯文本消息返回 text', () => {
-      const router = new CapabilityRouter();
+    it('纯文本消息返�?text', () => {
+      const router = new ContentRouter();
       const message = { payload: { text: 'Hello' } };
       
       const caps = router.getRequiredCapabilities(message);
       expect(caps).toEqual(['text']);
     });
 
-    it('图片附件需要 vision 能力', () => {
-      const router = new CapabilityRouter();
+    it('图片附件需�?vision 能力', () => {
+      const router = new ContentRouter();
       const message = {
         payload: {
           text: 'Look at this',
@@ -96,8 +96,8 @@ describe('CapabilityRouter', () => {
       expect(caps).toContain('vision');
     });
 
-    it('音频附件需要 audio 能力', () => {
-      const router = new CapabilityRouter();
+    it('音频附件需�?audio 能力', () => {
+      const router = new ContentRouter();
       const message = {
         payload: {
           text: 'Listen',
@@ -109,8 +109,8 @@ describe('CapabilityRouter', () => {
       expect(caps).toContain('audio');
     });
 
-    it('文件附件需要 file 能力', () => {
-      const router = new CapabilityRouter();
+    it('文件附件需�?file 能力', () => {
+      const router = new ContentRouter();
       const message = {
         payload: {
           text: 'Read this',
@@ -123,7 +123,7 @@ describe('CapabilityRouter', () => {
     });
 
     it('多种附件返回多种能力', () => {
-      const router = new CapabilityRouter();
+      const router = new ContentRouter();
       const message = {
         payload: {
           text: 'Multiple',
@@ -144,11 +144,11 @@ describe('CapabilityRouter', () => {
   });
 
   describe('checkCapabilitySupport 方法', () => {
-    it('全部支持时返回 allSupported: true', () => {
+    it('全部支持时返�?allSupported: true', () => {
       const registry = createMockRegistry({
         'vision-model': { capabilities: { input: ['text', 'vision'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = {
         payload: {
@@ -166,7 +166,7 @@ describe('CapabilityRouter', () => {
       const registry = createMockRegistry({
         'text-model': { capabilities: { input: ['text'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = {
         payload: {
@@ -191,7 +191,7 @@ describe('CapabilityRouter', () => {
             const registry = createMockRegistry({
               'vision-model': { capabilities: { input: ['text', 'vision'], output: ['text'] } }
             });
-            const router = new CapabilityRouter({ serviceRegistry: registry });
+            const router = new ContentRouter({ serviceRegistry: registry });
             
             const message = {
               payload: {
@@ -208,11 +208,11 @@ describe('CapabilityRouter', () => {
             
             const result = await router.routeContent(message, 'vision-model', { getImageBase64 });
             
-            // 支持的附件应该被处理为多模态内容
+            // 支持的附件应该被处理为多模态内�?
             expect(result.canProcess).toBe(true);
             expect(result.unsupportedAttachments).toEqual([]);
             
-            // 处理后的内容应该是数组（多模态）或包含原始文本
+            // 处理后的内容应该是数组（多模态）或包含原始文�?
             if (Array.isArray(result.processedContent)) {
               const hasImage = result.processedContent.some(c => c.type === 'image_url');
               expect(hasImage).toBe(true);
@@ -223,7 +223,7 @@ describe('CapabilityRouter', () => {
       );
     });
 
-    it('支持的文件附件内容被读取', async () => {
+    it('支持的文件附件内容被读取取', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 100 }),
@@ -232,7 +232,7 @@ describe('CapabilityRouter', () => {
             const registry = createMockRegistry({
               'file-model': { capabilities: { input: ['text', 'file'], output: ['text'] } }
             });
-            const router = new CapabilityRouter({ serviceRegistry: registry });
+            const router = new ContentRouter({ serviceRegistry: registry });
             
             const message = {
               payload: {
@@ -251,7 +251,7 @@ describe('CapabilityRouter', () => {
             expect(result.canProcess).toBe(true);
             expect(result.unsupportedAttachments).toEqual([]);
             
-            // 文件内容应该被添加到处理后的内容中
+            // 文件内容应该被添加到处理后的内容�?
             if (typeof result.processedContent === 'string') {
               expect(result.processedContent).toContain(fileContent);
             }
@@ -261,11 +261,11 @@ describe('CapabilityRouter', () => {
       );
     });
 
-    it('多种支持的附件都被正确处理', async () => {
+    it('多种支持的附件都被正确处�?, async () => {
       const registry = createMockRegistry({
         'multimodal': { capabilities: { input: ['text', 'vision', 'file'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = {
         payload: {
@@ -298,7 +298,7 @@ describe('CapabilityRouter', () => {
               'text-only': { capabilities: { input: ['text'], output: ['text'] } }
             });
             const contentAdapter = new ContentAdapter({ serviceRegistry: registry });
-            const router = new CapabilityRouter({ 
+            const router = new ContentRouter({ 
               serviceRegistry: registry,
               contentAdapter
             });
@@ -312,7 +312,7 @@ describe('CapabilityRouter', () => {
             
             const result = await router.routeContent(message, 'text-only');
             
-            // 非文本附件应该不被支持
+            // 非文本附件应该不被支�?
             if (attachment.type !== 'text') {
               expect(result.canProcess).toBe(false);
               expect(result.unsupportedAttachments.length).toBeGreaterThan(0);
@@ -327,7 +327,7 @@ describe('CapabilityRouter', () => {
       );
     });
 
-    it('不支持的附件不包含原始数据', async () => {
+    it('不支持的附件不包含原始数�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 100 }),
@@ -336,7 +336,7 @@ describe('CapabilityRouter', () => {
               'text-only': { capabilities: { input: ['text'], output: ['text'] } }
             });
             const contentAdapter = new ContentAdapter({ serviceRegistry: registry });
-            const router = new CapabilityRouter({ 
+            const router = new ContentRouter({ 
               serviceRegistry: registry,
               contentAdapter
             });
@@ -357,13 +357,13 @@ describe('CapabilityRouter', () => {
             
             const result = await router.routeContent(message, 'text-only', { getImageBase64 });
             
-            // 不支持的图片不应该请求 base64 数据
+            // 不支持的图片不应该请�?base64 数据
             expect(result.canProcess).toBe(false);
             
             // 处理后的内容应该是字符串（不是多模态数组）
             expect(typeof result.processedContent).toBe('string');
             
-            // 不应该包含 base64 数据
+            // 不应该包�?base64 数据
             expect(result.processedContent).not.toContain('secretdata');
           }
         ),
@@ -371,12 +371,12 @@ describe('CapabilityRouter', () => {
       );
     });
 
-    it('混合支持和不支持的附件正确处理', async () => {
+    it('混合支持和不支持的附件正确处�?, async () => {
       const registry = createMockRegistry({
         'vision-only': { capabilities: { input: ['text', 'vision'], output: ['text'] } }
       });
       const contentAdapter = new ContentAdapter({ serviceRegistry: registry });
-      const router = new CapabilityRouter({ 
+      const router = new ContentRouter({ 
         serviceRegistry: registry,
         contentAdapter
       });
@@ -395,7 +395,7 @@ describe('CapabilityRouter', () => {
       
       const result = await router.routeContent(message, 'vision-only', { getImageBase64 });
       
-      // 有不支持的附件
+      // 有不支持的附�?
       expect(result.canProcess).toBe(false);
       expect(result.unsupportedAttachments.length).toBe(1);
       expect(result.unsupportedAttachments[0].type).toBe('audio');
@@ -403,14 +403,14 @@ describe('CapabilityRouter', () => {
       // 文本描述应该包含音频附件信息
       expect(result.textDescription).toContain('artifact:audio1');
       
-      // 图片应该被处理为多模态
+      // 图片应该被处理为多模�?
       expect(Array.isArray(result.processedContent)).toBe(true);
     });
 
     it('服务不存在时所有非文本附件都不支持', async () => {
       const registry = createMockRegistry({});
       const contentAdapter = new ContentAdapter({ serviceRegistry: registry });
-      const router = new CapabilityRouter({ 
+      const router = new ContentRouter({ 
         serviceRegistry: registry,
         contentAdapter
       });
@@ -430,11 +430,11 @@ describe('CapabilityRouter', () => {
   });
 
   describe('Property 4: Formatted Text Content Option', () => {
-    it('使用 formattedTextContent 选项时应使用预格式化的文本', async () => {
+    it('使用 formattedTextContent 选项时应使用预格式化的文�?, async () => {
       const registry = createMockRegistry({
         'text-model': { capabilities: { input: ['text'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = {
         payload: {
@@ -452,11 +452,11 @@ describe('CapabilityRouter', () => {
       expect(result.processedContent).toBe(formattedText);
     });
 
-    it('formattedTextContent 与附件处理结合使用', async () => {
+    it('formattedTextContent 与附件处理结合使�?, async () => {
       const registry = createMockRegistry({
         'vision-model': { capabilities: { input: ['text', 'vision'], output: ['text'] } }
       });
-      const router = new CapabilityRouter({ serviceRegistry: registry });
+      const router = new ContentRouter({ serviceRegistry: registry });
       
       const message = {
         payload: {
@@ -475,20 +475,20 @@ describe('CapabilityRouter', () => {
       
       expect(result.canProcess).toBe(true);
       
-      // 应该是多模态数组
+      // 应该是多模态数�?
       expect(Array.isArray(result.processedContent)).toBe(true);
       
-      // 第一个元素应该是预格式化的文本
+      // 第一个元素应该是预格式化的文�?
       const textContent = result.processedContent.find(c => c.type === 'text');
       expect(textContent.text).toBe(formattedText);
     });
 
-    it('不支持视觉的模型收到图片时应转换为文本描述', async () => {
+    it('不支持视觉的模型收到图片时应转换为文本描�?, async () => {
       const registry = createMockRegistry({
         'text-only': { capabilities: { input: ['text'], output: ['text'] } }
       });
       const contentAdapter = new ContentAdapter({ serviceRegistry: registry });
-      const router = new CapabilityRouter({ 
+      const router = new ContentRouter({ 
         serviceRegistry: registry,
         contentAdapter
       });
@@ -514,7 +514,7 @@ describe('CapabilityRouter', () => {
         getImageBase64
       });
       
-      // 应该标记为不能完全处理
+      // 应该标记为不能完全处�?
       expect(result.canProcess).toBe(false);
       
       // 图片应该在不支持的附件列表中
@@ -524,13 +524,14 @@ describe('CapabilityRouter', () => {
       // 处理后的内容应该是字符串（不是多模态数组）
       expect(typeof result.processedContent).toBe('string');
       
-      // 应该包含预格式化的文本
+      // 应该包含预格式化的文�?
       expect(result.processedContent).toContain(formattedText);
       
-      // 应该包含图片的文本描述
+      // 应该包含图片的文本描�?
       expect(result.processedContent).toContain('artifact:img1');
       expect(result.processedContent).toContain('photo.png');
     });
   });
 
 });
+
