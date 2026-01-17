@@ -116,7 +116,7 @@
     - 运行测试验证
     - _需求：8.1, 9.2_
 
-- [ ] 5. 移动服务模块文件
+- [x] 5. 移动服务模块文件
   - [x] 5.1 移动工件服务文件到 services/artifact/
     - 移动 artifact_store.js
     - 移动 binary_detector.js
@@ -125,7 +125,7 @@
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 5.2 移动 LLM 服务文件到 services/llm/
+  - [x] 5.2 移动 LLM 服务文件到 services/llm/
     - 移动 llm_client.js
     - 移动 llm_service_registry.js
     - 移动 model_selector.js
@@ -135,14 +135,14 @@
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 5.3 移动会话服务文件到 services/conversation/
+  - [x] 5.3 移动会话服务文件到 services/conversation/
     - 移动 conversation_manager.js
     - 更新导入路径
     - 创建兼容性导出
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 5.4 移动工作空间服务文件到 services/workspace/
+  - [x] 5.4 移动工作空间服务文件到 services/workspace/
     - 移动 workspace_manager.js
     - 移动 command_executor.js
     - 更新导入路径
@@ -150,7 +150,7 @@
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 5.5 移动 HTTP 服务文件到 services/http/
+  - [x] 5.5 移动 HTTP 服务文件到 services/http/
     - 移动 http_server.js
     - 移动 http_client.js
     - 更新导入路径
@@ -158,7 +158,7 @@
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 5.6 移动联系人服务文件到 services/contact/
+  - [x] 5.6 移动联系人服务文件到 services/contact/
     - 移动 contact_manager.js
     - 更新导入路径
     - 创建兼容性导出
