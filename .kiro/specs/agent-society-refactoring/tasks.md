@@ -66,50 +66,50 @@
 
 ### 阶段 2：目录结构调整
 
-- [ ] 3. 创建新的目录结构
-  - [ ] 3.1 创建核心模块目录
+- [x] 3. 创建新的目录结构
+  - [x] 3.1 创建核心模块目录
     - 创建 src/platform/core/ 目录
     - 创建 core.md 说明文档
     - _需求：3.5, 4.1, 4.2_
   
-  - [ ] 3.2 创建服务模块目录
+  - [x] 3.2 创建服务模块目录
     - 创建 src/platform/services/ 目录及子目录
     - 创建 services.md 和各子目录的说明文档
     - _需求：3.5, 4.1, 4.2_
   
-  - [ ] 3.3 创建工具模块目录
+  - [x] 3.3 创建工具模块目录
     - 创建 src/platform/utils/ 目录及子目录
     - 创建 utils.md 和各子目录的说明文档
     - _需求：3.5, 4.1, 4.2_
   
-  - [ ] 3.4 创建扩展模块目录
+  - [x] 3.4 创建扩展模块目录
     - 创建 src/platform/extensions/ 目录
     - 创建 extensions.md 说明文档
     - _需求：3.5, 4.1, 4.2_
 
-- [ ] 4. 移动核心模块文件
-  - [ ] 4.1 移动 agent_society.js 到 core/
+- [x] 4. 移动核心模块文件
+  - [x] 4.1 移动 agent_society.js 到 core/
     - 移动文件
     - 更新导入路径
     - 在原位置创建兼容性导出
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 4.2 移动 runtime.js 到 core/
+  - [x] 4.2 移动 runtime.js 到 core/
     - 移动文件
     - 更新导入路径
     - 在原位置创建兼容性导出
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 4.3 移动 message_bus.js 到 core/
+  - [x] 4.3 移动 message_bus.js 到 core/
     - 移动文件
     - 更新导入路径
     - 在原位置创建兼容性导出
     - 运行测试验证
     - _需求：8.1, 9.2_
   
-  - [ ] 4.4 移动 org_primitives.js 到 core/
+  - [x] 4.4 移动 org_primitives.js 到 core/
     - 移动文件
     - 更新导入路径
     - 在原位置创建兼容性导出
@@ -117,7 +117,7 @@
     - _需求：8.1, 9.2_
 
 - [ ] 5. 移动服务模块文件
-  - [ ] 5.1 移动工件服务文件到 services/artifact/
+  - [x] 5.1 移动工件服务文件到 services/artifact/
     - 移动 artifact_store.js
     - 移动 binary_detector.js
     - 更新导入路径

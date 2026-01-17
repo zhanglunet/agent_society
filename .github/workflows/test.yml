@@ -1,0 +1,170 @@
+# Agent Society 测试工作流
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+    timeout-minutes: 30  # 设置超时时间
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Cache test dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      
+      - name: Run tests
+        id: test
+        run: bun test
+        continue-on-error: true
+      
+      - name: Check test results
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "::error::测试失败！请检查测试日志。"
+          exit 1
+      
+      - name: Generate coverage report (LCOV)
+        if: always()
+        run: bun test --coverage --coverage-reporter=lcov
+        continue-on-error: true
+      
+      - name: Generate coverage report (Text)
+        if: always()
+        run: bun test --coverage --coverage-reporter=text > coverage-report.txt
+        continue-on-error: true
+      
+      - name: Upload coverage report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            coverage-report.txt
+          retention-days: 30
+      
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+      
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let coverageReport = '测试覆盖率报告生成中...';
+            try {
+              coverageReport = fs.readFileSync('coverage-report.txt', 'utf8');
+            } catch (e) {
+              coverageReport = '无法读取覆盖率报告';
+            }
+            
+            const testStatus = '${{ steps.test.outcome }}' === 'success' ? '✅ 通过' : '❌ 失败';
+            
+            const comment = `## 测试结果 ${testStatus}
+            
+            ### 测试执行状态
+            - **状态**: ${testStatus}
+            - **工作流**: ${{ github.workflow }}
+            - **提交**: ${{ github.sha }}
+            
+            ### 覆盖率报告
+            \`\`\`
+            ${coverageReport.substring(0, 2000)}
+            \`\`\`
+            
+            完整报告请查看 [Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  test-coverage:
+    name: Check Coverage Threshold
+    runs-on: windows-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Install dependencies
+        run: bun install
+      
+      - name: Run tests with coverage
+        run: bun test --coverage --coverage-reporter=text
+        continue-on-error: true
+      
+      - name: Parse and check coverage threshold
+        shell: pwsh
+        run: |
+          Write-Host "检查测试覆盖率是否达到 80% 目标"
+          Write-Host "注意：Bun 目前不支持内置覆盖率阈值检查"
+          Write-Host "建议：在后续版本中实现自定义覆盖率检查脚本"
+          
+          # 提示：可以通过解析 coverage/lcov.info 文件来实现覆盖率检查
+          # 当前仅作为占位符，不会导致构建失败
+          
+  notify:
+    name: Send Notifications
+    runs-on: windows-latest
+    needs: [test, test-coverage]
+    if: failure()
+    
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "::warning::测试或覆盖率检查失败！"
+          echo "工作流: ${{ github.workflow }}"
+          echo "分支: ${{ github.ref }}"
+          echo "提交: ${{ github.sha }}"
+          echo "触发者: ${{ github.actor }}"
+          
+      # 可选：集成其他通知服务
+      # - name: Send Slack notification
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: '测试失败！请检查 GitHub Actions 日志。'
+      #     webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      #   if: always()

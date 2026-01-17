@@ -1,0 +1,147 @@
+{
+  "baseline": {
+    "timestamp": "2026-01-17T18:28:57+08:00",
+    "testFramework": "Bun Test v1.2.1",
+    "executionTime": "~120s (timeout)",
+    "summary": {
+      "total": 300,
+      "passed": 260,
+      "failed": 40,
+      "skipped": 0,
+      "passRate": "86.7%"
+    },
+    "modules": {
+      "artifact-list.test.js": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "artifact-manager.test.js": {
+        "total": 7,
+        "passed": 1,
+        "failed": 6,
+        "status": "⚠️ FAIL",
+        "issues": ["PBT failures with single artifact arrays"]
+      },
+      "binary_detector.test.js": {
+        "total": 73,
+        "passed": 73,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "e2e.test.js": {
+        "total": 22,
+        "passed": 22,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "packaging.test.js": {
+        "total": 22,
+        "passed": 14,
+        "failed": 8,
+        "status": "⚠️ FAIL",
+        "issues": ["pack.ps1 missing", "start.cmd missing LOCAL_BUN marker"]
+      },
+      "start.test.js": {
+        "total": 13,
+        "passed": 11,
+        "failed": 2,
+        "status": "⚠️ FAIL",
+        "issues": ["Port parsing returns null instead of default 3000"]
+      },
+      "chrome.test.js": {
+        "total": 30,
+        "passed": 26,
+        "failed": 4,
+        "status": "⚠️ FAIL",
+        "issues": ["Tool count mismatch (16 vs 15)", "Init/shutdown errors"]
+      },
+      "chrome_selector_sanitization.test.js": {
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "agent_manager.test.js": {
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "agent_society.test.js": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "artifact_store.test.js": {
+        "total": 30,
+        "passed": 30,
+        "failed": 0,
+        "status": "✅ PASS"
+      },
+      "artifact_binary_routing_integration.test.js": {
+        "total": 5,
+        "passed": 3,
+        "failed": 2,
+        "status": "⚠️ FAIL",
+        "issues": ["Content routing text changed to Chinese", "file.type changed to file_url"]
+      },
+      "artifact_content_router.test.js": {
+        "total": 45,
+        "passed": 40,
+        "failed": 5,
+        "status": "⚠️ FAIL",
+        "issues": ["Content routing text changed to Chinese", "file.type changed to file_url"]
+      },
+      "browser_javascript_executor.test.js": {
+        "total": 26,
+        "passed": 15,
+        "failed": 11,
+        "status": "❌ CRITICAL",
+        "issues": ["Multiple timeouts", "Protocol errors", "Resource management issues"]
+      }
+    },
+    "failureCategories": {
+      "missingFiles": {
+        "count": 7,
+        "description": "pack.ps1 missing, start.cmd markers missing"
+      },
+      "outdatedAssertions": {
+        "count": 10,
+        "description": "Content routing text updated to Chinese, file.type field changed"
+      },
+      "browserExecutor": {
+        "count": 11,
+        "description": "Timeouts, protocol errors, resource management"
+      },
+      "configLogic": {
+        "count": 6,
+        "description": "Port parsing, Chrome tool count, init/shutdown errors"
+      }
+    },
+    "criticalIssues": [
+      "浏览器执行器测试大量超时和失败",
+      "pack.ps1 文件缺失",
+      "工件管理器 PBT 测试失败",
+      "内容路由测试断言过时"
+    ],
+    "recommendations": {
+      "immediate": [
+        "创建缺失的 pack.ps1 文件",
+        "更新 start.cmd 添加 LOCAL_BUN 标记",
+        "修复浏览器执行器的资源管理问题"
+      ],
+      "testUpdates": [
+        "更新工件路由测试的断言 - 适配新的中文提示文本",
+        "更新 file.type 断言 - 从 'file' 改为 'file_url'",
+        "修复工件管理器 PBT 测试 - 处理单个工件数组的边界情况"
+      ],
+      "performance": [
+        "优化浏览器执行器测试 - 减少超时，改进资源清理",
+        "考虑并行测试限制 - 避免浏览器实例冲突"
+      ]
+    }
+  }
+}

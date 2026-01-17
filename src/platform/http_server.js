@@ -566,6 +566,10 @@ export class HTTPServer {
       this._messagesById.set(toolCallMessage.id, toolCallMessage);
       this._messagesByAgent.get(agentId).push(toolCallMessage);
       await this._appendMessageToFile(agentId, toolCallMessage);
+      
+      // 重新按时间排序，确保工具调用消息显示在正确的位置
+      const messages = this._messagesByAgent.get(agentId);
+      messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     }
   }
 
