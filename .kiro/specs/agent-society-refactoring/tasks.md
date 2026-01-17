@@ -323,7 +323,7 @@
     - 更新 Runtime 导入和使用
     - _需求：3.2, 7.1, 7.2_
   
-  - [-] 13.4 提取消息处理循环模块
+  - [x] 13.4 提取消息处理循环模块
     - 创建 runtime/runtime_messaging.js
     - 移动消息处理相关代码：
       - 消息调度 (_processingLoop, _scheduleMessageProcessing, startProcessing)
