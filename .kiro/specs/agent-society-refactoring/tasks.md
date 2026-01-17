@@ -267,12 +267,12 @@
     - _需求：12.1, 12.2_
 
 - [ ] 12. 整合消息工具模块
-  - [ ] 12.1 创建统一的消息工具类
+  - [x] 12.1 创建统一的消息工具类
     - 创建 utils/message/index.js
     - 整合 message_formatter、message_validator、task_brief 的功能
     - _需求：5.2, 5.5_
   
-  - [ ] 12.2 提供兼容性导出
+  - [x] 12.2 提供兼容性导出
     - 保留原有的独立文件作为兼容性导出
     - 确保旧代码仍然可用
     - _需求：9.2_
@@ -287,28 +287,97 @@
     - 更新目录说明文档
     - _需求：12.1, 12.2_
 
-- [ ] 13. 拆分 Runtime 类
-  - [ ] 13.1 提取状态管理模块
-    - 创建 runtime/state_manager.js
-    - 将 Runtime 的状态管理逻辑提取到 StateManager
-    - 更新 Runtime 使用 StateManager
+- [ ] 13. 拆分 Runtime 类（按职责域拆分）
+  - [x] 13.1 提取状态管理模块
+    - 创建 runtime/runtime_state.js
+    - 移动状态管理相关代码：
+      - 智能体注册表 (_agents, _agentMetaById)
+      - 运算状态跟踪 (_agentComputeStatus, _activeProcessingAgents)
+      - 插话队列管理 (_interruptionQueues)
+      - 对话历史 (_conversations)
+      - 任务工作空间映射 (_taskWorkspaces, _agentTaskBriefs)
+      - 状态锁 (_stateLocks)
+      - 相关方法：setAgentComputeStatus, getAgentComputeStatus, isAgentActivelyProcessing, addInterruption, getAndClearInterruptions, getAllAgentComputeStatus, _acquireLock, _releaseLock
+    - 更新 Runtime 导入和使用
     - _需求：3.2, 7.1, 7.2_
   
-  - [ ] 13.2 提取错误处理模块
-    - 创建 runtime/error_handler.js
-    - 将 Runtime 的错误处理逻辑提取到 ErrorHandler
-    - 更新 Runtime 使用 ErrorHandler
+  - [x] 13.2 提取事件系统模块
+    - 创建 runtime/runtime_events.js
+    - 移动事件监听和广播相关代码：
+      - 工具调用事件 (_toolCallListeners, onToolCall, _emitToolCall)
+      - 错误事件 (_errorListeners, onError, _emitError)
+      - LLM 重试事件 (_llmRetryListeners, onLlmRetry, _emitLlmRetry)
+      - 运算状态变更事件 (_computeStatusListeners, onComputeStatusChange, _emitComputeStatusChange)
+    - 更新 Runtime 导入和使用
     - _需求：3.2, 7.1, 7.2_
   
-  - [ ] 13.3 更新 Runtime 的测试
-    - 为 StateManager 编写单元测试
-    - 为 ErrorHandler 编写单元测试
-    - 更新 Runtime 的单元测试
+  - [ ] 13.3 提取智能体生命周期模块
+    - 创建 runtime/runtime_lifecycle.js
+    - 移动智能体生命周期相关代码：
+      - 创建智能体 (spawnAgent, spawnAgentAs)
+      - 恢复智能体 (_restoreAgentsFromOrg)
+      - 注册智能体 (registerAgentInstance, registerRoleBehavior)
+      - 查询智能体状态 (getAgentStatus, listAgentInstances, getQueueDepths)
+      - 中断智能体 (abortAgentLlmCall, _cascadeStopAgents)
+      - 工作空间查找 (findWorkspaceIdForAgent)
+    - 更新 Runtime 导入和使用
+    - _需求：3.2, 7.1, 7.2_
+  
+  - [ ] 13.4 提取消息处理循环模块
+    - 创建 runtime/runtime_messaging.js
+    - 移动消息处理相关代码：
+      - 消息调度 (_processingLoop, _scheduleMessageProcessing, startProcessing)
+      - 消息处理 (_processAgentMessage, _deliverOneRound, run)
+      - 插话处理 (handleMessageInterruption, _processInterruption)
+      - 并发控制逻辑
+    - 更新 Runtime 导入和使用
+    - _需求：3.2, 7.1, 7.2_
+  
+  - [ ] 13.5 提取工具管理模块
+    - 创建 runtime/runtime_tools.js
+    - 移动工具管理相关代码：
+      - 工具定义 (getToolDefinitions, getToolDefinitionsForAgent)
+      - 工具执行 (executeToolCall)
+      - 工具组管理 (_registerBuiltinToolGroups, _formatToolGroupsInfo, _generateToolGroupsDescription)
+      - 工具权限检查 (isToolAvailableForAgent)
+    - 更新 Runtime 导入和使用
+    - _需求：3.2, 7.1, 7.2_
+  
+  - [ ] 13.6 提取 LLM 交互模块
+    - 创建 runtime/runtime_llm.js
+    - 移动 LLM 交互相关代码：
+      - LLM 调用 (_handleWithLlm, _doLlmProcessing)
+      - 上下文构建 (_buildSystemPromptForAgent, _formatMessageForLlm, _ensureConversation)
+      - 错误处理 (_sendErrorNotificationToParent)
+      - 发送者信息 (_getSenderInfo)
+    - 更新 Runtime 导入和使用
+    - _需求：3.2, 7.1, 7.2_
+  
+  - [ ] 13.7 重构 Runtime 核心协调器
+    - 保留 runtime.js 作为核心协调器
+    - 保留初始化逻辑 (constructor, init)
+    - 保留配置管理
+    - 保留服务初始化
+    - 导入并组合各个子模块
+    - 提供统一的公共接口
+    - _需求：3.2, 7.1, 7.2_
+  
+  - [ ] 13.8 更新测试
+    - 为 runtime_state.js 编写单元测试
+    - 为 runtime_events.js 编写单元测试
+    - 为 runtime_lifecycle.js 编写单元测试
+    - 为 runtime_messaging.js 编写单元测试
+    - 为 runtime_tools.js 编写单元测试
+    - 为 runtime_llm.js 编写单元测试
+    - 更新 Runtime 核心的单元测试
+    - 运行所有测试确保通过
     - _需求：11.1, 11.2_
   
-  - [ ] 13.4 验证 Runtime 代码行数
-    - 统计 Runtime 类的代码行数（不含注释）
-    - 确保不超过 500 行
+  - [ ] 13.9 验证拆分结果
+    - 验证每个文件代码行数不超过 500 行
+    - 验证模块职责清晰
+    - 验证模块间依赖关系简单
+    - 验证所有测试通过
     - _需求：3.2_
 
 - [ ] 14. 检查点 - 模块合并和拆分完成

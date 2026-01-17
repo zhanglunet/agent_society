@@ -31,12 +31,15 @@ import { MessageProcessor } from "../runtime/message_processor.js";
 import { ToolExecutor } from "../runtime/tool_executor.js";
 import { LlmHandler } from "../runtime/llm_handler.js";
 import { ShutdownManager } from "../runtime/shutdown_manager.js";
+import { RuntimeState } from "../runtime/runtime_state.js";
+import { RuntimeEvents } from "../runtime/runtime_events.js";
 
 /**
  * 运行时：将平台能力（org/message/artifact/prompt）与智能体行为连接起来。
  * 
  * 【模块化架构】
  * Runtime 类作为核心协调器，将具体功能委托给以下子模块：
+ * - RuntimeState: 状态管理（智能体注册表、运算状态、插话队列等）
  * - JavaScriptExecutor: JavaScript 代码执行
  * - ContextBuilder: 上下文构建
  * - AgentManager: 智能体生命周期管理
@@ -61,39 +64,53 @@ export class Runtime {
     this.dataDir = options.dataDir ?? null; // 自定义数据目录
     this._stopRequested = false;
     this._processingLoopPromise = null;
-    this._agents = new Map();
-    this._activeProcessingAgents = new Set(); // 正在处理消息的智能体集合（用于并发控制）
-    this._interruptionQueues = new Map(); // 插话消息队列：agentId -> Array<Message>（Requirements 1.1, 4.1）
+    
+    // 初始化日志系统（临时，在 init() 中会重新初始化）
+    this.loggerRoot = new Logger(normalizeLoggingConfig(null));
+    this.log = createNoopModuleLogger();
+    
+    // 初始化事件系统模块
+    this._events = new RuntimeEvents({
+      logger: this.log
+    });
+    
+    // 初始化状态管理模块
+    this._state = new RuntimeState({
+      logger: this.log,
+      onComputeStatusChange: (agentId, status) => this._events.emitComputeStatusChange(agentId, status)
+    });
+    
+    // 为向后兼容，直接暴露状态属性（委托给 RuntimeState）
+    this._agents = this._state._agents;
+    this._agentMetaById = this._state._agentMetaById;
+    this._agentComputeStatus = this._state._agentComputeStatus;
+    this._activeProcessingAgents = this._state._activeProcessingAgents;
+    this._interruptionQueues = this._state._interruptionQueues;
+    this._conversations = this._state._conversations;
+    this._taskWorkspaces = this._state._taskWorkspaces;
+    this._agentTaskBriefs = this._state._agentTaskBriefs;
+    this._stateLocks = this._state._stateLocks;
+    
     this._behaviorRegistry = new Map();
-    this._conversations = new Map();
+    
+    // 初始化 ConversationManager（使用 RuntimeState 的 conversations）
     this._conversationManager = new ConversationManager({ 
       maxContextMessages: this.maxContextMessages,
-      conversations: this._conversations,
+      conversations: this._state.getConversations(),
       contextLimit: options.contextLimit ?? null
     });
+    
     this._rootTaskAgentByTaskId = new Map();
     this._rootTaskRoleByTaskId = new Map();
     this._rootTaskEntryAgentAnnouncedByTaskId = new Set();
-    this._agentMetaById = new Map();
     this._agentLastActivityTime = new Map(); // 跟踪智能体最后活动时间
     this._idleWarningEmitted = new Set(); // 跟踪已发出空闲警告的智能体
-    this._agentComputeStatus = new Map(); // 跟踪智能体运算状态: 'idle' | 'waiting_llm' | 'processing' | 'stopping' | 'stopped' | 'terminating'
-    this._stateLocks = new Map(); // 状态锁：agentId -> Promise 队列
-    this._taskWorkspaces = new Map(); // 跟踪任务工作空间 taskId -> workspacePath
-    this._agentTaskBriefs = new Map(); // 跟踪智能体的 TaskBrief agentId -> TaskBrief
-    this.loggerRoot = new Logger(normalizeLoggingConfig(null));
-    this.log = createNoopModuleLogger();
+    
     // 初始化 WorkspaceManager 和 CommandExecutor（在 init() 中会重新初始化带 logger）
     this.workspaceManager = new WorkspaceManager();
     this.commandExecutor = new CommandExecutor();
     // 初始化 ContactManager（在 init() 中会重新初始化带 logger）
     this.contactManager = new ContactManager();
-    // 工具调用事件监听器
-    this._toolCallListeners = new Set();
-    // 错误事件监听器（用于向前端广播错误）
-    this._errorListeners = new Set();
-    // LLM 重试事件监听器
-    this._llmRetryListeners = new Set();
     // 模块加载器（在 init() 中会重新初始化带 logger）
     this.moduleLoader = new ModuleLoader();
     // LLM 服务注册表和模型选择器（在 init() 中初始化）
@@ -109,6 +126,8 @@ export class Runtime {
     
     // 初始化子模块（模块化架构）
     // 这些子模块封装了 Runtime 的具体功能实现
+    /** @type {RuntimeState} 状态管理器 */
+    this._stateManager = this._state;
     /** @type {JavaScriptExecutor} JavaScript 执行器（Node.js 降级模式） */
     this._jsExecutor = new JavaScriptExecutor(this);
     /** @type {BrowserJavaScriptExecutor} 浏览器 JavaScript 执行器 */
@@ -132,9 +151,7 @@ export class Runtime {
    * @param {(event: {agentId: string, toolName: string, args: object, result: any, taskId: string|null}) => void} listener
    */
   onToolCall(listener) {
-    if (typeof listener === "function") {
-      this._toolCallListeners.add(listener);
-    }
+    this._events.onToolCall(listener);
   }
 
   /**
@@ -142,13 +159,7 @@ export class Runtime {
    * @param {{agentId: string, toolName: string, args: object, result: any, taskId: string|null}} event
    */
   _emitToolCall(event) {
-    for (const listener of this._toolCallListeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        void this.log?.warn?.("工具调用事件监听器执行失败", { error: err?.message ?? String(err) });
-      }
-    }
+    this._events.emitToolCall(event);
   }
 
   /**
@@ -156,9 +167,7 @@ export class Runtime {
    * @param {(event: {agentId: string, errorType: string, message: string, timestamp: string, [key: string]: any}) => void} listener
    */
   onError(listener) {
-    if (typeof listener === "function") {
-      this._errorListeners.add(listener);
-    }
+    this._events.onError(listener);
   }
 
   /**
@@ -166,13 +175,7 @@ export class Runtime {
    * @param {{agentId: string, errorType: string, message: string, timestamp: string, [key: string]: any}} event
    */
   _emitError(event) {
-    for (const listener of this._errorListeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        void this.log?.warn?.("错误事件监听器执行失败", { error: err?.message ?? String(err) });
-      }
-    }
+    this._events.emitError(event);
   }
 
   /**
@@ -180,9 +183,7 @@ export class Runtime {
    * @param {(event: {agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}) => void} listener
    */
   onLlmRetry(listener) {
-    if (typeof listener === "function") {
-      this._llmRetryListeners.add(listener);
-    }
+    this._events.onLlmRetry(listener);
   }
 
   /**
@@ -190,201 +191,7 @@ export class Runtime {
    * @param {{agentId: string, attempt: number, maxRetries: number, delayMs: number, errorMessage: string, timestamp: string}} event
    */
   _emitLlmRetry(event) {
-    for (const listener of this._llmRetryListeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        void this.log?.warn?.("LLM 重试事件监听器执行失败", { error: err?.message ?? String(err) });
-      }
-    }
-  }
-
-  /**
-   * 设置智能体运算状态。
-   * @param {string} agentId - 智能体ID
-   * @param {'idle'|'waiting_llm'|'processing'|'stopping'|'stopped'|'terminating'} status - 运算状态
-   */
-  setAgentComputeStatus(agentId, status) {
-    if (agentId) {
-      this._agentComputeStatus.set(agentId, status);
-      this._emitComputeStatusChange(agentId, status);
-    }
-  }
-
-  /**
-   * 获取智能体运算状态。
-   * @param {string} agentId - 智能体ID
-   * @returns {'idle'|'waiting_llm'|'processing'|'stopping'|'stopped'|'terminating'} 运算状态
-   */
-  getAgentComputeStatus(agentId) {
-    return this._agentComputeStatus.get(agentId) ?? 'idle';
-  }
-
-  /**
-   * 检查智能体是否正在活跃处理消息。
-   * @param {string} agentId - 智能体ID
-   * @returns {boolean} 是否正在活跃处理
-   */
-  isAgentActivelyProcessing(agentId) {
-    return this._activeProcessingAgents.has(agentId);
-  }
-
-  /**
-   * 添加插话消息到智能体的插话队列。
-   * 当智能体正在处理消息时收到新消息，新消息会被加入插话队列。
-   * 
-   * @param {string} agentId - 智能体ID
-   * @param {object} message - 插话消息
-   * @returns {void}
-   * 
-   * Requirements: 1.1, 4.1, 4.2, 4.3, 4.4
-   */
-  addInterruption(agentId, message) {
-    if (!this._interruptionQueues.has(agentId)) {
-      this._interruptionQueues.set(agentId, []);
-    }
-    this._interruptionQueues.get(agentId).push(message);
-    
-    void this.log.info("添加插话消息", {
-      agentId,
-      messageFrom: message.from,
-      messageId: message.id ?? 'unknown',
-      queueLength: this._interruptionQueues.get(agentId).length
-    });
-  }
-
-  /**
-   * 获取并清空智能体的插话队列。
-   * 返回所有待处理的插话消息，并清空队列。
-   * 
-   * @param {string} agentId - 智能体ID
-   * @returns {Array<object>} 插话消息数组（FIFO顺序）
-   * 
-   * Requirements: 1.1, 4.1, 4.2, 4.3, 4.4
-   */
-  getAndClearInterruptions(agentId) {
-    const interruptions = this._interruptionQueues.get(agentId) ?? [];
-    this._interruptionQueues.delete(agentId);
-    
-    if (interruptions.length > 0) {
-      void this.log.info("获取插话消息", {
-        agentId,
-        count: interruptions.length
-      });
-    }
-    
-    return interruptions;
-  }
-
-  /**
-   * 获取所有智能体的运算状态。
-   * @returns {Object.<string, 'idle'|'waiting_llm'|'processing'|'stopping'|'stopped'|'terminating'>} 智能体ID到运算状态的映射
-   */
-  getAllAgentComputeStatus() {
-    return Object.fromEntries(this._agentComputeStatus);
-  }
-
-  /**
-   * 中断指定智能体的 LLM 调用。
-   * @param {string} agentId - 智能体ID
-   * @param {boolean} [cascade=false] - 是否级联停止所有子智能体
-   * @returns {Promise<{ok: boolean, aborted: boolean, reason?: string, cascadeStopped?: string[]}>}
-   */
-  async abortAgentLlmCall(agentId, cascade = false) {
-    if (!agentId) {
-      return { ok: false, aborted: false, reason: 'missing_agent_id' };
-    }
-
-    const agent = this._agents.get(agentId);
-    if (!agent) {
-      return { ok: false, aborted: false, reason: 'agent_not_found' };
-    }
-
-    // 获取状态锁，确保原子性操作
-    const release = await this._acquireLock(agentId);
-    
-    try {
-      const currentStatus = this.getAgentComputeStatus(agentId);
-      
-      // 如果已经在停止中或已停止，直接返回
-      if (currentStatus === 'stopping' || currentStatus === 'stopped' || currentStatus === 'terminating') {
-        return { ok: true, aborted: false, reason: 'already_stopped' };
-      }
-      
-      // 如果是级联停止，允许停止任何状态的智能体（包括 idle）
-      // 如果不是级联停止，只允许停止活跃的智能体（waiting_llm 或 processing）
-      if (!cascade && currentStatus !== 'waiting_llm' && currentStatus !== 'processing') {
-        return { ok: true, aborted: false, reason: 'not_active' };
-      }
-
-      // 设置状态为 stopping（过渡状态）
-      this.setAgentComputeStatus(agentId, 'stopping');
-
-      // 调用 LLM 客户端的 abort 方法
-      const aborted = this.llm?.abort(agentId) ?? false;
-      
-      // 清空消息队列
-      const clearedMessages = this.bus?.clearQueue(agentId) ?? [];
-      const clearedCount = Array.isArray(clearedMessages) ? clearedMessages.length : 0;
-      
-      // 级联停止子智能体（如果需要）
-      let cascadeStopped = [];
-      if (cascade) {
-        cascadeStopped = this._cascadeStopAgents(agentId);
-        if (cascadeStopped.length > 0) {
-          void this.log.info("级联停止子智能体", { 
-            agentId, 
-            stoppedCount: cascadeStopped.length,
-            stoppedAgents: cascadeStopped
-          });
-        }
-      }
-      
-      // 设置最终状态为 stopped
-      this.setAgentComputeStatus(agentId, 'stopped');
-      
-      if (aborted) {
-        void this.log.info("LLM 调用已中断", { 
-          agentId, 
-          previousStatus: currentStatus,
-          clearedMessages: clearedCount,
-          cascadeStopped: cascadeStopped.length
-        });
-      } else {
-        void this.log.info("智能体处理已停止", { 
-          agentId, 
-          previousStatus: currentStatus,
-          hadActiveLlmCall: false,
-          clearedMessages: clearedCount,
-          cascadeStopped: cascadeStopped.length
-        });
-      }
-      
-      // 记录中断事件，用于调试和监控
-      void this.loggerRoot.logAgentLifecycleEvent("llm_call_aborted", {
-        agentId,
-        timestamp: formatLocalTime(),
-        reason: "user_requested",
-        previousStatus: currentStatus,
-        llmCallAborted: aborted,
-        clearedMessages: clearedCount,
-        cascadeStopped: cascadeStopped.length
-      });
-
-      const result = { 
-        ok: true, 
-        aborted: aborted || currentStatus === 'processing'
-      };
-      
-      if (cascadeStopped.length > 0) {
-        result.cascadeStopped = cascadeStopped;
-      }
-      
-      return result;
-    } finally {
-      // 确保锁总是被释放
-      this._releaseLock(release);
-    }
+    this._events.emitLlmRetry(event);
   }
 
   /**
@@ -393,13 +200,7 @@ export class Runtime {
    * @param {'idle'|'waiting_llm'|'processing'|'stopping'|'stopped'|'terminating'} status - 新状态
    */
   _emitComputeStatusChange(agentId, status) {
-    for (const listener of this._computeStatusListeners ?? []) {
-      try {
-        listener({ agentId, status, timestamp: formatLocalTime() });
-      } catch (err) {
-        void this.log?.warn?.("运算状态事件监听器执行失败", { error: err?.message ?? String(err) });
-      }
-    }
+    this._events.emitComputeStatusChange(agentId, status);
   }
 
   /**
@@ -433,13 +234,13 @@ export class Runtime {
       });
 
       // 检查智能体是否仍在活跃处理中
-      if (!this.isAgentActivelyProcessing(agentId)) {
+      if (!this._state.isAgentActivelyProcessing(agentId)) {
         void this.log.info("智能体已不在活跃处理中，跳过中断", { agentId });
         return;
       }
 
       // 将消息添加到插话队列
-      this.addInterruption(agentId, newMessage);
+      this._state.addInterruption(agentId, newMessage);
       
       void this.log.info("插话消息已添加到队列，将在下次检查点处理", {
         agentId,
@@ -459,12 +260,7 @@ export class Runtime {
    * @param {(event: {agentId: string, status: string, timestamp: string}) => void} listener
    */
   onComputeStatusChange(listener) {
-    if (!this._computeStatusListeners) {
-      this._computeStatusListeners = new Set();
-    }
-    if (typeof listener === "function") {
-      this._computeStatusListeners.add(listener);
-    }
+    this._events.onComputeStatusChange(listener);
   }
 
   /**
@@ -474,15 +270,7 @@ export class Runtime {
    * @returns {Promise<Function>} 返回释放锁的函数
    */
   async _acquireLock(agentId) {
-    if (!this._stateLocks.has(agentId)) {
-      this._stateLocks.set(agentId, Promise.resolve());
-    }
-    const currentLock = this._stateLocks.get(agentId);
-    let releaseFn;
-    const newLock = new Promise(resolve => { releaseFn = resolve; });
-    this._stateLocks.set(agentId, currentLock.then(() => newLock));
-    await currentLock;
-    return releaseFn;
+    return await this._state.acquireLock(agentId);
   }
 
   /**
@@ -490,7 +278,7 @@ export class Runtime {
    * @param {Function} releaseFn - 释放函数
    */
   _releaseLock(releaseFn) {
-    if (releaseFn) releaseFn();
+    this._state.releaseLock(releaseFn);
   }
 
   /**
@@ -510,6 +298,12 @@ export class Runtime {
     this.idleWarningMs = this.config.idleWarningMs ?? this.idleWarningMs;
     this.loggerRoot = new Logger(normalizeLoggingConfig(this.config.logging));
     this.log = this.loggerRoot.forModule("runtime");
+    
+    // 更新 RuntimeState 的 logger
+    this._state.log = this.log;
+    
+    // 更新 RuntimeEvents 的 logger
+    this._events.log = this.log;
 
     void this.log.info("运行时初始化开始", {
       configPath: this.configPath,
@@ -520,8 +314,8 @@ export class Runtime {
 
     this.bus = new MessageBus({ 
       logger: this.loggerRoot.forModule("bus"),
-      getAgentStatus: (agentId) => this.getAgentComputeStatus(agentId),
-      isAgentActivelyProcessing: (agentId) => this.isAgentActivelyProcessing(agentId),
+      getAgentStatus: (agentId) => this._state.getAgentComputeStatus(agentId),
+      isAgentActivelyProcessing: (agentId) => this._state.isAgentActivelyProcessing(agentId),
       onInterruptionNeeded: (agentId, message) => this.handleMessageInterruption(agentId, message)
     });
     this.artifacts = new ArtifactStore({ artifactsDir: this.config.artifactsDir, logger: this.loggerRoot.forModule("artifacts") });
@@ -1059,7 +853,7 @@ export class Runtime {
     }
     
     // 检查智能体状态：如果已停止或正在停止，跳过处理
-    const status = this.getAgentComputeStatus(agentId);
+    const status = this._state.getAgentComputeStatus(agentId);
     if (status === 'stopped' || status === 'stopping' || status === 'terminating') {
       void this.log.info("智能体已停止，跳过消息处理", {
         agentId,
@@ -1106,7 +900,7 @@ export class Runtime {
       });
       
       // 确保智能体状态重置为空闲
-      this.setAgentComputeStatus(agentId, 'idle');
+      this._state.setAgentComputeStatus(agentId, 'idle');
       
       // 向父智能体发送错误通知
       try {
@@ -1170,21 +964,79 @@ export class Runtime {
 
   /**
    * 运行消息循环直到消息耗尽或达到步数上限。
+   * 
+   * 【退出条件】
+   * 1. 请求停止（_stopRequested = true）
+   * 2. 达到最大步数限制
+   * 3. 没有待处理消息且没有活跃处理的智能体（完全空闲）
+   * 4. 连续多轮无法投递消息且无活跃处理
+   * 
+   * 【处理流程】
+   * 1. 检查是否完全空闲（无待处理消息且无活跃处理）
+   * 2. 尝试投递一轮消息
+   * 3. 如果投递成功，重置空闲计数并继续
+   * 4. 如果投递失败但有活跃处理，等待后继续
+   * 5. 如果投递失败且无活跃处理，增加空闲计数
+   * 6. 空闲计数达到上限时退出
+   * 
    * @returns {Promise<void>}
    */
   async run() {
     this._stopRequested = false;
     let steps = 0;
+    let idleRounds = 0;
+    const maxIdleRounds = 10; // 连续10轮完全空闲则认为完成
+    
     void this.log.info("运行时消息循环开始", { maxSteps: this.maxSteps });
-    while (!this._stopRequested && steps < this.maxSteps && this.bus.hasPending()) {
-      steps += 1;
+    
+    while (!this._stopRequested && steps < this.maxSteps) {
+      const hasPending = this.bus.hasPending();
+      const hasActive = this._activeProcessingAgents.size > 0;
+      
+      // 完全空闲检查：没有待处理消息且没有活跃处理
+      if (!hasPending && !hasActive) {
+        idleRounds += 1;
+        
+        if (idleRounds >= maxIdleRounds) {
+          void this.log.debug("连续完全空闲轮次达到上限，退出循环", { 
+            idleRounds,
+            hasPending,
+            hasActive
+          });
+          break;
+        }
+        
+        // 短暂等待，防止过早退出
+        await new Promise(r => setTimeout(r, 5));
+        continue;
+      }
+      
+      // 重置空闲计数（有待处理消息或有活跃处理）
+      idleRounds = 0;
+      
+      // 尝试投递一轮消息
       const delivered = await this._deliverOneRound();
-      if (!delivered) break;
+      
+      if (delivered) {
+        // 成功投递消息
+        steps += 1;
+      } else if (hasActive) {
+        // 没有投递但有活跃处理，等待活跃处理完成
+        await new Promise(r => setTimeout(r, 10));
+      } else if (hasPending) {
+        // 有待处理消息但无法投递（可能所有智能体都在处理中）
+        await new Promise(r => setTimeout(r, 10));
+      }
     }
+    
     void this.log.info("运行时消息循环结束", {
       steps,
       stopRequested: this._stopRequested,
-      hasPending: this.bus.hasPending()
+      hasPending: this.bus.hasPending(),
+      activeProcessing: this._activeProcessingAgents.size,
+      reason: this._stopRequested ? "stop_requested" : 
+              steps >= this.maxSteps ? "max_steps_reached" : 
+              "idle_complete"
     });
   }
 
@@ -1810,11 +1662,11 @@ export class Runtime {
         };
         void this.log.info("请求 LLM", llmMeta);
         // 设置状态为等待LLM响应
-        this.setAgentComputeStatus(agentId, 'waiting_llm');
+        this._state.setAgentComputeStatus(agentId, 'waiting_llm');
         msg = await llmClient.chat({ messages: conv, tools, meta: llmMeta });
         
         // 检查智能体状态：如果已被停止或正在停止，丢弃响应
-        const statusAfterLlm = this.getAgentComputeStatus(agentId);
+        const statusAfterLlm = this._state.getAgentComputeStatus(agentId);
         if (statusAfterLlm === 'stopped' || statusAfterLlm === 'stopping' || statusAfterLlm === 'terminating') {
           void this.log.info("智能体已停止，丢弃 LLM 响应", {
             agentId,
@@ -1825,10 +1677,10 @@ export class Runtime {
         }
         
         // LLM响应后设置为处理中
-        this.setAgentComputeStatus(agentId, 'processing');
+        this._state.setAgentComputeStatus(agentId, 'processing');
       } catch (err) {
         // 改进的异常处理：区分不同类型的错误
-        this.setAgentComputeStatus(agentId, 'idle');
+        this._state.setAgentComputeStatus(agentId, 'idle');
         const text = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
         const errorType = err?.name ?? "UnknownError";
         
@@ -1887,7 +1739,7 @@ export class Runtime {
         }
       }
       if (!msg) {
-        this.setAgentComputeStatus(agentId, 'idle');
+        this._state.setAgentComputeStatus(agentId, 'idle');
         return;
       }
       
@@ -1982,7 +1834,7 @@ export class Runtime {
         }
         
         // 没有工具调用，处理完成，重置为空闲状态
-        this.setAgentComputeStatus(agentId, 'idle');
+        this._state.setAgentComputeStatus(agentId, 'idle');
         return;
       }
 
@@ -1995,7 +1847,7 @@ export class Runtime {
 
       for (const call of toolCalls) {
         // 在执行每个工具调用前检查智能体状态
-        const statusBeforeTool = this.getAgentComputeStatus(agentId);
+        const statusBeforeTool = this._state.getAgentComputeStatus(agentId);
         if (statusBeforeTool === 'stopped' || statusBeforeTool === 'stopping' || statusBeforeTool === 'terminating') {
           void this.log.info("智能体已停止，跳过剩余工具调用", {
             agentId,
@@ -2062,7 +1914,7 @@ export class Runtime {
         }
         
         // 在工具执行后再次检查状态
-        const statusAfterTool = this.getAgentComputeStatus(agentId);
+        const statusAfterTool = this._state.getAgentComputeStatus(agentId);
         if (statusAfterTool === 'stopped' || statusAfterTool === 'stopping' || statusAfterTool === 'terminating') {
           void this.log.info("智能体在工具执行后已停止，跳过剩余工具调用", {
             agentId,
@@ -2093,12 +1945,12 @@ export class Runtime {
       }
       if (ctx.yieldRequested) {
         ctx.yieldRequested = false;
-        this.setAgentComputeStatus(agentId, 'idle');
+        this._state.setAgentComputeStatus(agentId, 'idle');
         return;
       }
     }
     // 工具调用轮次达到上限，重置为空闲状态
-    this.setAgentComputeStatus(agentId, 'idle');
+    this._state.setAgentComputeStatus(agentId, 'idle');
     void this.log.warn("工具调用轮次达到上限，强制停止本次处理", {
       agentId: ctx.agent?.id ?? null,
       messageId: message?.id ?? null,
@@ -2671,7 +2523,7 @@ export class Runtime {
     // 对所有智能体执行停止操作（中止 LLM 调用、清空队列）
     for (const agentId of agentsToTerminate) {
       // 设置状态为 terminating
-      this.setAgentComputeStatus(agentId, 'terminating');
+      this._state.setAgentComputeStatus(agentId, 'terminating');
       
       // 中止 LLM 调用
       const aborted = this.llm?.abort(agentId) ?? false;
@@ -2798,12 +2650,12 @@ export class Runtime {
       const agent = this._agents.get(agentId);
       if (!agent) continue;
       
-      const currentStatus = this.getAgentComputeStatus(agentId);
+      const currentStatus = this._state.getAgentComputeStatus(agentId);
       
       // 只停止活跃的智能体
       if (currentStatus === 'waiting_llm' || currentStatus === 'processing' || currentStatus === 'idle') {
         // 设置状态为 stopping
-        this.setAgentComputeStatus(agentId, 'stopping');
+        this._state.setAgentComputeStatus(agentId, 'stopping');
         
         // 中止 LLM 调用
         const aborted = this.llm?.abort(agentId) ?? false;
@@ -2819,7 +2671,7 @@ export class Runtime {
         }
         
         // 设置最终状态为 stopped
-        this.setAgentComputeStatus(agentId, 'stopped');
+        this._state.setAgentComputeStatus(agentId, 'stopped');
         
         stoppedAgents.push(agentId);
         

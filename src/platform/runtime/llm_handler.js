@@ -72,7 +72,7 @@ export class LlmHandler {
    */
   checkAndHandleInterruptions(agentId, conv, ctx) {
     const runtime = this.runtime;
-    const interruptions = runtime.getAndClearInterruptions(agentId);
+    const interruptions = runtime._state.getAndClearInterruptions(agentId);
     
     if (interruptions.length === 0) {
       return false;

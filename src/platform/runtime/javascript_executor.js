@@ -33,6 +33,7 @@
  */
 
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 /**
  * JavaScript 执行器类
