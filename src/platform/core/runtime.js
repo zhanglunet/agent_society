@@ -33,6 +33,7 @@ import { LlmHandler } from "../runtime/llm_handler.js";
 import { ShutdownManager } from "../runtime/shutdown_manager.js";
 import { RuntimeState } from "../runtime/runtime_state.js";
 import { RuntimeEvents } from "../runtime/runtime_events.js";
+import { RuntimeLifecycle } from "../runtime/runtime_lifecycle.js";
 
 /**
  * 运行时：将平台能力（org/message/artifact/prompt）与智能体行为连接起来。
@@ -40,6 +41,8 @@ import { RuntimeEvents } from "../runtime/runtime_events.js";
  * 【模块化架构】
  * Runtime 类作为核心协调器，将具体功能委托给以下子模块：
  * - RuntimeState: 状态管理（智能体注册表、运算状态、插话队列等）
+ * - RuntimeEvents: 事件系统（工具调用、错误、LLM 重试等事件）
+ * - RuntimeLifecycle: 生命周期管理（智能体创建、恢复、注册、查询、中断等）
  * - JavaScriptExecutor: JavaScript 代码执行
  * - ContextBuilder: 上下文构建
  * - AgentManager: 智能体生命周期管理
@@ -128,6 +131,8 @@ export class Runtime {
     // 这些子模块封装了 Runtime 的具体功能实现
     /** @type {RuntimeState} 状态管理器 */
     this._stateManager = this._state;
+    /** @type {RuntimeEvents} 事件系统 */
+    this._eventsManager = this._events;
     /** @type {JavaScriptExecutor} JavaScript 执行器（Node.js 降级模式） */
     this._jsExecutor = new JavaScriptExecutor(this);
     /** @type {BrowserJavaScriptExecutor} 浏览器 JavaScript 执行器 */
@@ -136,6 +141,8 @@ export class Runtime {
     this._contextBuilder = new ContextBuilder(this);
     /** @type {AgentManager} 智能体管理器 */
     this._agentManager = new AgentManager(this);
+    /** @type {RuntimeLifecycle} 生命周期管理器 */
+    this._lifecycle = new RuntimeLifecycle(this);
     /** @type {MessageProcessor} 消息处理器 */
     this._messageProcessor = new MessageProcessor(this);
     /** @type {ToolExecutor} 工具执行器 */
@@ -483,71 +490,7 @@ export class Runtime {
    * @returns {Promise<void>}
    */
   async _restoreAgentsFromOrg() {
-    const agentMetas = this.org.listAgents();
-    let restoredCount = 0;
-    let skippedCount = 0;
-
-    for (const meta of agentMetas) {
-      // 跳过已终止的智能体
-      if (meta.status === "terminated") {
-        skippedCount++;
-        continue;
-      }
-
-      // 跳过已经注册的智能体（如 root、user）
-      if (this._agents.has(meta.id)) {
-        continue;
-      }
-
-      // 获取岗位信息
-      const role = this.org.getRole(meta.roleId);
-      if (!role) {
-        void this.log.warn("恢复智能体失败：岗位不存在", { agentId: meta.id, roleId: meta.roleId });
-        skippedCount++;
-        continue;
-      }
-
-      // 创建智能体实例
-      const roleName = role.name ?? "unknown";
-      const behaviorFactory = this._behaviorRegistry.get(roleName);
-      const behavior = behaviorFactory
-        ? behaviorFactory(this._buildAgentContext())
-        : this.llm
-          ? async (ctx, message) => await ctx.runtime._handleWithLlm(ctx, message)
-          : async () => {};
-
-      const agent = new Agent({
-        id: meta.id,
-        roleId: meta.roleId,
-        roleName,
-        rolePrompt: role.rolePrompt ?? "",
-        behavior
-      });
-
-      this.registerAgentInstance(agent);
-      this._agentMetaById.set(agent.id, { 
-        id: meta.id, 
-        roleId: meta.roleId, 
-        parentAgentId: meta.parentAgentId ?? null 
-      });
-      this._agentLastActivityTime.set(agent.id, Date.now());
-      restoredCount++;
-
-      void this.log.debug("恢复智能体实例", {
-        id: agent.id,
-        roleId: agent.roleId,
-        roleName: agent.roleName,
-        parentAgentId: meta.parentAgentId ?? null
-      });
-    }
-
-    if (restoredCount > 0 || skippedCount > 0) {
-      void this.log.info("智能体恢复完成", { 
-        restored: restoredCount, 
-        skipped: skippedCount,
-        total: this._agents.size 
-      });
-    }
+    return await this._lifecycle.restoreAgentsFromOrg();
   }
 
   /**
@@ -556,7 +499,7 @@ export class Runtime {
    * @param {(ctx: any) => Function} behaviorFactory
    */
   registerRoleBehavior(roleName, behaviorFactory) {
-    this._behaviorRegistry.set(roleName, behaviorFactory);
+    this._lifecycle.registerRoleBehavior(roleName, behaviorFactory);
   }
 
   /**
@@ -564,7 +507,7 @@ export class Runtime {
    * @param {Agent} agent
    */
   registerAgentInstance(agent) {
-    this._agents.set(agent.id, agent);
+    this._lifecycle.registerAgentInstance(agent);
   }
 
   /**
@@ -572,11 +515,7 @@ export class Runtime {
    * @returns {{id:string, roleId:string, roleName:string}[]}
    */
   listAgentInstances() {
-    return Array.from(this._agents.values()).map((a) => ({
-      id: a.id,
-      roleId: a.roleId,
-      roleName: a.roleName
-    }));
+    return this._lifecycle.listAgentInstances();
   }
 
   /**
@@ -585,25 +524,7 @@ export class Runtime {
    * @returns {{id:string, roleId:string, roleName:string, parentAgentId:string|null, status:string, queueDepth:number, conversationLength:number}|null}
    */
   getAgentStatus(agentId) {
-    const agent = this._agents.get(agentId);
-    if (!agent) {
-      return null;
-    }
-    
-    const meta = this._agentMetaById.get(agentId);
-    const queueDepth = this.bus.getQueueDepth(agentId);
-    const conversation = this._conversations.get(agentId);
-    const conversationLength = conversation ? conversation.length : 0;
-    
-    return {
-      id: agent.id,
-      roleId: agent.roleId,
-      roleName: agent.roleName,
-      parentAgentId: meta?.parentAgentId ?? null,
-      status: "active",
-      queueDepth,
-      conversationLength
-    };
+    return this._lifecycle.getAgentStatus(agentId);
   }
 
   /**
@@ -611,12 +532,7 @@ export class Runtime {
    * @returns {{agentId:string, queueDepth:number}[]}
    */
   getQueueDepths() {
-    const result = [];
-    for (const agentId of this._agents.keys()) {
-      const queueDepth = this.bus.getQueueDepth(agentId);
-      result.push({ agentId, queueDepth });
-    }
-    return result;
+    return this._lifecycle.getQueueDepths();
   }
 
   /**
@@ -625,65 +541,7 @@ export class Runtime {
    * @returns {Promise<Agent>}
    */
   async spawnAgent(input) {
-    if (
-      !input ||
-      typeof input.parentAgentId !== "string" ||
-      input.parentAgentId.length === 0 ||
-      input.parentAgentId === "null" ||
-      input.parentAgentId === "undefined"
-    ) {
-      throw new Error("parentAgentId_required");
-    }
-    const meta = await this.org.createAgent(input);
-    const role = this.org.getRole(meta.roleId);
-    const roleName = role?.name ?? "unknown";
-    const behaviorFactory = this._behaviorRegistry.get(roleName);
-    const behavior = behaviorFactory
-      ? behaviorFactory(this._buildAgentContext())
-      : this.llm
-        ? async (ctx, message) => await ctx.runtime._handleWithLlm(ctx, message)
-        : async () => {};
-    const agent = new Agent({
-      id: meta.id,
-      roleId: meta.roleId,
-      roleName,
-      rolePrompt: role?.rolePrompt ?? "",
-      behavior
-    });
-    this.registerAgentInstance(agent);
-    this._agentMetaById.set(agent.id, { id: meta.id, roleId: meta.roleId, parentAgentId: meta.parentAgentId ?? null });
-    // 初始化智能体最后活动时间
-    this._agentLastActivityTime.set(agent.id, Date.now());
-    
-    // 工作空间处理：只有 root 的直接子智能体需要分配工作空间
-    if (input.parentAgentId === "root") {
-      const workspaceId = agent.id;
-      // 使用 dataDir 或 runtimeDir 的父目录作为基础路径
-      const baseDir = this.config.dataDir ?? path.dirname(this.config.runtimeDir);
-      const workspacePath = path.join(baseDir, "workspaces", workspaceId);
-      await this.workspaceManager.assignWorkspace(workspaceId, workspacePath);
-      void this.log.info("为智能体分配工作空间", {
-        agentId: agent.id,
-        workspaceId,
-        workspacePath
-      });
-    }
-    // 非 root 的子智能体不需要任何操作，工作空间通过查找祖先链确定
-    
-    void this.log.info("创建智能体实例", {
-      id: agent.id,
-      roleId: agent.roleId,
-      roleName: agent.roleName,
-      parentAgentId: meta.parentAgentId ?? null
-    });
-    // 记录智能体生命周期事件
-    void this.loggerRoot.logAgentLifecycleEvent("agent_created", {
-      agentId: agent.id,
-      roleId: agent.roleId,
-      roleName: agent.roleName,
-      parentAgentId: meta.parentAgentId ?? null
-    });
-    return agent;
+    return await this._lifecycle.spawnAgent(input);
   }
 
   /**
@@ -693,12 +551,7 @@ export class Runtime {
    * @returns {Promise<Agent>}
    */
   async spawnAgentAs(callerAgentId, input) {
-    const rawParent = input?.parentAgentId;
-    const missingParent = rawParent === null || rawParent === undefined || rawParent === "" || rawParent === "null" || rawParent === "undefined";
-    if (!missingParent && String(rawParent) !== String(callerAgentId)) {
-      throw new Error("invalid_parentAgentId");
-    }
-    return await this.spawnAgent({ roleId: input.roleId, parentAgentId: callerAgentId });
+    return await this._lifecycle.spawnAgentAs(callerAgentId, input);
   }
 
   /**
@@ -708,23 +561,16 @@ export class Runtime {
    * @returns {string|null} 工作空间ID，如果没有则返回 null
    */
   findWorkspaceIdForAgent(agentId) {
-    let currentAgentId = agentId;
-    
-    while (currentAgentId && currentAgentId !== "root" && currentAgentId !== "user") {
-      // 检查当前智能体是否有工作空间
-      if (this.workspaceManager.hasWorkspace(currentAgentId)) {
-        return currentAgentId;
-      }
-      
-      // 获取父智能体ID
-      const meta = this._agentMetaById.get(currentAgentId);
-      if (!meta || !meta.parentAgentId) {
-        break;
-      }
-      currentAgentId = meta.parentAgentId;
-    }
-    
-    return null;
+    return this._lifecycle.findWorkspaceIdForAgent(agentId);
+  }
+
+  /**
+   * 中止智能体的 LLM 调用。
+   * @param {string} agentId - 智能体ID
+   * @returns {{ok: boolean, agentId: string, aborted: boolean}} 中止结果
+   */
+  abortAgentLlmCall(agentId) {
+    return this._lifecycle.abortAgentLlmCall(agentId);
   }
 
   /**
@@ -2640,46 +2486,7 @@ export class Runtime {
    * @returns {string[]} 被停止的智能体 ID 列表
    */
   _cascadeStopAgents(parentAgentId) {
-    const stoppedAgents = [];
-    
-    // 收集所有子智能体
-    const descendants = this._collectDescendantAgents(parentAgentId);
-    
-    // 对每个子智能体执行停止操作
-    for (const agentId of descendants) {
-      const agent = this._agents.get(agentId);
-      if (!agent) continue;
-      
-      const currentStatus = this._state.getAgentComputeStatus(agentId);
-      
-      // 只停止活跃的智能体
-      if (currentStatus === 'waiting_llm' || currentStatus === 'processing' || currentStatus === 'idle') {
-        // 设置状态为 stopping
-        this._state.setAgentComputeStatus(agentId, 'stopping');
-        
-        // 中止 LLM 调用
-        const aborted = this.llm?.abort(agentId) ?? false;
-        if (aborted) {
-          void this.log.info("级联停止：中止 LLM 调用", { agentId, parentAgentId });
-        }
-        
-        // 清空消息队列
-        const clearedMessages = this.bus?.clearQueue(agentId) ?? [];
-        const clearedCount = Array.isArray(clearedMessages) ? clearedMessages.length : 0;
-        if (clearedCount > 0) {
-          void this.log.info("级联停止：清空消息队列", { agentId, parentAgentId, clearedCount });
-        }
-        
-        // 设置最终状态为 stopped
-        this._state.setAgentComputeStatus(agentId, 'stopped');
-        
-        stoppedAgents.push(agentId);
-        
-        void this.log.info("级联停止智能体", { agentId, parentAgentId });
-      }
-    }
-    
-    return stoppedAgents;
+    return this._lifecycle.cascadeStopAgents(parentAgentId);
   }
 
   /**
