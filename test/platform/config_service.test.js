@@ -8,6 +8,20 @@ import { randomUUID } from "node:crypto";
 
 const TEST_BASE_DIR = "test/.tmp/config_service_test";
 
+/**
+ * Config 类测试套件
+ * 
+ * 测试覆盖：
+ * - 应用配置管理（loadApp, hasLocalApp）
+ * - LLM 配置管理（getLlm, saveLlm, validateLlm）
+ * - LLM 服务管理（getServices, addService, updateService, deleteService, validateService, hasLocalServices）
+ * - 工具方法（maskApiKey）
+ * 
+ * 测试策略：
+ * - 使用独立的测试目录避免并发冲突
+ * - 使用属性测试验证通用规则
+ * - 测试边界条件和错误处理
+ */
 describe("Config", () => {
   let config;
   let testDir;
@@ -16,7 +30,7 @@ describe("Config", () => {
     // 每个测试使用唯一目录避免并发冲突
     testDir = path.join(TEST_BASE_DIR, randomUUID());
     await mkdir(testDir, { recursive: true });
-    config = new config(testDir);
+    config = new Config(testDir);
   });
 
   afterEach(async () => {
@@ -51,7 +65,7 @@ describe("Config", () => {
       );
     });
 
-    it("Property 6: 对于有效长度 <= 4 �?API Key，应完全掩码�?****", () => {
+    it("Property 6: 对于有效长度 <= 4 的 API Key，应完全掩码为 ****", () => {
       fc.assert(
         fc.property(
           fc.string({ minLength: 0, maxLength: 10 }).filter(s => s.trim().length <= 4),
@@ -64,7 +78,7 @@ describe("Config", () => {
       );
     });
 
-    it("对于 null �?undefined，应返回 ****", () => {
+    it("对于 null 或 undefined，应返回 ****", () => {
       expect(config.maskApiKey(null)).toBe("****");
       expect(config.maskApiKey(undefined)).toBe("****");
     });
@@ -76,33 +90,129 @@ describe("Config", () => {
     });
   });
 
-  describe("hasLocalConfig()", () => {
-    it("�?app.local.json 不存在时应返�?false", () => {
-      expect(config.hasLocalConfig()).toBe(false);
+  describe("hasLocalApp()", () => {
+    it("当 app.local.json 不存在时应返回 false", () => {
+      expect(config.hasLocalApp()).toBe(false);
     });
 
-    it("�?app.local.json 存在时应返回 true", async () => {
+    it("当 app.local.json 存在时应返回 true", async () => {
       await writeFile(
         path.join(testDir, "app.local.json"),
         JSON.stringify({ llm: {} }),
         "utf8"
       );
-      expect(config.hasLocalConfig()).toBe(true);
+      expect(config.hasLocalApp()).toBe(true);
     });
   });
 
-  describe("validateLlmConfig()", () => {
+  describe("hasLocalServices()", () => {
+    it("当 llmservices.local.json 不存在时应返回 false", () => {
+      expect(config.hasLocalServices()).toBe(false);
+    });
+
+    it("当 llmservices.local.json 存在时应返回 true", async () => {
+      await writeFile(
+        path.join(testDir, "llmservices.local.json"),
+        JSON.stringify({ services: [] }),
+        "utf8"
+      );
+      expect(config.hasLocalServices()).toBe(true);
+    });
+  });
+
+  describe("loadApp()", () => {
+    it("当配置文件不存在时应抛出错误", async () => {
+      await expect(config.loadApp()).rejects.toThrow("配置文件不存在");
+    });
+
+    it("应优先加载 app.local.json", async () => {
+      const defaultConfig = {
+        promptsDir: "config/prompts",
+        artifactsDir: "artifacts",
+        runtimeDir: "runtime",
+        maxSteps: 100,
+        httpPort: 3000,
+        llm: { baseURL: "http://default.url", model: "default-model" }
+      };
+      const localConfig = {
+        promptsDir: "config/prompts",
+        artifactsDir: "artifacts",
+        runtimeDir: "runtime",
+        maxSteps: 200,
+        httpPort: 4000,
+        llm: { baseURL: "http://local.url", model: "local-model" }
+      };
+
+      await writeFile(
+        path.join(testDir, "app.json"),
+        JSON.stringify(defaultConfig),
+        "utf8"
+      );
+      await writeFile(
+        path.join(testDir, "app.local.json"),
+        JSON.stringify(localConfig),
+        "utf8"
+      );
+
+      const result = await config.loadApp();
+      expect(result.maxSteps).toBe(200);
+      expect(result.httpPort).toBe(4000);
+      expect(result.llm.baseURL).toBe("http://local.url");
+    });
+
+    it("当 app.local.json 不存在时应加载 app.json", async () => {
+      const defaultConfig = {
+        promptsDir: "config/prompts",
+        artifactsDir: "artifacts",
+        runtimeDir: "runtime",
+        maxSteps: 100,
+        llm: { baseURL: "http://default.url", model: "default-model" }
+      };
+
+      await writeFile(
+        path.join(testDir, "app.json"),
+        JSON.stringify(defaultConfig),
+        "utf8"
+      );
+
+      const result = await config.loadApp();
+      expect(result.maxSteps).toBe(100);
+      expect(result.llm.baseURL).toBe("http://default.url");
+    });
+
+    it("应正确处理默认值", async () => {
+      const minimalConfig = {
+        promptsDir: "config/prompts",
+        artifactsDir: "artifacts",
+        runtimeDir: "runtime"
+      };
+
+      await writeFile(
+        path.join(testDir, "app.json"),
+        JSON.stringify(minimalConfig),
+        "utf8"
+      );
+
+      const result = await config.loadApp();
+      expect(result.maxSteps).toBe(200); // 默认值
+      expect(result.maxToolRounds).toBe(200); // 默认值
+      expect(result.httpPort).toBe(3000); // 默认值
+      expect(result.enableHttp).toBe(false); // 默认值
+    });
+  });
+
+  describe("validateLlm()", () => {
     /**
      * Property 2: Validation Rejects Empty Required Fields
      * Feature: llm-settings-page, Property 2: Validation Rejects Empty Required Fields
      * Validates: Requirements 1.3, 6.2, 10.2
      */
-    it("Property 2: 空或空白�?baseURL 应验证失�?, () => {
+    it("Property 2: 空或空白的 baseURL 应验证失败", () => {
       fc.assert(
         fc.property(
           fc.constantFrom("", " ", "  ", "\t", "\n", "   \t\n  "),
           (emptyBaseURL) => {
-            const result = config.validateLlmConfig({
+            const result = config.validateLlm({
               baseURL: emptyBaseURL,
               model: "valid-model"
             });
@@ -114,12 +224,12 @@ describe("Config", () => {
       );
     });
 
-    it("Property 2: 空或空白�?model 应验证失�?, () => {
+    it("Property 2: 空或空白的 model 应验证失败", () => {
       fc.assert(
         fc.property(
           fc.constantFrom("", " ", "  ", "\t", "\n", "   \t\n  "),
           (emptyModel) => {
-            const result = config.validateLlmConfig({
+            const result = config.validateLlm({
               baseURL: "http://valid.url",
               model: emptyModel
             });
@@ -137,7 +247,7 @@ describe("Config", () => {
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           (baseURL, model) => {
-            const result = config.validateLlmConfig({ baseURL, model });
+            const result = config.validateLlm({ baseURL, model });
             expect(result.valid).toBe(true);
             expect(Object.keys(result.errors).length).toBe(0);
           }
@@ -147,13 +257,13 @@ describe("Config", () => {
     });
   });
 
-  describe("validateLlmService()", () => {
+  describe("validateService()", () => {
     it("Property 2: 空或空白的必填字段应验证失败", () => {
       const emptyValues = ["", " ", "  ", "\t", "\n"];
       
       for (const emptyValue of emptyValues) {
-        // 测试�?id
-        let result = config.validateLlmService({
+        // 测试空 id
+        let result = config.validateService({
           id: emptyValue,
           name: "valid",
           baseURL: "http://valid.url",
@@ -162,8 +272,8 @@ describe("Config", () => {
         expect(result.valid).toBe(false);
         expect(result.errors.id).toBeDefined();
 
-        // 测试�?name
-        result = config.validateLlmService({
+        // 测试空 name
+        result = config.validateService({
           id: "valid-id",
           name: emptyValue,
           baseURL: "http://valid.url",
@@ -172,8 +282,8 @@ describe("Config", () => {
         expect(result.valid).toBe(false);
         expect(result.errors.name).toBeDefined();
 
-        // 测试�?baseURL
-        result = config.validateLlmService({
+        // 测试空 baseURL
+        result = config.validateService({
           id: "valid-id",
           name: "valid",
           baseURL: emptyValue,
@@ -182,8 +292,8 @@ describe("Config", () => {
         expect(result.valid).toBe(false);
         expect(result.errors.baseURL).toBeDefined();
 
-        // 测试�?model
-        result = config.validateLlmService({
+        // 测试空 model
+        result = config.validateService({
           id: "valid-id",
           name: "valid",
           baseURL: "http://valid.url",
@@ -202,7 +312,7 @@ describe("Config", () => {
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           (id, name, baseURL, model) => {
-            const result = config.validateLlmService({ id, name, baseURL, model });
+            const result = config.validateService({ id, name, baseURL, model });
             expect(result.valid).toBe(true);
             expect(Object.keys(result.errors).length).toBe(0);
           }
@@ -214,14 +324,14 @@ describe("Config", () => {
 });
 
 
-describe("config - LLM Config Read/Write", () => {
+describe("Config - LLM Config Read/Write", () => {
   let config;
   let testDir;
 
   beforeEach(async () => {
     testDir = path.join(TEST_BASE_DIR, randomUUID());
     await mkdir(testDir, { recursive: true });
-    config = new config(testDir);
+    config = new Config(testDir);
   });
 
   afterEach(async () => {
@@ -230,13 +340,13 @@ describe("config - LLM Config Read/Write", () => {
     }
   });
 
-  describe("getLlmConfig()", () => {
+  describe("getLlm()", () => {
     /**
      * Property 7: Config Source Priority
      * Feature: llm-settings-page, Property 7: Config Source Priority
      * Validates: Requirements 5.3
      */
-    it("Property 7: �?app.local.json 存在时应优先读取", async () => {
+    it("Property 7: 当 app.local.json 存在时应优先读取", async () => {
       // 创建两个配置文件
       const defaultConfig = {
         llm: { baseURL: "http://default.url", model: "default-model", apiKey: "default-key" },
@@ -258,13 +368,13 @@ describe("config - LLM Config Read/Write", () => {
         "utf8"
       );
 
-      const result = await config.getLlmConfig();
+      const result = await config.getLlm();
       expect(result.source).toBe("local");
       expect(result.llm.baseURL).toBe("http://local.url");
       expect(result.llm.model).toBe("local-model");
     });
 
-    it("Property 7: �?app.local.json 不存在时应读�?app.json", async () => {
+    it("Property 7: 当 app.local.json 不存在时应读取 app.json", async () => {
       const defaultConfig = {
         llm: { baseURL: "http://default.url", model: "default-model", apiKey: "default-key" }
       };
@@ -275,17 +385,17 @@ describe("config - LLM Config Read/Write", () => {
         "utf8"
       );
 
-      const result = await config.getLlmConfig();
+      const result = await config.getLlm();
       expect(result.source).toBe("default");
       expect(result.llm.baseURL).toBe("http://default.url");
     });
 
-    it("当两个配置文件都不存在时应抛出错�?, async () => {
-      await expect(config.getLlmConfig()).rejects.toThrow("配置文件不存�?);
+    it("当两个配置文件都不存在时应抛出错误", async () => {
+      await expect(config.getLlm()).rejects.toThrow("配置文件不存在");
     });
   });
 
-  describe("saveLlmConfig()", () => {
+  describe("saveLlm()", () => {
     /**
      * Property 5: Config Save Preserves Non-LLM Fields
      * Feature: llm-settings-page, Property 5: Config Save Preserves Non-LLM Fields
@@ -312,7 +422,7 @@ describe("config - LLM Config Read/Write", () => {
             // 每次迭代使用新的测试目录
             const iterDir = path.join(TEST_BASE_DIR, randomUUID());
             await mkdir(iterDir, { recursive: true });
-            const iterconfig = new config(iterDir);
+            const iterConfig = new Config(iterDir);
 
             try {
               // 创建原始配置
@@ -333,7 +443,7 @@ describe("config - LLM Config Read/Write", () => {
               );
 
               // 保存新的 LLM 配置
-              await iterconfig.saveLlmConfig(newLlmConfig);
+              await iterConfig.saveLlm(newLlmConfig);
 
               // 读取保存后的配置
               const savedContent = await readFile(
@@ -350,7 +460,7 @@ describe("config - LLM Config Read/Write", () => {
               expect(savedConfig.httpPort).toBe(otherFields.httpPort);
               expect(savedConfig.customField).toBe(otherFields.customField);
 
-              // 验证 LLM 配置已更�?
+              // 验证 LLM 配置已更新
               expect(savedConfig.llm.baseURL).toBe(newLlmConfig.baseURL);
               expect(savedConfig.llm.model).toBe(newLlmConfig.model);
               expect(savedConfig.llm.apiKey).toBe(newLlmConfig.apiKey);
@@ -366,7 +476,7 @@ describe("config - LLM Config Read/Write", () => {
       );
     });
 
-    it("�?app.local.json 不存在时应从 app.json 复制", async () => {
+    it("当 app.local.json 不存在时应从 app.json 复制", async () => {
       const originalConfig = {
         promptsDir: "config/prompts",
         llm: { baseURL: "http://original.url", model: "original-model" }
@@ -378,7 +488,7 @@ describe("config - LLM Config Read/Write", () => {
         "utf8"
       );
 
-      await config.saveLlmConfig({
+      await config.saveLlm({
         baseURL: "http://new.url",
         model: "new-model",
         apiKey: "new-key"
@@ -387,26 +497,26 @@ describe("config - LLM Config Read/Write", () => {
       expect(existsSync(path.join(testDir, "app.local.json"))).toBe(true);
     });
 
-    it("�?app.json 不存在时应抛出错�?, async () => {
+    it("当 app.json 不存在时应抛出错误", async () => {
       await expect(
-        config.saveLlmConfig({
+        config.saveLlm({
           baseURL: "http://test.url",
           model: "test-model"
         })
-      ).rejects.toThrow("app.json 不存�?);
+      ).rejects.toThrow("app.json 不存在");
     });
   });
 });
 
 
-describe("config - LLM Services Management", () => {
+describe("Config - LLM Services Management", () => {
   let config;
   let testDir;
 
   beforeEach(async () => {
     testDir = path.join(TEST_BASE_DIR, randomUUID());
     await mkdir(testDir, { recursive: true });
-    config = new config(testDir);
+    config = new Config(testDir);
   });
 
   afterEach(async () => {
@@ -415,8 +525,8 @@ describe("config - LLM Services Management", () => {
     }
   });
 
-  describe("getLlmServices()", () => {
-    it("Property 7: �?llmservices.local.json 存在时应优先读取", async () => {
+  describe("getServices()", () => {
+    it("Property 7: 当 llmservices.local.json 存在时应优先读取", async () => {
       const defaultServices = { services: [{ id: "default", name: "Default" }] };
       const localServices = { services: [{ id: "local", name: "Local" }] };
 
@@ -431,12 +541,12 @@ describe("config - LLM Services Management", () => {
         "utf8"
       );
 
-      const result = await config.getLlmServices();
+      const result = await config.getServices();
       expect(result.source).toBe("local");
       expect(result.services[0].id).toBe("local");
     });
 
-    it("Property 7: �?llmservices.local.json 不存在时应读�?llmservices.json", async () => {
+    it("Property 7: 当 llmservices.local.json 不存在时应读取 llmservices.json", async () => {
       const defaultServices = { services: [{ id: "default", name: "Default" }] };
 
       await writeFile(
@@ -445,19 +555,19 @@ describe("config - LLM Services Management", () => {
         "utf8"
       );
 
-      const result = await config.getLlmServices();
+      const result = await config.getServices();
       expect(result.source).toBe("default");
       expect(result.services[0].id).toBe("default");
     });
 
     it("当两个配置文件都不存在时应返回空列表", async () => {
-      const result = await config.getLlmServices();
+      const result = await config.getServices();
       expect(result.source).toBe("none");
       expect(result.services).toEqual([]);
     });
   });
 
-  describe("addLlmService()", () => {
+  describe("addService()", () => {
     /**
      * Property 8: Service ID Uniqueness
      * Feature: llm-settings-page, Property 8: Service ID Uniqueness
@@ -465,25 +575,25 @@ describe("config - LLM Services Management", () => {
      */
     it("Property 8: 添加重复 ID 的服务应抛出错误", async () => {
       // 创建初始服务
-      await config.addLlmService({
+      await config.addService({
         id: "test-service",
         name: "Test Service",
         baseURL: "http://test.url",
         model: "test-model"
       });
 
-      // 尝试添加相同 ID 的服�?
+      // 尝试添加相同 ID 的服务
       await expect(
-        config.addLlmService({
+        config.addService({
           id: "test-service",
           name: "Another Service",
           baseURL: "http://another.url",
           model: "another-model"
         })
-      ).rejects.toThrow('服务 ID "test-service" 已存�?);
+      ).rejects.toThrow('服务 ID "test-service" 已存在');
     });
 
-    it("Property 8: 不同 ID 的服务应能成功添�?, async () => {
+    it("Property 8: 不同 ID 的服务应能成功添加", async () => {
       fc.assert(
         fc.asyncProperty(
           fc.array(
@@ -495,7 +605,7 @@ describe("config - LLM Services Management", () => {
             }),
             { minLength: 1, maxLength: 5 }
           ).filter(arr => {
-            // 确保所�?ID 都是唯一�?
+            // 确保所有 ID 都是唯一的
             const ids = arr.map(s => s.id);
             return new Set(ids).size === ids.length;
           }),
@@ -503,16 +613,16 @@ describe("config - LLM Services Management", () => {
             // 每次迭代使用新的测试目录
             const iterDir = path.join(TEST_BASE_DIR, randomUUID());
             await mkdir(iterDir, { recursive: true });
-            const iterconfig = new config(iterDir);
+            const iterConfig = new Config(iterDir);
 
             try {
-              // 添加所有服�?
+              // 添加所有服务
               for (const service of services) {
-                await iterconfig.addLlmService(service);
+                await iterConfig.addService(service);
               }
 
-              // 验证所有服务都已添�?
-              const result = await iterconfig.getLlmServices();
+              // 验证所有服务都已添加
+              const result = await iterConfig.getServices();
               expect(result.services.length).toBe(services.length);
 
               for (const service of services) {
@@ -533,7 +643,7 @@ describe("config - LLM Services Management", () => {
     });
 
     it("添加服务时应返回带掩码的 apiKey", async () => {
-      const result = await config.addLlmService({
+      const result = await config.addService({
         id: "test-service",
         name: "Test Service",
         baseURL: "http://test.url",
@@ -545,9 +655,9 @@ describe("config - LLM Services Management", () => {
     });
   });
 
-  describe("updateLlmService()", () => {
-    it("更新不存在的服务应抛出错�?, async () => {
-      // 先创建一个空的服务列�?
+  describe("updateService()", () => {
+    it("更新不存在的服务应抛出错误", async () => {
+      // 先创建一个空的服务列表
       await writeFile(
         path.join(testDir, "llmservices.local.json"),
         JSON.stringify({ services: [] }),
@@ -555,18 +665,18 @@ describe("config - LLM Services Management", () => {
       );
 
       await expect(
-        config.updateLlmService("non-existent", {
+        config.updateService("non-existent", {
           id: "non-existent",
           name: "Test",
           baseURL: "http://test.url",
           model: "test-model"
         })
-      ).rejects.toThrow('服务 "non-existent" 不存�?);
+      ).rejects.toThrow('服务 "non-existent" 不存在');
     });
 
-    it("更新服务应正确保存新�?, async () => {
-      // 先添加服�?
-      await config.addLlmService({
+    it("更新服务应正确保存新值", async () => {
+      // 先添加服务
+      await config.addService({
         id: "test-service",
         name: "Original Name",
         baseURL: "http://original.url",
@@ -574,7 +684,7 @@ describe("config - LLM Services Management", () => {
       });
 
       // 更新服务
-      await config.updateLlmService("test-service", {
+      await config.updateService("test-service", {
         id: "test-service",
         name: "Updated Name",
         baseURL: "http://updated.url",
@@ -582,7 +692,7 @@ describe("config - LLM Services Management", () => {
       });
 
       // 验证更新
-      const result = await config.getLlmServices();
+      const result = await config.getServices();
       const service = result.services.find(s => s.id === "test-service");
       expect(service.name).toBe("Updated Name");
       expect(service.baseURL).toBe("http://updated.url");
@@ -590,9 +700,9 @@ describe("config - LLM Services Management", () => {
     });
   });
 
-  describe("deleteLlmService()", () => {
-    it("删除不存在的服务应抛出错�?, async () => {
-      // 先创建一个空的服务列�?
+  describe("deleteService()", () => {
+    it("删除不存在的服务应抛出错误", async () => {
+      // 先创建一个空的服务列表
       await writeFile(
         path.join(testDir, "llmservices.local.json"),
         JSON.stringify({ services: [] }),
@@ -600,33 +710,32 @@ describe("config - LLM Services Management", () => {
       );
 
       await expect(
-        config.deleteLlmService("non-existent")
-      ).rejects.toThrow('服务 "non-existent" 不存�?);
+        config.deleteService("non-existent")
+      ).rejects.toThrow('服务 "non-existent" 不存在');
     });
 
     it("删除服务后应从列表中移除", async () => {
       // 添加两个服务
-      await config.addLlmService({
+      await config.addService({
         id: "service-1",
         name: "Service 1",
         baseURL: "http://test1.url",
         model: "model-1"
       });
-      await config.addLlmService({
+      await config.addService({
         id: "service-2",
         name: "Service 2",
         baseURL: "http://test2.url",
         model: "model-2"
       });
 
-      // 删除第一个服�?
-      await config.deleteLlmService("service-1");
+      // 删除第一个服务
+      await config.deleteService("service-1");
 
       // 验证删除
-      const result = await config.getLlmServices();
+      const result = await config.getServices();
       expect(result.services.length).toBe(1);
       expect(result.services[0].id).toBe("service-2");
     });
   });
 });
-
