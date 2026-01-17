@@ -112,8 +112,8 @@ export class JavaScriptExecutor {
       return { error: "blocked_code", blocked };
     }
 
-    // Canvas 支持：预加载 canvas 库并创建容器变量
-    let canvasInstance = null;
+    // Canvas 支持：预加载 canvas 库并创建容器数组
+    const canvasInstances = [];
     let canvasError = null;
     let createCanvasFn = null;
 
@@ -126,16 +126,14 @@ export class JavaScriptExecutor {
       canvasError = err;
     }
 
-    // 定义 getCanvas 函数（单例模式）
+    // 定义 getCanvas 函数（每次调用创建新实例）
     const getCanvas = (width = 800, height = 600) => {
-      if (canvasInstance) {
-        return canvasInstance;
-      }
       if (!createCanvasFn) {
         throw new Error("Canvas 功能不可用，请确保 @napi-rs/canvas 包已安装");
       }
-      canvasInstance = createCanvasFn(width, height);
-      return canvasInstance;
+      const newCanvas = createCanvasFn(width, height);
+      canvasInstances.push(newCanvas);
+      return newCanvas;
     };
 
     try {
@@ -159,9 +157,9 @@ export class JavaScriptExecutor {
       const jsonSafe = this.toJsonSafeValue(value);
       if (jsonSafe.error) return jsonSafe;
 
-      // 如果使用了 Canvas，自动导出并保存图像
-      if (canvasInstance) {
-        return await this._saveCanvasImage(canvasInstance, jsonSafe.value, messageId, agentId);
+      // 如果使用了 Canvas，自动导出并保存所有图像
+      if (canvasInstances.length > 0) {
+        return await this._saveAllCanvasImages(canvasInstances, jsonSafe.value, messageId, agentId);
       }
 
       return jsonSafe.value;
@@ -173,6 +171,80 @@ export class JavaScriptExecutor {
       }
       return { error: "js_execution_failed", message };
     }
+  }
+
+  /**
+   * 保存所有 Canvas 生成的图像到工件库
+   * 
+   * @param {object[]} canvasInstances - Canvas 实例数组
+   * @param {any} result - 代码执行结果
+   * @param {string|null} messageId - 关联的消息ID
+   * @param {string|null} agentId - 关联的智能体ID
+   * @returns {Promise<object>} 包含结果和图像文件名数组的对象
+   * @private
+   */
+  async _saveAllCanvasImages(canvasInstances, result, messageId, agentId) {
+    const imageFiles = [];
+    const errors = [];
+
+    for (let i = 0; i < canvasInstances.length; i++) {
+      const canvas = canvasInstances[i];
+      try {
+        const { randomUUID } = await import("node:crypto");
+        const { writeFile } = await import("node:fs/promises");
+        const pngBuffer = canvas.toBuffer("image/png");
+        const artifactId = randomUUID();
+        const extension = ".png";
+        const fileName = `${artifactId}${extension}`;
+        const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
+        const createdAt = new Date().toISOString();
+        
+        await this.runtime.artifacts.ensureReady();
+        await writeFile(filePath, pngBuffer);
+        
+        // 写入元信息文件
+        const metadata = {
+          id: artifactId,
+          extension,
+          type: "image",
+          createdAt,
+          messageId: messageId,
+          agentId: agentId,
+          width: canvas.width,
+          height: canvas.height,
+          source: "canvas",
+          canvasIndex: i
+        };
+        await this.runtime.artifacts._writeMetadata(artifactId, metadata);
+        
+        imageFiles.push(fileName);
+        
+        void this.runtime.log?.info?.("保存 Canvas 图像", {
+          fileName,
+          width: canvas.width,
+          height: canvas.height,
+          index: i,
+          total: canvasInstances.length
+        });
+      } catch (exportErr) {
+        const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
+        errors.push({ index: i, error: exportMessage });
+        void this.runtime.log?.error?.("保存 Canvas 图像失败", {
+          index: i,
+          error: exportMessage
+        });
+      }
+    }
+
+    if (imageFiles.length === 0 && errors.length > 0) {
+      return { result, error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
+    }
+
+    const response = { result, images: imageFiles };
+    if (errors.length > 0) {
+      response.partialErrors = errors;
+    }
+    return response;
   }
 
   /**

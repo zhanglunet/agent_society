@@ -69,21 +69,24 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.result).toEqual({ width: 400, height: 300 });
     });
 
-    test("getCanvas 多次调用返回同一实例（单例模式）", async () => {
+    test("getCanvas 多次调用返回不同实例（每次创建新 canvas）", async () => {
       const code = `
         const canvas1 = getCanvas(200, 200);
-        const canvas2 = getCanvas(400, 400); // 第二次调用应返回同一实例
+        const canvas2 = getCanvas(400, 400); // 第二次调用应返回新实例
         return {
           sameInstance: canvas1 === canvas2,
-          width: canvas2.width,
-          height: canvas2.height
+          width1: canvas1.width,
+          height1: canvas1.height,
+          width2: canvas2.width,
+          height2: canvas2.height
         };
       `;
       const result = await runtime._runJavaScriptTool({ code });
-      expect(result.result.sameInstance).toBe(true);
-      // 尺寸应该是第一次调用时的尺寸
-      expect(result.result.width).toBe(200);
-      expect(result.result.height).toBe(200);
+      expect(result.result.sameInstance).toBe(false); // 应该是不同实例
+      expect(result.result.width1).toBe(200);
+      expect(result.result.height1).toBe(200);
+      expect(result.result.width2).toBe(400);
+      expect(result.result.height2).toBe(400);
     });
 
     test("getCanvas 返回的 Canvas 支持 getContext('2d')", async () => {
@@ -157,6 +160,44 @@ describe("run_javascript Canvas 功能", () => {
       const result2 = await runtime._runJavaScriptTool({ code });
       
       expect(result1.images[0]).not.toBe(result2.images[0]);
+    });
+
+    test("多次调用 getCanvas 生成多个工件", async () => {
+      const code = `
+        const canvas1 = getCanvas(100, 100);
+        const ctx1 = canvas1.getContext('2d');
+        ctx1.fillStyle = 'red';
+        ctx1.fillRect(0, 0, 100, 100);
+        
+        const canvas2 = getCanvas(200, 200);
+        const ctx2 = canvas2.getContext('2d');
+        ctx2.fillStyle = 'blue';
+        ctx2.fillRect(0, 0, 200, 200);
+        
+        const canvas3 = getCanvas(150, 150);
+        const ctx3 = canvas3.getContext('2d');
+        ctx3.fillStyle = 'green';
+        ctx3.fillRect(0, 0, 150, 150);
+        
+        return 'three canvases';
+      `;
+      
+      const result = await runtime._runJavaScriptTool({ code });
+      expect(result.result).toBe('three canvases');
+      expect(result.images).toBeDefined();
+      expect(Array.isArray(result.images)).toBe(true);
+      expect(result.images.length).toBe(3); // 应该生成 3 个图像文件
+      
+      // 验证所有文件都存在
+      for (const fileName of result.images) {
+        const filePath = path.join(TEST_DIR, fileName);
+        expect(existsSync(filePath)).toBe(true);
+        expect(fileName).toMatch(/\.png$/);
+      }
+      
+      // 验证文件名都不相同
+      const uniqueNames = new Set(result.images);
+      expect(uniqueNames.size).toBe(3);
     });
   });
 
@@ -429,8 +470,8 @@ describe("run_javascript Canvas 属性测试", () => {
     });
   });
 
-  describe("7.2 属性 2: Canvas 单例性", () => {
-    test("对于任意调用次数，多次调用 getCanvas 应返回同一实例", async () => {
+  describe("7.2 属性 2: Canvas 多实例性", () => {
+    test("对于任意调用次数，多次调用 getCanvas 应返回不同实例", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 2, max: 10 }),
@@ -439,13 +480,15 @@ describe("run_javascript Canvas 属性测试", () => {
             const calls = Array.from({ length: callCount }, (_, i) => `canvas${i}`);
             const code = `
               ${calls.map((name, i) => `const ${name} = getCanvas(100, 100);`).join('\n')}
-              const allSame = ${calls.slice(1).map(name => `${calls[0]} === ${name}`).join(' && ')};
-              return { allSame, count: ${callCount} };
+              const allDifferent = ${calls.slice(1).map(name => `${calls[0]} !== ${name}`).join(' && ')};
+              return { allDifferent, count: ${callCount}, imagesCount: ${callCount} };
             `;
             const result = await runtime._runJavaScriptTool({ code });
             
-            // 验证所有调用返回同一实例
-            expect(result.result.allSame).toBe(true);
+            // 验证所有调用返回不同实例
+            expect(result.result.allDifferent).toBe(true);
+            // 验证生成了对应数量的图像
+            expect(result.images.length).toBe(callCount);
           }
         ),
         { numRuns: 20 }

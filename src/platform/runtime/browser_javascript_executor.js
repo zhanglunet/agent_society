@@ -199,36 +199,39 @@ export class BrowserJavaScriptExecutor {
   <script>
     // Canvas 辅助函数
     (function() {
-      // Canvas 单例
-      let _canvas = null;
+      // Canvas 实例数组（支持多个 canvas）
+      const _canvases = [];
       
-      // getCanvas 函数
+      // getCanvas 函数（每次调用创建新实例）
       window.getCanvas = function(width, height) {
         width = width || 800;
         height = height || 600;
-        if (_canvas) return _canvas;
-        _canvas = document.createElement('canvas');
-        _canvas.width = width;
-        _canvas.height = height;
-        document.getElementById('canvas-container').appendChild(_canvas);
-        return _canvas;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        document.getElementById('canvas-container').appendChild(canvas);
+        _canvases.push(canvas);
+        return canvas;
       };
       
-      // 获取 Canvas 数据（供外部调用）
-      window.__getCanvasData = function() {
-        if (!_canvas) return null;
-        return _canvas.toDataURL('image/png');
+      // 获取所有 Canvas 数据（供外部调用）
+      window.__getAllCanvasData = function() {
+        return _canvases.map(canvas => canvas.toDataURL('image/png'));
       };
       
       // 检查是否使用了 Canvas
       window.__hasCanvas = function() {
-        return _canvas !== null;
+        return _canvases.length > 0;
       };
       
-      // 获取 Canvas 尺寸
-      window.__getCanvasSize = function() {
-        if (!_canvas) return null;
-        return { width: _canvas.width, height: _canvas.height };
+      // 获取 Canvas 数量
+      window.__getCanvasCount = function() {
+        return _canvases.length;
+      };
+      
+      // 获取所有 Canvas 尺寸
+      window.__getAllCanvasSizes = function() {
+        return _canvases.map(canvas => ({ width: canvas.width, height: canvas.height }));
       };
     })();
   </script>
@@ -335,7 +338,8 @@ export class BrowserJavaScriptExecutor {
               success: true,
               result: value,
               hasCanvas: window.__hasCanvas(),
-              canvasSize: window.__getCanvasSize()
+              canvasCount: window.__getCanvasCount(),
+              canvasSizes: window.__getAllCanvasSizes()
             };
           } catch (err) {
             return {
@@ -364,12 +368,12 @@ export class BrowserJavaScriptExecutor {
         return { error: "js_execution_failed", message: result.error };
       }
 
-      // 如果使用了 Canvas，导出图像
+      // 如果使用了 Canvas，导出所有图像
       if (result.hasCanvas) {
-        const canvasData = await page.evaluate(() => window.__getCanvasData());
-        const imageResult = await this._saveCanvasImage(
-          canvasData, 
-          result.canvasSize, 
+        const allCanvasData = await page.evaluate(() => window.__getAllCanvasData());
+        const imageResult = await this._saveAllCanvasImages(
+          allCanvasData, 
+          result.canvasSizes, 
           messageId, 
           agentId
         );
@@ -416,6 +420,87 @@ export class BrowserJavaScriptExecutor {
     }
     
     return { error: "browser_not_available", message: "浏览器不可用且无降级执行器" };
+  }
+
+  /**
+   * 保存所有 Canvas 图像到工件库
+   * @private
+   */
+  async _saveAllCanvasImages(dataUrls, canvasSizes, messageId, agentId) {
+    if (!dataUrls || dataUrls.length === 0) {
+      return { error: "no_canvas_data" };
+    }
+
+    const imageFiles = [];
+    const errors = [];
+
+    for (let i = 0; i < dataUrls.length; i++) {
+      const dataUrl = dataUrls[i];
+      const canvasSize = canvasSizes[i] || { width: 0, height: 0 };
+
+      try {
+        // 解析 data URL
+        const matches = dataUrl.match(/^data:image\/png;base64,(.+)$/);
+        if (!matches) {
+          errors.push({ index: i, error: "无效的 Canvas 数据格式" });
+          continue;
+        }
+        
+        const base64Data = matches[1];
+        const pngBuffer = Buffer.from(base64Data, "base64");
+        
+        const artifactId = randomUUID();
+        const extension = ".png";
+        const fileName = `${artifactId}${extension}`;
+        const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
+        const createdAt = new Date().toISOString();
+        
+        await this.runtime.artifacts.ensureReady();
+        await writeFile(filePath, pngBuffer);
+        
+        // 写入元信息文件
+        const metadata = {
+          id: artifactId,
+          extension,
+          type: "image",
+          createdAt,
+          messageId: messageId,
+          agentId: agentId,
+          width: canvasSize.width,
+          height: canvasSize.height,
+          source: "browser-canvas",
+          canvasIndex: i
+        };
+        await this.runtime.artifacts._writeMetadata(artifactId, metadata);
+        
+        imageFiles.push(fileName);
+        
+        this.runtime.log?.info?.("保存浏览器 Canvas 图像", {
+          fileName,
+          width: canvasSize.width,
+          height: canvasSize.height,
+          index: i,
+          total: dataUrls.length
+        });
+      } catch (err) {
+        const message = err?.message ?? String(err);
+        errors.push({ index: i, error: message });
+        this.runtime.log?.error?.("保存浏览器 Canvas 图像失败", {
+          index: i,
+          error: message
+        });
+      }
+    }
+
+    if (imageFiles.length === 0 && errors.length > 0) {
+      return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
+    }
+
+    const response = { images: imageFiles };
+    if (errors.length > 0) {
+      response.partialErrors = errors;
+    }
+    return response;
   }
 
   /**
