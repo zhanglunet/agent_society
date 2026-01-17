@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, appendFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { createNoopModuleLogger, formatLocalTime } from "../../logger.js";
+import { createNoopModuleLogger, formatLocalTime } from "../../utils/logger/logger.js";
 
 /**
  * HTTP服务器组件：提供REST API接口与Agent Society交互。

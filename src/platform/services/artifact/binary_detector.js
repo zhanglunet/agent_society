@@ -1,4 +1,4 @@
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 import { createHash } from "crypto";
 import { fileTypeFromBuffer } from "file-type";
 

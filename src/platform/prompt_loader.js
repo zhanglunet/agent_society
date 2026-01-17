@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger } from "./utils/logger/logger.js";
 
 /**
  * 从系统提示词目录加载预置提示词与拼接模板，并完成最终提示词拼接。

@@ -1,4 +1,4 @@
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger } from "./utils/logger/logger.js";
 
 /**
  * 内置工具组定义

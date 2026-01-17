@@ -6,7 +6,7 @@
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.4
  */
 
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../logger/logger.js";
 
 /**
  * 内容类型到能力类型的映射

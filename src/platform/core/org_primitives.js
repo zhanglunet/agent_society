@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { createNoopModuleLogger } from "../logger.js";
+import { createNoopModuleLogger } from "../utils/logger/logger.js";
 
 /**
  * 验证岗位数据结构

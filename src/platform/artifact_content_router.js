@@ -8,7 +8,7 @@
  * Requirements: 1, 2, 3, 4, 5, 6, 7, 8
  */
 
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger } from "./utils/logger/logger.js";
 
 /**
  * @typedef {Object} ContentRouteResult

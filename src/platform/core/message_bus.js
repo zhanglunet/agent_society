@@ -2,7 +2,7 @@
  * 最小异步消息总线：按收件人队列缓存消息，运行时循环拉取并投递。
  */
 import { randomUUID } from "node:crypto";
-import { createNoopModuleLogger, formatLocalTime } from "../logger.js";
+import { createNoopModuleLogger, formatLocalTime } from "../utils/logger/logger.js";
 
 export class MessageBus {
   /**

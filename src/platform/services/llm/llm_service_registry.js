@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 默认的模型能力配置（仅文本）

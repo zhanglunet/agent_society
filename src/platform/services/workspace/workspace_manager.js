@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 工作空间管理器

@@ -1,4 +1,4 @@
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 默认的模型选择提示词模板

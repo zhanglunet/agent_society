@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 命令执行器

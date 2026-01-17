@@ -1,7 +1,7 @@
 /**
  * HTTP 客户端：为智能体提供 HTTPS 访问能力，并记录请求/响应日志。
  */
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * @typedef {Object} HttpRequestOptions

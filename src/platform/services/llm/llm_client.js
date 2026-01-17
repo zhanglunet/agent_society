@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 import { ConcurrencyController } from "./concurrency_controller.js";
 
 /**

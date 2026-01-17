@@ -5,7 +5,7 @@
  * 每个智能体只能与其 Contact_Registry 中的联系人通信。
  */
 
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 联系人注册表管理器

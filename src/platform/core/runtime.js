@@ -5,7 +5,7 @@ import { MessageBus } from "./message_bus.js";
 import { OrgPrimitives } from "./org_primitives.js";
 import { PromptLoader } from "../prompt_loader.js";
 import { LlmClient } from "../llm_client.js";
-import { Logger, createNoopModuleLogger, normalizeLoggingConfig, formatLocalTime } from "../logger.js";
+import { Logger, createNoopModuleLogger, normalizeLoggingConfig, formatLocalTime } from "../utils/logger/logger.js";
 import { Agent } from "../../agents/agent.js";
 import { ConversationManager } from "../conversation_manager.js";
 import { HttpClient } from "../http_client.js";

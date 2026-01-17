@@ -4,7 +4,7 @@ import { Agent } from "../../agents/agent.js";
 import { Runtime } from "./runtime.js";
 import { HTTPServer } from "../http_server.js";
 import { ConfigService } from "../utils/config/config_service.js";
-import { createNoopModuleLogger } from "../logger.js";
+import { createNoopModuleLogger } from "../utils/logger/logger.js";
 
 /**
  * 面向"用户"的系统入口：隐藏运行时与根智能体的构建细节。

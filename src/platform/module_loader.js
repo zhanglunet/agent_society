@@ -1,7 +1,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { createNoopModuleLogger } from "./logger.js";
+import { createNoopModuleLogger } from "./utils/logger/logger.js";
 
 /**
  * 模块加载器：负责加载、初始化和管理可插拔模块。

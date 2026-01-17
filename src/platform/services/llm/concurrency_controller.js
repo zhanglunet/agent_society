@@ -1,4 +1,4 @@
-import { createNoopModuleLogger } from "../../logger.js";
+import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 
 /**
  * 表示一个LLM请求的信息
