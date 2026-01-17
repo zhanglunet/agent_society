@@ -362,7 +362,7 @@
     - 提供统一的公共接口
     - _需求：3.2, 7.1, 7.2_
   
-  - [ ] 13.8 更新测试
+  - [x] 13.8 更新测试
     - 为 runtime_state.js 编写单元测试
     - 为 runtime_events.js 编写单元测试
     - 为 runtime_lifecycle.js 编写单元测试
