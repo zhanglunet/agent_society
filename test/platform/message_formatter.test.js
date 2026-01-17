@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
-import { formatMessageForAgent } from "../../src/platform/message_formatter.js";
+import { formatMessageForAgent } from "../../src/platform/utils/message/message_formatter.js";
 
 describe("formatMessageForAgent", () => {
   /**

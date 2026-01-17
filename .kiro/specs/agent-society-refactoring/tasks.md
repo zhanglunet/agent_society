@@ -166,7 +166,7 @@
     - _需求：8.1, 9.2_
 
 - [ ] 6. 移动工具模块文件
-  - [ ] 6.1 移动消息工具文件到 utils/message/
+  - [x] 6.1 移动消息工具文件到 utils/message/
     - 移动 message_formatter.js
     - 移动 message_validator.js
     - 移动 task_brief.js

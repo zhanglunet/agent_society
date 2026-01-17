@@ -26,8 +26,8 @@
  * @module runtime/context_builder
  */
 
-import { formatTaskBrief } from "../task_brief.js";
-import { formatMessageForAgent } from "../message_formatter.js";
+import { formatTaskBrief } from "../utils/message/task_brief.js";
+import { formatMessageForAgent } from "../utils/message/message_formatter.js";
 
 /**
  * 上下文构建器类

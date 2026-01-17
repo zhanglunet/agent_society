@@ -5,7 +5,7 @@ import {
   isValidMessageType, 
   MessageType, 
   VALID_MESSAGE_TYPES 
-} from "../../src/platform/message_validator.js";
+} from "../../src/platform/utils/message/message_validator.js";
 
 describe("MessageValidator", () => {
   /**

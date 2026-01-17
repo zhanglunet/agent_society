@@ -7,7 +7,7 @@
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6
  */
 
-import { formatMultimodalContent, isTextFile } from './message_formatter.js';
+import { formatMultimodalContent, isTextFile } from './utils/message/message_formatter.js';
 
 /**
  * 附件类型到能力类型的映射

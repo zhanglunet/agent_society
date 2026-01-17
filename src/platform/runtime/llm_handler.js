@@ -32,7 +32,7 @@
  * @module runtime/llm_handler
  */
 
-import { hasImageAttachments, getImageAttachments, hasFileAttachments, getFileAttachments, formatFileAttachmentContent } from "../message_formatter.js";
+import { hasImageAttachments, getImageAttachments, hasFileAttachments, getFileAttachments, formatFileAttachmentContent } from "../utils/message/message_formatter.js";
 
 /**
  * LLM 处理器类

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
-import { validateTaskBrief, formatTaskBrief } from "../../src/platform/task_brief.js";
+import { validateTaskBrief, formatTaskBrief } from "../../src/platform/utils/message/task_brief.js";
 
 describe("TaskBrief", () => {
   /**

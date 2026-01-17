@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import { Runtime } from "../../src/platform/runtime.js";
-import { formatTaskBrief } from "../../src/platform/task_brief.js";
+import { formatTaskBrief } from "../../src/platform/utils/message/task_brief.js";
 
 /**
  * Property 2: Task Brief 注入上下文

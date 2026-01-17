@@ -12,7 +12,7 @@ import {
   formatMultimodalContent, 
   hasImageAttachments, 
   getImageAttachments 
-} from "../../src/platform/message_formatter.js";
+} from "../../src/platform/utils/message/message_formatter.js";
 
 describe("LLM Multimodal Message Properties", () => {
   
