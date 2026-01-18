@@ -15,6 +15,7 @@ import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { Runtime } from "../../src/platform/runtime.js";
 import { RuntimeLifecycle } from "../../src/platform/runtime/runtime_lifecycle.js";
+import { Config } from "../../src/platform/utils/config/config.js";
 
 describe("RuntimeLifecycle", () => {
   let runtime;
@@ -39,7 +40,10 @@ describe("RuntimeLifecycle", () => {
       "utf8"
     );
 
-    runtime = new Runtime({ configPath });
+    // 创建 Config 服务
+    const configService = new Config(tmpDir);
+    
+    runtime = new Runtime({ configService });
     await runtime.init();
     lifecycle = new RuntimeLifecycle(runtime);
   });

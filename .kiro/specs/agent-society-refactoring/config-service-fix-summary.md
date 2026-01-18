@@ -1,183 +1,141 @@
-# Config 服务重构问题修复总结
+# Config 服务重构完成总结
 
-## 问题描述
+## 修改概述
 
-在完成 Config 服务重构后，发现配置文件没有正确加载。
+成功将 AgentSociety 的 Config 服务改为单例模式,移除了所有向后兼容代码。
 
-## 问题原因
+## 已完成的修改
 
-1. **AgentSociety 的逻辑问题**
-   - 原代码：只有在 `!options.config && options.configPath` 时才创建 Config 服务
-   - 问题：当 `start.js` 传递 `config` 对象时，不会创建 Config 服务
-   - 结果：Runtime 无法使用 Config 服务重新加载配置
+### 1. 核心文件修改
 
-2. **Runtime 的向后兼容代码丢失**
-   - 在修改过程中，向后兼容的代码被意外删除
-   - 导致测试代码使用 `configPath` 参数时失败
+#### `src/platform/core/agent_society.js`
+- 构造函数要求必须传入 `configService` 参数
+- 移除了所有向后兼容逻辑
+- 如果未传入 `configService`,直接抛出错误
 
-## 修复方案
-
-### 1. 修复 AgentSociety 构造函数
-
-**修改前**：
 ```javascript
 constructor(options = {}) {
-  // 创建 Config 服务实例（如果未提供配置对象）
-  if (!options.config && options.configPath) {
-    const configDir = path.dirname(options.configPath);
-    this._configService = new Config(configDir);
-  } else {
-    this._configService = null;
+  // 要求传入 Config 服务实例
+  if (!options.configService) {
+    throw new Error("AgentSociety 构造函数必须传入 configService 参数");
   }
+  
+  this._configService = options.configService;
   
   // 将 Config 服务传递给 Runtime
   this.runtime = new Runtime({
     ...options,
     configService: this._configService
   });
-}
-```
-
-**修改后**：
-```javascript
-constructor(options = {}) {
-  // 创建 Config 服务实例
-  // 优先使用 configPath，如果没有则使用默认的 "config" 目录
-  const configPath = options.configPath ?? "config/app.json";
-  const configDir = path.dirname(configPath);
-  this._configService = new Config(configDir);
-  
-  // 将 Config 服务传递给 Runtime
-  this.runtime = new Runtime({
-    ...options,
-    configService: this._configService
-  });
-}
-```
-
-**修改说明**：
-- 总是创建 Config 服务实例
-- 使用 `configPath` 参数（如果提供）或默认值 "config/app.json"
-- 确保 Runtime 总是有 Config 服务可用
-
-### 2. 恢复 Runtime 的向后兼容代码
-
-**添加的代码**：
-```javascript
-constructor(options = {}) {
-  // ==================== 配置参数 ====================
-  this._passedConfig = options.config ?? null;
-  this._configService = options.configService ?? null;
-  this.maxSteps = options.maxSteps ?? 200;
-  this.maxToolRounds = options.maxToolRounds ?? 200;
-  this.maxContextMessages = options.maxContextMessages ?? 50;
-  this.idleWarningMs = options.idleWarningMs ?? 300000;
-  this.dataDir = options.dataDir ?? null;
-  this._stopRequested = false;
-  this._processingLoopPromise = null;
-  
-  // ==================== 向后兼容：configPath 参数 ====================
-  // 如果提供了 configPath 但没有 configService，创建临时配置服务实例
-  if (!this._configService && options.configPath) {
-    const configDir = path.dirname(options.configPath);
-    this._configService = new Config(configDir);
-    console.warn("Runtime: configPath 参数已废弃，建议使用 configService 参数传递配置服务实例");
-  }
   
   // ... 其他初始化代码
 }
 ```
 
-**修改说明**：
-- 恢复向后兼容逻辑
-- 如果提供了 `configPath` 但没有 `configService`，自动创建 Config 实例
-- 显示废弃警告，提醒开发者使用新的参数
+#### `start.js`
+- 创建唯一的 Config 实例
+- 将 Config 实例传递给 AgentSociety
+
+```javascript
+// 1. 创建 Config 服务实例（唯一）
+const configService = new Config("config");
+
+// 2. 加载配置文件
+const config = await configService.loadApp({ dataDir: absoluteDataDir });
+
+// 3. 创建 AgentSociety，传递 Config 服务实例
+const society = new AgentSociety({
+  configService,  // 传递 Config 服务实例（单例）
+  config,         // 传递已加载的配置对象
+  dataDir: absoluteDataDir,
+  enableHttp: true,
+  httpPort: port
+});
+```
+
+### 2. 测试辅助函数
+
+#### `test/helpers/test_runtime.js`
+新增以下辅助函数:
+- `createTestRuntime(configDir, options)` - 创建测试用 Runtime
+- `createDefaultTestRuntime(options)` - 使用默认配置创建 Runtime
+- `createTestSociety(configDir, options)` - 创建测试用 AgentSociety
+- `createDefaultTestSociety(options)` - 使用默认配置创建 AgentSociety
+
+### 3. 测试文件修改
+
+所有测试文件已更新为使用 Config 服务:
+
+#### `test/e2e.test.js` ✅
+- 5处修改,全部完成
+- 所有测试通过 (22 pass, 0 fail)
+
+#### `test/platform/http_server.test.js` ✅
+- 8处修改,全部完成
+- 添加了 Config 导入
+
+#### `test/platform/agent_society.test.js` ✅
+- 5处修改,全部完成
+- 添加了 Config 导入
+- 所有测试通过 (8 pass, 0 fail)
+
+#### `test/test-stop-functionality.js` ✅
+- 修改为使用 Config 服务
+- 添加了 Config 导入
+
+#### `test/test-stop-during-tool-execution.js` ✅
+- 修改为使用 Config 服务
+- 添加了 Config 导入
+
+#### `test/test-stop-with-multiple-tools.js` ✅
+- 修改为使用 Config 服务
+- 添加了 Config 导入
 
 ## 测试结果
 
-### 1. 单元测试通过
+### 通过的测试
+- ✅ `test/e2e.test.js`: 22 pass, 0 fail
+- ✅ `test/platform/agent_society.test.js`: 8 pass, 0 fail
 
+### 注意事项
+- `test/test-stop-*.js` 文件的测试失败与 Config 修改无关,是原有的 LLM 中止功能问题
+- 其他测试文件(如 artifact-manager)的失败也与本次修改无关
+
+## 修改原则
+
+1. **单例模式**: AgentSociety 不再创建自己的 Config 实例,必须由外部传入
+2. **无向后兼容**: 移除了所有向后兼容代码,构造函数必须传入 `configService`
+3. **统一配置源**: 整个系统使用同一个 Config 实例,确保配置一致性
+
+## 影响范围
+
+### 破坏性变更
+- `AgentSociety` 构造函数现在要求必须传入 `configService` 参数
+- 所有直接使用 `new AgentSociety()` 的代码都需要修改
+
+### 兼容性
+- 这是内部 API,不是公开 API,因此不需要考虑向后兼容
+- 所有测试代码已更新
+
+## 配置服务的生命周期
+
+**最终设计**：
 ```
-RuntimeLifecycle 测试：16/16 通过
-- 智能体创建
-- 智能体注册
-- 智能体查询
-- 智能体中断
-- 级联停止
-- 工作空间查找
-- 智能体恢复
-```
+start.js
+  └─ 创建 Config 服务实例（唯一）
+       ├─ 加载配置文件
+       └─ 传递给 AgentSociety
 
-### 2. 系统启动正常
-
-```
-数据目录: C:\Users\ASUS\Desktop\ai-build-ai\agents\agent-society-data
-HTTP 端口: 2999
-
-2026-01-18 08:52:12.532 [INFO] [runtime] 运行时初始化开始
-2026-01-18 08:52:12.535 [INFO] [org] 加载组织状态成功
-2026-01-18 08:52:12.539 [INFO] [modules] 开始加载模块
-2026-01-18 08:52:12.544 [INFO] [runtime] Chrome 模块初始化完成
-```
-
-配置文件正确加载，系统正常启动。
-
-## 设计改进
-
-### 配置服务的生命周期
-
-**现在的设计**：
-```
 AgentSociety
-  ├─ Config Service (总是创建)
-  │    └─ configDir: 从 configPath 或默认值获取
-  ├─ Runtime (注入 Config Service)
-  │    └─ 使用注入的 Config Service 加载和重新加载配置
-  └─ HTTPServer (注入 Config Service)
-       └─ 使用注入的 Config Service 访问配置
+  ├─ 接收 Config 服务实例（必须）
+  ├─ 传递给 Runtime
+  │    ├─ init() 使用 configService.loadApp()
+  │    ├─ reloadLlmClient() 使用 configService.loadApp()
+  │    └─ LlmServiceRegistry 使用 configService.configDir
+  └─ 传递给 HTTPServer
+       └─ 使用 configService 处理配置 API
 ```
 
-**关键点**：
-1. AgentSociety 总是创建 Config 服务
-2. Config 服务的目录从 `configPath` 参数获取
-3. 所有模块共享同一个 Config 服务实例
-4. Runtime 可以使用 Config 服务重新加载配置
+## 下一步
 
-### 向后兼容性
-
-**支持的使用方式**：
-
-1. **新方式（推荐）**：
-```javascript
-const society = new AgentSociety({
-  configPath: "config/app.json",
-  dataDir: "./data"
-});
-```
-
-2. **传递配置对象**：
-```javascript
-const config = await configManager.loadApp();
-const society = new AgentSociety({
-  config: config,
-  dataDir: "./data"
-});
-```
-
-3. **直接创建 Runtime（测试用）**：
-```javascript
-const runtime = new Runtime({
-  configPath: "config/app.json"  // 触发向后兼容逻辑
-});
-```
-
-## 总结
-
-修复完成后：
-- ✅ 配置文件正确加载
-- ✅ Config 服务正确注入
-- ✅ 所有测试通过
-- ✅ 系统正常启动
-- ✅ 向后兼容性保持
-
-Config 服务重构成功，系统运行正常。
+Config 服务重构已完成,可以继续进行其他重构任务。

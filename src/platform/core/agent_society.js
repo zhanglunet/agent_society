@@ -14,14 +14,15 @@ import { createNoopModuleLogger } from "../utils/logger/logger.js";
  */
 export class AgentSociety {
   /**
-   * @param {{config?:object, configPath?:string, maxSteps?:number, httpPort?:number, enableHttp?:boolean, shutdownTimeoutMs?:number, dataDir?:string}} [options]
+   * @param {{config?:object, configService:Config, maxSteps?:number, httpPort?:number, enableHttp?:boolean, shutdownTimeoutMs?:number, dataDir?:string}} [options]
    */
   constructor(options = {}) {
-    // 创建 Config 服务实例
-    // 优先使用 configPath，如果没有则使用默认的 "config" 目录
-    const configPath = options.configPath ?? "config/app.json";
-    const configDir = path.dirname(configPath);
-    this._configService = new Config(configDir);
+    // 要求传入 Config 服务实例
+    if (!options.configService) {
+      throw new Error("AgentSociety 构造函数必须传入 configService 参数");
+    }
+    
+    this._configService = options.configService;
     
     // 将 Config 服务传递给 Runtime
     this.runtime = new Runtime({

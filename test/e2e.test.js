@@ -10,6 +10,7 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { AgentSociety } from "../src/platform/agent_society.js";
+import { Config } from "../src/platform/utils/config/config.js";
 
 describe("端到端测试 - 需求提交到任务完成的完整流程", () => {
   let society;
@@ -34,8 +35,9 @@ describe("端到端测试 - 需求提交到任务完成的完整流程", () => {
     );
 
     // 初始化系统
+    const configService = new Config(tmpDir);
     society = new AgentSociety({ 
-      configPath,
+      configService,
       enableHttp: false,
       maxSteps: 10
     });
@@ -223,7 +225,7 @@ describe("端到端测试 - 多智能体协作场景", () => {
     );
 
     society = new AgentSociety({ 
-      configPath,
+      configService: new Config(tmpDir),
       enableHttp: false,
       maxSteps: 20
     });
@@ -642,7 +644,7 @@ describe("端到端测试 - 系统生命周期管理", () => {
     );
 
     society = new AgentSociety({ 
-      configPath,
+      configService: new Config(tmpDir),
       enableHttp: false,
       shutdownTimeoutMs: 5000
     });
@@ -780,7 +782,7 @@ describe("端到端测试 - HTTP服务器集成", () => {
 
   test("应支持禁用HTTP服务器", async () => {
     society = new AgentSociety({ 
-      configPath: path.resolve(tmpDir, "app.json"),
+      configService: new Config(tmpDir),
       enableHttp: false
     });
     await society.init();
@@ -795,7 +797,7 @@ describe("端到端测试 - HTTP服务器集成", () => {
     const randomPort = 10000 + Math.floor(Math.random() * 10000);
     
     society = new AgentSociety({ 
-      configPath: path.resolve(tmpDir, "app.json"),
+      configService: new Config(tmpDir),
       enableHttp: true,
       httpPort: randomPort
     });

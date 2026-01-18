@@ -8,19 +8,21 @@
 
 import { Runtime } from "../src/platform/runtime.js";
 import { AgentSociety } from "../src/platform/agent_society.js";
+import { Config } from "../src/platform/utils/config/config.js";
 
 async function testStopDuringToolExecution() {
   console.log("=== 测试工具调用期间的停止功能 ===\n");
   
   // 初始化运行时
+  const configService = new Config("config");
   const runtime = new Runtime({
-    configPath: "config/app.json",
+    configService,
     dataDir: "agent-society-data"
   });
   
   await runtime.init();
   
-  const society = new AgentSociety({ runtime });
+  const society = new AgentSociety({ configService, runtime });
   await society.init();
   
   console.log("✓ 运行时初始化完成\n");

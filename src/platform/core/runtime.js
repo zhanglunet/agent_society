@@ -98,14 +98,6 @@ export class Runtime {
     this._stopRequested = false;
     this._processingLoopPromise = null;
     
-    // ==================== 向后兼容：configPath 参数 ====================
-    // 如果提供了 configPath 但没有 configService，创建临时配置服务实例
-    if (!this._configService && options.configPath) {
-      const configDir = path.dirname(options.configPath);
-      this._configService = new Config(configDir);
-      console.warn("Runtime: configPath 参数已废弃，建议使用 configService 参数传递配置服务实例");
-    }
-    
     // ==================== 日志系统（临时） ====================
     // 在 init() 中会重新初始化
     this.loggerRoot = new Logger(normalizeLoggingConfig(null));

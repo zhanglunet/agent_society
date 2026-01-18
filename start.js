@@ -104,11 +104,13 @@ async function main() {
   // 解析绝对路径
   const absoluteDataDir = path.resolve(dataDir);
 
-  // 1. 先读配置文件
-  const configManager = new Config("config");
-  const config = await configManager.loadApp({ dataDir: absoluteDataDir });
+  // 1. 创建 Config 服务实例
+  const configService = new Config("config");
   
-  // 2. 命令行参数覆盖配置文件
+  // 2. 加载配置文件
+  const config = await configService.loadApp({ dataDir: absoluteDataDir });
+  
+  // 3. 命令行参数覆盖配置文件
   const port = cliPort ?? config.httpPort;
   
   console.log("╔════════════════════════════════════════════════════════════╗");
@@ -126,9 +128,10 @@ async function main() {
   }
 
   try {
-    // 3. 把配置传给 AgentSociety
+    // 4. 创建 AgentSociety，传递 Config 服务实例和已加载的配置
     const society = new AgentSociety({
-      config,
+      configService,  // 传递 Config 服务实例（单例）
+      config,         // 传递已加载的配置对象
       dataDir: absoluteDataDir,
       enableHttp: true,
       httpPort: port

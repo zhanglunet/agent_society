@@ -5,6 +5,7 @@ import { rm, mkdir, writeFile, readdir, stat } from "node:fs/promises";
 import { AgentSociety } from "../../src/platform/agent_society.js";
 import { MessageBus } from "../../src/platform/message_bus.js";
 import { WorkspaceManager } from "../../src/platform/workspace_manager.js";
+import { Config } from "../../src/platform/utils/config/config.js";
 
 describe("AgentSociety", () => {
   /**
@@ -19,7 +20,7 @@ describe("AgentSociety", () => {
       fc.property(
         fc.string({ minLength: 1 }), // 任意非空消息文本
         (text) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           // 不需要完整初始化，只需要runtime.bus存在
           society.runtime.bus = new MessageBus();
           
@@ -42,7 +43,7 @@ describe("AgentSociety", () => {
         fc.string({ minLength: 1 }).filter(id => id.trim() !== "" && id.trim() !== "user"),
         fc.string({ minLength: 1 }), // 任意非空消息文本
         (agentId, text) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           const bus = new MessageBus();
           society.runtime.bus = bus;
           
@@ -66,7 +67,7 @@ describe("AgentSociety", () => {
         fc.constantFrom("", "  ", "\t", "\n"), // 空或纯空白字符串
         fc.string({ minLength: 1 }), // 任意非空消息文本
         (agentId, text) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           society.runtime.bus = new MessageBus();
           
           const result = society.sendTextToAgent(agentId, text);
@@ -94,7 +95,7 @@ describe("AgentSociety", () => {
         fc.string({ minLength: 1, maxLength: 50 }).filter(id => id.trim() !== "" && id.trim() !== "user"),
         fc.string({ minLength: 1, maxLength: 200 }), // 消息文本
         (agentId, text) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           const bus = new MessageBus();
           society.runtime.bus = bus;
           
@@ -140,7 +141,7 @@ describe("AgentSociety", () => {
           { minLength: 1, maxLength: 10 }
         ),
         (sends) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           const bus = new MessageBus();
           society.runtime.bus = bus;
           

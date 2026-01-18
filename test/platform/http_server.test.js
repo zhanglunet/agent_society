@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { HTTPServer } from "../../src/platform/http_server.js";
 import { AgentSociety } from "../../src/platform/agent_society.js";
 import { MessageBus } from "../../src/platform/message_bus.js";
+import { Config } from "../../src/platform/utils/config/config.js";
 
 describe("HTTPServer", () => {
   /**
@@ -18,11 +19,11 @@ describe("HTTPServer", () => {
         fc.string({ minLength: 1, maxLength: 200 }), // 需求文本
         (text) => {
           // 创建两个独立的society实例进行对比
-          const societyConsole = new AgentSociety();
+          const societyConsole = new AgentSociety({ configService: new Config("config") });
           const busConsole = new MessageBus();
           societyConsole.runtime.bus = busConsole;
 
-          const societyHttp = new AgentSociety();
+          const societyHttp = new AgentSociety({ configService: new Config("config") });
           const busHttp = new MessageBus();
           societyHttp.runtime.bus = busHttp;
 
@@ -65,11 +66,11 @@ describe("HTTPServer", () => {
         fc.string({ minLength: 1, maxLength: 200 }), // 消息文本
         (agentId, text) => {
           // 创建两个独立的society实例进行对比
-          const societyConsole = new AgentSociety();
+          const societyConsole = new AgentSociety({ configService: new Config("config") });
           const busConsole = new MessageBus();
           societyConsole.runtime.bus = busConsole;
 
-          const societyHttp = new AgentSociety();
+          const societyHttp = new AgentSociety({ configService: new Config("config") });
           const busHttp = new MessageBus();
           societyHttp.runtime.bus = busHttp;
 
@@ -110,7 +111,7 @@ describe("HTTPServer", () => {
         fc.string({ minLength: 1, maxLength: 50 }).filter(id => id.trim() !== "" && id.trim() !== "user"),
         fc.string({ minLength: 1, maxLength: 200 }),
         (agentId, text) => {
-          const society = new AgentSociety();
+          const society = new AgentSociety({ configService: new Config("config") });
           const bus = new MessageBus();
           society.runtime.bus = bus;
 
@@ -300,7 +301,7 @@ describe("HTTPServer - 错误处理", () => {
   });
 
   test("POST /api/submit - 缺少text字段返回400", async () => {
-    const society = new AgentSociety();
+    const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/submit`, {
@@ -326,7 +327,7 @@ describe("HTTPServer - 错误处理", () => {
   });
 
   test("POST /api/send - 缺少agentId返回400", async () => {
-    const society = new AgentSociety();
+    const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/send`, {
@@ -340,7 +341,7 @@ describe("HTTPServer - 错误处理", () => {
   });
 
   test("POST /api/send - 缺少text返回400", async () => {
-    const society = new AgentSociety();
+    const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/send`, {
@@ -384,7 +385,7 @@ describe("HTTPServer - 与Society集成", () => {
 
   beforeEach(async () => {
     port = 30000 + Math.floor(Math.random() * 10000);
-    society = new AgentSociety();
+    society = new AgentSociety({ configService: new Config("config") });
     await society.init(); // 需要初始化 society
     server = new HTTPServer({ port, society });
     server.setSociety(society);
@@ -462,7 +463,7 @@ describe("HTTPServer - LLM 中断 API", () => {
 
   beforeEach(async () => {
     port = 30000 + Math.floor(Math.random() * 10000);
-    society = new AgentSociety();
+    society = new AgentSociety({ configService: new Config("config") });
     await society.init(); // Initialize society to register root agent
     server = new HTTPServer({ port, society });
     server.setSociety(society);
