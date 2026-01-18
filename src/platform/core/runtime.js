@@ -776,21 +776,6 @@ export class Runtime {
   }
 
   /**
-   * 执行 LLM 处理循环（内部方法）。
-   * @param {any} ctx
-   * @param {any} message
-   * @param {any[]} conv
-   * @param {string|null} agentId
-   * @param {LlmClient} llmClient - 要使用的 LLM 客户端
-   * @returns {Promise<void>}
-   * @private
-   */
-  async _doLlmProcessing(ctx, message, conv, agentId, llmClient) {
-    // 委托给 RuntimeLlm 处理
-    return await this._llm.doLlmProcessing(ctx, message, conv, agentId, llmClient);
-  }
-
-  /**
    * 向父智能体发送错误通知的统一方法，同时触发全局错误事件。
    * @param {string} agentId - 当前智能体ID
    * @param {any} originalMessage - 原始消息
@@ -801,16 +786,6 @@ export class Runtime {
   async _sendErrorNotificationToParent(agentId, originalMessage, errorInfo) {
     // 委托给 RuntimeLlm 处理
     return await this._llm.sendErrorNotificationToParent(agentId, originalMessage, errorInfo);
-  }
-
-  /**
-   * 格式化工具组信息，用于注入到系统提示词中。
-   * @returns {string}
-   * @private
-   */
-  _formatToolGroupsInfo() {
-    // 委托给 RuntimeLlm 处理
-    return this._llm.formatToolGroupsInfo();
   }
 
   /**
