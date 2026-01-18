@@ -5,6 +5,7 @@
  * - 访问需要 JavaScript 渲染的动态网页
  * - 执行页面交互操作（点击、输入、滚动等）
  * - 获取页面截图或提取页面内容
+ * - 获取和保存页面资源（图片、CSS、JS等）
  * - 处理登录、验证码等复杂流程
  * - 爬取需要模拟真实浏览器行为的网站
  * 
@@ -177,6 +178,51 @@ export function getToolDefinitions() {
             maxElements: { type: "number", description: "最大返回元素数量（可选），默认 1000，避免返回过多数据" }
           },
           required: ["tabId"]
+        }
+      }
+    },
+
+    // ==================== 资源管理 ====================
+    {
+      type: "function",
+      function: {
+        name: "chrome_get_resources",
+        description: "获取页面上的资源列表，包括图片、CSS、JavaScript、视频、音频等。主要用于分析页面资源或批量保存资源。返回资源的URL、类型、尺寸等信息。",
+        parameters: {
+          type: "object",
+          properties: {
+            tabId: { type: "string", description: "标签页 ID" },
+            types: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["image", "background", "css", "script", "video", "audio"]
+              },
+              description: "要获取的资源类型数组。可选值：image（图片）、background（背景图）、css（样式表）、script（脚本）、video（视频）、audio（音频）。默认只获取 image"
+            },
+            includeDataUrls: {
+              type: "boolean",
+              description: "是否包含 data URL（base64编码的内嵌资源），默认 false"
+            }
+          },
+          required: ["tabId"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "chrome_save_resource",
+        description: "保存页面上的资源（如图片）到工件系统，返回工件ID。保存后可以在工件管理器中查看和管理。适用于需要持久化保存页面资源的场景。",
+        parameters: {
+          type: "object",
+          properties: {
+            tabId: { type: "string", description: "标签页 ID" },
+            resourceUrl: { type: "string", description: "资源的 URL，可以是完整 URL 或 data URL。通常从 chrome_get_resources 的结果中获取" },
+            filename: { type: "string", description: "保存的文件名（可选），不指定则自动生成" },
+            type: { type: "string", description: "资源类型，默认 'image'" }
+          },
+          required: ["tabId", "resourceUrl"]
         }
       }
     },

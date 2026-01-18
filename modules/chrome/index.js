@@ -1,6 +1,14 @@
 /**
  * Chrome 浏览器控制模块
- * 提供无头浏览器操作能力，包括浏览器管理、标签页管理、页面导航、内容读取和页面交互。
+ * 提供无头浏览器操作能力，包括浏览器管理、标签页管理、页面导航、内容读取、资源管理和页面交互。
+ * 
+ * 主要功能：
+ * - 浏览器管理：启动、关闭浏览器实例
+ * - 标签页管理：创建、关闭、列出标签页
+ * - 页面导航：访问URL、获取当前URL
+ * - 内容获取：截图、获取文本、获取元素信息
+ * - 资源管理：获取页面资源列表、保存资源到工件
+ * - 页面交互：点击、输入、填充、执行脚本、等待元素
  */
 
 import { BrowserManager } from "./browser_manager.js";
@@ -101,6 +109,12 @@ export default {
           return await pageActions.getText(args.tabId, args.selector);
         case "chrome_get_elements":
           return await pageActions.getElements(args.tabId, args);
+        
+        // 资源管理
+        case "chrome_get_resources":
+          return await pageActions.getResources(args.tabId, args);
+        case "chrome_save_resource":
+          return await pageActions.saveResource(args.tabId, args.resourceUrl, { ...args, ctx });
         
         // 页面交互
         case "chrome_click":

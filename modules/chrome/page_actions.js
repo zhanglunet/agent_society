@@ -1,6 +1,12 @@
 /**
  * 页面操作
- * 负责页面导航、内容获取和页面交互。
+ * 负责页面导航、内容获取、资源管理和页面交互。
+ * 
+ * 功能模块：
+ * 1. 页面导航：navigate、getUrl
+ * 2. 内容获取：screenshot、getContent、getText、getElements
+ * 3. 资源管理：getResources、saveResource
+ * 4. 页面交互：click、clickAt、type、fill、evaluate、waitFor
  */
 
 export class PageActions {
@@ -642,6 +648,257 @@ export class PageActions {
     } catch (err) {
       const message = err?.message ?? String(err);
       return { error: "get_elements_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };
+    }
+  }
+
+  // ==================== 资源管理 ====================
+
+  /**
+   * 获取页面上的资源列表
+   * @param {string} tabId
+   * @param {{types?: string[], includeDataUrls?: boolean}} options
+   * @returns {Promise<{ok: boolean, resources?: Array, error?: string}>}
+   */
+  async getResources(tabId, options = {}) {
+    const result = this._getPage(tabId);
+    if ("error" in result) return result;
+    
+    const { page } = result;
+    const { types = ['image'], includeDataUrls = false } = options;
+
+    this.log.info?.("获取页面资源", { tabId, types, includeDataUrls });
+
+    try {
+      const resources = await page.evaluate((opts) => {
+        const { resourceTypes, includeData } = opts;
+        const results = [];
+
+        // 获取图片资源
+        if (resourceTypes.includes('image')) {
+          document.querySelectorAll('img').forEach((img, index) => {
+            const src = img.src || img.dataset.src;
+            if (!src) return;
+            
+            // 过滤 data URL（如果不需要）
+            if (!includeData && src.startsWith('data:')) return;
+            
+            const rect = img.getBoundingClientRect();
+            results.push({
+              type: 'image',
+              index,
+              src,
+              alt: img.alt || '',
+              width: img.naturalWidth || rect.width,
+              height: img.naturalHeight || rect.height,
+              visible: rect.width > 0 && rect.height > 0,
+              selector: img.id ? `#${img.id}` : `img:nth-of-type(${index + 1})`
+            });
+          });
+        }
+
+        // 获取背景图片
+        if (resourceTypes.includes('background')) {
+          document.querySelectorAll('*').forEach((el, index) => {
+            const style = window.getComputedStyle(el);
+            const bgImage = style.backgroundImage;
+            if (bgImage && bgImage !== 'none') {
+              const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+              if (urlMatch && urlMatch[1]) {
+                const url = urlMatch[1];
+                if (!includeData && url.startsWith('data:')) return;
+                
+                results.push({
+                  type: 'background',
+                  index,
+                  src: url,
+                  element: el.tagName.toLowerCase(),
+                  selector: el.id ? `#${el.id}` : null
+                });
+              }
+            }
+          });
+        }
+
+        // 获取CSS资源
+        if (resourceTypes.includes('css')) {
+          document.querySelectorAll('link[rel="stylesheet"]').forEach((link, index) => {
+            results.push({
+              type: 'css',
+              index,
+              src: link.href,
+              media: link.media || 'all'
+            });
+          });
+        }
+
+        // 获取JavaScript资源
+        if (resourceTypes.includes('script')) {
+          document.querySelectorAll('script[src]').forEach((script, index) => {
+            results.push({
+              type: 'script',
+              index,
+              src: script.src,
+              async: script.async,
+              defer: script.defer
+            });
+          });
+        }
+
+        // 获取视频资源
+        if (resourceTypes.includes('video')) {
+          document.querySelectorAll('video').forEach((video, index) => {
+            const sources = Array.from(video.querySelectorAll('source')).map(s => ({
+              src: s.src,
+              type: s.type
+            }));
+            
+            results.push({
+              type: 'video',
+              index,
+              src: video.src || (sources.length > 0 ? sources[0].src : ''),
+              sources,
+              poster: video.poster || null,
+              selector: video.id ? `#${video.id}` : `video:nth-of-type(${index + 1})`
+            });
+          });
+        }
+
+        // 获取音频资源
+        if (resourceTypes.includes('audio')) {
+          document.querySelectorAll('audio').forEach((audio, index) => {
+            const sources = Array.from(audio.querySelectorAll('source')).map(s => ({
+              src: s.src,
+              type: s.type
+            }));
+            
+            results.push({
+              type: 'audio',
+              index,
+              src: audio.src || (sources.length > 0 ? sources[0].src : ''),
+              sources,
+              selector: audio.id ? `#${audio.id}` : `audio:nth-of-type(${index + 1})`
+            });
+          });
+        }
+
+        return results;
+      }, {
+        resourceTypes: types,
+        includeData: includeDataUrls
+      });
+
+      return {
+        ok: true,
+        resources,
+        count: resources.length,
+        url: page.url()
+      };
+    } catch (err) {
+      const message = err?.message ?? String(err);
+      return { error: "get_resources_failed", message };
+    }
+  }
+
+  /**
+   * 保存页面资源到工件
+   * @param {string} tabId
+   * @param {string} resourceUrl - 资源URL
+   * @param {{ctx?: any, filename?: string, type?: string}} options
+   * @returns {Promise<{ok: boolean, artifactId?: string, error?: string}>}
+   */
+  async saveResource(tabId, resourceUrl, options = {}) {
+    const result = this._getPage(tabId);
+    if ("error" in result) return result;
+    
+    const { page } = result;
+    const { ctx, filename, type = 'image' } = options;
+
+    this.log.info?.("保存页面资源", { tabId, resourceUrl, type });
+
+    // 检查是否有上下文和 saveImage 方法
+    if (!ctx || !ctx.tools || typeof ctx.tools.saveImage !== 'function') {
+      return { error: "context_required", message: "需要运行时上下文才能保存资源" };
+    }
+
+    try {
+      // 获取资源内容
+      let buffer;
+      
+      if (resourceUrl.startsWith('data:')) {
+        // 处理 data URL
+        const matches = resourceUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+          return { error: "invalid_data_url", resourceUrl };
+        }
+        buffer = Buffer.from(matches[2], 'base64');
+      } else {
+        // 通过页面上下文获取资源
+        const resourceData = await page.evaluate(async (url) => {
+          try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const bytes = Array.from(new Uint8Array(arrayBuffer));
+            return {
+              ok: true,
+              data: bytes,
+              contentType: response.headers.get('content-type')
+            };
+          } catch (err) {
+            return {
+              ok: false,
+              error: err.message
+            };
+          }
+        }, resourceUrl);
+
+        if (!resourceData.ok) {
+          return { error: "fetch_resource_failed", message: resourceData.error };
+        }
+
+        buffer = Buffer.from(resourceData.data);
+      }
+
+      // 确定文件格式
+      let format = 'png';
+      if (resourceUrl.includes('.jpg') || resourceUrl.includes('.jpeg')) {
+        format = 'jpg';
+      } else if (resourceUrl.includes('.gif')) {
+        format = 'gif';
+      } else if (resourceUrl.includes('.webp')) {
+        format = 'webp';
+      }
+
+      // 保存到工件
+      const pageUrl = page.url();
+      const pageTitle = await page.title();
+      const messageId = ctx.currentMessage?.id ?? null;
+      const agentId = ctx.agent?.id ?? null;
+
+      const filePath = await ctx.tools.saveImage(buffer, {
+        format,
+        messageId,
+        agentId,
+        tabId,
+        url: pageUrl,
+        title: pageTitle,
+        resourceUrl,
+        originalFilename: filename || null
+      });
+
+      // 从文件路径中提取工件ID（去掉扩展名）
+      const artifactId = filePath.replace(/\.[^.]+$/, '');
+
+      return {
+        ok: true,
+        artifactId,
+        filename: filePath,
+        resourceUrl,
+        format
+      };
+    } catch (err) {
+      const message = err?.message ?? String(err);
+      return { error: "save_resource_failed", resourceUrl, message };
     }
   }
 
