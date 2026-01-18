@@ -160,27 +160,24 @@ bun run demo/dev_team.js -w ./my_project -r "创建一个计算器程序"
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      AgentSociety                           │
+│                  (core/agent_society.js)                    │
 │  (用户入口：提交需求、发送消息、接收回传)                      │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        Runtime                              │
+│                    (core/runtime.js)                        │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │MessageBus│ │OrgPrimi-│ │Artifact │ │PromptLo-│           │
-│  │(消息通道)│ │tives    │ │Store    │ │ader     │           │
-│  │         │ │(组织原语)│ │(工件存储)│ │(提示词) │           │
+│  │MessageBus│ │OrgPrimi-│ │Services │ │Runtime  │           │
+│  │(消息通道)│ │tives    │ │(服务模块)│ │(子模块) │           │
+│  │         │ │(组织原语)│ │         │ │         │           │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │LlmServi-│ │Workspace│ │Command  │ │HttpClien│           │
-│  │ceRegisty│ │Manager  │ │Executor │ │t        │           │
-│  │(多模型)  │ │(工作空间)│ │(命令执行)│ │(HTTP)   │           │
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │Module   │ │Contact  │ │Converse-│ │Concurre-│           │
-│  │Loader   │ │Manager  │ │tionMgr  │ │ncyCtrl  │           │
-│  │(模块化)  │ │(联系人)  │ │(会话)    │ │(并发)    │           │
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐                       │
+│  │Utils    │ │Extensio-│ │Prompt   │                       │
+│  │(工具模块)│ │ns       │ │Loader   │                       │
+│  │         │ │(扩展)    │ │(提示词) │                       │
+│  └─────────┘ └─────────┘ └─────────┘                       │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -192,6 +189,16 @@ bun run demo/dev_team.js -w ./my_project -r "创建一个计算器程序"
 │  └─────────┘    └─────────┘    └─────────┘                 │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### 模块组织
+
+系统采用模块化架构，按功能域清晰组织：
+
+- **核心模块 (core/)**: 系统基础（AgentSociety、Runtime、MessageBus、OrgPrimitives）
+- **服务模块 (services/)**: 独立功能服务（工件、LLM、会话、工作空间、HTTP、联系人）
+- **Runtime子模块 (runtime/)**: Runtime职责拆分（状态、事件、生命周期、消息、工具、LLM）
+- **工具模块 (utils/)**: 辅助功能（消息、内容、配置、日志）
+- **扩展模块 (extensions/)**: 可插拔扩展（模块加载器、工具组管理器）
 
 ### 核心概念
 
@@ -265,13 +272,64 @@ agent-society/
 │   ├── agents/            # 智能体定义
 │   │   └── agent.js
 │   └── platform/          # 平台核心组件
-│       ├── agent_society.js    # 用户入口
-│       ├── runtime.js          # 运行时
-│       ├── message_bus.js      # 消息总线
-│       ├── org_primitives.js   # 组织原语
-│       ├── llm_service_registry.js # 多模型注册表
-│       ├── module_loader.js    # 模块加载器
-│       └── ...
+│       ├── core/          # 核心模块
+│       │   ├── agent_society.js    # 系统入口
+│       │   ├── runtime.js          # 运行时核心
+│       │   ├── message_bus.js      # 消息总线
+│       │   └── org_primitives.js   # 组织原语
+│       ├── services/      # 服务模块
+│       │   ├── artifact/  # 工件服务
+│       │   │   ├── artifact_store.js
+│       │   │   ├── binary_detector.js
+│       │   │   └── content_router.js
+│       │   ├── llm/       # LLM服务
+│       │   │   ├── llm_client.js
+│       │   │   ├── llm_service_registry.js
+│       │   │   ├── model_selector.js
+│       │   │   └── concurrency_controller.js
+│       │   ├── conversation/  # 会话服务
+│       │   │   └── conversation_manager.js
+│       │   ├── workspace/ # 工作空间服务
+│       │   │   ├── workspace_manager.js
+│       │   │   └── command_executor.js
+│       │   ├── http/      # HTTP服务
+│       │   │   ├── http_server.js
+│       │   │   └── http_client.js
+│       │   └── contact/   # 联系人服务
+│       │       └── contact_manager.js
+│       ├── runtime/       # Runtime子模块
+│       │   ├── runtime_state.js      # 状态管理
+│       │   ├── runtime_events.js     # 事件系统
+│       │   ├── runtime_lifecycle.js  # 智能体生命周期
+│       │   ├── runtime_messaging.js  # 消息处理循环
+│       │   ├── runtime_tools.js      # 工具管理
+│       │   ├── runtime_llm.js        # LLM交互
+│       │   ├── agent_manager.js      # 智能体管理器
+│       │   ├── message_processor.js  # 消息处理器
+│       │   ├── tool_executor.js      # 工具执行器
+│       │   ├── llm_handler.js        # LLM处理器
+│       │   ├── context_builder.js    # 上下文构建器
+│       │   ├── javascript_executor.js # JS执行器
+│       │   ├── browser_javascript_executor.js # 浏览器JS执行器
+│       │   └── shutdown_manager.js   # 关闭管理器
+│       ├── utils/         # 工具模块
+│       │   ├── message/   # 消息工具
+│       │   │   ├── message_formatter.js
+│       │   │   ├── message_validator.js
+│       │   │   └── task_brief.js
+│       │   ├── content/   # 内容工具
+│       │   │   ├── content_adapter.js
+│       │   │   └── capability_router.js
+│       │   ├── config/    # 配置工具
+│       │   │   ├── config_loader.js
+│       │   │   └── config_service.js
+│       │   └── logger/    # 日志工具
+│       │       └── logger.js
+│       ├── extensions/    # 扩展模块
+│       │   ├── module_loader.js
+│       │   └── tool_group_manager.js
+│       ├── prompt_loader.js  # 提示词加载器
+│       └── index.js       # 统一导出
 ├── modules/               # 可插拔模块
 ├── demo/                  # 示例程序
 ├── test/                  # 测试文件
@@ -279,11 +337,67 @@ agent-society/
 └── data/                  # 运行时数据
 ```
 
+### 目录说明
+
+- **core/**: 系统核心模块，包含系统入口、运行时、消息总线和组织原语
+- **services/**: 独立的服务模块，按功能域组织（工件、LLM、会话、工作空间、HTTP、联系人）
+- **runtime/**: Runtime的子模块，将Runtime的职责拆分为多个独立模块
+- **utils/**: 工具模块，提供辅助功能（消息、内容、配置、日志）
+- **extensions/**: 扩展模块，提供可插拔的功能扩展
+
 ## 运行测试
 
 ```bash
 bun test
 ```
+
+## 开发指南
+
+### 代码组织
+
+项目采用模块化架构，遵循以下原则：
+
+- **单一职责**：每个模块只负责一项功能
+- **高内聚低耦合**：相关功能集中，模块间依赖最小化
+- **代码行数限制**：每个文件不超过500行（不含注释）
+- **清晰的目录结构**：按功能域组织，目录层级不超过3层
+
+### 导入路径
+
+推荐使用新的模块化导入路径：
+
+```javascript
+// 核心模块
+import { AgentSociety } from './src/platform/core/agent_society.js';
+import { Runtime } from './src/platform/core/runtime.js';
+
+// 服务模块
+import { ArtifactStore } from './src/platform/services/artifact/artifact_store.js';
+import { LlmClient } from './src/platform/services/llm/llm_client.js';
+
+// 或使用统一导出
+import { AgentSociety, Runtime, ArtifactStore, LlmClient } from './src/platform/index.js';
+```
+
+旧的导入路径仍然可用（通过兼容性导出），但建议更新为新路径。
+
+### 添加新功能
+
+1. **确定模块位置**：根据功能类型选择合适的目录（core/services/runtime/utils/extensions）
+2. **遵循命名规范**：使用清晰的文件名和函数名
+3. **编写测试**：为新功能编写单元测试和集成测试
+4. **更新文档**：在相应的目录说明文档中添加说明
+
+### 代码重构
+
+系统经历了全面的代码重构，主要变更包括：
+
+- 目录结构优化：按功能域组织模块
+- Runtime类拆分：将职责分散到多个子模块
+- 模块合并：消除职责重叠
+- 服务模块化：按功能域组织服务
+
+详细的重构说明请参阅 [架构设计文档](./docs/architecture.md#代码重构说明)。
 
 ## 贡献
 

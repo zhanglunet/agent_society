@@ -43,6 +43,16 @@ Agent Society 遵循"最小化系统"原则：
 - 一任务对象绑定一个智能体实例
 - 结构化的任务委托书 (Task Brief) 明确输入输出边界
 
+### 模块化与可维护性
+
+系统采用模块化架构设计，遵循以下原则：
+
+- **单一职责**：每个模块只负责一项功能
+- **高内聚低耦合**：相关功能集中，模块间依赖最小化
+- **代码行数限制**：每个文件不超过500行（不含注释）
+- **清晰的目录结构**：按功能域组织，目录层级不超过3层
+- **向后兼容**：提供兼容性导出，保持API接口稳定
+
 ## 系统架构
 
 ```
@@ -54,6 +64,7 @@ Agent Society 遵循"最小化系统"原则：
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        AgentSociety                             │
+│                      (core/agent_society.js)                    │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ • submitRequirement()  - 提交需求                        │   │
 │  │ • sendTextToAgent()    - 发送消息                        │   │
@@ -62,6 +73,7 @@ Agent Society 遵循"最小化系统"原则：
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌────────────────────── HTTPServer ───────────────────────┐   │
+│  │              (services/http/http_server.js)             │   │
 │  │ • /api/agents, /api/messages, /api/modules              │   │
 │  │ • Static File Serving (Web UI, Artifacts)               │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -70,22 +82,49 @@ Agent Society 遵循"最小化系统"原则：
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                          Runtime                                │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
-│  │  MessageBus   │  │ OrgPrimitives │  │ ArtifactStore │       │
-│  │  (消息总线)    │  │  (组织原语)    │  │  (工件存储)   │       │
-│  └───────────────┘  └───────────────┘  └───────────────┘       │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
-│  │  PromptLoader │  │ LlmSvcRegistry│  │  HttpClient   │       │
-│  │  (提示词加载)  │  │ (多模型注册)   │  │  (HTTP 客户端) │       │
-│  └───────────────┘  └───────────────┘  └───────────────┘       │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
-│  │WorkspaceManager│ │CommandExecutor│  │ContactManager │       │
-│  │  (工作空间)    │  │  (命令执行)   │  │  (联系人管理)  │       │
-│  └───────────────┘  └───────────────┘  └───────────────┘       │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
-│  │ ModuleLoader  │  │ConversetionMgr│  │ConcurrencyCtrl│       │
-│  │  (模块加载)    │  │ (会话管理)    │  │  (并发控制)   │       │
-│  └───────────────┘  └───────────────┘  └───────────────┘       │
+│                      (core/runtime.js)                          │
+│                                                                 │
+│  ┌──────────────── 核心模块 (core/) ─────────────────┐         │
+│  │  MessageBus   │ OrgPrimitives │                   │         │
+│  │  (消息总线)    │  (组织原语)    │                   │         │
+│  └───────────────────────────────────────────────────┘         │
+│                                                                 │
+│  ┌──────────────── 服务模块 (services/) ─────────────┐         │
+│  │ • artifact/     - 工件存储、二进制检测、内容路由   │         │
+│  │ • llm/          - LLM客户端、服务注册、模型选择    │         │
+│  │ • conversation/ - 会话管理、上下文压缩            │         │
+│  │ • workspace/    - 工作空间、命令执行              │         │
+│  │ • http/         - HTTP服务器、HTTP客户端          │         │
+│  │ • contact/      - 联系人管理                      │         │
+│  └───────────────────────────────────────────────────┘         │
+│                                                                 │
+│  ┌──────────────── Runtime子模块 (runtime/) ─────────┐         │
+│  │ • runtime_state.js      - 状态管理                │         │
+│  │ • runtime_events.js     - 事件系统                │         │
+│  │ • runtime_lifecycle.js  - 智能体生命周期          │         │
+│  │ • runtime_messaging.js  - 消息处理循环            │         │
+│  │ • runtime_tools.js      - 工具管理                │         │
+│  │ • runtime_llm.js        - LLM交互                 │         │
+│  │ • agent_manager.js      - 智能体管理器            │         │
+│  │ • message_processor.js  - 消息处理器              │         │
+│  │ • tool_executor.js      - 工具执行器              │         │
+│  │ • llm_handler.js        - LLM处理器               │         │
+│  │ • context_builder.js    - 上下文构建器            │         │
+│  │ • javascript_executor.js - JS执行器               │         │
+│  │ • shutdown_manager.js   - 关闭管理器              │         │
+│  └───────────────────────────────────────────────────┘         │
+│                                                                 │
+│  ┌──────────────── 工具模块 (utils/) ────────────────┐         │
+│  │ • message/  - 消息格式化、验证、任务委托书         │         │
+│  │ • content/  - 内容适配、能力路由                  │         │
+│  │ • config/   - 配置加载、配置服务                  │         │
+│  │ • logger/   - 日志系统                            │         │
+│  └───────────────────────────────────────────────────┘         │
+│                                                                 │
+│  ┌──────────────── 扩展模块 (extensions/) ───────────┐         │
+│  │ • module_loader.js      - 模块加载器              │         │
+│  │ • tool_group_manager.js - 工具组管理器            │         │
+│  └───────────────────────────────────────────────────┘         │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -110,9 +149,86 @@ Agent Society 遵循"最小化系统"原则：
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 模块依赖关系图
+
+```
+src/platform/
+│
+├── core/                          # 核心模块（系统基础）
+│   ├── agent_society.js           # 系统入口
+│   │   └─→ runtime.js
+│   ├── runtime.js                 # 运行时核心（协调器）
+│   │   ├─→ message_bus.js
+│   │   ├─→ org_primitives.js
+│   │   ├─→ services/*
+│   │   ├─→ runtime/*
+│   │   ├─→ utils/*
+│   │   └─→ extensions/*
+│   ├── message_bus.js             # 消息总线
+│   └── org_primitives.js          # 组织原语
+│
+├── services/                      # 服务模块（独立功能）
+│   ├── artifact/
+│   │   ├── artifact_store.js      # 工件存储
+│   │   ├── binary_detector.js     # 二进制检测
+│   │   └── content_router.js      # 内容路由
+│   ├── llm/
+│   │   ├── llm_client.js          # LLM客户端
+│   │   ├── llm_service_registry.js # 服务注册表
+│   │   ├── model_selector.js      # 模型选择器
+│   │   └── concurrency_controller.js # 并发控制
+│   ├── conversation/
+│   │   └── conversation_manager.js # 会话管理
+│   ├── workspace/
+│   │   ├── workspace_manager.js   # 工作空间管理
+│   │   └── command_executor.js    # 命令执行
+│   ├── http/
+│   │   ├── http_server.js         # HTTP服务器
+│   │   └── http_client.js         # HTTP客户端
+│   └── contact/
+│       └── contact_manager.js     # 联系人管理
+│
+├── runtime/                       # Runtime子模块
+│   ├── runtime_state.js           # 状态管理
+│   ├── runtime_events.js          # 事件系统
+│   ├── runtime_lifecycle.js       # 智能体生命周期
+│   ├── runtime_messaging.js       # 消息处理循环
+│   ├── runtime_tools.js           # 工具管理
+│   ├── runtime_llm.js             # LLM交互
+│   ├── agent_manager.js           # 智能体管理器
+│   ├── message_processor.js       # 消息处理器
+│   ├── tool_executor.js           # 工具执行器
+│   ├── llm_handler.js             # LLM处理器
+│   ├── context_builder.js         # 上下文构建器
+│   ├── javascript_executor.js     # JS执行器
+│   ├── browser_javascript_executor.js # 浏览器JS执行器
+│   └── shutdown_manager.js        # 关闭管理器
+│
+├── utils/                         # 工具模块（辅助功能）
+│   ├── message/
+│   │   ├── message_formatter.js   # 消息格式化
+│   │   ├── message_validator.js   # 消息验证
+│   │   └── task_brief.js          # 任务委托书
+│   ├── content/
+│   │   ├── content_adapter.js     # 内容适配
+│   │   └── capability_router.js   # 能力路由
+│   ├── config/
+│   │   ├── config_loader.js       # 配置加载
+│   │   └── config_service.js      # 配置服务
+│   └── logger/
+│       └── logger.js              # 日志系统
+│
+├── extensions/                    # 扩展模块（可插拔）
+│   ├── module_loader.js           # 模块加载器
+│   └── tool_group_manager.js      # 工具组管理器
+│
+├── prompt_loader.js               # 提示词加载器
+└── index.js                       # 统一导出
+```
+
 ## 核心组件
 
-### AgentSociety
+### AgentSociety (core/agent_society.js)
 
 用户入口类，隐藏运行时与根智能体的构建细节，同时集成了 HTTP 服务器。
 
@@ -122,17 +238,33 @@ Agent Society 遵循"最小化系统"原则：
 - 启动/停止 HTTP 服务器
 - 管理用户端点智能体与根智能体
 
-### Runtime
+### Runtime (core/runtime.js)
 
-运行时核心，连接平台能力与智能体行为，是整个系统的中枢。
+运行时核心，连接平台能力与智能体行为，是整个系统的中枢。经过重构后，Runtime 作为核心协调器，将职责分散到多个子模块中。
 
 **职责：**
-- 管理智能体实例注册与恢复
-- 执行主消息循环（生产者-消费者模式）
-- 提供工具调用接口
-- 协调各子模块工作
+- 初始化和配置管理
+- 协调各个服务模块
+- 组合和管理 Runtime 子模块
+- 提供统一的公共接口
 
-### MessageBus
+**子模块：**
+- **runtime_state.js**: 状态管理（智能体注册表、运算状态、插话队列、对话历史等）
+- **runtime_events.js**: 事件系统（工具调用、错误、LLM重试、运算状态变更事件）
+- **runtime_lifecycle.js**: 智能体生命周期管理（创建、恢复、注册、查询、中断）
+- **runtime_messaging.js**: 消息处理循环（消息调度、处理、插话处理、并发控制）
+- **runtime_tools.js**: 工具管理（工具定义、执行、工具组管理、权限检查）
+- **runtime_llm.js**: LLM交互（LLM调用、上下文构建、错误处理）
+- **agent_manager.js**: 智能体管理器
+- **message_processor.js**: 消息处理器
+- **tool_executor.js**: 工具执行器
+- **llm_handler.js**: LLM处理器
+- **context_builder.js**: 上下文构建器
+- **javascript_executor.js**: JavaScript执行器
+- **browser_javascript_executor.js**: 浏览器JavaScript执行器
+- **shutdown_manager.js**: 优雅关闭管理器
+
+### MessageBus (core/message_bus.js)
 
 异步消息总线，实现智能体间通信。
 
@@ -141,7 +273,7 @@ Agent Society 遵循"最小化系统"原则：
 - 支持消息排队与投递
 - 提供 `waitForMessage` 和 `receiveNext` 接口
 
-### OrgPrimitives
+### OrgPrimitives (core/org_primitives.js)
 
 组织构建原语，管理岗位与智能体实例的元数据。
 
@@ -151,7 +283,63 @@ Agent Society 遵循"最小化系统"原则：
 - 维护父子链关系与层级结构
 - 持久化组织状态
 
-### LlmServiceRegistry & ModelSelector
+### 服务模块 (services/)
+
+服务模块提供独立的功能服务，按功能域组织：
+
+#### 工件服务 (services/artifact/)
+- **artifact_store.js**: 工件存储和检索
+- **binary_detector.js**: 二进制文件检测
+- **content_router.js**: 内容路由（合并了原 artifact_content_router 和 capability_router）
+
+#### LLM服务 (services/llm/)
+- **llm_client.js**: LLM客户端，与LLM服务通信
+- **llm_service_registry.js**: LLM服务注册表，管理多个LLM服务配置
+- **model_selector.js**: 模型选择器，基于岗位提示词自动选择最匹配的LLM服务
+- **concurrency_controller.js**: 并发控制器，保护LLM服务不被过载
+
+#### 会话服务 (services/conversation/)
+- **conversation_manager.js**: 会话管理器，负责LLM对话历史的维护与优化
+
+#### 工作空间服务 (services/workspace/)
+- **workspace_manager.js**: 工作空间管理器，管理任务绑定的文件系统工作空间
+- **command_executor.js**: 命令执行器，在工作空间内安全执行Shell命令
+
+#### HTTP服务 (services/http/)
+- **http_server.js**: HTTP服务器
+- **http_client.js**: HTTP客户端
+
+#### 联系人服务 (services/contact/)
+- **contact_manager.js**: 联系人管理器，维护智能体之间的协作关系网
+
+### 工具模块 (utils/)
+
+工具模块提供辅助功能，可以被多个模块复用：
+
+#### 消息工具 (utils/message/)
+- **message_formatter.js**: 消息格式化
+- **message_validator.js**: 消息验证
+- **task_brief.js**: 任务委托书处理
+
+#### 内容工具 (utils/content/)
+- **content_adapter.js**: 内容适配
+- **capability_router.js**: 能力路由（从 content_router 中提取的通用部分）
+
+#### 配置工具 (utils/config/)
+- **config_loader.js**: 配置加载（原 config.js）
+- **config_service.js**: 配置服务
+
+#### 日志工具 (utils/logger/)
+- **logger.js**: 日志系统
+
+### 扩展模块 (extensions/)
+
+扩展模块提供可插拔的功能扩展：
+
+- **module_loader.js**: 模块加载器，负责加载外部扩展模块
+- **tool_group_manager.js**: 工具组管理器
+
+### LlmServiceRegistry & ModelSelector (services/llm/)
 
 多模型支持系统的核心。
 
@@ -163,7 +351,7 @@ Agent Society 遵循"最小化系统"原则：
 - 基于岗位提示词（Role Prompt）自动分析岗位所需能力
 - 智能选择最匹配的 LLM 服务/模型
 
-### ModuleLoader
+### ModuleLoader (extensions/module_loader.js)
 
 模块化系统的核心，负责加载外部扩展模块。
 
@@ -173,7 +361,7 @@ Agent Society 遵循"最小化系统"原则：
 - 注册模块提供的 Web 组件
 - 注册模块提供的 HTTP 路由
 
-### ContactManager
+### ContactManager (services/contact/contact_manager.js)
 
 联系人管理器，维护智能体之间的协作关系网。
 
@@ -183,7 +371,7 @@ Agent Society 遵循"最小化系统"原则：
 - 记录任务委托书中的协作者（Task Brief Collaborators）
 - 为智能体构建动态的"通讯录"，注入到系统提示词中
 
-### ConversationManager
+### ConversationManager (services/conversation/conversation_manager.js)
 
 会话与上下文管理器，负责 LLM 对话历史的维护与优化。
 
@@ -193,7 +381,7 @@ Agent Society 遵循"最小化系统"原则：
 - 执行上下文压缩 (Compression) 与摘要
 - 持久化对话记录
 
-### ConcurrencyController
+### ConcurrencyController (services/llm/concurrency_controller.js)
 
 并发控制器，保护 LLM 服务不被过载。
 
@@ -201,7 +389,7 @@ Agent Society 遵循"最小化系统"原则：
 - 限制全局或服务级的最大并发请求数
 - 协调消息处理循环的调度
 
-### WorkspaceManager & CommandExecutor
+### WorkspaceManager & CommandExecutor (services/workspace/)
 
 任务执行环境管理。
 
@@ -371,3 +559,100 @@ Agent Society 支持通过模块 (Modules) 扩展系统能力。
    - **手动指定**: 创建岗位时指定 `llmServiceId`
    - **自动选择**: `ModelSelector` 根据岗位提示词分析所需的 `capabilityTags` (如 `coding`, `reasoning`, `creative`)，自动匹配最佳服务
 3. **调用**: 运行时根据智能体绑定的服务 ID，从池中获取对应的 `LlmClient` 执行调用
+
+
+## 代码重构说明
+
+### 重构目标
+
+Agent Society 经历了一次全面的代码重构，目标是优化代码组织结构，提高可维护性和可扩展性，同时保持所有现有功能不变。
+
+### 重构原则
+
+1. **功能保持不变**：重构不改变任何功能，只改变代码组织方式
+2. **向后兼容**：保持对外 API 接口不变，提供兼容性导出
+3. **渐进式重构**：分阶段执行，每个阶段都能保持系统可运行
+4. **测试覆盖**：重构前后测试必须通过
+5. **遵循项目规范**：按照架构原则和编码规范
+
+### 主要变更
+
+#### 1. 目录结构优化
+
+将原来平铺在 `src/platform/` 目录下的27个文件重新组织为清晰的层次结构：
+
+- **core/**: 核心模块（agent_society, runtime, message_bus, org_primitives）
+- **services/**: 服务模块（artifact, llm, conversation, workspace, http, contact）
+- **runtime/**: Runtime子模块（状态管理、事件系统、生命周期等）
+- **utils/**: 工具模块（message, content, config, logger）
+- **extensions/**: 扩展模块（module_loader, tool_group_manager）
+
+#### 2. Runtime类拆分
+
+将原来庞大的 Runtime 类拆分为多个职责明确的子模块：
+
+- **runtime_state.js**: 状态管理（智能体注册表、运算状态、插话队列等）
+- **runtime_events.js**: 事件系统（工具调用、错误、LLM重试等事件）
+- **runtime_lifecycle.js**: 智能体生命周期管理
+- **runtime_messaging.js**: 消息处理循环
+- **runtime_tools.js**: 工具管理
+- **runtime_llm.js**: LLM交互
+
+Runtime 主类保留为核心协调器，负责初始化、配置管理和组合各个子模块。
+
+#### 3. 模块合并
+
+合并了职责重叠的模块：
+
+- **配置模块**: config.js 重命名为 config_loader.js，与 config_service.js 共同组成配置工具
+- **内容路由**: artifact_content_router 和 capability_router 合并为 content_router.js
+- **消息工具**: message_formatter、message_validator、task_brief 统一管理
+
+#### 4. 服务模块化
+
+将相关服务按功能域组织：
+
+- **工件服务**: artifact_store, binary_detector, content_router
+- **LLM服务**: llm_client, llm_service_registry, model_selector, concurrency_controller
+- **会话服务**: conversation_manager
+- **工作空间服务**: workspace_manager, command_executor
+- **HTTP服务**: http_server, http_client
+- **联系人服务**: contact_manager
+
+#### 5. 兼容性保证
+
+所有路径变更都提供了兼容性导出，确保：
+
+- 旧的导入路径仍然可用
+- 函数名称变更提供别名导出
+- API接口保持不变
+- 系统行为与重构前完全一致
+
+### 重构成果
+
+- ✅ 代码结构清晰，易于理解和维护
+- ✅ 模块职责明确，高内聚低耦合
+- ✅ 目录组织合理，便于快速定位
+- ✅ 每个文件代码行数不超过500行
+- ✅ 无循环依赖
+- ✅ 测试覆盖完整，所有测试通过
+- ✅ 向后兼容，不影响现有代码使用者
+
+### 迁移指南
+
+如果您的代码使用了旧的导入路径，建议更新为新路径：
+
+```javascript
+// 旧路径（仍然可用，但建议更新）
+import { Runtime } from './src/platform/runtime.js';
+import { ArtifactStore } from './src/platform/artifact_store.js';
+
+// 新路径（推荐）
+import { Runtime } from './src/platform/core/runtime.js';
+import { ArtifactStore } from './src/platform/services/artifact/artifact_store.js';
+
+// 或使用统一导出
+import { Runtime, ArtifactStore } from './src/platform/index.js';
+```
+
+详细的迁移指南请参阅 [重构迁移指南](./refactoring-migration-guide.md)（待创建）。
