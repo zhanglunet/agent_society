@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI修复测试 - Chrome管理面板</title>
+  <link rel="stylesheet" href="panel.css">
+  <style>
+    body {
+      padding: 20px;
+      background: #fafafa;
+    }
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .test-description {
+      color: #666;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-left: 4px solid #2196F3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chrome管理面板UI修复测试</h1>
+  
+  <div class="test-section">
+    <h2>测试1：多个标签页垂直显示</h2>
+    <div class="test-description">
+      预期效果：显示10个标签页，列表高度限制在400px，出现垂直滚动条
+    </div>
+    <div class="chrome-module-panel">
+      <div class="section">
+        <h4>标签页列表</h4>
+        <div class="tab-list">
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 1">📄 标签页 1</div>
+              <div class="tab-url" title="https://example.com/page1">https://example.com/page1</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 2">📄 标签页 2</div>
+              <div class="tab-url" title="https://example.com/page2">https://example.com/page2</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 3">📄 标签页 3</div>
+              <div class="tab-url" title="https://example.com/page3">https://example.com/page3</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 4">📄 标签页 4</div>
+              <div class="tab-url" title="https://example.com/page4">https://example.com/page4</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 5">📄 标签页 5</div>
+              <div class="tab-url" title="https://example.com/page5">https://example.com/page5</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 6">📄 标签页 6</div>
+              <div class="tab-url" title="https://example.com/page6">https://example.com/page6</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 7">📄 标签页 7</div>
+              <div class="tab-url" title="https://example.com/page7">https://example.com/page7</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 8">📄 标签页 8</div>
+              <div class="tab-url" title="https://example.com/page8">https://example.com/page8</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 9">📄 标签页 9</div>
+              <div class="tab-url" title="https://example.com/page9">https://example.com/page9</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="标签页 10">📄 标签页 10</div>
+              <div class="tab-url" title="https://example.com/page10">https://example.com/page10</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>测试2：长URL文本截断</h2>
+    <div class="test-description">
+      预期效果：长URL显示省略号，不产生横向滚动，鼠标悬停显示完整URL
+    </div>
+    <div class="chrome-module-panel">
+      <div class="section">
+        <h4>标签页列表</h4>
+        <div class="tab-list">
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="这是一个非常非常非常非常非常非常非常非常非常非常长的标题">📄 这是一个非常非常非常非常非常非常非常非常非常非常长的标题</div>
+              <div class="tab-url" title="https://example.com/very/long/path/with/many/segments/and/query/parameters?param1=value1&param2=value2&param3=value3&param4=value4&param5=value5">https://example.com/very/long/path/with/many/segments/and/query/parameters?param1=value1&param2=value2&param3=value3&param4=value4&param5=value5</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="tab-item">
+            <div class="tab-info">
+              <div class="tab-title" title="Another very long title that should be truncated with ellipsis">📄 Another very long title that should be truncated with ellipsis</div>
+              <div class="tab-url" title="https://www.example.com/api/v1/users/12345/profile/settings/notifications/email/preferences?filter=all&sort=date&order=desc&page=1&limit=50">https://www.example.com/api/v1/users/12345/profile/settings/notifications/email/preferences?filter=all&sort=date&order=desc&page=1&limit=50</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>测试3：浏览器列表</h2>
+    <div class="test-description">
+      预期效果：浏览器ID显示前8位+省略号，鼠标悬停显示完整ID
+    </div>
+    <div class="chrome-module-panel">
+      <div class="section">
+        <h4>浏览器实例</h4>
+        <div class="browser-list">
+          <div class="browser-item">
+            <div class="browser-info">
+              <div class="browser-id" title="12345678-1234-1234-1234-123456789abc">🌐 12345678...</div>
+              <div class="browser-status running">running</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+          <div class="browser-item">
+            <div class="browser-info">
+              <div class="browser-id" title="87654321-4321-4321-4321-cba987654321">🌐 87654321...</div>
+              <div class="browser-status running">running</div>
+            </div>
+            <button class="close-btn">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>验收标准检查清单</h2>
+    <div class="test-description">
+      <h3>✓ 垂直显示</h3>
+      <ul>
+        <li>所有标签页都可见（通过滚动）</li>
+        <li>列表最大高度为400px</li>
+        <li>出现垂直滚动条</li>
+      </ul>
+      
+      <h3>✓ 文本截断</h3>
+      <ul>
+        <li>长URL显示省略号</li>
+        <li>长标题显示省略号</li>
+        <li>无横向滚动条</li>
+      </ul>
+      
+      <h3>✓ Tooltip</h3>
+      <ul>
+        <li>鼠标悬停在URL上显示完整URL</li>
+        <li>鼠标悬停在标题上显示完整标题</li>
+        <li>鼠标悬停在浏览器ID上显示完整ID</li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,5 +1,30 @@
 # Chrome 模块变更日志
 
+## [2026-01-18] 管理面板标签页列表UI修复
+
+### Fixed
+- 修复标签页列表只能显示一个标签页的问题
+- 修复长URL导致横向滚动的问题
+- 添加文本截断和tooltip显示完整内容
+
+### Changed
+- `modules/chrome/web/panel.css`: 添加滚动和文本截断样式
+  - 为 `.browser-list` 和 `.tab-list` 添加最大高度限制和垂直滚动支持
+  - 为 `.browser-item` 和 `.tab-item` 添加 `min-width: 0` 支持flex收缩
+  - 为 `.browser-info` 和 `.tab-info` 添加溢出隐藏
+  - 为文本元素添加截断样式（`white-space: nowrap`、`overflow: hidden`、`text-overflow: ellipsis`）
+- `modules/chrome/web/panel.js`: 为长文本添加title属性
+  - 在 `renderTabList` 方法中为标题和URL添加 `title` 属性
+  - 在 `renderBrowserList` 方法中为浏览器ID添加 `title` 属性
+
+### Technical Details
+- 列表容器最大高度设置为 400px
+- 超出内容通过垂直滚动查看
+- 长文本显示省略号，鼠标悬停显示完整内容
+- 保持原有交互功能和样式风格不变
+
+---
+
 ## [2026-01-18] chrome_save_resource 批量保存功能
 
 ### 变更内容

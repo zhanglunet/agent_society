@@ -76,21 +76,27 @@ const ModulePanel_Chrome = {
 
   /**
    * 渲染浏览器列表
+   * 为浏览器ID添加title属性，鼠标悬停时显示完整ID
    */
   renderBrowserList(browsers) {
     const container = document.getElementById('browser-list');
-    container.innerHTML = browsers.map(browser => `
-      <div class="browser-item ${browser.id === this.selectedBrowserId ? 'selected' : ''}" 
-           onclick="ModulePanel_Chrome.selectBrowser('${browser.id}')">
-        <div class="browser-info">
-          <div class="browser-id">🌐 ${browser.id.slice(0, 8)}...</div>
-          <div class="browser-status ${browser.status}">${browser.status}</div>
+    container.innerHTML = browsers.map(browser => {
+      const browserId = browser.id.slice(0, 8) + '...';
+      const fullId = browser.id;
+      
+      return `
+        <div class="browser-item ${browser.id === this.selectedBrowserId ? 'selected' : ''}" 
+             onclick="ModulePanel_Chrome.selectBrowser('${browser.id}')">
+          <div class="browser-info">
+            <div class="browser-id" title="${fullId}">🌐 ${browserId}</div>
+            <div class="browser-status ${browser.status}">${browser.status}</div>
+          </div>
+          <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeBrowser('${browser.id}')">
+            关闭
+          </button>
         </div>
-        <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeBrowser('${browser.id}')">
-          关闭
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   },
 
   /**
@@ -166,6 +172,7 @@ const ModulePanel_Chrome = {
 
   /**
    * 渲染标签页列表
+   * 为长文本添加title属性，鼠标悬停时显示完整内容
    */
   renderTabList(tabs) {
     const container = document.getElementById('tab-list');
@@ -175,18 +182,23 @@ const ModulePanel_Chrome = {
       return;
     }
 
-    container.innerHTML = tabs.map(tab => `
-      <div class="tab-item ${tab.id === this.selectedTabId ? 'selected' : ''}"
-           onclick="ModulePanel_Chrome.selectTab('${tab.id}')">
-        <div class="tab-info">
-          <div class="tab-title">📄 ${this.escapeHtml(tab.title || '无标题')}</div>
-          <div class="tab-url">${this.escapeHtml(tab.url || 'about:blank')}</div>
+    container.innerHTML = tabs.map(tab => {
+      const title = this.escapeHtml(tab.title || '无标题');
+      const url = this.escapeHtml(tab.url || 'about:blank');
+      
+      return `
+        <div class="tab-item ${tab.id === this.selectedTabId ? 'selected' : ''}"
+             onclick="ModulePanel_Chrome.selectTab('${tab.id}')">
+          <div class="tab-info">
+            <div class="tab-title" title="${title}">📄 ${title}</div>
+            <div class="tab-url" title="${url}">${url}</div>
+          </div>
+          <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeTab('${tab.id}')">
+            关闭
+          </button>
         </div>
-        <button class="close-btn" onclick="event.stopPropagation(); ModulePanel_Chrome.closeTab('${tab.id}')">
-          关闭
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   },
 
   /**
