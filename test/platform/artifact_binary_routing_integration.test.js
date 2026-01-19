@@ -44,6 +44,7 @@ describe('Artifact Binary Routing Integration', () => {
     // Store text artifact
     const textContent = 'Hello, this is plain text';
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "纯文本工件",
       type: 'text',
       content: textContent
     });

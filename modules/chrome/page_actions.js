@@ -167,7 +167,13 @@ export class PageActions {
         const messageId = ctx.currentMessage?.id ?? null;
         const agentId = ctx.agent?.id ?? null;
         
+        // 生成截图名称
+        const screenshotName = cleanedSelector 
+          ? `${pageTitle || 'Page'} - ${cleanedSelector} Screenshot`
+          : `${pageTitle || 'Page'} Screenshot`;
+        
         const filePath = await ctx.tools.saveImage(screenshotBuffer, {
+          name: screenshotName,
           format: "jpg",
           messageId,
           agentId,
@@ -805,7 +811,7 @@ export class PageActions {
    * 
    * @param {string} tabId - 标签页ID
    * @param {string|string[]} resourceUrls - 资源URL或URL数组
-   * @param {{ctx?: any, filename?: string, type?: string}} options - 选项
+   * @param {{ctx?: any, resourceNames?: string[], type?: string}} options - 选项
    * @returns {Promise<{ok: boolean, artifactIds?: string[], errors?: Array, error?: string}>}
    */
   async saveResource(tabId, resourceUrls, options = {}) {
@@ -813,7 +819,7 @@ export class PageActions {
     if ("error" in result) return result;
     
     const { page } = result;
-    const { ctx, filename, type = 'image' } = options;
+    const { ctx, resourceNames, type = 'image' } = options;
 
     // 检查是否有上下文和 saveImage 方法
     if (!ctx || !ctx.tools || typeof ctx.tools.saveImage !== 'function') {
@@ -822,9 +828,22 @@ export class PageActions {
 
     // 统一处理为数组
     const urlArray = Array.isArray(resourceUrls) ? resourceUrls : [resourceUrls];
+    const nameArray = Array.isArray(resourceNames) ? resourceNames : (resourceNames ? [resourceNames] : []);
     
     if (urlArray.length === 0) {
       return { error: "empty_urls", message: "资源URL数组不能为空" };
+    }
+
+    // 验证名称数组长度
+    if (nameArray.length > 0 && nameArray.length !== urlArray.length) {
+      return { error: "names_length_mismatch", message: `资源名称数组长度(${nameArray.length})必须与URL数组长度(${urlArray.length})相同` };
+    }
+
+    // 验证所有名称都不为空
+    for (let i = 0; i < nameArray.length; i++) {
+      if (!nameArray[i] || typeof nameArray[i] !== 'string' || nameArray[i].trim() === '') {
+        return { error: "invalid_resource_name", message: `资源名称[${i}]不能为空` };
+      }
     }
 
     this.log.info?.("保存页面资源", { tabId, count: urlArray.length, type });
@@ -843,6 +862,7 @@ export class PageActions {
     // 逐个处理资源
     for (let i = 0; i < urlArray.length; i++) {
       const resourceUrl = urlArray[i];
+      const resourceName = nameArray[i]; // 使用提供的名称
       
       try {
         // 获取资源内容
@@ -908,19 +928,16 @@ export class PageActions {
           format = 'webp';
         }
 
-        // 保存到工件
-        // 只有在保存单个资源时才使用自定义文件名
-        const useFilename = urlArray.length === 1 ? filename : null;
-        
+        // 保存到工件，使用提供的名称
         const filePath = await ctx.tools.saveImage(buffer, {
+          name: resourceName,
           format,
           messageId,
           agentId,
           tabId,
           url: pageUrl,
           title: pageTitle,
-          resourceUrl,
-          originalFilename: useFilename
+          resourceUrl
         });
 
         // 从文件路径中提取工件ID（去掉扩展名）
@@ -930,10 +947,11 @@ export class PageActions {
 
       } catch (err) {
         const message = err?.message ?? String(err);
-        this.log.error?.("保存资源失败", { index: i, resourceUrl, error: message });
+        this.log.error?.("保存资源失败", { index: i, resourceUrl, resourceName, error: message });
         errors.push({ 
           index: i, 
           resourceUrl, 
+          resourceName,
           error: "save_resource_failed", 
           message 
         });

@@ -178,9 +178,10 @@ export class ToolExecutor {
             properties: {
               type: { type: "string" },
               content: {},
+              name: { type: "string", description: "工件名称，用于在工件管理器中显示" },
               meta: { type: "object" }
             },
-            required: ["type", "content"]
+            required: ["type", "content", "name"]
           }
         }
       },
@@ -692,9 +693,16 @@ export class ToolExecutor {
 
   async _executePutArtifact(ctx, args) {
     const messageId = ctx.currentMessage?.id ?? null;
+    
+    // 验证必需参数
+    if (!args.name || typeof args.name !== 'string' || args.name.trim() === '') {
+      throw new Error('工件名称是必需参数，且不能为空');
+    }
+    
     const ref = await ctx.tools.putArtifact({ 
       type: args.type, 
       content: args.content, 
+      name: args.name,
       meta: args.meta, 
       messageId 
     });

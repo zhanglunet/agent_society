@@ -338,6 +338,7 @@ describe("集成测试 - 工件存储和检索流程", () => {
 
     // 存储工件
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "测试文本工件",
       type: "text",
       content: textContent,
       meta: { description: "Test artifact" }
@@ -368,6 +369,7 @@ describe("集成测试 - 工件存储和检索流程", () => {
 
     // 存储工件
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "测试JSON工件",
       type: "json",
       content: jsonContent
     });
@@ -556,6 +558,7 @@ describe("集成测试 - 完整业务流程", () => {
 
     // 直接测试 artifact store 的 putArtifact 方法
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "测试工件",
       type: "text",
       content: "Test artifact content"
     });

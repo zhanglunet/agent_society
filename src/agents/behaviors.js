@@ -63,6 +63,7 @@ export function createWriterBehavior() {
       "演示链路：User → Root → Coordinator → Writer → Artifact → Coordinator → Root。\n\n" +
       `【原始任务】\n${String(message.payload?.text ?? "")}\n`;
     const ref = await ctx.tools.putArtifact({
+      name: "任务执行总结",
       type: "text",
       content: summary,
       meta: { producer: ctx.agent.id, role: ctx.agent.roleName }

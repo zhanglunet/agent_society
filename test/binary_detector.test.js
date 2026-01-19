@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import fc from "fast-check";
-import { BinaryDetector } from "../src/platform/binary_detector.js";
+import { BinaryDetector } from "../src/platform/services/artifact/binary_detector.js";
 
 describe("BinaryDetector", () => {
   let detector;
@@ -1300,7 +1300,7 @@ describe("BinaryDetector Performance and Integration Tests", () => {
    * Validates: Requirements 4.1, 4.2, 4.3
    */
   describe("Integration Tests with ArtifactStore (Task 11.2)", () => {
-    const { ArtifactStore } = require("../src/platform/artifact_store.js");
+    const { ArtifactStore } = require("../src/platform/services/artifact/artifact_store.js");
     const fs = require("fs/promises");
     const path = require("path");
     const os = require("os");
@@ -1328,6 +1328,7 @@ describe("BinaryDetector Performance and Integration Tests", () => {
       // Store a JSON artifact
       const jsonContent = { name: "test", value: 123 };
       const ref = await artifactStore.putArtifact({
+        name: "测试JSON工件",
         type: "json",
         content: jsonContent,
         messageId: "test-msg-1"
@@ -1349,6 +1350,7 @@ describe("BinaryDetector Performance and Integration Tests", () => {
 
       for (const testCase of testCases) {
         const ref = await artifactStore.putArtifact({
+          name: `测试${testCase.type}工件`,
           type: testCase.type,
           content: testCase.content,
           messageId: `test-${testCase.type}`
@@ -1364,6 +1366,7 @@ describe("BinaryDetector Performance and Integration Tests", () => {
     test("should maintain backward compatibility with existing artifact references", async () => {
       // Store an artifact
       const ref = await artifactStore.putArtifact({
+        name: "兼容性测试工件",
         type: "test",
         content: { data: "test data" },
         messageId: "compat-test"
@@ -1416,6 +1419,7 @@ describe("BinaryDetector Performance and Integration Tests", () => {
       const imageBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
       
       const filename = await artifactStore.saveImage(imageBuffer, {
+        name: "测试PNG图片",
         format: "png",
         messageId: "img-test"
       });

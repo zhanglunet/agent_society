@@ -879,7 +879,7 @@ class ArtifactManager {
                 ...artifact,
                 type: detail.type || "unknown",
                 content: detail.content,
-                actualFilename: detail.meta?.filename || detail.meta?.name || detail.meta?.title || `${detail.type || "artifact"}_${artifact.id.slice(0, 8)}`,
+                actualFilename: detail.meta?.name || detail.meta?.filename || detail.meta?.title || artifact.filename || `${detail.type || "artifact"}_${artifact.id.slice(0, 8)}`,
                 isWorkspaceFile: false
               };
             }

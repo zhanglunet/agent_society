@@ -1,7 +1,7 @@
 ﻿import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import path from "node:path";
 import { rm } from "node:fs/promises";
-import { ArtifactStore } from "../src/platform/services/artifact/artifact_store.js";
+import { ArtifactStore } from "../../src/platform/services/artifact/artifact_store.js";
 
 describe("ArtifactStore", () => {
   let store;
@@ -19,23 +19,23 @@ describe("ArtifactStore", () => {
 
   describe("基础工件操作", () => {
     test("putArtifact then getArtifact returns stored payload", async () => {
-      const ref = await store.putArtifact({ type: "json", content: { a: 1 }, meta: { x: "y" } });
+      const ref = await store.putArtifact({ name: "测试工件", type: "json", content: { a: 1 }, meta: { x: "y" } });
       const loaded = await store.getArtifact(ref);
 
       expect(loaded.type).toBe("json");
       expect(loaded.content).toEqual({ a: 1 });
-      expect(loaded.meta).toEqual({ x: "y" });
+      expect(loaded.meta).toEqual({ name: "测试工件", x: "y" });
     });
 
     test("putArtifact 返回正确的引用格式", async () => {
-      const ref = await store.putArtifact({ type: "json", content: { test: "data" } });
+      const ref = await store.putArtifact({ name: "测试数据", type: "json", content: { test: "data" } });
       
       expect(ref).toBeDefined();
       expect(ref.startsWith("artifact:")).toBe(true);
     });
 
     test("getArtifact 支持带前缀和不带前缀的引用", async () => {
-      const ref = await store.putArtifact({ type: "json", content: { test: "data" } });
+      const ref = await store.putArtifact({ name: "测试数据", type: "json", content: { test: "data" } });
       const id = ref.slice("artifact:".length);
       
       const loaded1 = await store.getArtifact(ref);
@@ -50,7 +50,7 @@ describe("ArtifactStore", () => {
     });
 
     test("putArtifact 保存字符串内容", async () => {
-      const ref = await store.putArtifact({ type: "text", content: "Hello, World!" });
+      const ref = await store.putArtifact({ name: "Hello World", type: "text", content: "Hello, World!" });
       const loaded = await store.getArtifact(ref);
       
       expect(loaded.content).toBe("Hello, World!");
@@ -59,7 +59,7 @@ describe("ArtifactStore", () => {
 
     test("putArtifact 保存对象内容", async () => {
       const content = { name: "test", value: 123, nested: { key: "value" } };
-      const ref = await store.putArtifact({ type: "json", content });
+      const ref = await store.putArtifact({ name: "测试对象", type: "json", content });
       const loaded = await store.getArtifact(ref);
       
       expect(loaded.content).toEqual(content);
@@ -67,7 +67,7 @@ describe("ArtifactStore", () => {
 
     test("putArtifact 保存数组内容", async () => {
       const content = [1, 2, 3, { a: "b" }];
-      const ref = await store.putArtifact({ type: "json", content });
+      const ref = await store.putArtifact({ name: "测试数组", type: "json", content });
       const loaded = await store.getArtifact(ref);
       
       expect(loaded.content).toEqual(content);
@@ -76,6 +76,7 @@ describe("ArtifactStore", () => {
     test("putArtifact 保存 messageId", async () => {
       const messageId = "msg-123";
       const ref = await store.putArtifact({ 
+        name: "带消息ID的工件",
         type: "json", 
         content: { test: "data" },
         messageId 
@@ -87,6 +88,7 @@ describe("ArtifactStore", () => {
 
     test("getArtifact 返回完整的工件信息", async () => {
       const ref = await store.putArtifact({ 
+        name: "完整信息工件",
         type: "json", 
         content: { test: "data" },
         meta: { author: "test" },
@@ -107,6 +109,7 @@ describe("ArtifactStore", () => {
   describe("元信息管理", () => {
     test("getMetadata 读取工件元信息", async () => {
       const ref = await store.putArtifact({ 
+        name: "元信息测试工件",
         type: "json", 
         content: { test: "data" },
         meta: { custom: "value" }
@@ -132,6 +135,7 @@ describe("ArtifactStore", () => {
     test("saveImage 保存图片文件", async () => {
       const buffer = Buffer.from("fake image data");
       const fileName = await store.saveImage(buffer, { 
+        name: "测试图片",
         format: "png",
         messageId: "msg-123",
         agentId: "agent-1"
@@ -143,7 +147,7 @@ describe("ArtifactStore", () => {
 
     test("saveImage 使用默认格式", async () => {
       const buffer = Buffer.from("fake image data");
-      const fileName = await store.saveImage(buffer);
+      const fileName = await store.saveImage(buffer, { name: "默认格式图片" });
       
       expect(fileName.endsWith(".png")).toBe(true);
     });
@@ -153,7 +157,7 @@ describe("ArtifactStore", () => {
       
       const formats = ["png", "jpg", "jpeg", "gif", "webp"];
       for (const format of formats) {
-        const fileName = await store.saveImage(buffer, { format });
+        const fileName = await store.saveImage(buffer, { name: `${format}格式图片`, format });
         expect(fileName.endsWith(`.${format}`)).toBe(true);
       }
     });

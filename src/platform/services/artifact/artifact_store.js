@@ -80,10 +80,15 @@ export class ArtifactStore {
    * - 对象/数组类型：序列化为标准 JSON 格式保存
    * - Buffer/Blob/ArrayBuffer：保存为二进制文件
    * 
-   * @param {{type:string, content:any, meta?:object, messageId?:string}} artifact
+   * @param {{type:string, content:any, name:string, meta?:object, messageId?:string}} artifact
    * @returns {Promise<string>} artifact_ref
    */
   async putArtifact(artifact) {
+    // 验证必需参数
+    if (!artifact.name || typeof artifact.name !== 'string' || artifact.name.trim() === '') {
+      throw new Error('工件名称是必需参数，且不能为空');
+    }
+
     await this.ensureReady();
     const id = randomUUID();
     const createdAt = new Date().toISOString();
@@ -151,11 +156,21 @@ export class ArtifactStore {
       type: artifact.type || (isObjectContent ? "application/json" : isStringContent ? "text/plain" : "application/octet-stream"),
       createdAt,
       messageId: artifact.messageId || null,
-      meta: artifact.meta || null
+      meta: {
+        ...(artifact.meta || {}),
+        name: artifact.name.trim() // 保存工件名称到meta中
+      }
     };
     await this._writeMetadata(id, metadata);
     
-    void this.log.info("写入工件", { id, type: metadata.type, extension, ref: `artifact:${id}`, messageId: artifact.messageId || null });
+    void this.log.info("写入工件", { 
+      id, 
+      name: artifact.name.trim(),
+      type: metadata.type, 
+      extension, 
+      ref: `artifact:${id}`, 
+      messageId: artifact.messageId || null 
+    });
     return `artifact:${id}`;
   }
 
@@ -314,13 +329,19 @@ export class ArtifactStore {
   /**
    * 保存图片文件。
    * @param {Buffer} buffer - 图片二进制数据
-   * @param {{format?: "png"|"jpg"|"jpeg"|"gif"|"webp", messageId?: string, agentId?: string, [key: string]: any}} meta - 元数据，format 默认为 "png"
+   * @param {{name: string, format?: "png"|"jpg"|"jpeg"|"gif"|"webp", messageId?: string, agentId?: string, [key: string]: any}} meta - 元数据，name为必需参数，format 默认为 "png"
    * @returns {Promise<string>} 图片文件名（相对于 artifacts 目录）
    */
   async saveImage(buffer, meta = {}) {
     await this.ensureReady();
     
-    const { format = "png", messageId, agentId, ...otherMeta } = meta;
+    const { name, format = "png", messageId, agentId, ...otherMeta } = meta;
+    
+    // 验证必需参数
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      throw new Error('图片名称是必需参数，且不能为空');
+    }
+    
     const id = randomUUID();
     const extension = `.${format}`;
     const fileName = `${id}${extension}`;
@@ -337,12 +358,20 @@ export class ArtifactStore {
       type: "image",
       createdAt,
       messageId: messageId || null,
-      agentId: agentId || null,
-      ...otherMeta
+      meta: {
+        name: name.trim(),
+        agentId: agentId || null,
+        ...otherMeta
+      }
     };
     await this._writeMetadata(id, metadata);
     
-    void this.log.info("保存图片", { fileName, format, agentId });
+    void this.log.info("保存图片", { 
+      fileName, 
+      name: name.trim(),
+      format, 
+      agentId 
+    });
     
     return fileName;
   }

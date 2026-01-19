@@ -213,7 +213,7 @@ export function getToolDefinitions() {
       type: "function",
       function: {
         name: "chrome_save_resource",
-        description: "保存页面上的资源（如图片）到工件系统，返回工件ID数组。支持一次性保存多个资源。保存后可以在工件管理器中查看和管理。适用于需要持久化保存页面资源的场景。",
+        description: "保存页面上的资源（如图片）到工件系统，返回工件ID数组。支持一次性保存多个资源。保存后可以在工件管理器中查看和管理。适用于需要持久化保存页面资源的场景。注意：每个保存的资源都需要有意义的名称用于在工件管理器中识别。",
         parameters: {
           type: "object",
           properties: {
@@ -223,10 +223,14 @@ export function getToolDefinitions() {
               description: "资源的 URL 数组，每个元素可以是完整 URL 或 data URL。通常从 chrome_get_resources 的结果中获取",
               items: { type: "string" }
             },
-            filename: { type: "string", description: "保存的文件名（可选），不指定则自动生成。仅在保存单个资源时有效" },
+            resourceNames: {
+              type: "array",
+              description: "每个资源对应的名称数组，用于在工件管理器中显示。数组长度必须与 resourceUrls 相同。如果只保存一个资源，可以只提供一个名称。名称应该有意义，便于用户识别资源内容。",
+              items: { type: "string" }
+            },
             type: { type: "string", description: "资源类型，默认 'image'" }
           },
-          required: ["tabId", "resourceUrls"]
+          required: ["tabId", "resourceUrls", "resourceNames"]
         }
       }
     },

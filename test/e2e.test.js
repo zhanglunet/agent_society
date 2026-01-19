@@ -380,6 +380,7 @@ describe("端到端测试 - 多智能体协作场景", () => {
 
     // 创建工件
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "智能体创建的工件",
       type: "text",
       content: "智能体创建的工件",
       meta: { createdBy: agent.id }
@@ -440,6 +441,7 @@ describe("端到端测试 - 多智能体协作场景", () => {
 
     // 创建者创建工件
     const artifactRef = await runtime.artifacts.putArtifact({
+      name: "共享数据工件",
       type: "json",
       content: { data: "共享数据", version: 1 },
       meta: { createdBy: creator.id }

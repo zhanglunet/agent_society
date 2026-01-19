@@ -6,7 +6,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import * as fc from 'fast-check';
-import { ArtifactStore } from '../../src/platform/artifact_store.js';
+import { ArtifactStore } from '../../src/platform/services/artifact/artifact_store.js';
 import { rm, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -63,7 +63,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
         async (obj) => {
           const artifact = {
             type: 'application/json',
-            content: obj
+            content: obj,
+            name: 'test-object'
           };
           
           const ref = await store.putArtifact(artifact);
@@ -85,7 +86,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
         async (arr) => {
           const artifact = {
             type: 'application/json',
-            content: arr
+            content: arr,
+            name: 'test-array'
           };
           
           const ref = await store.putArtifact(artifact);
@@ -110,7 +112,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
           
           const artifact = {
             type: 'application/json',
-            content: jsonString
+            content: jsonString,
+            name: 'test-json-string'
           };
           
           const ref = await store.putArtifact(artifact);
@@ -147,7 +150,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
         async (obj) => {
           const artifact = {
             type: 'application/json',
-            content: obj
+            content: obj,
+            name: 'test-nested-object'
           };
           
           const ref = await store.putArtifact(artifact);
@@ -172,7 +176,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
             type: 'application/json',
             content: obj,
             messageId,
-            meta: { source: 'test' }
+            meta: { source: 'test' },
+            name: 'test-with-meta'
           };
           
           const ref = await store.putArtifact(artifact);
@@ -180,7 +185,7 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
           
           expect(retrieved.type).toBe('application/json');
           expect(retrieved.messageId).toBe(messageId);
-          expect(retrieved.meta).toEqual({ source: 'test' });
+          expect(retrieved.meta).toEqual({ name: 'test-with-meta', source: 'test' });
           
           return true;
         }
@@ -204,7 +209,8 @@ describe('功能: json-artifact-viewer-enhancement, 属性14: 工件存储往返
         async (str) => {
           const artifact = {
             type: 'text/plain',
-            content: str
+            content: str,
+            name: 'test-string'
           };
           
           const ref = await store.putArtifact(artifact);
