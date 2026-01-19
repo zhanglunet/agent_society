@@ -16,5 +16,15 @@
     "warningThreshold": 0.7,
     "criticalThreshold": 0.9,
     "hardLimitThreshold": 0.95
+  },
+  "conversation": {
+    "autoCompression": {
+      "enabled": true,
+      "threshold": 0.8,
+      "keepRecentCount": 10,
+      "summaryMaxTokens": 1000,
+      "summaryModel": "gpt-4o-mini",
+      "summaryTimeout": 30000
+    }
   }
 }
