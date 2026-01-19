@@ -539,8 +539,10 @@ class ArtifactManager {
   toggleMaximize() {
     this.isMaximized = !this.isMaximized;
     this.windowEl?.classList.toggle("maximized", this.isMaximized);
-    this.maximizeBtn.textContent = this.isMaximized ? "❐" : "⬜";
-    this.maximizeBtn.title = this.isMaximized ? "还原" : "最大化";
+    if (this.maximizeBtn) {
+      this.maximizeBtn.textContent = this.isMaximized ? "❐" : "⬜";
+      this.maximizeBtn.title = this.isMaximized ? "还原" : "最大化";
+    }
   }
 
   /**
