@@ -2112,7 +2112,7 @@ class ArtifactManager {
 
   /**
    * 将窗口停靠到左侧
-   * 窗口占据屏幕左半部分
+   * 窗口占据屏幕左半部分，底部留出空间显示输入框
    */
   dockToLeft() {
     if (this.isMaximized) {
@@ -2120,8 +2120,9 @@ class ArtifactManager {
     }
 
     const padding = 20;
+    const bottomSpace = 120; // 底部留出空间给输入框
     const width = (window.innerWidth / 2) - (padding * 1.5);
-    const height = window.innerHeight - (padding * 2);
+    const height = window.innerHeight - (padding * 2) - bottomSpace;
 
     this.windowEl.style.left = padding + "px";
     this.windowEl.style.top = padding + "px";
@@ -2132,7 +2133,7 @@ class ArtifactManager {
 
   /**
    * 将窗口停靠到右侧
-   * 窗口占据屏幕右半部分
+   * 窗口占据屏幕右半部分，底部留出空间显示输入框
    */
   dockToRight() {
     if (this.isMaximized) {
@@ -2140,8 +2141,9 @@ class ArtifactManager {
     }
 
     const padding = 20;
+    const bottomSpace = 120; // 底部留出空间给输入框
     const width = (window.innerWidth / 2) - (padding * 1.5);
-    const height = window.innerHeight - (padding * 2);
+    const height = window.innerHeight - (padding * 2) - bottomSpace;
     const left = (window.innerWidth / 2) + (padding / 2);
 
     this.windowEl.style.left = left + "px";
