@@ -39,6 +39,19 @@ class ArtifactManager {
     this.currentViewer = null;
     this.sidebarPanel = null;
     
+    // 窗口拖拽和调整大小相关状态
+    this.isDragging = false;
+    this.isResizing = false;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.windowStartX = 0;
+    this.windowStartY = 0;
+    this.resizeStartX = 0;
+    this.resizeStartY = 0;
+    this.resizeStartWidth = 0;
+    this.resizeStartHeight = 0;
+    this.resizeDirection = null; // 'se', 'sw', 'ne', 'nw', 'n', 's', 'e', 'w'
+
     // 初始化
     this._init();
   }
@@ -49,6 +62,7 @@ class ArtifactManager {
   _init() {
     this._createUI();
     this._attachEventListeners();
+    this._attachWindowControlEvents();
     this.loadArtifacts();
   }
 
@@ -66,6 +80,9 @@ class ArtifactManager {
         <div class="artifact-manager-header">
           <h2>📦 工件管理器</h2>
           <div class="artifact-window-controls">
+            <button class="window-btn dock-left-btn" title="紧贴左侧">⬅️</button>
+            <button class="window-btn dock-right-btn" title="紧贴右侧">➡️</button>
+            <button class="window-btn center-btn" title="居中">🎯</button>
             <button class="window-btn maximize-btn" title="最大化/还原">⬜</button>
             <button class="window-btn close-btn" title="关闭">✕</button>
           </div>
@@ -183,6 +200,10 @@ class ArtifactManager {
     this.closeViewerBtn = this.container.querySelector(".close-viewer-btn");
     this.maximizeBtn = this.container.querySelector(".maximize-btn");
     this.closeWindowBtn = this.container.querySelector(".close-btn");
+    this.dockLeftBtn = this.container.querySelector(".dock-left-btn");
+    this.dockRightBtn = this.container.querySelector(".dock-right-btn");
+    this.centerBtn = this.container.querySelector(".center-btn");
+    this.headerEl = this.container.querySelector(".artifact-manager-header");
     this.textModeToggle = this.container.querySelector(".text-mode-toggle");
     this.textModeButtons = this.container.querySelectorAll(".text-mode-btn");
     this.jsonModeToggle = this.container.querySelector(".json-mode-toggle");
@@ -1795,6 +1816,356 @@ class ArtifactManager {
     });
     
     return arrows;
+  }
+
+  // ========== 窗口控制相关方法 ==========
+
+  /**
+   * 附加窗口控制事件监听器
+   * 包括拖拽移动、调整大小、位置控制等功能
+   */
+  _attachWindowControlEvents() {
+    // 窗口位置控制按钮
+    this.dockLeftBtn?.addEventListener("click", () => {
+      this.dockToLeft();
+    });
+
+    this.dockRightBtn?.addEventListener("click", () => {
+      this.dockToRight();
+    });
+
+    this.centerBtn?.addEventListener("click", () => {
+      this.centerWindow();
+    });
+
+    // 标题栏拖拽移动
+    this.headerEl?.addEventListener("mousedown", (e) => {
+      this._startDragging(e);
+    });
+
+    // 添加调整大小的拖拽区域
+    this._createResizeHandles();
+
+    // 全局鼠标事件
+    document.addEventListener("mousemove", (e) => {
+      this._handleMouseMove(e);
+    });
+
+    document.addEventListener("mouseup", (e) => {
+      this._handleMouseUp(e);
+    });
+
+    // 防止拖拽时选中文本
+    this.headerEl?.addEventListener("selectstart", (e) => {
+      if (this.isDragging) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  /**
+   * 创建调整大小的拖拽区域
+   * 在窗口四个角和四条边添加不可见的拖拽手柄
+   */
+  _createResizeHandles() {
+    if (!this.windowEl) return;
+
+    // 创建调整大小手柄的HTML
+    const resizeHandles = `
+      <div class="resize-handle resize-n" data-direction="n"></div>
+      <div class="resize-handle resize-s" data-direction="s"></div>
+      <div class="resize-handle resize-e" data-direction="e"></div>
+      <div class="resize-handle resize-w" data-direction="w"></div>
+      <div class="resize-handle resize-ne" data-direction="ne"></div>
+      <div class="resize-handle resize-nw" data-direction="nw"></div>
+      <div class="resize-handle resize-se" data-direction="se"></div>
+      <div class="resize-handle resize-sw" data-direction="sw"></div>
+    `;
+
+    // 添加到窗口元素
+    this.windowEl.insertAdjacentHTML("beforeend", resizeHandles);
+
+    // 绑定调整大小事件
+    this.windowEl.querySelectorAll(".resize-handle").forEach(handle => {
+      handle.addEventListener("mousedown", (e) => {
+        this._startResizing(e, handle.dataset.direction);
+      });
+    });
+  }
+
+  /**
+   * 开始拖拽窗口
+   * @param {MouseEvent} e - 鼠标事件
+   */
+  _startDragging(e) {
+    if (this.isMaximized) return; // 最大化状态不允许拖拽
+
+    this.isDragging = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+
+    // 获取窗口当前位置
+    const rect = this.windowEl.getBoundingClientRect();
+    this.windowStartX = rect.left;
+    this.windowStartY = rect.top;
+
+    // 添加拖拽样式
+    this.windowEl.classList.add("dragging");
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "move";
+
+    e.preventDefault();
+  }
+
+  /**
+   * 开始调整窗口大小
+   * @param {MouseEvent} e - 鼠标事件
+   * @param {string} direction - 调整方向
+   */
+  _startResizing(e, direction) {
+    if (this.isMaximized) return; // 最大化状态不允许调整大小
+
+    this.isResizing = true;
+    this.resizeDirection = direction;
+    this.resizeStartX = e.clientX;
+    this.resizeStartY = e.clientY;
+
+    // 获取窗口当前尺寸和位置
+    const rect = this.windowEl.getBoundingClientRect();
+    this.windowStartX = rect.left;
+    this.windowStartY = rect.top;
+    this.resizeStartWidth = rect.width;
+    this.resizeStartHeight = rect.height;
+
+    // 添加调整大小样式
+    this.windowEl.classList.add("resizing");
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = this._getResizeCursor(direction);
+
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  /**
+   * 处理鼠标移动事件
+   * @param {MouseEvent} e - 鼠标事件
+   */
+  _handleMouseMove(e) {
+    if (this.isDragging) {
+      this._handleDragging(e);
+    } else if (this.isResizing) {
+      this._handleResizing(e);
+    }
+  }
+
+  /**
+   * 处理窗口拖拽
+   * @param {MouseEvent} e - 鼠标事件
+   */
+  _handleDragging(e) {
+    const deltaX = e.clientX - this.dragStartX;
+    const deltaY = e.clientY - this.dragStartY;
+
+    const newX = this.windowStartX + deltaX;
+    const newY = this.windowStartY + deltaY;
+
+    // 限制窗口不能拖出屏幕边界
+    const maxX = window.innerWidth - 100; // 至少保留100px可见
+    const maxY = window.innerHeight - 50; // 至少保留50px可见
+    const minX = -this.windowEl.offsetWidth + 100;
+    const minY = 0;
+
+    const constrainedX = Math.max(minX, Math.min(maxX, newX));
+    const constrainedY = Math.max(minY, Math.min(maxY, newY));
+
+    this.windowEl.style.left = constrainedX + "px";
+    this.windowEl.style.top = constrainedY + "px";
+    this.windowEl.style.transform = "none";
+  }
+
+  /**
+   * 处理窗口大小调整
+   * @param {MouseEvent} e - 鼠标事件
+   */
+  _handleResizing(e) {
+    const deltaX = e.clientX - this.resizeStartX;
+    const deltaY = e.clientY - this.resizeStartY;
+
+    let newWidth = this.resizeStartWidth;
+    let newHeight = this.resizeStartHeight;
+    let newX = this.windowStartX;
+    let newY = this.windowStartY;
+
+    // 最小尺寸限制
+    const minWidth = 400;
+    const minHeight = 300;
+
+    // 根据调整方向计算新的尺寸和位置
+    switch (this.resizeDirection) {
+      case "n":
+        newHeight = this.resizeStartHeight - deltaY;
+        newY = this.windowStartY + deltaY;
+        break;
+      case "s":
+        newHeight = this.resizeStartHeight + deltaY;
+        break;
+      case "e":
+        newWidth = this.resizeStartWidth + deltaX;
+        break;
+      case "w":
+        newWidth = this.resizeStartWidth - deltaX;
+        newX = this.windowStartX + deltaX;
+        break;
+      case "ne":
+        newWidth = this.resizeStartWidth + deltaX;
+        newHeight = this.resizeStartHeight - deltaY;
+        newY = this.windowStartY + deltaY;
+        break;
+      case "nw":
+        newWidth = this.resizeStartWidth - deltaX;
+        newHeight = this.resizeStartHeight - deltaY;
+        newX = this.windowStartX + deltaX;
+        newY = this.windowStartY + deltaY;
+        break;
+      case "se":
+        newWidth = this.resizeStartWidth + deltaX;
+        newHeight = this.resizeStartHeight + deltaY;
+        break;
+      case "sw":
+        newWidth = this.resizeStartWidth - deltaX;
+        newHeight = this.resizeStartHeight + deltaY;
+        newX = this.windowStartX + deltaX;
+        break;
+    }
+
+    // 应用最小尺寸限制
+    if (newWidth < minWidth) {
+      if (this.resizeDirection.includes("w")) {
+        newX = this.windowStartX + (this.resizeStartWidth - minWidth);
+      }
+      newWidth = minWidth;
+    }
+
+    if (newHeight < minHeight) {
+      if (this.resizeDirection.includes("n")) {
+        newY = this.windowStartY + (this.resizeStartHeight - minHeight);
+      }
+      newHeight = minHeight;
+    }
+
+    // 限制窗口不能超出屏幕边界
+    const maxWidth = window.innerWidth - newX;
+    const maxHeight = window.innerHeight - newY;
+
+    newWidth = Math.min(newWidth, maxWidth);
+    newHeight = Math.min(newHeight, maxHeight);
+
+    // 应用新的尺寸和位置
+    this.windowEl.style.width = newWidth + "px";
+    this.windowEl.style.height = newHeight + "px";
+    this.windowEl.style.left = newX + "px";
+    this.windowEl.style.top = newY + "px";
+    this.windowEl.style.transform = "none";
+  }
+
+  /**
+   * 处理鼠标释放事件
+   * @param {MouseEvent} e - 鼠标事件
+   */
+  _handleMouseUp(e) {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.windowEl.classList.remove("dragging");
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+
+    if (this.isResizing) {
+      this.isResizing = false;
+      this.resizeDirection = null;
+      this.windowEl.classList.remove("resizing");
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+  }
+
+  /**
+   * 获取调整大小时的鼠标样式
+   * @param {string} direction - 调整方向
+   * @returns {string} CSS cursor 值
+   */
+  _getResizeCursor(direction) {
+    const cursors = {
+      "n": "n-resize",
+      "s": "s-resize",
+      "e": "e-resize",
+      "w": "w-resize",
+      "ne": "ne-resize",
+      "nw": "nw-resize",
+      "se": "se-resize",
+      "sw": "sw-resize"
+    };
+    return cursors[direction] || "default";
+  }
+
+  /**
+   * 将窗口停靠到左侧
+   * 窗口占据屏幕左半部分
+   */
+  dockToLeft() {
+    if (this.isMaximized) {
+      this.toggleMaximize(); // 先退出最大化
+    }
+
+    const padding = 20;
+    const width = (window.innerWidth / 2) - (padding * 1.5);
+    const height = window.innerHeight - (padding * 2);
+
+    this.windowEl.style.left = padding + "px";
+    this.windowEl.style.top = padding + "px";
+    this.windowEl.style.width = width + "px";
+    this.windowEl.style.height = height + "px";
+    this.windowEl.style.transform = "none";
+  }
+
+  /**
+   * 将窗口停靠到右侧
+   * 窗口占据屏幕右半部分
+   */
+  dockToRight() {
+    if (this.isMaximized) {
+      this.toggleMaximize(); // 先退出最大化
+    }
+
+    const padding = 20;
+    const width = (window.innerWidth / 2) - (padding * 1.5);
+    const height = window.innerHeight - (padding * 2);
+    const left = (window.innerWidth / 2) + (padding / 2);
+
+    this.windowEl.style.left = left + "px";
+    this.windowEl.style.top = padding + "px";
+    this.windowEl.style.width = width + "px";
+    this.windowEl.style.height = height + "px";
+    this.windowEl.style.transform = "none";
+  }
+
+  /**
+   * 将窗口居中显示
+   * 恢复到默认大小并居中
+   */
+  centerWindow() {
+    if (this.isMaximized) {
+      this.toggleMaximize(); // 先退出最大化
+    }
+
+    const defaultWidth = 800;
+    const defaultHeight = 600;
+
+    this.windowEl.style.width = defaultWidth + "px";
+    this.windowEl.style.height = defaultHeight + "px";
+    this.windowEl.style.left = "50%";
+    this.windowEl.style.top = "50%";
+    this.windowEl.style.transform = "translate(-50%, -50%)";
   }
 }
 

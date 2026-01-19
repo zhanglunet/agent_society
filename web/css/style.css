@@ -2872,6 +2872,86 @@ body {
   border-radius: 0;
 }
 
+.artifact-window.dragging {
+  user-select: none;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+}
+
+.artifact-window.resizing {
+  user-select: none;
+}
+
+/* 调整大小手柄 */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+}
+
+.resize-handle.resize-n {
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  cursor: n-resize;
+}
+
+.resize-handle.resize-s {
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  cursor: s-resize;
+}
+
+.resize-handle.resize-e {
+  top: 8px;
+  right: 0;
+  bottom: 8px;
+  width: 4px;
+  cursor: e-resize;
+}
+
+.resize-handle.resize-w {
+  top: 8px;
+  left: 0;
+  bottom: 8px;
+  width: 4px;
+  cursor: w-resize;
+}
+
+.resize-handle.resize-ne {
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  cursor: ne-resize;
+}
+
+.resize-handle.resize-nw {
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  cursor: nw-resize;
+}
+
+.resize-handle.resize-se {
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  cursor: se-resize;
+}
+
+.resize-handle.resize-sw {
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  cursor: sw-resize;
+}
+
 /* artifact-manager 容器需要撑满父元素 */
 #artifact-manager {
   height: 100%;
@@ -2916,12 +2996,15 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: move; /* 标题栏可拖拽 */
+  user-select: none; /* 防止选中文本 */
 }
 
 .artifact-manager-header h2 {
   font-size: 14px;
   font-weight: 500;
   margin: 0;
+  color: #d4d4d4;
 }
 
 .artifact-window-controls {
@@ -2939,6 +3022,9 @@ body {
   font-size: 14px;
   border-radius: 4px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .window-btn:hover {
@@ -2948,6 +3034,22 @@ body {
 
 .window-btn.close-btn:hover {
   background-color: #e81123;
+  color: #fff;
+}
+
+/* 窗口位置控制按钮的特殊样式 */
+.window-btn.dock-left-btn:hover {
+  background-color: #0078d4;
+  color: #fff;
+}
+
+.window-btn.dock-right-btn:hover {
+  background-color: #0078d4;
+  color: #fff;
+}
+
+.window-btn.center-btn:hover {
+  background-color: #107c10;
   color: #fff;
 }
 
