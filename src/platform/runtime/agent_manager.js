@@ -21,7 +21,7 @@
  * 4. 终止：terminateAgent 终止并清理资源
  * 
  * 【与其他模块的关系】
- * - 被 ToolExecutor 调用来处理 spawn_agent、terminate_agent 等工具
+ * - 被 ToolExecutor 调用来处理 spawn_agent_with_task、terminate_agent 等工具
  * - 使用 Runtime 的 org 管理组织状态
  * - 使用 Runtime 的 bus 发送消息
  * - 使用 Runtime 的 workspaceManager 管理工作空间

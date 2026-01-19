@@ -686,7 +686,7 @@ export class LlmHandler {
       /我会.*创建/,
       /首先.*创建/,
       /create_role/i,
-      /spawn_agent/i,
+      /spawn_agent_with_task/i,
       /send_message/i,
       /我将.*调用/,
       /让我.*调用/,

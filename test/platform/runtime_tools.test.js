@@ -11,7 +11,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { RuntimeTools } from "../../src/platform/runtime/runtime_tools.js";
 
 describe("RuntimeTools", () => {
@@ -63,7 +63,7 @@ describe("RuntimeTools", () => {
       
       // 验证只包含 org_management 工具
       const toolNames = toolDefs.map(t => t.function?.name).filter(Boolean);
-      const orgTools = ["find_role_by_name", "create_role", "spawn_agent", "spawn_agent_with_task", "terminate_agent", "send_message"];
+      const orgTools = ["find_role_by_name", "create_role", "spawn_agent_with_task", "terminate_agent", "send_message"];
       
       // root 应该只有组织管理工具
       for (const toolName of toolNames) {
@@ -99,7 +99,7 @@ describe("RuntimeTools", () => {
   describe("工具权限检查", () => {
     test("root 只能使用 org_management 工具", () => {
       expect(tools.isToolAvailableForAgent("root", "create_role")).toBe(true);
-      expect(tools.isToolAvailableForAgent("root", "spawn_agent")).toBe(true);
+      expect(tools.isToolAvailableForAgent("root", "spawn_agent_with_task")).toBe(true);
       expect(tools.isToolAvailableForAgent("root", "put_artifact")).toBe(false);
       expect(tools.isToolAvailableForAgent("root", "read_file")).toBe(false);
     });

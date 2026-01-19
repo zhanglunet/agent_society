@@ -90,6 +90,13 @@ export class Runtime {
     // ==================== 配置参数 ====================
     this._passedConfig = options.config ?? null; // 外部传入的配置对象
     this._configService = options.configService ?? null; // 外部传入的配置服务
+    
+    // 如果提供了 configPath，创建 Config 服务
+    if (options.configPath && !this._configService) {
+      const configDir = path.dirname(options.configPath);
+      this._configService = new Config(configDir);
+    }
+    
     this.maxSteps = options.maxSteps ?? 200;
     this.maxToolRounds = options.maxToolRounds ?? 200;
     this.maxContextMessages = options.maxContextMessages ?? 50;
@@ -1288,57 +1295,61 @@ export class Runtime {
       return { error: "missing_initial_message", message: "initialMessage 是必填参数" };
     }
 
-    // 复用 spawn_agent 的逻辑创建智能体
-    const spawnResult = await this.executeToolCall(ctx, "spawn_agent", {
-      roleId: args.roleId,
-      taskBrief: args.taskBrief
-    });
+    // 直接使用底层的 spawnAgentAs 方法创建智能体
+    try {
+      const agent = await this.spawnAgentAs(creatorId, {
+        roleId: args.roleId,
+        taskBrief: args.taskBrief
+      });
 
-    // 如果创建失败，直接返回错误
-    if (spawnResult.error) {
-      return spawnResult;
+      const newAgentId = agent.id;
+      const taskId = ctx.currentMessage?.taskId ?? null;
+
+      // 构建任务消息 payload
+      const messagePayload = {
+        message_type: args.initialMessage.message_type ?? "task_assignment",
+        ...args.initialMessage
+      };
+
+      // 发送任务消息给新创建的智能体
+      const sendResult = this.bus.send({
+        to: newAgentId,
+        from: creatorId,
+        taskId,
+        payload: messagePayload
+      });
+
+      void this.log.info("spawn_agent_with_task 完成", {
+        creatorId,
+        newAgentId,
+        roleId: agent.roleId,
+        roleName: agent.roleName,
+        messageId: sendResult.messageId,
+        taskId
+      });
+
+      // 记录智能体发送消息的生命周期事件
+      void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
+        agentId: creatorId,
+        messageId: sendResult.messageId,
+        to: newAgentId,
+        taskId
+      });
+
+      return {
+        id: newAgentId,
+        roleId: agent.roleId,
+        roleName: agent.roleName,
+        messageId: sendResult.messageId
+      };
+    } catch (error) {
+      void this.log.error("spawn_agent_with_task 失败", {
+        creatorId,
+        roleId: args.roleId,
+        error: error.message
+      });
+      return { error: "spawn_failed", message: error.message };
     }
-
-    const newAgentId = spawnResult.id;
-    const taskId = ctx.currentMessage?.taskId ?? null;
-
-    // 构建任务消息 payload
-    const messagePayload = {
-      message_type: args.initialMessage.message_type ?? "task_assignment",
-      ...args.initialMessage
-    };
-
-    // 发送任务消息给新创建的智能体
-    const sendResult = this.bus.send({
-      to: newAgentId,
-      from: creatorId,
-      taskId,
-      payload: messagePayload
-    });
-
-    void this.log.info("spawn_agent_with_task 完成", {
-      creatorId,
-      newAgentId,
-      roleId: spawnResult.roleId,
-      roleName: spawnResult.roleName,
-      messageId: sendResult.messageId,
-      taskId
-    });
-
-    // 记录智能体发送消息的生命周期事件
-    void this.loggerRoot.logAgentLifecycleEvent("agent_message_sent", {
-      agentId: creatorId,
-      messageId: sendResult.messageId,
-      to: newAgentId,
-      taskId
-    });
-
-    return {
-      id: newAgentId,
-      roleId: spawnResult.roleId,
-      roleName: spawnResult.roleName,
-      messageId: sendResult.messageId
-    };
   }
 
   async _runJavaScriptTool(args, messageId = null, agentId = null) {

@@ -9,7 +9,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 
 describe("集成测试 - 智能体创建和终止流程", () => {
@@ -604,7 +604,7 @@ describe("集成测试 - 完整业务流程", () => {
     };
 
     // 通过工具调用创建智能体
-    const result = await runtime.executeToolCall(ctx, "spawn_agent", {
+    const result = await runtime.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: role.id,
       taskBrief: {
         objective: "Complete task",
@@ -612,6 +612,11 @@ describe("集成测试 - 完整业务流程", () => {
         inputs: "Task input",
         outputs: "Task output",
         completion_criteria: "Done"
+      },
+      initialMessage: {
+        message_type: "task_assignment",
+        task: "Complete the assigned task",
+        deliverable: "Task completion report"
       }
     });
 

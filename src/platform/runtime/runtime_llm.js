@@ -224,7 +224,7 @@ export class RuntimeLlm {
           /我会.*创建/,
           /首先.*创建/,
           /create_role/i,
-          /spawn_agent/i,
+          /spawn_agent_with_task/i,
           /send_message/i,
           /我将.*调用/,
           /让我.*调用/,
@@ -242,7 +242,7 @@ export class RuntimeLlm {
           
           conv.push({
             role: "user",
-            content: "【系统提示】你刚才描述了想要执行的操作，但没有实际调用工具函数。请注意：你必须通过 tool_calls 调用工具函数来执行操作，而不是在文本中描述。例如，如果你想创建岗位，请直接调用 create_role 工具；如果你想创建智能体，请直接调用 spawn_agent 工具。请立即调用相应的工具函数来执行你描述的操作。"
+            content: "【系统提示】你刚才描述了想要执行的操作，但没有实际调用工具函数。请注意：你必须通过 tool_calls 调用工具函数来执行操作，而不是在文本中描述。例如，如果你想创建岗位，请直接调用 create_role 工具；如果你想创建智能体，请直接调用 spawn_agent_with_task 工具。请立即调用相应的工具函数来执行你描述的操作。"
           });
           continue; // 继续下一轮，让 LLM 重新生成带 tool_calls 的响应
         }

@@ -62,7 +62,6 @@ export class RuntimeTools {
     const toolGroupMapping = {
       find_role_by_name: "org_management",
       create_role: "org_management",
-      spawn_agent: "org_management",
       spawn_agent_with_task: "org_management",
       terminate_agent: "org_management",
       send_message: "org_management",

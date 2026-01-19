@@ -11,7 +11,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 
 describe("ToolExecutor", () => {
@@ -63,7 +63,7 @@ describe("ToolExecutor", () => {
     // 验证核心工具存在
     expect(toolNames).toContain("find_role_by_name");
     expect(toolNames).toContain("create_role");
-    expect(toolNames).toContain("spawn_agent");
+    expect(toolNames).toContain("spawn_agent_with_task");
     expect(toolNames).toContain("send_message");
     expect(toolNames).toContain("put_artifact");
     expect(toolNames).toContain("get_artifact");
@@ -96,7 +96,7 @@ describe("ToolExecutor", () => {
     expect(result.rolePrompt).toBe("New role prompt");
   });
 
-  test("executeToolCall executes spawn_agent", async () => {
+  test("executeToolCall executes spawn_agent_with_task", async () => {
     // 创建岗位
     const role = await runtime.org.createRole({
       name: "test-role",
@@ -116,7 +116,7 @@ describe("ToolExecutor", () => {
       payload: {}
     };
     
-    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent", {
+    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: role.id,
       taskBrief: {
         objective: "Test objective",
@@ -124,7 +124,8 @@ describe("ToolExecutor", () => {
         inputs: "Test inputs",
         outputs: "Test outputs",
         completion_criteria: "Test criteria"
-      }
+      },
+      initialMessage: "Start working on the task"
     });
 
     expect(result).toBeTruthy();
@@ -132,7 +133,7 @@ describe("ToolExecutor", () => {
     expect(result.id || result.error).toBeTruthy();
   });
 
-  test("executeToolCall validates spawn_agent taskBrief", async () => {
+  test("executeToolCall validates spawn_agent_with_task taskBrief", async () => {
     const role = await runtime.org.createRole({
       name: "test-role",
       rolePrompt: "Test prompt",
@@ -152,12 +153,13 @@ describe("ToolExecutor", () => {
     };
     
     // 缺少必填字段
-    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent", {
+    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: role.id,
       taskBrief: {
         objective: "Test objective"
         // 缺少其他必填字段
-      }
+      },
+      initialMessage: "Start working"
     });
 
     expect(result.error).toBeTruthy();
@@ -326,7 +328,7 @@ describe("ToolExecutor", () => {
     const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
     
     // 传递无效参数导致错误
-    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent", {
+    const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: "non-existent-role",
       taskBrief: {
         objective: "Test",
@@ -334,7 +336,8 @@ describe("ToolExecutor", () => {
         inputs: "Test",
         outputs: "Test",
         completion_criteria: "Test"
-      }
+      },
+      initialMessage: "Start working"
     });
 
     expect(result.error).toBeTruthy();

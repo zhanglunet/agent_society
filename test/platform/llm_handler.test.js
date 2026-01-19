@@ -12,7 +12,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 
 describe("LlmHandler", () => {
@@ -147,7 +147,7 @@ describe("LlmHandler", () => {
       { content: "我需要创建一个角色", expected: true },
       { content: "首先创建岗位", expected: true },
       { content: "I will call create_role", expected: true },
-      { content: "spawn_agent with parameters", expected: true },
+      { content: "spawn_agent_with_task with parameters", expected: true },
       { content: "Just a normal message", expected: false },
       { content: "This is a test", expected: false }
     ];

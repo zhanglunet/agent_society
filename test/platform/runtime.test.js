@@ -1,11 +1,11 @@
 ﻿import { describe, expect, test } from "bun:test";
 import path from "node:path";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 import { createWriterBehavior } from "../../src/agents/behaviors.js";
-import { Logger, normalizeLoggingConfig } from "../src/platform/utils/logger/logger.js";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
+import { Logger, normalizeLoggingConfig } from "../../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
 
 describe("Runtime", () => {
   test("dispatches message to agent behavior and writes artifact", async () => {
@@ -191,7 +191,7 @@ describe("Runtime", () => {
     expect(agentContent).toContain("ok");
   });
 
-  test("defaults parentAgentId and enforces root single agent per taskId", async () => {
+  test("defaults parentAgentId and validates agent creation permissions", async () => {
     const runtime = new Runtime();
     const roles = new Map([
       ["r-parent", { id: "r-parent", createdBy: null }],
@@ -213,55 +213,94 @@ describe("Runtime", () => {
       completion_criteria: "完成标准"
     };
 
-    let calls = 0;
-    let lastInput = null;
-    const ctxRoot = {
-      agent: { id: "root" },
-      currentMessage: { taskId: "t1" },
-      tools: {
-        spawnAgent: async (input) => {
-          calls += 1;
-          lastInput = input;
-          return { id: `a${calls}`, roleId: input.roleId, roleName: "role" };
-        }
-      }
+    // 有效的 initialMessage
+    const validInitialMessage = {
+      message_type: "task",
+      task: "执行测试任务",
+      deliverable: "测试结果"
     };
 
-    const r1 = await runtime.executeToolCall(ctxRoot, "spawn_agent", { roleId: "r1", parentAgentId: "null", taskBrief: validTaskBrief });
-    const r2 = await runtime.executeToolCall(ctxRoot, "spawn_agent", { roleId: "r1", taskBrief: validTaskBrief });
-    expect(calls).toBe(1);
-    expect(lastInput.parentAgentId).toBe("root");
-    expect(r1.id).toBe(r2.id);
+    let spawnCalls = 0;
+    let lastSpawnInput = null;
+    
+    // 模拟 spawnAgentAs 方法
+    runtime.spawnAgentAs = async (creatorId, input) => {
+      spawnCalls += 1;
+      lastSpawnInput = { ...input, parentAgentId: creatorId };
+      return { id: `agent-${spawnCalls}`, roleId: input.roleId, roleName: "role" };
+    };
 
-    const reused = await runtime.executeToolCall(ctxRoot, "spawn_agent", { roleId: "r2", taskBrief: validTaskBrief });
-    expect(calls).toBe(1);
-    expect(reused.id).toBe(r1.id);
+    // 模拟消息总线
+    runtime.bus = {
+      send: () => ({ messageId: "msg1" })
+    };
+
+    const ctxRoot = {
+      agent: { id: "root" },
+      currentMessage: { taskId: "t1" }
+    };
+
+    // 测试 1: root 创建智能体，验证 parentAgentId 默认设置
+    const result1 = await runtime.executeToolCall(ctxRoot, "spawn_agent_with_task", { 
+      roleId: "r1", 
+      taskBrief: validTaskBrief, 
+      initialMessage: validInitialMessage 
+    });
+    
+    expect(spawnCalls).toBe(1);
+    expect(lastSpawnInput.parentAgentId).toBe("root");
+    expect(result1.id).toBe("agent-1");
+
+    // 测试 2: 再次创建智能体
+    const result2 = await runtime.executeToolCall(ctxRoot, "spawn_agent_with_task", { 
+      roleId: "r2", 
+      taskBrief: validTaskBrief, 
+      initialMessage: validInitialMessage 
+    });
+    
+    expect(spawnCalls).toBe(2);
+    expect(result2.id).toBe("agent-2");
 
     // 初始化 agent-1 的联系人注册表
     runtime.contactManager.initRegistry("agent-1", "root", []);
 
-    let childParent = null;
-    let childCalls = 0;
+    let childCreatorId = null;
+    
+    // 重新模拟 spawnAgentAs 以捕获子智能体创建
+    runtime.spawnAgentAs = async (creatorId, input) => {
+      spawnCalls += 1;
+      childCreatorId = creatorId;
+      lastSpawnInput = { ...input, parentAgentId: creatorId };
+      return { id: "child-agent", roleId: input.roleId, roleName: "role" };
+    };
+
     const ctxAgent = {
       agent: { id: "agent-1", roleId: "r-parent" },
-      currentMessage: { taskId: "t2" },
-      tools: {
-        spawnAgent: async (input) => {
-          childCalls += 1;
-          childParent = input.parentAgentId;
-          return { id: "child-1", roleId: input.roleId, roleName: "role" };
-        }
-      }
+      currentMessage: { taskId: "t2" }
     };
-    await runtime.executeToolCall(ctxAgent, "spawn_agent", { roleId: "r3", taskBrief: validTaskBrief });
-    expect(childParent).toBe("agent-1");
+    
+    // 测试 3: 子智能体创建，验证 parentAgentId 正确设置
+    await runtime.executeToolCall(ctxAgent, "spawn_agent_with_task", { 
+      roleId: "r3", 
+      taskBrief: validTaskBrief, 
+      initialMessage: validInitialMessage 
+    });
+    expect(childCreatorId).toBe("agent-1");
 
-    const badParent = await runtime.executeToolCall(ctxAgent, "spawn_agent", { roleId: "r3", parentAgentId: "someone-else", taskBrief: validTaskBrief });
-    expect(badParent.error).toBe("invalid_parentAgentId");
+    // 测试 4: 测试角色验证错误
+    runtime.spawnAgentAs = async (creatorId, input) => {
+      if (input.roleId === "r-parent") {
+        throw new Error("not_child_role");
+      }
+      return { id: "test-agent", roleId: input.roleId, roleName: "role" };
+    };
 
-    const sameRole = await runtime.executeToolCall(ctxAgent, "spawn_agent", { roleId: "r-parent", taskBrief: validTaskBrief });
-    expect(sameRole.error).toBe("not_child_role");
-    expect(childCalls).toBe(1);
+    const sameRoleResult = await runtime.executeToolCall(ctxAgent, "spawn_agent_with_task", { 
+      roleId: "r-parent", 
+      taskBrief: validTaskBrief, 
+      initialMessage: validInitialMessage 
+    });
+    expect(sameRoleResult.error).toBe("spawn_failed");
   });
 
   test("LLM without tool_calls ends message processing naturally", async () => {

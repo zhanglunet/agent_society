@@ -7,7 +7,7 @@ import { createNoopModuleLogger } from "../utils/logger/logger.js";
 export const BUILTIN_TOOL_GROUPS = {
   org_management: {
     description: "组织管理工具 - 用于创建岗位、创建智能体实例、发送消息、终止智能体等组织架构管理操作。创建岗位时可通过 toolGroups 参数限制该岗位可用的工具组。",
-    tools: ["find_role_by_name", "create_role", "spawn_agent", "spawn_agent_with_task", "terminate_agent", "send_message"]
+    tools: ["find_role_by_name", "create_role", "spawn_agent_with_task", "terminate_agent", "send_message"]
   },
   artifact: {
     description: "工件管理工具 - 用于存储和读取工件（如文件、图片、数据等），工件可在智能体之间共享传递。",

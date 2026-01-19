@@ -16,7 +16,7 @@
  * 
  * 【工具分类】
  * - 岗位管理：find_role_by_name、create_role
- * - 智能体管理：spawn_agent、spawn_agent_with_task、terminate_agent
+ * - 智能体管理：spawn_agent_with_task、terminate_agent
  * - 消息通信：send_message
  * - 工件操作：put_artifact、get_artifact
  * - 代码执行：run_javascript
@@ -99,42 +99,13 @@ export class ToolExecutor {
           }
         }
       },
-      // 创建智能体
-      {
-        type: "function",
-        function: {
-          name: "spawn_agent",
-          description: "在指定岗位上创建智能体实例（Agent Instance），必须提供任务委托书（Task Brief）。注意：spawn_agent 只创建智能体，不会自动发送任务消息！创建后必须用 send_message 向新智能体发送具体任务。如需创建并立即发送任务，请使用 spawn_agent_with_task。",
-          parameters: {
-            type: "object",
-            properties: {
-              roleId: { type: "string", description: "岗位ID" },
-              taskBrief: {
-                type: "object",
-                description: "任务委托书，包含任务的完整说明",
-                properties: {
-                  objective: { type: "string", description: "目标描述" },
-                  constraints: { type: "array", items: { type: "string" }, description: "技术约束" },
-                  inputs: { type: "string", description: "输入说明" },
-                  outputs: { type: "string", description: "输出要求" },
-                  completion_criteria: { type: "string", description: "完成标准" },
-                  collaborators: { type: "array", items: { type: "object" }, description: "预设协作联系人" },
-                  references: { type: "array", items: { type: "string" }, description: "参考资料" },
-                  priority: { type: "string", description: "优先级" }
-                },
-                required: ["objective", "constraints", "inputs", "outputs", "completion_criteria"]
-              }
-            },
-            required: ["roleId", "taskBrief"]
-          }
-        }
-      },
+
       // 创建智能体并发送任务
       {
         type: "function",
         function: {
           name: "spawn_agent_with_task",
-          description: "创建智能体实例并立即发送任务消息（二合一接口）。相当于 spawn_agent + send_message，省去一次工具调用。推荐在需要立即分配任务时使用。",
+          description: "创建智能体实例并立即发送任务消息（二合一接口）。相当于创建智能体 + 发送消息，省去一次工具调用。推荐在需要立即分配任务时使用。",
           parameters: {
             type: "object",
             properties: {
@@ -414,8 +385,6 @@ export class ToolExecutor {
           return this._executeFindRoleByName(ctx, args);
         case "create_role":
           return await this._executeCreateRole(ctx, args);
-        case "spawn_agent":
-          return await this._executeSpawnAgent(ctx, args);
         case "spawn_agent_with_task":
           return await this._executeSpawnAgentWithTask(ctx, args);
         case "send_message":
@@ -525,90 +494,7 @@ export class ToolExecutor {
     return result;
   }
 
-  async _executeSpawnAgent(ctx, args) {
-    const runtime = this.runtime;
-    const taskId = ctx.currentMessage?.taskId ?? null;
-    const isRoot = ctx.agent?.id === "root";
-    const isFromUser = ctx.currentMessage?.from === "user";
-    const creatorId = ctx.agent?.id ?? null;
 
-    if (!creatorId) return { error: "missing_creator_agent" };
-
-    // 检查调用者是否已终止
-    if (creatorId !== "root") {
-      const creatorMeta = runtime.org?.getAgent?.(creatorId);
-      if (creatorMeta && creatorMeta.status === "terminated") {
-        return { error: "caller_terminated", message: "调用者智能体已被终止" };
-      }
-    }
-
-    // 验证 TaskBrief
-    const taskBrief = args?.taskBrief;
-    const taskBriefValidation = validateTaskBrief(taskBrief);
-    if (!taskBriefValidation.valid) {
-      return { error: "invalid_task_brief", missing_fields: taskBriefValidation.errors };
-    }
-
-    // 验证目标岗位
-    const targetRoleId = args?.roleId ?? null;
-    const targetRole = targetRoleId ? runtime.org.getRole(String(targetRoleId)) : null;
-    if (!targetRole) {
-      return { error: "unknown_role", roleId: targetRoleId ?? null };
-    }
-
-    // 验证子岗位关系
-    const currentRoleId = ctx.agent?.roleId ?? null;
-    const isChildRole = String(targetRole.createdBy ?? "") === String(creatorId) && 
-                        String(targetRole.id) !== String(currentRoleId ?? "");
-    if (!isChildRole) {
-      return { error: "not_child_role", roleId: targetRole.id };
-    }
-
-    // 验证 parentAgentId
-    const rawParent = args.parentAgentId;
-    const missingParent = rawParent === null || rawParent === undefined || rawParent === "" || 
-                          rawParent === "null" || rawParent === "undefined";
-    if (!missingParent && String(rawParent) !== String(creatorId)) {
-      return { error: "invalid_parentAgentId", expected: creatorId, got: rawParent };
-    }
-    const parentAgentId = missingParent ? creatorId : rawParent;
-
-    // 复用逻辑
-    if (isRoot && taskId) {
-      const existing = runtime._rootTaskAgentByTaskId.get(taskId);
-      if (existing) {
-        const result = { id: existing.id, roleId: existing.roleId, roleName: existing.roleName };
-        if (isFromUser && !runtime._rootTaskEntryAgentAnnouncedByTaskId.has(taskId)) {
-          runtime.bus.send({ to: "user", from: "root", taskId, payload: { agentId: existing.id } });
-          runtime._rootTaskEntryAgentAnnouncedByTaskId.add(taskId);
-        }
-        return result;
-      }
-    }
-
-    // 创建智能体
-    const agent = await ctx.tools.spawnAgent({ roleId: args.roleId, parentAgentId, taskBrief });
-    const result = { id: agent.id, roleId: agent.roleId, roleName: agent.roleName };
-    
-    // 存储 TaskBrief
-    runtime._agentTaskBriefs.set(agent.id, taskBrief);
-    
-    // 初始化联系人
-    const collaborators = taskBrief?.collaborators ?? [];
-    runtime.contactManager.initRegistry(agent.id, parentAgentId, collaborators);
-    runtime.contactManager.addContact(parentAgentId, { id: agent.id, role: agent.roleName, source: 'child' });
-    
-    if (isRoot && taskId) {
-      runtime._rootTaskAgentByTaskId.set(taskId, result);
-      if (isFromUser && !runtime._rootTaskEntryAgentAnnouncedByTaskId.has(taskId)) {
-        runtime.bus.send({ to: "user", from: "root", taskId, payload: { agentId: agent.id } });
-        runtime._rootTaskEntryAgentAnnouncedByTaskId.add(taskId);
-      }
-    }
-    
-    void runtime.log?.debug?.("工具调用完成", { toolName: "spawn_agent", ok: true, agentId: agent.id });
-    return result;
-  }
 
   async _executeSpawnAgentWithTask(ctx, args) {
     const runtime = this.runtime;
@@ -619,44 +505,57 @@ export class ToolExecutor {
       return { error: "missing_initial_message" };
     }
 
-    // 复用 spawn_agent 逻辑
-    const spawnResult = await this.executeToolCall(ctx, "spawn_agent", {
-      roleId: args.roleId,
-      taskBrief: args.taskBrief
-    });
+    // 验证 taskBrief 参数
+    const taskBriefValidation = validateTaskBrief(args.taskBrief);
+    if (!taskBriefValidation.valid) {
+      return { error: "invalid_task_brief", details: taskBriefValidation.errors };
+    }
 
-    if (spawnResult.error) return spawnResult;
+    // 直接使用底层的 spawnAgentAs 方法创建智能体
+    try {
+      const agent = await runtime.spawnAgentAs(creatorId, {
+        roleId: args.roleId,
+        taskBrief: args.taskBrief
+      });
 
-    const newAgentId = spawnResult.id;
-    const taskId = ctx.currentMessage?.taskId ?? null;
+      const newAgentId = agent.id;
+      const taskId = ctx.currentMessage?.taskId ?? null;
 
-    // 发送任务消息
-    const messagePayload = {
-      message_type: args.initialMessage.message_type ?? "task_assignment",
-      ...args.initialMessage
-    };
+      // 发送任务消息
+      const messagePayload = {
+        message_type: args.initialMessage.message_type ?? "task_assignment",
+        ...args.initialMessage
+      };
 
-    const sendResult = runtime.bus.send({
-      to: newAgentId,
-      from: creatorId,
-      taskId,
-      payload: messagePayload
-    });
+      const sendResult = runtime.bus.send({
+        to: newAgentId,
+        from: creatorId,
+        taskId,
+        payload: messagePayload
+      });
 
-    void runtime.log?.info?.("spawn_agent_with_task 完成", {
-      creatorId,
-      newAgentId,
-      roleId: spawnResult.roleId,
-      messageId: sendResult.messageId,
-      taskId
-    });
+      void runtime.log?.info?.("spawn_agent_with_task 完成", {
+        creatorId,
+        newAgentId,
+        roleId: agent.roleId,
+        messageId: sendResult.messageId,
+        taskId
+      });
 
-    return {
-      id: newAgentId,
-      roleId: spawnResult.roleId,
-      roleName: spawnResult.roleName,
-      messageId: sendResult.messageId
-    };
+      return {
+        id: newAgentId,
+        roleId: agent.roleId,
+        roleName: agent.roleName,
+        messageId: sendResult.messageId
+      };
+    } catch (error) {
+      void runtime.log?.error?.("spawn_agent_with_task 失败", {
+        creatorId,
+        roleId: args.roleId,
+        error: error.message
+      });
+      return { error: "spawn_failed", message: error.message };
+    }
   }
 
   _executeSendMessage(ctx, args) {
