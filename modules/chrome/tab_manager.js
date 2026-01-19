@@ -33,8 +33,9 @@ export class TabManager {
    */
   async newTab(browserId, url) {
     const browser = this.browserManager.getPuppeteerBrowser(browserId);
+    const browserInstance = this.browserManager.getBrowser(browserId);
     
-    if (!browser) {
+    if (!browser || !browserInstance) {
       return { error: "browser_not_found", browserId };
     }
 
@@ -43,6 +44,15 @@ export class TabManager {
 
     try {
       const page = await browser.newPage();
+      
+      // 如果浏览器实例有代理认证信息，为新页面设置认证
+      if (browserInstance.proxy && browserInstance.proxy.username && browserInstance.proxy.password) {
+        await page.authenticate({
+          username: browserInstance.proxy.username,
+          password: browserInstance.proxy.password
+        });
+        this.log.info?.("已为新标签页设置代理认证", { tabId });
+      }
       
       const tab = {
         id: tabId,

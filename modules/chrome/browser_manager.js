@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
  * @property {import('puppeteer-core').Browser} browser - Puppeteer Browser 对象
  * @property {string} createdAt - 创建时间 ISO 字符串
  * @property {string} status - 状态: 'running' | 'closed'
+ * @property {{server?: string, username?: string, password?: string}|null} proxy - 代理配置
  */
 
 export class BrowserManager {
@@ -62,38 +63,64 @@ export class BrowserManager {
 
   /**
    * 启动新的浏览器实例
-   * @param {{headless?: boolean, executablePath?: string}} options
+   * @param {{headless?: boolean, executablePath?: string, proxy?: {server?: string, username?: string, password?: string}}} options
    * @returns {Promise<{ok: boolean, browserId: string, createdAt: string}>}
    */
   async launch(options = {}) {
     // 优先使用调用参数，其次使用模块配置，最后使用默认值 true
     const defaultHeadless = this.config.headless ?? true;
+    const defaultProxy = this.config.proxy ?? {};
     const {
       headless = defaultHeadless,
-      executablePath
+      executablePath,
+      proxy = defaultProxy
     } = options;
 
     const browserId = randomUUID();
     const chromePath = executablePath ?? this._findChromePath();
     
-    this.log.info?.("启动浏览器", { browserId, headless, chromePath });
+    this.log.info?.("启动浏览器", { browserId, headless, chromePath, proxy: proxy.server ? { server: proxy.server } : null });
 
     try {
-      const browser = await puppeteer.launch({
+      // 构建启动参数
+      const args = [
+        // "--no-sandbox",
+        // "--disable-setuid-sandbox",
+        // "--disable-dev-shm-usage"
+      ];
+
+      // 添加代理配置
+      if (proxy.server) {
+        args.push(`--proxy-server=${proxy.server}`);
+        this.log.info?.("使用代理服务器", { server: proxy.server });
+      }
+
+      const launchOptions = {
         headless: headless ? "new" : false,
         executablePath: chromePath,
-        args: [
-          // "--no-sandbox",
-          // "--disable-setuid-sandbox",
-          // "--disable-dev-shm-usage"
-        ]
-      });
+        args
+      };
+
+      const browser = await puppeteer.launch(launchOptions);
+
+      // 如果有代理认证信息，设置认证
+      if (proxy.server && proxy.username && proxy.password) {
+        const pages = await browser.pages();
+        for (const page of pages) {
+          await page.authenticate({
+            username: proxy.username,
+            password: proxy.password
+          });
+        }
+        this.log.info?.("已设置代理认证");
+      }
 
       const instance = {
         id: browserId,
         browser,
         createdAt: new Date().toISOString(),
-        status: "running"
+        status: "running",
+        proxy: proxy.server ? proxy : null
       };
 
       this._browsers.set(browserId, instance);

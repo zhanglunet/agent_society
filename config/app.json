@@ -21,7 +21,12 @@
   },
   "modules": {
     "chrome": {
-      "headless": true
+      "headless": true,
+      "proxy": {
+        "server": "",
+        "username": "",
+        "password": ""
+      }
     }
   }
 }
