@@ -36,108 +36,136 @@ LLM 调用前
 
 ## 2. 模块设计
 
-### 2.1 AutoCompressionManager（数据处理器）
+### 2.1 AutoCompressionManager（压缩管理器）
 
-`AutoCompressionManager` 是一个独立的数据处理器，负责所有与压缩相关的逻辑。它接收完整的对话数据，自己判断、处理、返回结果。
+`AutoCompressionManager` 是会话管理器的子模块，负责所有与压缩相关的逻辑。它完全感知会话管理器的数据结构，接收会话对象引用，自己判断、处理、直接修改数据。
 
 #### 2.1.1 职责
 
-- 管理自动压缩配置
-- 判断是否需要压缩（基于 token 使用率）
+- 从配置服务读取自动压缩配置
+- 判断是否需要压缩（基于消息数组中的 token 统计）
 - 提取需要压缩的消息
-- 生成压缩摘要
-- 执行压缩逻辑
-- 返回处理后的数据结构
+- 生成压缩摘要（调用 LLM）
+- 直接修改消息数组执行压缩
+- 失败时不修改数据，只打印日志
 
-#### 2.1.2 核心方法
+#### 2.1.2 初始化
 
 ```javascript
 /**
- * 执行自动压缩处理
- * @param {Object} conversationData - 完整的对话数据
- *   - messages: 完整历史消息
- *   - runtimeMessages: 当前运行时消息
- *   - tokenUsage: token 使用统计
- *   - config: 自动压缩配置
- * @param {Object} llmClient - LLM 客户端
- * @returns {Promise<CompressionResult>}
- *   - ok: 是否成功
- *   - compressed: 是否执行了压缩
- *   - runtimeMessages: 压缩后的运行时消息
- *   - fullHistory: 完整历史消息（不受压缩影响）
- *   - compressionRecord: 压缩记录
- *   - error: 错误信息
+ * 创建压缩管理器实例
+ * @param {Object} configService - 配置服务引用
+ * @param {Object} llmClient - LLM 客户端引用
+ * @param {Object} logger - 日志记录器
  */
-async autoCompress(conversationData, llmClient): Promise<CompressionResult>
+constructor(configService, llmClient, logger)
 ```
 
-#### 2.1.3 内部方法（私有）
+#### 2.1.3 核心方法
 
 ```javascript
+/**
+ * 处理会话的自动压缩
+ * 接收会话数组引用，自己判断是否需要压缩，需要则直接修改会话数组
+ * 不返回任何值，失败时不修改数据，只打印日志
+ * 
+ * @param {Array} messages - 会话消息数组（引用传递）
+ * @returns {Promise<void>}
+ */
+async process(messages): Promise<void>
+```
+
+**说明**：
+- **直接接收会话消息数组**，这是 ConversationManager 中 `conversations.get(agentId)` 的返回值
+- **压缩管理器从消息数组中计算 token 使用情况**，每条消息包含 token 统计
+- **压缩管理器从配置服务读取压缩阈值和其他配置**
+- **直接修改传入的消息数组**，实现压缩效果
+
+#### 2.1.4 内部方法（私有）
+
+```javascript
+// 从配置服务读取配置
+_loadConfig(): AutoCompressionConfig
+
+// 计算消息数组的 token 使用情况
+_calculateTokenUsage(messages): {totalTokens: number, usagePercent: number}
+
 // 检查是否需要压缩
-_shouldCompress(conversationData): boolean
+_shouldCompress(messages): boolean
 
 // 提取需要压缩的消息
-_extractMessagesToCompress(conversationData): Message[]
+_extractMessagesToCompress(messages): Message[]
 
 // 生成压缩摘要
-_generateSummary(messages, llmClient): Promise<SummaryResult>
+_generateSummary(messages): Promise<string|null>
 
 // 构建摘要生成提示词
 _buildSummaryPrompt(messages): string
 
-// 执行压缩逻辑
-_performCompression(conversationData, summary): CompressionData
-```
-
-#### 2.1.4 配置管理方法
-
-```javascript
-// 获取当前配置
-getConfig(): AutoCompressionConfig
-
-// 更新配置
-updateConfig(updates): void
+// 执行压缩逻辑（直接修改 messages 数组）
+_performCompression(messages, summary): void
 ```
 
 ### 2.2 ConversationManager 扩展
 
-`ConversationManager` 是数据容器和持久化管理器，职责简化为：调用、传参、持久化。
+`ConversationManager` 是上级模块，职责极简：调用、传参、持久化。对会话管理器的修改应该极少。
 
-#### 2.2.1 新增方法
+#### 2.2.1 构造函数修改
+
+```javascript
+/**
+ * 在构造函数中初始化压缩管理器
+ */
+constructor(options = {}) {
+  // ... 现有代码 ...
+  
+  // 初始化压缩管理器（传递配置服务引用和 llmClient 引用）
+  this._autoCompressionManager = options.autoCompressionManager ?? null;
+}
+
+/**
+ * 设置压缩管理器
+ * @param {AutoCompressionManager} manager
+ */
+setAutoCompressionManager(manager) {
+  this._autoCompressionManager = manager;
+}
+```
+
+#### 2.2.2 新增方法（极少）
 
 ```javascript
 /**
  * 执行自动压缩
- * 将完整的对话数据交给 AutoCompressionManager 处理
+ * 直接传递会话数组给压缩管理器处理
+ * 
  * @param {string} agentId - 智能体ID
- * @param {Object} llmClient - LLM 客户端
- * @returns {Promise<CompressionResult>}
+ * @returns {Promise<void>}
  */
-async autoCompress(agentId, llmClient): Promise<CompressionResult>
+async processAutoCompression(agentId) {
+  if (!this._autoCompressionManager) {
+    return;
+  }
+  
+  const conv = this.conversations.get(agentId);
+  if (!conv) {
+    return;
+  }
+  
+  // 调用压缩管理器处理，直接传递会话数组
+  await this._autoCompressionManager.process(conv);
+}
 ```
 
-#### 2.2.2 修改现有方法
+#### 2.2.3 持久化修改（可选，暂不实现）
 
-- `compress()`: 修改以支持完整历史保留和压缩记录
-- `_doSaveConversation()`: 修改以保存完整历史和压缩记录
-- `loadAllConversations()`: 修改以恢复完整历史和压缩记录
-
-#### 2.2.3 查询方法
-
-```javascript
-// 获取压缩历史记录
-getCompressionHistory(agentId): CompressionRecord[]
-
-// 获取完整历史消息
-getFullHistory(agentId): Message[] | null
-```
+暂时不修改持久化逻辑，保持现有的简单持久化方式。完整历史保留和压缩记录功能可以在后续阶段实现。
 
 ### 2.3 LlmHandler 扩展
 
 #### 2.3.1 修改 handleWithLlm() 方法
 
-在 LLM 调用前添加自动压缩检查和硬性限制截断。
+在 LLM 调用前添加自动压缩检查。
 
 ```javascript
 async handleWithLlm(ctx, message) {
@@ -149,102 +177,21 @@ async handleWithLlm(ctx, message) {
 
   runtime.setAgentComputeStatus?.(agentId, 'processing');
 
-  // 检查是否需要自动压缩并执行
+  // 执行自动压缩（如果需要）
   if (agentId && runtime._conversationManager) {
-    const conversationData = this._buildConversationData(agentId);
-    const compressionResult = await runtime._conversationManager.autoCompress(agentId, llmClient);
-    
-    if (compressionResult.ok && compressionResult.compressed) {
-      // 压缩成功，清除 token 统计
-      runtime._conversationManager.clearTokenUsage(agentId);
-    }
+    await runtime._conversationManager.processAutoCompression?.(agentId);
   }
 
   // 检查上下文硬性限制
   if (agentId && runtime._conversationManager?.isContextExceeded?.(agentId)) {
-    // 如果超过硬性限制，截断消息历史
-    await this._truncateMessageHistory(agentId);
-    
-    // 如果截断后仍然超限，拒绝调用
-    if (runtime._conversationManager?.isContextExceeded?.(agentId)) {
-      // ... 现有的硬性限制处理逻辑
-    }
+    // ... 现有的硬性限制处理逻辑
   }
 
   // ... 继续现有的 LLM 调用流程
 }
 ```
 
-#### 2.3.2 新增方法：_truncateMessageHistory()
-
-当 tokens 超过硬性限制时截断消息历史。
-
-```javascript
-/**
- * 截断消息历史以确保不超过硬性限制
- * @param {string} agentId - 智能体ID
- * @returns {Promise<void>}
- * @private
- * 
- * 此方法在自动压缩失败且 tokens 超过硬性限制时调用
- * 保留系统提示词和最近的消息，删除中间的消息
- */
-async _truncateMessageHistory(agentId) {
-  const runtime = this.runtime;
-  const conversationManager = runtime._conversationManager;
-  
-  if (!conversationManager) return;
-  
-  const beforeCount = conversationManager.getMessageCount(agentId);
-  const beforeStatus = conversationManager.getContextStatus(agentId);
-  
-  void runtime.log?.warn?.("tokens 超过硬性限制，开始截断消息历史", {
-    agentId,
-    messageCount: beforeCount,
-    usedTokens: beforeStatus.usedTokens,
-    maxTokens: beforeStatus.maxTokens
-  });
-  
-  try {
-    // 获取对话历史
-    const conv = conversationManager.conversations.get(agentId);
-    if (!conv || conv.length <= 2) {
-      return; // 消息太少，无法截断
-    }
-    
-    // 保留系统提示词和最近的消息
-    const keepRecentCount = conversationManager.autoCompression?.keepRecentCount ?? 10;
-    const systemPrompt = conv[0];
-    const recentMessages = conv.slice(-keepRecentCount);
-    
-    // 构建截断后的对话历史
-    const truncatedConv = [systemPrompt, ...recentMessages];
-    
-    // 更新对话历史
-    conversationManager.conversations.set(agentId, truncatedConv);
-    
-    // 清除 token 统计
-    conversationManager.clearTokenUsage(agentId);
-    
-    const afterCount = conversationManager.getMessageCount(agentId);
-    
-    void runtime.log?.warn?.("消息历史截断完成", {
-      agentId,
-      beforeCount,
-      afterCount,
-      removedCount: beforeCount - afterCount
-    });
-    
-    // 持久化截断后的对话历史
-    void conversationManager.persistConversation(agentId);
-  } catch (err) {
-    void runtime.log?.error?.("截断消息历史失败", {
-      agentId,
-      error: err.message ?? String(err)
-    });
-  }
-}
-```
+**说明**：只添加一行调用代码，压缩管理器内部会自己判断是否需要压缩，需要则直接修改会话数据。
 
 ## 3. 数据结构设计
 
@@ -261,105 +208,92 @@ interface AutoCompressionConfig {
 }
 ```
 
-### 3.2 压缩结果
+### 3.2 会话消息数组
 
 ```typescript
-interface CompressionResult {
-  ok: boolean;                   // 是否成功
-  compressed?: boolean;          // 是否实际执行了压缩
-  originalCount?: number;        // 压缩前消息数量
-  newCount?: number;             // 压缩后消息数量
-  summary?: string;              // 生成的摘要
-  error?: string;                // 错误信息
+// 压缩管理器直接接收会话消息数组，这是 ConversationManager 中的实际数据结构
+// 消息数组格式：
+interface Message {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  // 其他 OpenAI 消息格式字段...
+  // 每条消息可能包含 token 统计信息（由 LLM 调用时添加）
+}
+
+// 会话消息数组就是 Message[]，存储在 ConversationManager.conversations Map 中
+```
+
+### 3.3 Token 使用统计
+
+```typescript
+interface TokenUsage {
+  promptTokens: number;          // 提示词 token 数
+  completionTokens: number;      // 完成 token 数
+  totalTokens: number;           // 总 token 数
+  updatedAt: number;             // 更新时间戳
 }
 ```
 
-### 3.3 摘要生成结果
+### 3.4 上下文限制配置
 
 ```typescript
-interface SummaryResult {
-  ok: boolean;                   // 是否成功
-  summary?: string;              // 生成的摘要
-  error?: string;                // 错误信息
-}
-```
-
-### 3.4 压缩记录
-
-```typescript
-interface CompressionRecord {
-  timestamp: string;             // 压缩时间戳（ISO 格式）
-  summary: string;               // 压缩摘要内容
-  compressedRange: {             // 被压缩的消息范围
-    start: number;               // 起始索引
-    end: number;                 // 结束索引
-  };
-  compressedMessages: Message[]; // 被压缩的原始消息（完整保留）
-  originalCount: number;         // 压缩前消息总数
-  newCount: number;              // 压缩后消息总数
-}
-```
-
-### 3.5 持久化数据结构
-
-```typescript
-interface PersistedConversation {
-  agentId: string;               // 智能体ID
-  messages: Message[];           // 完整历史消息（未压缩）
-  runtimeMessages: Message[];    // 运行时消息（压缩后）
-  compressions: CompressionRecord[]; // 压缩记录列表
-  tokenUsage: TokenUsage | null; // Token 使用统计
-  updatedAt: string;             // 更新时间（ISO 格式）
+interface ContextLimit {
+  maxTokens: number;             // 最大 token 数
+  warningThreshold: number;      // 警告阈值（0-1）
+  criticalThreshold: number;     // 严重警告阈值（0-1）
+  hardLimitThreshold: number;    // 硬性限制阈值（0-1）
 }
 ```
 
 ## 4. 接口设计
 
-### 4.1 ConversationManager 新增接口
+### 4.1 AutoCompressionManager 接口
 
 ```javascript
-// 检查是否应该自动压缩
-shouldAutoCompress(agentId: string): boolean
-
-// 生成压缩摘要
-generateCompressionSummary(
-  agentId: string, 
-  messagesToCompress: Message[], 
-  llmClient: LlmClient
-): Promise<SummaryResult>
-
-// 执行自动压缩
-autoCompress(
-  agentId: string, 
-  llmClient: LlmClient
-): Promise<CompressionResult>
-
-// 设置自动压缩配置
-setAutoCompressionConfig(config: Partial<AutoCompressionConfig>): void
-
-// 获取自动压缩配置
-getAutoCompressionConfig(): AutoCompressionConfig
-
-// 获取压缩历史记录
-getCompressionHistory(agentId: string): CompressionRecord[]
-
-// 获取完整历史消息
-getFullHistory(agentId: string): Message[] | null
+/**
+ * 压缩管理器类
+ */
+class AutoCompressionManager {
+  /**
+   * 构造函数
+   * @param {Object} configService - 配置服务引用
+   * @param {Object} llmClient - LLM 客户端引用
+   * @param {Object} logger - 日志记录器
+   */
+  constructor(configService, llmClient, logger)
+  
+  /**
+   * 处理会话的自动压缩
+   * @param {Array} messages - 会话消息数组（引用传递）
+   * @returns {Promise<void>}
+   */
+  async process(messages): Promise<void>
+}
 ```
 
-### 4.2 LlmHandler 新增接口
+### 4.2 ConversationManager 新增接口
 
 ```javascript
-// 执行自动压缩流程（私有方法）
-_performAutoCompression(
-  agentId: string, 
-  llmClient: LlmClient
-): Promise<void>
+/**
+ * 设置压缩管理器
+ * @param {AutoCompressionManager} manager - 压缩管理器实例
+ */
+setAutoCompressionManager(manager): void
 
-// 截断消息历史（私有方法）
-_truncateMessageHistory(
-  agentId: string
-): Promise<void>
+/**
+ * 执行自动压缩
+ * @param {string} agentId - 智能体ID
+ * @returns {Promise<void>}
+ */
+async processAutoCompression(agentId): Promise<void>
+```
+
+### 4.3 LlmHandler 修改
+
+在 `handleWithLlm()` 方法中添加一行调用代码：
+
+```javascript
+await runtime._conversationManager.processAutoCompression?.(agentId);
 ```
 
 ## 5. 流程设计
@@ -703,27 +637,21 @@ describe('Auto Compression Performance', () => {
 
 ## 10. 兼容性说明
 
-### 10.1 向后兼容
+### 10.1 与现有功能的关系
 
-- 保持现有 `compress_context` 工具不变
-- 保持现有 API 接口不变
-- 默认启用自动压缩，但可配置禁用
-
-### 10.2 与现有功能的关系
-
-#### 10.2.1 与手动压缩的关系
+#### 10.1.1 与手动压缩的关系
 
 - 自动压缩和手动压缩可以共存
 - 智能体仍可主动调用 `compress_context` 工具
 - 手动压缩的优先级高于自动压缩
 
-#### 10.2.2 与上下文限制的关系
+#### 10.1.2 与上下文限制的关系
 
 - 自动压缩在硬性限制检查之前执行
 - 如果自动压缩后仍超过硬性限制，按现有流程拒绝调用
 - 自动压缩失败不影响硬性限制检查
 
-#### 10.2.3 与对话持久化的关系
+#### 10.1.3 与对话持久化的关系
 
 - 自动压缩后自动触发对话持久化
 - 压缩后的对话历史会被保存到磁盘
