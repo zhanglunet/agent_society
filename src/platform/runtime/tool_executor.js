@@ -176,7 +176,10 @@ export class ToolExecutor {
           parameters: {
             type: "object",
             properties: {
-              type: { type: "string" },
+              type: { 
+                type: "string", 
+                description: "工件的MIME类型，如 'application/json', 'text/plain', 'text/html', 'image/png' 等。必须使用标准MIME类型，不要使用文件扩展名。" 
+              },
               content: {},
               name: { type: "string", description: "工件名称，用于在工件管理器中显示" },
               meta: { type: "object" }

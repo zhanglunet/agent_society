@@ -3,6 +3,12 @@
  * 显示与选中智能体的对话消息，支持发送消息
  */
 
+// 导入MIME类型常量
+import { 
+  IMAGE_MIME_TYPES, JSON_MIME_TYPES, TEXT_MIME_TYPES, CODE_MIME_TYPES, 
+  HTML_MIME_TYPE, CSS_MIME_TYPE, isImageType, getArtifactGroupType, getFileIconByMimeType
+} from '../utils/mime-types.mjs';
+
 const ChatPanel = {
   // 组件状态
   currentAgentId: null,  // 当前智能体 ID
@@ -71,6 +77,9 @@ const ChatPanel = {
     
     // 绑定上传按钮事件
     this._bindUploadEvents();
+    
+    // 初始化工件交互处理器
+    this._initArtifactInteractionHandler();
   },
 
   /**
@@ -196,6 +205,530 @@ const ChatPanel = {
     
     // 作为普通文件添加
     AttachmentManager.add(file, 'file');
+  },
+
+  /**
+   * 初始化工件交互处理器
+   * 使用事件委托处理动态生成的工件链接点击
+   * @private
+   */
+  _initArtifactInteractionHandler() {
+    if (!this.messageList) return;
+    
+    // 初始化工件类型处理器注册表
+    this._initArtifactTypeHandlers();
+    
+    // 使用事件委托监听工件链接点击
+    this.messageList.addEventListener('click', (e) => {
+      // 检查是否点击了工件链接
+      if (e.target.classList.contains('artifact-link')) {
+        e.preventDefault(); // 阻止默认的链接跳转行为
+        
+        // 从事件目标获取工件信息
+        const artifactType = e.target.dataset.artifactType;
+        const artifactId = e.target.dataset.artifactId;
+        const artifactContent = e.target.dataset.artifactContent;
+        const artifactName = e.target.textContent.trim();
+        
+        // 构建工件对象
+        const artifact = {
+          id: artifactId,
+          type: artifactType,
+          name: artifactName,
+          content: artifactContent
+        };
+        
+        // 处理工件点击
+        this._handleArtifactClick(artifact);
+      }
+    });
+  },
+
+  /**
+   * 初始化工件类型处理器注册表
+   * 使用注册机制避免条件判断堆叠
+   * 只支持标准MIME类型
+   * @private
+   */
+  _initArtifactTypeHandlers() {
+    // 工件类型处理器注册表
+    this._artifactTypeHandlers = new Map();
+    
+    // 注册图片类型处理器
+    IMAGE_MIME_TYPES.forEach(type => {
+      this._artifactTypeHandlers.set(type, this._handleImageArtifact.bind(this));
+    });
+    
+    // 注册 JSON 类型处理器
+    JSON_MIME_TYPES.forEach(type => {
+      this._artifactTypeHandlers.set(type, this._handleJsonArtifact.bind(this));
+    });
+    
+    // 注册文本类型处理器
+    TEXT_MIME_TYPES.forEach(type => {
+      this._artifactTypeHandlers.set(type, this._handleTextArtifact.bind(this));
+    });
+    
+    // 注册代码类型处理器
+    CODE_MIME_TYPES.forEach(type => {
+      this._artifactTypeHandlers.set(type, this._handleCodeArtifact.bind(this));
+    });
+    
+    // 注册 HTML 类型处理器
+    this._artifactTypeHandlers.set(HTML_MIME_TYPE, this._handleHtmlArtifact.bind(this));
+    
+    // 注册 CSS 类型处理器
+    this._artifactTypeHandlers.set(CSS_MIME_TYPE, this._handleCssArtifact.bind(this));
+    
+    // 默认处理器（用于未注册的类型）
+    this._defaultArtifactHandler = this._handleUnknownArtifact.bind(this);
+  },
+
+  /**
+   * 处理工件点击事件
+   * 使用注册机制根据工件类型选择合适的处理方式
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleArtifactClick(artifact) {
+    try {
+      // 验证工件对象
+      if (!artifact || !artifact.id) {
+        throw new Error('无效的工件对象');
+      }
+      
+      const artifactType = (artifact.type || '').toLowerCase();
+      
+      // 从注册表中获取对应的处理器
+      const handler = this._artifactTypeHandlers.get(artifactType) || this._defaultArtifactHandler;
+      
+      // 调用处理器
+      handler(artifact);
+      
+    } catch (error) {
+      console.error('[ChatPanel] 处理工件点击失败:', {
+        artifactId: artifact?.id,
+        artifactType: artifact?.type,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      // 使用统一的错误处理
+      this._handleArtifactError(artifact, error, '工件点击处理失败');
+    }
+  },
+
+  /**
+   * 处理图片工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleImageArtifact(artifact) {
+    try {
+      if (window.ImageViewer) {
+        window.ImageViewer.show([artifact.content], 0);
+      } else {
+        console.warn('ImageViewer 不可用，使用默认浏览器行为');
+        this._openArtifactInNewTab(artifact);
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 图片工件处理失败:', error);
+      this._handleArtifactError(artifact, error, '图片查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理 JSON 工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleJsonArtifact(artifact) {
+    try {
+      this._openArtifactWithManager(artifact);
+    } catch (error) {
+      console.error('[ChatPanel] JSON工件处理失败:', error);
+      this._handleArtifactError(artifact, error, 'JSON查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理文本工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleTextArtifact(artifact) {
+    try {
+      this._openArtifactWithManager(artifact);
+    } catch (error) {
+      console.error('[ChatPanel] 文本工件处理失败:', error);
+      this._handleArtifactError(artifact, error, '文本查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理代码工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleCodeArtifact(artifact) {
+    try {
+      this._openArtifactWithManager(artifact);
+    } catch (error) {
+      console.error('[ChatPanel] 代码工件处理失败:', error);
+      this._handleArtifactError(artifact, error, '代码查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理 HTML 工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleHtmlArtifact(artifact) {
+    try {
+      this._openArtifactWithManager(artifact);
+    } catch (error) {
+      console.error('[ChatPanel] HTML工件处理失败:', error);
+      this._handleArtifactError(artifact, error, 'HTML查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理 CSS 工件点击
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleCssArtifact(artifact) {
+    try {
+      this._openArtifactWithManager(artifact);
+    } catch (error) {
+      console.error('[ChatPanel] CSS工件处理失败:', error);
+      this._handleArtifactError(artifact, error, 'CSS查看器打开失败');
+    }
+  },
+
+  /**
+   * 处理未知类型工件点击（默认处理器）
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _handleUnknownArtifact(artifact) {
+    try {
+      console.warn('[ChatPanel] 未知工件类型，使用默认处理方式:', artifact.type);
+      
+      // 尝试使用工件管理器，如果失败则在新标签页打开
+      if (window.ArtifactManager) {
+        this._openArtifactWithManager(artifact);
+      } else {
+        this._openArtifactInNewTab(artifact);
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 未知工件处理失败:', error);
+      this._handleArtifactError(artifact, error, '工件查看器打开失败');
+    }
+  },
+
+  /**
+   * 使用工件管理器打开工件
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _openArtifactWithManager(artifact) {
+    try {
+      // 检查工件管理器是否可用
+      if (!window.ArtifactManager) {
+        throw new Error('工件管理器不可用');
+      }
+      
+      // 检查是否有全局的工件管理器实例
+      if (window.App && window.App.artifactManager) {
+        // 使用现有的工件管理器实例
+        const manager = window.App.artifactManager;
+        
+        // 构建符合工件管理器期望的工件对象格式
+        const managerArtifact = {
+          id: artifact.id,
+          type: artifact.type,
+          name: artifact.name,
+          filename: artifact.name,
+          content: artifact.content
+        };
+        
+        // 显示工件管理器窗口
+        manager.show();
+        
+        // 打开工件
+        manager.openArtifact(managerArtifact);
+        
+      } else {
+        // 创建临时的工件管理器实例
+        const tempContainer = document.createElement('div');
+        tempContainer.style.display = 'none';
+        document.body.appendChild(tempContainer);
+        
+        const tempManager = new window.ArtifactManager({
+          container: tempContainer,
+          api: window.API
+        });
+        
+        // 构建符合工件管理器期望的工件对象格式
+        const managerArtifact = {
+          id: artifact.id,
+          type: artifact.type,
+          name: artifact.name,
+          filename: artifact.name,
+          content: artifact.content
+        };
+        
+        // 打开工件
+        tempManager.openArtifact(managerArtifact);
+        
+        // 清理临时容器（延迟清理，确保工件管理器有时间初始化）
+        setTimeout(() => {
+          try {
+            if (tempContainer.parentNode) {
+              tempContainer.parentNode.removeChild(tempContainer);
+            }
+          } catch (cleanupError) {
+            console.warn('[ChatPanel] 清理临时容器失败:', cleanupError);
+          }
+        }, 1000);
+      }
+      
+    } catch (error) {
+      console.error('[ChatPanel] 使用工件管理器打开工件失败:', error);
+      
+      // 抛出错误，让调用者处理
+      throw new Error(`工件管理器打开失败: ${error.message}`);
+    }
+  },
+
+  /**
+   * 在新标签页中打开工件（后备方案）
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _openArtifactInNewTab(artifact) {
+    try {
+      if (!artifact.content) {
+        throw new Error('工件内容为空');
+      }
+      
+      const artifactUrl = `/artifacts/${encodeURIComponent(artifact.content)}`;
+      const newWindow = window.open(artifactUrl, '_blank');
+      
+      // 检查是否成功打开新窗口（可能被弹窗阻止器阻止）
+      if (!newWindow) {
+        throw new Error('无法打开新窗口，可能被弹窗阻止器阻止');
+      }
+      
+    } catch (error) {
+      console.error('[ChatPanel] 在新标签页打开工件失败:', error);
+      
+      // 抛出错误，让调用者处理
+      throw new Error(`新标签页打开失败: ${error.message}`);
+    }
+  },
+
+  /**
+   * 处理工件错误的统一方法
+   * @param {object} artifact - 工件对象
+   * @param {Error} error - 错误对象
+   * @param {string} userMessage - 用户友好的错误消息
+   * @private
+   */
+  _handleArtifactError(artifact, error, userMessage) {
+    // 记录详细错误信息
+    console.error('[ChatPanel] 工件处理错误:', {
+      artifactId: artifact.id,
+      artifactType: artifact.type,
+      artifactName: artifact.name,
+      userMessage: userMessage,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    // 显示用户友好的错误提示
+    this._showArtifactClickError(artifact, error, userMessage);
+  },
+
+  /**
+   * 显示工件点击错误提示
+   * @param {object} artifact - 工件对象
+   * @param {Error} error - 错误对象
+   * @param {string} userMessage - 用户友好的错误消息
+   * @private
+   */
+  _showArtifactClickError(artifact, error, userMessage = '打开工件失败') {
+    const fullMessage = `${userMessage}: ${error.message}`;
+    
+    // 使用 Toast 显示错误（如果可用）
+    if (window.Toast) {
+      window.Toast.show(fullMessage, 'error');
+      
+      // 延迟显示后备选项，避免同时弹出多个提示
+      setTimeout(() => {
+        this._showFallbackOptions(artifact);
+      }, 2000);
+      
+    } else {
+      // 后备方案：使用 alert
+      alert(fullMessage);
+      this._showFallbackOptions(artifact);
+    }
+  },
+
+  /**
+   * 显示后备选项
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _showFallbackOptions(artifact) {
+    // 构建后备选项
+    const options = [];
+    
+    // 选项1：在新标签页中打开
+    options.push({
+      text: '在新标签页中打开',
+      action: () => {
+        try {
+          this._openArtifactInNewTab(artifact);
+        } catch (fallbackError) {
+          console.error('[ChatPanel] 后备方案也失败了:', fallbackError);
+          if (window.Toast) {
+            window.Toast.show('所有打开方式都失败了', 'error');
+          } else {
+            alert('所有打开方式都失败了');
+          }
+        }
+      }
+    });
+    
+    // 选项2：复制工件链接
+    options.push({
+      text: '复制工件链接',
+      action: () => {
+        const artifactUrl = `${window.location.origin}/artifacts/${encodeURIComponent(artifact.content)}`;
+        this._copyToClipboard(artifactUrl, '工件链接已复制到剪贴板');
+      }
+    });
+    
+    // 选项3：查看工件信息
+    options.push({
+      text: '查看工件信息',
+      action: () => {
+        this._showArtifactInfo(artifact);
+      }
+    });
+    
+    // 如果有 Toast 系统，使用更友好的选项显示
+    if (window.Toast && window.Toast.showOptions) {
+      window.Toast.showOptions('选择其他方式打开工件:', options);
+    } else {
+      // 后备方案：使用 confirm 对话框
+      const optionText = options.map((opt, index) => `${index + 1}. ${opt.text}`).join('\n');
+      const choice = prompt(`选择其他方式打开工件:\n${optionText}\n\n请输入选项编号 (1-${options.length}):`);
+      
+      const choiceIndex = parseInt(choice) - 1;
+      if (choiceIndex >= 0 && choiceIndex < options.length) {
+        options[choiceIndex].action();
+      }
+    }
+  },
+
+  /**
+   * 复制文本到剪贴板
+   * @param {string} text - 要复制的文本
+   * @param {string} successMessage - 成功消息
+   * @private
+   */
+  _copyToClipboard(text, successMessage = '已复制到剪贴板') {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        // 使用现代 Clipboard API
+        navigator.clipboard.writeText(text).then(() => {
+          if (window.Toast) {
+            window.Toast.show(successMessage, 'success');
+          } else {
+            alert(successMessage);
+          }
+        }).catch((error) => {
+          console.error('[ChatPanel] 复制到剪贴板失败:', error);
+          this._fallbackCopyToClipboard(text, successMessage);
+        });
+      } else {
+        // 后备方案
+        this._fallbackCopyToClipboard(text, successMessage);
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 复制操作失败:', error);
+      if (window.Toast) {
+        window.Toast.show('复制失败', 'error');
+      } else {
+        alert('复制失败');
+      }
+    }
+  },
+
+  /**
+   * 后备的复制到剪贴板方法
+   * @param {string} text - 要复制的文本
+   * @param {string} successMessage - 成功消息
+   * @private
+   */
+  _fallbackCopyToClipboard(text, successMessage) {
+    try {
+      // 创建临时文本区域
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      
+      // 选择并复制
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      
+      // 清理
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        if (window.Toast) {
+          window.Toast.show(successMessage, 'success');
+        } else {
+          alert(successMessage);
+        }
+      } else {
+        throw new Error('execCommand 复制失败');
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 后备复制方法失败:', error);
+      // 最后的后备方案：显示文本让用户手动复制
+      prompt('请手动复制以下链接:', text);
+    }
+  },
+
+  /**
+   * 显示工件信息
+   * @param {object} artifact - 工件对象
+   * @private
+   */
+  _showArtifactInfo(artifact) {
+    const info = [
+      `工件ID: ${artifact.id}`,
+      `工件类型: ${artifact.type || '未知'}`,
+      `工件名称: ${artifact.name || '未知'}`,
+      `工件内容: ${artifact.content || '无'}`,
+      `工件链接: ${window.location.origin}/artifacts/${encodeURIComponent(artifact.content)}`
+    ].join('\n');
+    
+    if (window.Toast && window.Toast.showInfo) {
+      window.Toast.showInfo('工件信息', info);
+    } else {
+      alert(`工件信息:\n\n${info}`);
+    }
   },
 
   /**
@@ -913,9 +1446,9 @@ const ChatPanel = {
   },
 
   /**
-   * 从文件名推断工件类型
+   * 从文件名推断工件类型（返回MIME类型）
    * @param {string} filename - 文件名
-   * @returns {string|null} 推断的类型
+   * @returns {string|null} 推断的MIME类型
    * @private
    */
   _inferTypeFromFilename(filename) {
@@ -924,101 +1457,50 @@ const ChatPanel = {
     const ext = filename.toLowerCase().split('.').pop();
     if (!ext) return null;
     
-    // 图片类型
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
-      return 'image';
-    }
+    // 扩展名到MIME类型的映射
+    const extToMimeMap = {
+      // 图片类型
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      'bmp': 'image/bmp',
+      'tiff': 'image/tiff',
+      
+      // JSON 类型
+      'json': 'application/json',
+      
+      // 文本类型
+      'txt': 'text/plain',
+      'md': 'text/markdown',
+      'markdown': 'text/x-markdown',
+      
+      // HTML 类型
+      'html': 'text/html',
+      'htm': 'text/html',
+      
+      // CSS 类型
+      'css': 'text/css',
+      
+      // 代码类型
+      'js': 'text/javascript',
+      'ts': 'text/typescript',
+      'py': 'text/x-python',
+      'java': 'text/x-java-source',
+      'c': 'text/x-c',
+      'cpp': 'text/x-c++',
+      'go': 'text/x-go',
+      'rust': 'text/x-rust',
+      'rb': 'text/x-ruby',
+      'php': 'text/x-php'
+    };
     
-    // JSON 类型
-    if (['json'].includes(ext)) {
-      return 'json';
-    }
-    
-    // 文本类型
-    if (['txt', 'md', 'markdown'].includes(ext)) {
-      return 'text';
-    }
-    
-    // HTML 类型
-    if (['html', 'htm'].includes(ext)) {
-      return 'html';
-    }
-    
-    // CSS 类型
-    if (['css'].includes(ext)) {
-      return 'css';
-    }
-    
-    // 代码类型
-    if (['js', 'ts', 'py', 'java', 'c', 'cpp', 'go', 'rust', 'rb', 'php'].includes(ext)) {
-      return 'code';
-    }
-    
-    return null;
+    return extToMimeMap[ext] || null;
   },
 
-  /**
-   * 判断工件是否为图片类型
-   * @param {object} artifact - 工件对象
-   * @returns {boolean} 是否为图片类型
-   * @private
-   */
-  _isImageArtifact(artifact) {
-    // 复用 ArtifactManager 的类型判断逻辑
-    if (window.ArtifactManager && typeof window.ArtifactManager._isImageType === 'function') {
-      return window.ArtifactManager._isImageType(artifact.type);
-    }
-    
-    // 后备判断逻辑
-    const imageTypes = ['image', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'screenshot', 'svg'];
-    return imageTypes.includes((artifact.type || '').toLowerCase());
-  },
 
-  /**
-   * 识别工件的分组类型
-   * @param {object} artifact - 工件对象
-   * @returns {string} 分组类型
-   * @private
-   */
-  _getArtifactGroupType(artifact) {
-    const type = (artifact.type || '').toLowerCase();
-    
-    // 图片类型
-    if (this._isImageArtifact(artifact)) {
-      return 'image';
-    }
-    
-    // JSON 类型
-    const jsonTypes = ['json', 'config', 'settings', 'data'];
-    if (jsonTypes.includes(type)) {
-      return 'json';
-    }
-    
-    // 文本类型
-    const textTypes = ['text', 'txt', 'markdown', 'md', 'book_chapter', 'chapter', 'document', 'article', 'note'];
-    if (textTypes.includes(type)) {
-      return 'text';
-    }
-    
-    // 代码类型
-    const codeTypes = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'java', 'c', 'cpp', 'go', 'rust', 'ruby', 'php'];
-    if (codeTypes.includes(type)) {
-      return 'code';
-    }
-    
-    // HTML 类型
-    if (type === 'html' || type === 'text/html') {
-      return 'html';
-    }
-    
-    // CSS 类型
-    if (type === 'css') {
-      return 'css';
-    }
-    
-    // 默认为其他类型
-    return 'other';
-  },
 
   /**
    * 获取分组的显示信息（名称和图标）
@@ -1080,7 +1562,7 @@ const ChatPanel = {
     const groups = new Map();
     
     for (const artifact of artifacts) {
-      const groupType = this._getArtifactGroupType(artifact);
+      const groupType = getArtifactGroupType(artifact.type);
       
       if (!groups.has(groupType)) {
         groups.set(groupType, []);
@@ -1141,6 +1623,9 @@ const ChatPanel = {
           href="${artifactUrl}" 
           target="_blank" 
           title="${this.escapeHtml(displayName)}"
+          data-artifact-type="${this.escapeHtml(artifact.type || 'unknown')}"
+          data-artifact-id="${this.escapeHtml(artifact.id)}"
+          data-artifact-content="${this.escapeHtml(artifact.content)}"
         >
           ${this.escapeHtml(displayName)}
         </a>

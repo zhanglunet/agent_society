@@ -3,6 +3,13 @@
  * 独立浮动窗口，支持图标/详情视图，可放大到全屏
  * 支持左侧边栏显示工件和工作空间列表
  */
+
+// 导入MIME类型常量和工具函数
+import { 
+  IMAGE_MIME_TYPES, JSON_MIME_TYPES, TEXT_MIME_TYPES, CODE_MIME_TYPES, 
+  HTML_MIME_TYPE, CSS_MIME_TYPE, isImageType, getFileIconByMimeType
+} from '../utils/mime-types.mjs';
+
 class ArtifactManager {
   constructor(options = {}) {
     this.container = options.container || document.getElementById("artifact-manager");
@@ -470,7 +477,7 @@ class ArtifactManager {
       
       this.workspaceFiles = (response.files || []).map(file => {
         const type = this._getFileTypeFromExtension(file.extension);
-        const isImage = this._isImageType(type);
+        const isImage = isImageType(type);
         return {
           ...file,
           id: `${workspaceId}/${file.path}`,
@@ -494,26 +501,52 @@ class ArtifactManager {
   }
 
   /**
-   * 根据扩展名获取文件类型
+   * 根据扩展名获取MIME类型
    */
   _getFileTypeFromExtension(ext) {
     const extLower = (ext || "").toLowerCase().replace(".", "");
-    const typeMap = {
-      "js": "javascript",
-      "ts": "typescript",
-      "json": "json",
-      "html": "html",
-      "css": "css",
-      "md": "markdown",
-      "txt": "text",
-      "png": "image",
-      "jpg": "image",
-      "jpeg": "image",
-      "gif": "image",
-      "webp": "image",
-      "svg": "image"
+    
+    // 扩展名到MIME类型的映射
+    const extToMimeMap = {
+      // 图片类型
+      "png": "image/png",
+      "jpg": "image/jpeg", 
+      "jpeg": "image/jpeg",
+      "gif": "image/gif",
+      "webp": "image/webp",
+      "svg": "image/svg+xml",
+      "bmp": "image/bmp",
+      "tiff": "image/tiff",
+      
+      // JSON类型
+      "json": "application/json",
+      
+      // 文本类型
+      "txt": "text/plain",
+      "md": "text/markdown",
+      "markdown": "text/x-markdown",
+      
+      // HTML类型
+      "html": "text/html",
+      "htm": "text/html",
+      
+      // CSS类型
+      "css": "text/css",
+      
+      // 代码类型
+      "js": "text/javascript",
+      "ts": "text/typescript",
+      "py": "text/x-python",
+      "java": "text/x-java-source",
+      "c": "text/x-c",
+      "cpp": "text/x-c++",
+      "go": "text/x-go",
+      "rust": "text/x-rust",
+      "rb": "text/x-ruby",
+      "php": "text/x-php"
     };
-    return typeMap[extLower] || extLower || "file";
+    
+    return extToMimeMap[extLower] || "application/octet-stream";
   }
 
   /**
@@ -640,7 +673,7 @@ class ArtifactManager {
       const type = (this.selectedArtifact.type || "").toLowerCase();
       
       // 图片类型：复制图片 URL 或提示
-      if (this._isImageType(type)) {
+      if (isImageType(type)) {
         const imageUrl = this._getImageUrl(this.selectedArtifact.content);
         if (imageUrl.startsWith("data:")) {
           // base64 图片，复制 data URL
@@ -691,7 +724,7 @@ class ArtifactManager {
       let filename = displayName;
 
       // 图片类型
-      if (this._isImageType(type)) {
+      if (isImageType(type)) {
         const imageUrl = this._getImageUrl(artifact.content);
         if (imageUrl.startsWith("data:")) {
           // base64 图片
@@ -863,7 +896,7 @@ class ArtifactManager {
           try {
             // 如果 API 已经返回了元信息，直接使用
             if (artifact.type) {
-              const isImage = this._isImageType(artifact.type);
+              const isImage = isImageType(artifact.type);
               return {
                 ...artifact,
                 content: isImage ? artifact.filename : null,
@@ -950,7 +983,7 @@ class ArtifactManager {
       if (this.extensionFilters.size > 0) {
         const type = (item.type || "").toLowerCase();
         const content = item.content;
-        const isImage = this._isImageType(type);
+        const isImage = isImageType(type);
         const isText = typeof content === "string";
         const isJson = typeof content === "object" && content !== null;
         
@@ -980,7 +1013,7 @@ class ArtifactManager {
     this._renderList();
     
     // 如果查看器打开且正在查看图片，更新图片导航
-    if (this.isViewerOpen && this.selectedArtifact && this._isImageType(this.selectedArtifact.type)) {
+    if (this.isViewerOpen && this.selectedArtifact && isImageType(this.selectedArtifact.type)) {
       this._updateImageNavigation();
     }
   }
@@ -1050,7 +1083,7 @@ class ArtifactManager {
     this.listPanel.innerHTML = items.map(item => {
       const type = item.type || "unknown";
       const displayName = item.actualFilename || item.filename || item.name;
-      const isImage = this._isImageType(type);
+      const isImage = isImageType(type);
       const hasSource = item.messageId || (!item.isWorkspaceFile);
       const sourceBtn = hasSource ? `<button class="artifact-source-btn" data-id="${item.id}" title="跳转到来源消息">↗</button>` : '';
       
@@ -1071,7 +1104,7 @@ class ArtifactManager {
       }
       
       // 非图片类型显示图标
-      const icon = this._getFileIconByType(type);
+      const icon = getFileIconByMimeType(type);
       return `
         <div class="artifact-item" data-id="${item.id}" title="${this._escapeHtml(displayName)}">
           <div class="artifact-icon">${icon}</div>
@@ -1096,7 +1129,7 @@ class ArtifactManager {
       </div>
     ` + items.map(item => {
       const type = item.type || "unknown";
-      const icon = this._getFileIconByType(type);
+      const icon = getFileIconByMimeType(type);
       const displayName = item.actualFilename || item.filename || item.name;
       const hasSource = item.messageId || (!item.isWorkspaceFile);
       return `
@@ -1116,39 +1149,9 @@ class ArtifactManager {
     }).join("");
   }
 
-  /**
-   * 根据类型获取文件图标
-   */
-  _getFileIconByType(type) {
-    // 已知的 JSON 数据类型
-    const jsonTypes = ["json", "config", "settings", "data"];
-    // 已知的文本/Markdown 类型
-    const textTypes = ["text", "txt", "markdown", "md", "book_chapter", "chapter", "document", "article", "note"];
-    // 已知的图片类型
-    const imageTypes = ["image", "png", "jpg", "jpeg", "gif", "webp", "screenshot", "svg"];
-    // 已知的代码类型
-    const codeTypes = ["javascript", "js", "typescript", "ts", "html", "css", "python", "py", "java", "c", "cpp", "go", "rust", "ruby", "php"];
-    
-    const lowerType = (type || "").toLowerCase();
-    
-    if (jsonTypes.includes(lowerType)) return "📄";
-    if (textTypes.includes(lowerType)) return "📝";
-    if (imageTypes.includes(lowerType)) return "🖼️";
-    if (codeTypes.includes(lowerType)) return "💻";
-    if (lowerType === "html") return "🌐";
-    if (lowerType === "css") return "🎨";
-    
-    // 默认显示为文档图标
-    return "📋";
-  }
 
-  /**
-   * 检查是否为图片类型
-   */
-  _isImageType(type) {
-    const imageTypes = ["image", "png", "jpg", "jpeg", "gif", "webp", "screenshot", "svg"];
-    return imageTypes.includes((type || "").toLowerCase());
-  }
+
+
 
   /**
    * 根据工件类型和内容获取查看器类型
@@ -1157,13 +1160,13 @@ class ArtifactManager {
     const lowerType = (type || "").toLowerCase();
     
     // 图片类型
-    if (this._isImageType(lowerType)) return "image";
+    if (isImageType(lowerType)) return "image";
     
-    // HTML 类型使用 iframe 查看器（支持 "html" 和 "text/html" MIME类型）
-    if (lowerType === "html" || lowerType === "text/html") return "html";
+    // HTML 类型使用 iframe 查看器
+    if (lowerType === HTML_MIME_TYPE) return "html";
     
-    // JSON 类型检查：通过 type 或 MIME 类型判断
-    if (lowerType === "json" || lowerType === "application/json") {
+    // JSON 类型检查
+    if (JSON_MIME_TYPES.includes(lowerType)) {
       return "json";
     }
     
@@ -1231,7 +1234,7 @@ class ArtifactManager {
         };
       } else {
         // 普通工件
-        const isImage = this._isImageType(artifact.type);
+        const isImage = isImageType(artifact.type);
         
         if (isImage) {
           // 图片类型：不需要通过 API 加载内容，直接使用文件名
@@ -1620,7 +1623,7 @@ class ArtifactManager {
     // 只保留图片类型
     return sourceData.filter(item => {
       const type = (item.type || "").toLowerCase();
-      return this._isImageType(type);
+      return isImageType(type);
     });
   }
 
@@ -1633,7 +1636,7 @@ class ArtifactManager {
     this.imageList = this._getFilteredImages();
     
     // 如果当前工件是图片，找到它的索引
-    if (this.selectedArtifact && this._isImageType(this.selectedArtifact.type)) {
+    if (this.selectedArtifact && isImageType(this.selectedArtifact.type)) {
       this.currentImageIndex = this.imageList.findIndex(
         img => img.id === this.selectedArtifact.id
       );
@@ -1774,7 +1777,7 @@ class ArtifactManager {
     }
     
     // 检查是否为图片类型
-    if (!this._isImageType(this.selectedArtifact.type)) {
+    if (!isImageType(this.selectedArtifact.type)) {
       return;
     }
     

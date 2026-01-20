@@ -119,3 +119,33 @@ spawn_agent_with_task({
 - 工作成果很多的时候（300字以上）应该使用 put_artifact 保存为文件，然后用 send_message 回传 artifactRef ，发送给上级和user
 - 你可以用 put_artifact 保存任何文件，包括图片、视频、文档、代码等
 - 超过100字，不到300字的，根据具体情况决定
+
+【put_artifact 类型规范】
+使用 put_artifact 时，type 参数必须使用标准MIME类型，不要使用文件扩展名：
+- JSON文件：使用 "application/json"
+- 纯文本：使用 "text/plain"
+- HTML文件：使用 "text/html"
+- CSS文件：使用 "text/css"
+- JavaScript：使用 "text/javascript"
+- Markdown：使用 "text/markdown"
+- PNG图片：使用 "image/png"
+- JPEG图片：使用 "image/jpeg"
+- 其他类型请参考标准MIME类型规范
+
+示例：
+```
+put_artifact({
+  type: "application/json",  // 正确：使用MIME类型
+  content: {...},
+  name: "配置文件"
+})
+```
+
+错误示例：
+```
+put_artifact({
+  type: "json",  // 错误：不要使用扩展名
+  content: {...},
+  name: "配置文件"
+})
+```

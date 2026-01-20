@@ -8,7 +8,7 @@
 
 ### 前端识别机制
 
-前端代码（`web/js/components/chat-panel.js`）通过以下方式识别工具调用中创建的图片：
+前端代码（`web/js/components/chat-panel.mjs`）通过以下方式识别工具调用中创建的图片：
 
 ```javascript
 // 从工具调用消息中提取图片
@@ -160,7 +160,7 @@ for (const message of toolCallMessages) {
 
 ## 相关文件
 
-- `web/js/components/chat-panel.js` - 前端渲染逻辑
+- `web/js/components/chat-panel.mjs` - 前端渲染逻辑
 - `modules/chrome/page_actions.js` - 后端实现
 - `modules/chrome/SAVE_RESOURCE_USAGE.md` - 使用说明
 - `modules/chrome/CHANGELOG.md` - 变更日志
