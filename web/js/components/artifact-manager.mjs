@@ -1117,10 +1117,8 @@ class ArtifactManager {
     this.listPanel.querySelectorAll(".artifact-item").forEach(item => {
       item.addEventListener("dblclick", () => {
         const id = item.dataset.id;
-        const targetItem = items.find(a => a.id === id);
-        if (targetItem) {
-          this.openArtifact(targetItem);
-        }
+        // 直接传递字符串 ID
+        this.openArtifact(id);
       });
     });
 
