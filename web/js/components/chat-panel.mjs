@@ -1028,6 +1028,7 @@ const ChatPanel = {
     
     // 生成组的唯一 ID
     const groupId = `tool-group-${firstMessage.id}`;
+    const artifactsContainerId = `artifacts-${groupId}`;
     
     // 渲染每个工具调用的详情
     const toolCallsHtml = toolCallMessages.map((message, index) => {
@@ -1040,8 +1041,10 @@ const ChatPanel = {
       ? toolNames.join(', ') 
       : `${toolNames.slice(0, 3).join(', ')} 等 ${toolNames.length} 个工具`;
 
-    // 收集所有工具调用中创建的工件（图片）
-    const groupArtifactsHtml = this.renderToolCallGroupArtifacts(toolCallMessages);
+    // 异步加载工件（先渲染占位符）
+    setTimeout(() => {
+      this._loadToolCallGroupArtifacts(toolCallMessages, artifactsContainerId);
+    }, 0);
 
     return `
       <div class="message-item tool-call tool-call-group" data-message-id="${firstMessage.id}">
@@ -1064,49 +1067,53 @@ const ChatPanel = {
               ${toolCallsHtml}
             </div>
           </div>
-          ${groupArtifactsHtml}
+          <div id="${artifactsContainerId}" class="artifacts-loading">加载工件中...</div>
         </div>
       </div>
     `;
   },
 
   /**
-   * 渲染工具调用组中创建的所有工件
-   * 统一显示为ID链接列表，不按类型分组，不显示名称
+   * 异步加载工具调用组的工件并更新DOM
    * @param {Array} toolCallMessages - 工具调用消息数组
-   * @returns {string} HTML 字符串
+   * @param {string} containerId - 容器元素ID
+   * @private
    */
-  renderToolCallGroupArtifacts(toolCallMessages) {
+  async _loadToolCallGroupArtifacts(toolCallMessages, containerId) {
+    try {
+      const html = await this.renderToolCallGroupArtifacts(toolCallMessages);
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.outerHTML = html;
+      }
+    } catch (error) {
+      console.error('[ChatPanel] 加载工件失败:', error);
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '<div class="artifacts-error">工件加载失败</div>';
+        container.classList.remove('artifacts-loading');
+        container.classList.add('artifacts-error');
+      }
+    }
+  },
+
+  /**
+   * 渲染工具调用组中创建的所有工件
+   * 按类型分组显示：图片（缩略图）、可打开文件（链接）、下载文件（下载链接）
+   * @param {Array} toolCallMessages - 工具调用消息数组
+   * @returns {Promise<string>} HTML 字符串
+   */
+  async renderToolCallGroupArtifacts(toolCallMessages) {
     // 收集所有工具调用中创建的工件ID
     const allArtifactIds = this._collectAllArtifacts(toolCallMessages);
     
     if (allArtifactIds.length === 0) return '';
     
-    // 渲染工件列表（直接使用ID字符串）
-    const items = allArtifactIds.map(artifactId => {
-      const artifactUrl = `/artifacts/${this.escapeHtml(artifactId)}`;
-      
-      return `
-        <a 
-          class="artifact-link" 
-          href="${artifactUrl}" 
-          target="_blank" 
-          title="${this.escapeHtml(artifactId)}"
-          data-artifact-id="${this.escapeHtml(artifactId)}"
-        >
-          ${this.escapeHtml(artifactId)}
-        </a>
-      `;
-    }).join('');
+    // 批量获取元数据
+    const metadataMap = await this._getArtifactsMetadataMap(allArtifactIds);
     
-    return `
-      <div class="tool-call-group-artifacts">
-        <div class="tool-call-group-artifacts-label">创建的工件:</div>
-        <div class="artifact-links">
-          ${items}
-        </div>
-      </div>
-    `;
+    // 分组渲染
+    return this._renderArtifactGroups(allArtifactIds, metadataMap);
   },
 
   /**
@@ -1133,6 +1140,197 @@ const ChatPanel = {
     }
     
     return allArtifactIds;
+  },
+
+  /**
+   * 批量获取工件元数据
+   * @param {string[]} artifactIds - 工件ID数组
+   * @returns {Promise<Map<string, Object>>} 元数据Map
+   * @private
+   */
+  async _getArtifactsMetadataMap(artifactIds) {
+    try {
+      const manager = ArtifactManager.getInstance();
+      return await manager.getArtifactsMetadata(artifactIds);
+    } catch (error) {
+      console.error('[ChatPanel] 获取工件元数据失败:', error);
+      return new Map();
+    }
+  },
+
+  /**
+   * 根据元数据将工件分组
+   * @param {string[]} artifactIds - 工件ID数组
+   * @param {Map<string, Object>} metadataMap - 元数据Map
+   * @returns {Object} 分组结果 { images: [], openable: [], downloadOnly: [] }
+   * @private
+   */
+  _groupArtifactsByType(artifactIds, metadataMap) {
+    const groups = {
+      images: [],      // 图片类型
+      openable: [],    // 可打开类型
+      downloadOnly: [] // 仅下载类型
+    };
+    
+    artifactIds.forEach(id => {
+      const metadata = metadataMap.get(id);
+      
+      if (!metadata) {
+        // 元数据获取失败，归入下载组
+        groups.downloadOnly.push({ id, name: id, type: null });
+        return;
+      }
+      
+      const mimeType = metadata.type;
+      
+      // 判断类型
+      if (isImageType(mimeType)) {
+        groups.images.push({ id, metadata });
+      } else if (ArtifactManager.canOpenMimeType(mimeType)) {
+        groups.openable.push({ id, metadata });
+      } else {
+        groups.downloadOnly.push({ id, metadata });
+      }
+    });
+    
+    return groups;
+  },
+
+  /**
+   * 渲染分组后的工件
+   * @param {string[]} artifactIds - 工件ID数组
+   * @param {Map<string, Object>} metadataMap - 元数据Map
+   * @returns {string} HTML字符串
+   * @private
+   */
+  _renderArtifactGroups(artifactIds, metadataMap) {
+    const groups = this._groupArtifactsByType(artifactIds, metadataMap);
+    
+    let html = '<div class="tool-call-group-artifacts">';
+    html += '<div class="tool-call-group-artifacts-label">创建的工件:</div>';
+    
+    // 渲染图片组
+    if (groups.images.length > 0) {
+      html += '<div class="artifact-group artifact-group-images">';
+      html += '<div class="artifact-group-label">图片:</div>';
+      html += '<div class="artifact-thumbnails">';
+      groups.images.forEach(({ id, metadata }) => {
+        html += this._renderImageThumbnail(id, metadata);
+      });
+      html += '</div></div>';
+    }
+    
+    // 渲染可打开组
+    if (groups.openable.length > 0) {
+      html += '<div class="artifact-group artifact-group-openable">';
+      html += '<div class="artifact-group-label">可打开:</div>';
+      html += '<div class="artifact-links">';
+      groups.openable.forEach(({ id, metadata }) => {
+        html += this._renderOpenableLink(id, metadata);
+      });
+      html += '</div></div>';
+    }
+    
+    // 渲染下载组
+    if (groups.downloadOnly.length > 0) {
+      html += '<div class="artifact-group artifact-group-download">';
+      html += '<div class="artifact-group-label">下载:</div>';
+      html += '<div class="artifact-links">';
+      groups.downloadOnly.forEach(({ id, metadata }) => {
+        html += this._renderDownloadLink(id, metadata);
+      });
+      html += '</div></div>';
+    }
+    
+    html += '</div>';
+    return html;
+  },
+
+  /**
+   * 渲染图片缩略图
+   * @param {string} id - 工件ID
+   * @param {Object} metadata - 元数据
+   * @returns {string} HTML字符串
+   * @private
+   */
+  _renderImageThumbnail(id, metadata) {
+    const name = metadata.name || id;
+    const imageUrl = `/artifacts/${this.escapeHtml(id)}`;
+    
+    return `
+      <div class="artifact-thumbnail-item" title="${this.escapeHtml(name)}">
+        <img 
+          class="artifact-thumbnail-img" 
+          src="${imageUrl}" 
+          alt="${this.escapeHtml(name)}"
+          data-artifact-id="${this.escapeHtml(id)}"
+          onerror="this.parentElement.innerHTML='<span class=\\'thumbnail-error\\'>🖼️</span>'"
+        />
+        <div class="artifact-thumbnail-name">${this.escapeHtml(this._truncateName(name, 15))}</div>
+      </div>
+    `;
+  },
+
+  /**
+   * 渲染可打开链接
+   * @param {string} id - 工件ID
+   * @param {Object} metadata - 元数据
+   * @returns {string} HTML字符串
+   * @private
+   */
+  _renderOpenableLink(id, metadata) {
+    const name = metadata.name || id;
+    const icon = getFileIconByMimeType(metadata.type);
+    
+    return `
+      <a 
+        class="artifact-link artifact-link-openable" 
+        href="/artifacts/${this.escapeHtml(id)}" 
+        title="${this.escapeHtml(name)}"
+        data-artifact-id="${this.escapeHtml(id)}"
+      >
+        <span class="artifact-link-icon">${icon}</span>
+        <span class="artifact-link-name">${this.escapeHtml(name)}</span>
+      </a>
+    `;
+  },
+
+  /**
+   * 渲染下载链接
+   * @param {string} id - 工件ID
+   * @param {Object} metadata - 元数据
+   * @returns {string} HTML字符串
+   * @private
+   */
+  _renderDownloadLink(id, metadata) {
+    const name = metadata ? metadata.name : id;
+    const icon = metadata ? getFileIconByMimeType(metadata.type) : '📄';
+    
+    return `
+      <a 
+        class="artifact-link artifact-link-download" 
+        href="/artifacts/${this.escapeHtml(id)}" 
+        download
+        title="下载: ${this.escapeHtml(name)}"
+        data-artifact-id="${this.escapeHtml(id)}"
+      >
+        <span class="artifact-link-icon">${icon}</span>
+        <span class="artifact-link-name">${this.escapeHtml(name)}</span>
+        <span class="artifact-link-download-icon">⬇️</span>
+      </a>
+    `;
+  },
+
+  /**
+   * 截断名称
+   * @param {string} name - 名称
+   * @param {number} maxLen - 最大长度
+   * @returns {string} 截断后的名称
+   * @private
+   */
+  _truncateName(name, maxLen) {
+    if (name.length <= maxLen) return name;
+    return name.slice(0, maxLen - 3) + '...';
   },
 
   /**

@@ -1843,29 +1843,150 @@ body {
 }
 
 .artifact-link {
-  display: inline-block;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 4px;
-  color: #1976d2;
+  color: #333;
   text-decoration: none;
-  font-size: 12px;
+  font-size: 13px;
   transition: all 0.2s ease;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
 }
 
 .artifact-link:hover {
-  background-color: #e3f2fd;
+  background-color: #f5f5f5;
   border-color: #1976d2;
   text-decoration: none;
 }
 
 .artifact-link:active {
-  background-color: #bbdefb;
+  background-color: #e0e0e0;
+}
+
+/* 工件分组样式 */
+.artifact-group {
+  margin-bottom: 12px;
+}
+
+.artifact-group:last-child {
+  margin-bottom: 0;
+}
+
+.artifact-group-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+  margin-bottom: 6px;
+}
+
+/* 图片缩略图样式 */
+.artifact-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.artifact-thumbnail-item {
+  width: 100px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.artifact-thumbnail-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s;
+}
+
+.artifact-thumbnail-img:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+}
+
+.artifact-thumbnail-name {
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumbnail-error {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+  font-size: 32px;
+  background: #e9ecef;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 可打开链接样式 */
+.artifact-link-openable {
+  color: #007bff;
+  background: #e7f3ff;
+  border-color: #b3d9ff;
+}
+
+.artifact-link-openable:hover {
+  background: #cce5ff;
+  border-color: #007bff;
+}
+
+/* 下载链接样式 */
+.artifact-link-download {
+  color: #6c757d;
+  background: #e9ecef;
+  border-color: #ced4da;
+}
+
+.artifact-link-download:hover {
+  background: #dee2e6;
+  border-color: #6c757d;
+}
+
+.artifact-link-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.artifact-link-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.artifact-link-download-icon {
+  font-size: 14px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* 加载和错误状态 */
+.artifacts-loading {
+  padding: 8px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.artifacts-error {
+  padding: 8px;
+  text-align: center;
+  color: #dc3545;
+  font-size: 12px;
 }
 
 /* 工件类型分组样式 */

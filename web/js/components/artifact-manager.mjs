@@ -954,6 +954,125 @@ class ArtifactManager {
   }
 
   /**
+   * 批量获取工件元数据
+   * @param {string[]} artifactIds - 工件ID数组
+   * @returns {Promise<Map<string, Object>>} Map对象，key为工件ID，value为元数据对象
+   * 
+   * 元数据对象包含：
+   * - id: 工件ID
+   * - name: 工件名（用户可见）
+   * - type: MIME类型
+   * - extension: 文件扩展名
+   * - filename: 文件名（内部使用）
+   * - createdAt: 创建时间
+   * - size: 文件大小
+   * - messageId: 来源消息ID（可选）
+   * - agentId: 来源智能体ID（可选）
+   * 
+   * 错误处理策略：
+   * - 使用 Promise.allSettled 并发获取，失败的工件不添加到Map中
+   * - 不抛出异常，返回部分成功的结果
+   * - 记录失败的工件ID到日志
+   * 
+   * 使用示例：
+   * ```javascript
+   * const manager = ArtifactManager.getInstance();
+   * const metadataMap = await manager.getArtifactsMetadata(['id1', 'id2', 'id3']);
+   * const metadata1 = metadataMap.get('id1');
+   * if (metadata1) {
+   *   console.log('工件名称:', metadata1.name);
+   * }
+   * ```
+   */
+  async getArtifactsMetadata(artifactIds) {
+    const metadataMap = new Map();
+    
+    // 空数组输入，返回空Map
+    if (!artifactIds || artifactIds.length === 0) {
+      return metadataMap;
+    }
+    
+    // 并发获取所有工件的元数据
+    const results = await Promise.allSettled(
+      artifactIds.map(id => this.api.get(`/artifacts/${id}/metadata`))
+    );
+    
+    // 处理结果
+    const failedIds = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const metadata = result.value;
+        metadataMap.set(artifactIds[index], metadata);
+      } else {
+        // 记录失败的工件ID
+        failedIds.push(artifactIds[index]);
+      }
+    });
+    
+    // 记录调试信息
+    this.logger.log('批量获取工件元数据完成', {
+      total: artifactIds.length,
+      success: metadataMap.size,
+      failed: failedIds.length,
+      failedIds: failedIds.length > 0 ? failedIds : undefined
+    });
+    
+    // 如果有失败的，记录错误
+    if (failedIds.length > 0) {
+      this.logger.error('部分工件元数据获取失败', {
+        failedIds,
+        failedCount: failedIds.length
+      });
+    }
+    
+    return metadataMap;
+  }
+
+  /**
+   * 判断指定MIME类型是否可以在工件管理器中打开
+   * @param {string} mimeType - MIME类型字符串
+   * @returns {boolean} 是否可以打开
+   * 
+   * 支持的类型包括：
+   * - 图片类型：image/*
+   * - JSON类型：application/json等
+   * - 文本类型：text/plain, text/markdown等
+   * - 代码类型：text/javascript, text/x-python等
+   * - HTML类型：text/html
+   * - CSS类型：text/css
+   * 
+   * 使用示例：
+   * ```javascript
+   * if (ArtifactManager.canOpenMimeType('image/png')) {
+   *   console.log('可以在工件管理器中打开');
+   * }
+   * ```
+   */
+  static canOpenMimeType(mimeType) {
+    if (!mimeType) return false;
+    
+    const lowerType = mimeType.toLowerCase();
+    
+    // 定义可打开的MIME类型列表
+    const OPENABLE_MIME_TYPES = [
+      ...IMAGE_MIME_TYPES,
+      ...JSON_MIME_TYPES,
+      ...TEXT_MIME_TYPES,
+      ...CODE_MIME_TYPES,
+      HTML_MIME_TYPE,
+      CSS_MIME_TYPE
+    ];
+    
+    // 检查是否在支持列表中（支持前缀匹配，如 image/* 匹配所有图片类型）
+    return OPENABLE_MIME_TYPES.some(type => {
+      const lowerSupportedType = type.toLowerCase();
+      return lowerType === lowerSupportedType || 
+             lowerType.startsWith(lowerSupportedType + '/') ||
+             (lowerSupportedType.endsWith('/*') && lowerType.startsWith(lowerSupportedType.slice(0, -1)));
+    });
+  }
+
+  /**
    * 加载所有工件
    */
   async loadArtifacts() {
@@ -961,54 +1080,36 @@ class ArtifactManager {
       this.listPanel.innerHTML = '<div class="empty-state">加载中...</div>';
       const response = await this.api.get("/artifacts");
       
-      // 加载每个工件的详细信息
-      const artifactsWithDetails = await Promise.all(
-        (response.artifacts || []).map(async (artifact) => {
-          try {
-            // 如果 API 已经返回了元信息，直接使用
-            if (artifact.type) {
-              const isImage = isImageType(artifact.type);
-              return {
-                ...artifact,
-                content: isImage ? artifact.filename : null,
-                // 优先使用元数据中的名称，然后是文件名
-                actualFilename: artifact.name || artifact.filename,
-                isWorkspaceFile: false
-              };
-            }
-            
-            // JSON 文件：读取内部的业务 type（兼容旧格式）
-            if (artifact.extension === ".json") {
-              const detail = await this.api.get(`/artifacts/${artifact.id}`);
-              return {
-                ...artifact,
-                type: detail.type || "unknown",
-                content: detail.content,
-                actualFilename: detail.meta?.name || detail.meta?.filename || detail.meta?.title || artifact.filename || `${detail.type || "artifact"}_${artifact.id.slice(0, 8)}`,
-                isWorkspaceFile: false
-              };
-            }
-            // 非 JSON 文件：使用文件扩展名作为类型
-            const extType = artifact.extension.replace(".", "").toLowerCase();
-            return {
-              ...artifact,
-              type: extType || "file",
-              content: artifact.filename, // 文件名作为内容引用
-              // 优先使用元数据中的名称，然后是文件名
-              actualFilename: artifact.name || artifact.filename,
-              isWorkspaceFile: false
-            };
-          } catch (e) {
-            return {
-              ...artifact,
-              type: artifact.extension?.replace(".", "") || "unknown",
-              // 优先使用元数据中的名称，然后是文件名
-              actualFilename: artifact.name || artifact.filename,
-              isWorkspaceFile: false
-            };
-          }
-        })
-      );
+      // 收集所有工件ID
+      const artifactIds = (response.artifacts || []).map(a => a.id);
+      
+      // 批量获取元数据
+      const metadataMap = await this.getArtifactsMetadata(artifactIds);
+      
+      // 合并元数据到工件对象
+      const artifactsWithDetails = (response.artifacts || []).map(artifact => {
+        const metadata = metadataMap.get(artifact.id);
+        
+        if (metadata) {
+          // 使用元数据
+          const isImage = isImageType(metadata.type);
+          return {
+            ...artifact,
+            ...metadata,
+            content: isImage ? metadata.filename : null,
+            actualFilename: metadata.name || metadata.filename,
+            isWorkspaceFile: false
+          };
+        }
+        
+        // 降级：元数据获取失败时使用 filename 作为 name
+        return {
+          ...artifact,
+          name: artifact.filename,
+          actualFilename: artifact.filename,
+          isWorkspaceFile: false
+        };
+      });
       
       // 按创建时间降序排列（新的在前）
       this.artifacts = artifactsWithDetails.sort((a, b) => {
@@ -1019,7 +1120,11 @@ class ArtifactManager {
       this.artifactsCountEl.textContent = this.artifacts.length;
       
       this._applyFilters();
-      this.logger.log("工件加载完成", { count: this.artifacts.length });
+      this.logger.log("工件加载完成", { 
+        count: this.artifacts.length,
+        metadataSuccess: metadataMap.size,
+        metadataFailed: artifactIds.length - metadataMap.size
+      });
     } catch (err) {
       this.logger.error("加载工件失败", err);
       this.listPanel.innerHTML = '<div class="empty-state error">加载工件失败</div>';
