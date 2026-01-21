@@ -398,7 +398,7 @@ export class BrowserJavaScriptExecutor {
           return { result: result.result, error: "canvas_export_failed", message: imageResult.message };
         }
         
-        return { result: result.result, artifactRefs: imageResult.artifactRefs };
+        return { result: result.result, artifactIds: imageResult.artifactIds };
       }
 
       // 转换为 JSON 安全格式
@@ -453,7 +453,7 @@ export class BrowserJavaScriptExecutor {
       return { error: "no_canvas_data" };
     }
 
-    const imageFiles = [];
+    const artifactIds = [];
     const errors = [];
 
     for (let i = 0; i < dataUrls.length; i++) {
@@ -503,10 +503,10 @@ export class BrowserJavaScriptExecutor {
         };
         await this.runtime.artifacts._writeMetadata(artifactId, metadata);
         
-        imageFiles.push(fileName);
+        artifactIds.push(artifactId);
         
         this.runtime.log?.info?.("保存浏览器 Canvas 图像", {
-          fileName,
+          artifactId,
           userName: name.trim(),
           width: canvasSize.width,
           height: canvasSize.height,
@@ -523,17 +523,11 @@ export class BrowserJavaScriptExecutor {
       }
     }
 
-    if (imageFiles.length === 0 && errors.length > 0) {
+    if (artifactIds.length === 0 && errors.length > 0) {
       return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
     }
 
-    // 返回所有工件的 artifactRef 数组
-    const artifactRefs = imageFiles.map(fileName => {
-      const artifactId = fileName.replace(/\.png$/, '');
-      return `artifact:${artifactId}`;
-    });
-    
-    const response = { artifactRefs };
+    const response = { artifactIds };
     if (errors.length > 0) {
       response.partialErrors = errors;
     }

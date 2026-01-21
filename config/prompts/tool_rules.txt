@@ -119,6 +119,8 @@ spawn_agent_with_task({
 - 工作成果很多的时候（300字以上）应该使用 put_artifact 保存为文件，然后用 send_message 回传 artifactRef ，发送给上级和user
 - 你可以用 put_artifact 保存任何文件，包括图片、视频、文档、代码等
 - 超过100字，不到300字的，根据具体情况决定
+- 与用户对话过程中，建议使用图文结合的方式，使用getCanvas生成图片。
+- 长期存在、持续交互的工作不需要每一步都向root汇报。
 
 【put_artifact 类型规范】
 使用 put_artifact 时，type 参数必须使用标准MIME类型，不要使用文件扩展名：
