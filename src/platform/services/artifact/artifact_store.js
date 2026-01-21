@@ -346,6 +346,9 @@ export class ArtifactStore {
     const filePath = path.resolve(this.artifactsDir, fileName);
     const createdAt = new Date().toISOString();
     
+    // 根据格式获取正确的 MIME 类型
+    const mimeType = this._getImageMimeType(format);
+    
     // 写入图片文件（原始内容）
     await writeFile(filePath, buffer);
     
@@ -353,7 +356,7 @@ export class ArtifactStore {
     const metadata = {
       id,
       extension,
-      type: "image",
+      type: mimeType,
       name: name.trim(), // 图片名称作为顶级字段
       createdAt,
       messageId: messageId || null,
@@ -366,11 +369,34 @@ export class ArtifactStore {
       id,
       fileName, 
       name: name.trim(),
-      format, 
+      format,
+      mimeType,
       agentId 
     });
     
     return id;
+  }
+
+  /**
+   * 根据图片格式获取对应的 MIME 类型。
+   * @param {string} format - 图片格式（如 "png", "jpg", "jpeg", "gif", "webp"）
+   * @returns {string} MIME 类型
+   * @private
+   */
+  _getImageMimeType(format) {
+    const formatLower = format.toLowerCase();
+    const formatToMime = {
+      "png": "image/png",
+      "jpg": "image/jpeg",
+      "jpeg": "image/jpeg",
+      "gif": "image/gif",
+      "webp": "image/webp",
+      "bmp": "image/bmp",
+      "svg": "image/svg+xml",
+      "avif": "image/avif"
+    };
+    
+    return formatToMime[formatLower] || "image/png";
   }
 
   /**
