@@ -1664,6 +1664,9 @@ class ArtifactManager {
       wrapper.className = "markdown-viewer";
       wrapper.innerHTML = this._renderMarkdown(content);
       this.viewerPanel.appendChild(wrapper);
+      
+      // 渲染 Mermaid 图表
+      this._renderMermaidDiagrams();
     } else {
       // 纯文本渲染
       const viewer = new TextViewer({ container: this.viewerPanel });
@@ -1673,47 +1676,71 @@ class ArtifactManager {
   }
 
   /**
-   * 简单的 Markdown 渲染
+   * 使用 marked.js 渲染 Markdown
    */
   _renderMarkdown(text) {
-    // 转义 HTML
-    let html = this._escapeHtml(text);
+    if (typeof marked === 'undefined') {
+      console.error('marked.js 未加载');
+      return this._escapeHtml(text);
+    }
     
-    // 代码块 ```
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+    try {
+      // 配置 marked
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        headerIds: true,
+        mangle: false
+      });
+      
+      return marked.parse(text);
+    } catch (error) {
+      console.error('Markdown 渲染失败:', error);
+      return this._escapeHtml(text);
+    }
+  }
+
+  /**
+   * 渲染 Mermaid 图表
+   */
+  async _renderMermaidDiagrams() {
+    if (typeof mermaid === 'undefined') {
+      console.warn('mermaid.js 未加载');
+      return;
+    }
     
-    // 行内代码 `code`
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    
-    // 标题
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    
-    // 粗体和斜体
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    
-    // 链接
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-    
-    // 无序列表
-    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-    
-    // 有序列表
-    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-    
-    // 水平线
-    html = html.replace(/^---$/gm, '<hr>');
-    
-    // 段落（连续的非空行）
-    html = html.replace(/^(?!<[huplo]|<li|<hr|<pre)(.+)$/gm, '<p>$1</p>');
-    
-    // 换行
-    html = html.replace(/\n/g, '');
-    
-    return html;
+    try {
+      // 初始化 Mermaid
+      mermaid.initialize({ 
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose'
+      });
+      
+      // 查找所有 Mermaid 代码块
+      const mermaidBlocks = this.viewerPanel.querySelectorAll('code.language-mermaid');
+      
+      for (let i = 0; i < mermaidBlocks.length; i++) {
+        const block = mermaidBlocks[i];
+        const code = block.textContent;
+        const pre = block.parentElement;
+        
+        // 创建 Mermaid 容器
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        container.textContent = code;
+        
+        // 替换代码块
+        pre.parentElement.replaceChild(container, pre);
+      }
+      
+      // 渲染所有 Mermaid 图表
+      await mermaid.run({
+        querySelector: '.mermaid-container'
+      });
+    } catch (error) {
+      console.error('Mermaid 渲染失败:', error);
+    }
   }
 
   /**

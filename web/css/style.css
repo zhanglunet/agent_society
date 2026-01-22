@@ -3783,6 +3783,25 @@ body {
   margin: 16px 0 6px;
 }
 
+.markdown-viewer h4 {
+  font-size: 14px;
+  margin: 14px 0 5px;
+  font-weight: 600;
+}
+
+.markdown-viewer h5 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+  font-weight: 600;
+}
+
+.markdown-viewer h6 {
+  font-size: 12px;
+  margin: 10px 0 4px;
+  font-weight: 600;
+  color: #a0a0a0;
+}
+
 .markdown-viewer p {
   margin: 10px 0;
 }
@@ -3839,6 +3858,58 @@ body {
 
 .markdown-viewer em {
   font-style: italic;
+}
+
+/* Markdown 字体缩放控制 */
+.markdown-zoom-controls {
+  position: sticky;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background-color: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  z-index: 10;
+  justify-content: flex-end;
+}
+
+.zoom-btn {
+  padding: 4px 8px;
+  background-color: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+  background-color: #505050;
+  border-color: #007acc;
+}
+
+.zoom-btn:active {
+  background-color: #007acc;
+}
+
+/* Mermaid 图表样式 */
+.mermaid-diagram {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.mermaid-error {
+  color: #f48771;
+  padding: 12px;
+  background-color: #3c2020;
+  border: 1px solid #f48771;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 /* HTML iframe 查看器样式 */
