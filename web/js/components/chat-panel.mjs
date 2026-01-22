@@ -212,13 +212,13 @@ const ChatPanel = {
 
   /**
    * 初始化工件交互处理器
-   * 使用事件委托处理动态生成的工件链接点击
+   * 使用事件委托处理动态生成的工件链接和图片点击
    * @private
    */
   _initArtifactInteractionHandler() {
     if (!this.messageList) return;
     
-    // 使用事件委托监听工件链接点击
+    // 使用事件委托监听工件链接和图片点击
     this.messageList.addEventListener('click', (e) => {
       // 检查是否点击了工件链接
       if (e.target.classList.contains('artifact-link')) {
@@ -229,6 +229,22 @@ const ChatPanel = {
         
         if (!artifactId) {
           console.error('[ChatPanel] 工件链接缺少ID');
+          return;
+        }
+        
+        // 处理工件点击（传递字符串ID）
+        this._handleArtifactClick(artifactId);
+      }
+      
+      // 检查是否点击了图片（包括消息附件中的图片和工件缩略图）
+      if (e.target.tagName === 'IMG' && e.target.dataset.artifactId) {
+        e.preventDefault(); // 阻止默认行为
+        
+        // 从事件目标获取工件ID（字符串）
+        const artifactId = e.target.dataset.artifactId;
+        
+        if (!artifactId) {
+          console.error('[ChatPanel] 图片缺少工件ID');
           return;
         }
         
@@ -2042,26 +2058,22 @@ const ChatPanel = {
       const artifactId = att.artifactRef?.replace('artifact:', '') || '';
       
       if (isImage) {
-        // 图片附件：显示缩略图
-        const imagesId = `msg_att_${message.id}_${idx}`;
-        window._chatPanelImages = window._chatPanelImages || {};
-        window._chatPanelImages[imagesId] = [artifactId];
-        
+        // 图片附件：显示缩略图，点击使用工件管理器打开
         return `
           <div class="message-attachment-item image" title="${this.escapeHtml(att.filename)}">
             <img 
               class="message-attachment-thumbnail" 
               src="/artifacts/${this.escapeHtml(artifactId)}" 
               alt="${this.escapeHtml(att.filename)}"
-              onclick="ImageViewer.show(window._chatPanelImages['${imagesId}'], 0)"
+              data-artifact-id="${this.escapeHtml(artifactId)}"
               onerror="this.parentElement.innerHTML='<span class=\\'message-attachment-icon\\'>🖼️</span><span class=\\'message-attachment-name\\'>${this.escapeHtml(att.filename)}</span>'"
             />
           </div>
         `;
       } else {
-        // 文件附件：显示图标和文件名
+        // 文件附件：显示图标和文件名，使用工件链接样式
         return `
-          <a class="message-attachment-item file" href="/artifacts/${this.escapeHtml(artifactId)}" target="_blank" title="${this.escapeHtml(att.filename)}">
+          <a class="message-attachment-item file artifact-link" href="/artifacts/${this.escapeHtml(artifactId)}" title="${this.escapeHtml(att.filename)}" data-artifact-id="${this.escapeHtml(artifactId)}">
             <span class="message-attachment-icon">📄</span>
             <span class="message-attachment-name">${this.escapeHtml(att.filename)}</span>
           </a>
