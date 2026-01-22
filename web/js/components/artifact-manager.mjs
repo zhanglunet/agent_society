@@ -1710,10 +1710,10 @@ class ArtifactManager {
     }
     
     try {
-      // 初始化 Mermaid
+      // 初始化 Mermaid，使用深色主题
       mermaid.initialize({ 
         startOnLoad: false,
-        theme: 'default',
+        theme: 'dark',
         securityLevel: 'loose'
       });
       
