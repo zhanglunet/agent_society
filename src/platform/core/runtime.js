@@ -98,7 +98,7 @@ export class Runtime {
     }
     
     this.maxSteps = options.maxSteps ?? 200;
-    this.maxToolRounds = options.maxToolRounds ?? 200;
+    this.maxToolRounds = options.maxToolRounds ?? 20000;
     this.maxContextMessages = options.maxContextMessages ?? 50;
     this.idleWarningMs = options.idleWarningMs ?? 300000; // 默认5分钟
     this.dataDir = options.dataDir ?? null; // 自定义数据目录

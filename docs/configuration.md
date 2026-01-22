@@ -61,7 +61,7 @@ config/
   "runtimeDir": "data/runtime/state",
   "loggingConfigPath": "config/logging.json",
   "maxSteps": 200,
-  "maxToolRounds": 200,
+  "maxToolRounds": 20000,
   "idleWarningMs": 300000,
   "httpPort": 3000,
   "enableHttp": true,
@@ -99,7 +99,7 @@ config/
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `maxSteps` | `number` | `200` | 消息循环最大步数 |
-| `maxToolRounds` | `number` | `200` | 单次 LLM 调用最大工具轮次 |
+| `maxToolRounds` | `number` | `20000` | 单次 LLM 调用最大工具轮次 |
 | `idleWarningMs` | `number` | `300000` | 智能体空闲警告时间（毫秒） |
 
 #### HTTP 服务器配置

@@ -69,7 +69,7 @@ npm install
   "runtimeDir": "data/runtime/state",
   "loggingConfigPath": "config/logging.json",
   "maxSteps": 200,
-  "maxToolRounds": 200,
+  "maxToolRounds": 20000,
   "llm": {
     "baseURL": "http://127.0.0.1:1234/v1",
     "model": "your-model-name",

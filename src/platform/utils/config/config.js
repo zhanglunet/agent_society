@@ -95,7 +95,7 @@ export class Config {
       artifactsDir: dataDir ? path.resolve(dataDir, "artifacts") : path.resolve(process.cwd(), cfg.artifactsDir),
       runtimeDir: dataDir ? path.resolve(dataDir, "state") : path.resolve(process.cwd(), cfg.runtimeDir),
       maxSteps: Number.isFinite(cfg.maxSteps) ? cfg.maxSteps : 200,
-      maxToolRounds: Number.isFinite(cfg.maxToolRounds) ? cfg.maxToolRounds : 200,
+      maxToolRounds: Number.isFinite(cfg.maxToolRounds) ? cfg.maxToolRounds : 20000,
       httpPort: Number.isFinite(cfg.httpPort) ? cfg.httpPort : 3000,
       enableHttp: typeof cfg.enableHttp === "boolean" ? cfg.enableHttp : false,
       llm: cfg.llm

@@ -195,7 +195,7 @@ describe("Config", () => {
 
       const result = await config.loadApp();
       expect(result.maxSteps).toBe(200); // 默认值
-      expect(result.maxToolRounds).toBe(200); // 默认值
+      expect(result.maxToolRounds).toBe(20000); // 默认值
       expect(result.httpPort).toBe(3000); // 默认值
       expect(result.enableHttp).toBe(false); // 默认值
     });
