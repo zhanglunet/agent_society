@@ -963,9 +963,9 @@ class ArtifactManager {
     if (action === "reset") {
       this.fontSizeLevel = 0;
     } else if (action === "increase") {
-      this.fontSizeLevel = Math.min(2, this.fontSizeLevel + 1);
+      this.fontSizeLevel = Math.min(10, this.fontSizeLevel + 1);
     } else if (action === "decrease") {
-      this.fontSizeLevel = Math.max(-2, this.fontSizeLevel - 1);
+      this.fontSizeLevel = Math.max(-10, this.fontSizeLevel - 1);
     }
     
     this._applyFontSize();
