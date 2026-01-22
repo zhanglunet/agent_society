@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 import { BinaryDetector } from "./binary_detector.js";
+import { IdGenerator } from "./id_generator.js";
 
 /**
  * 元信息文件后缀
@@ -21,6 +21,10 @@ export class ArtifactStore {
     this.artifactsDir = options.artifactsDir;
     this.log = options.logger ?? createNoopModuleLogger();
     this.binaryDetector = new BinaryDetector({ logger: this.log });
+    
+    // 初始化ID生成器，状态文件保存在artifacts目录的父目录（通常是state目录）
+    const stateDir = path.dirname(this.artifactsDir);
+    this.idGenerator = new IdGenerator({ stateDir });
   }
 
   /**
@@ -29,6 +33,7 @@ export class ArtifactStore {
    */
   async ensureReady() {
     await mkdir(this.artifactsDir, { recursive: true });
+    await this.idGenerator.init();
   }
 
   /**
@@ -90,7 +95,7 @@ export class ArtifactStore {
     }
 
     await this.ensureReady();
-    const id = randomUUID();
+    const id = await this.idGenerator.next();
     const createdAt = new Date().toISOString();
     
     // 检测内容类型
@@ -268,6 +273,8 @@ export class ArtifactStore {
         messageId: metadata?.messageId || null,
         meta: {
           ...(metadata?.meta || {}),
+          // 将name字段包含在meta中以保持向后兼容
+          ...(metadata?.name && { name: metadata.name }),
           // Include filename and size from metadata if available
           ...(metadata?.filename && { filename: metadata.filename }),
           ...(metadata?.size && { size: metadata.size })
@@ -339,7 +346,7 @@ export class ArtifactStore {
       throw new Error('图片名称是必需参数，且不能为空');
     }
     
-    const id = randomUUID();
+    const id = await this.idGenerator.next();
     const extension = `.${format}`;
     const fileName = `${id}${extension}`;
     const filePath = path.resolve(this.artifactsDir, fileName);
@@ -400,10 +407,11 @@ export class ArtifactStore {
 
   /**
    * 生成工件ID。
-   * @returns {string} 工件ID（UUID格式）
+   * @returns {Promise<string>} 工件ID（单调递增的数字字符串）
    */
-  generateId() {
-    return randomUUID();
+  async generateId() {
+    await this.idGenerator.init();
+    return await this.idGenerator.next();
   }
 
   /**
@@ -422,7 +430,7 @@ export class ArtifactStore {
       throw new Error('文件名是必需参数，且不能为空');
     }
     
-    const id = randomUUID();
+    const id = await this.idGenerator.next();
     
     // 根据 mimeType 确定文件扩展名
     const extension = this._getExtensionFromMimeType(mimeType, filename);
