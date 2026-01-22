@@ -643,6 +643,16 @@ class ArtifactManager {
   toggleMaximize() {
     this.isMaximized = !this.isMaximized;
     this.windowEl?.classList.toggle("maximized", this.isMaximized);
+    
+    if (this.isMaximized) {
+      // 最大化时清除所有内联样式，让CSS类完全控制
+      this.windowEl.style.left = "";
+      this.windowEl.style.top = "";
+      this.windowEl.style.width = "";
+      this.windowEl.style.height = "";
+      this.windowEl.style.transform = "";
+    }
+    
     if (this.maximizeBtn) {
       this.maximizeBtn.textContent = this.isMaximized ? "❐" : "⬜";
       this.maximizeBtn.title = this.isMaximized ? "还原" : "最大化";
