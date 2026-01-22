@@ -236,6 +236,11 @@ class ArtifactManager {
                 <button class="text-mode-btn active" data-mode="text">纯文本</button>
                 <button class="text-mode-btn" data-mode="markdown">Markdown</button>
               </div>
+              <div class="font-size-controls" style="display: none;">
+                <button class="font-size-btn" data-action="decrease" title="缩小字体">A-</button>
+                <button class="font-size-btn" data-action="reset" title="重置字体">A</button>
+                <button class="font-size-btn" data-action="increase" title="放大字体">A+</button>
+              </div>
               <div class="json-mode-toggle" style="display: none;">
                 <button class="json-mode-btn active" data-mode="text">文本</button>
                 <button class="json-mode-btn" data-mode="json">JSON</button>
@@ -284,6 +289,8 @@ class ArtifactManager {
     this.headerEl = this.container.querySelector(".artifact-manager-header");
     this.textModeToggle = this.container.querySelector(".text-mode-toggle");
     this.textModeButtons = this.container.querySelectorAll(".text-mode-btn");
+    this.fontSizeControls = this.container.querySelector(".font-size-controls");
+    this.fontSizeButtons = this.container.querySelectorAll(".font-size-btn");
     this.jsonModeToggle = this.container.querySelector(".json-mode-toggle");
     this.jsonModeButtons = this.container.querySelectorAll(".json-mode-btn");
     this.copyArtifactBtn = this.container.querySelector(".copy-artifact-btn");
@@ -295,6 +302,9 @@ class ArtifactManager {
     this.textDisplayMode = "text"; // "text" 或 "markdown"
     this.currentTextContent = null; // 当前文本内容
     this.isViewerMaximized = false; // 查看器是否最大化
+    
+    // 字体缩放
+    this.fontSizeLevel = 0; // -2 到 2，0 为默认
     
     // JSON显示模式
     this.jsonDisplayMode = "text"; // "text" 或 "json"
@@ -397,6 +407,14 @@ class ArtifactManager {
       });
     });
 
+    // 字体缩放按钮
+    this.fontSizeButtons?.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const action = e.target.dataset.action;
+        this._handleFontSizeChange(action);
+      });
+    });
+
     // JSON模式切换
     this.jsonModeButtons?.forEach(btn => {
       btn.addEventListener("click", (e) => {
@@ -404,6 +422,18 @@ class ArtifactManager {
         this.setJsonDisplayMode(mode);
       });
     });
+
+    // 查看器 Ctrl+滚轮缩放
+    this.viewerPanel?.addEventListener("wheel", (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          this._handleFontSizeChange("increase");
+        } else {
+          this._handleFontSizeChange("decrease");
+        }
+      }
+    }, { passive: false });
 
     // 查看器最大化/还原
     this.viewerMaximizeBtn?.addEventListener("click", () => {
@@ -716,6 +746,7 @@ class ArtifactManager {
     this.artifactNameSpan.textContent = "未选择工件";
     this.viewSourceBtn.style.display = "none";
     this.textModeToggle.style.display = "none";
+    this.fontSizeControls.style.display = "none";
     this.jsonModeToggle.style.display = "none";
   }
 
@@ -897,6 +928,9 @@ class ArtifactManager {
         // 普通文本工件：使用原有逻辑
         this._renderTextContent(this.currentTextContent);
       }
+      
+      // 重新应用字体大小
+      this._applyFontSize();
     }
   }
 
@@ -918,6 +952,82 @@ class ArtifactManager {
       } else {
         this._renderJsonTextView(this.currentJsonRaw);
       }
+    }
+  }
+
+  /**
+   * 处理字体缩放
+   * @param {string} action - "increase"、"decrease" 或 "reset"
+   */
+  _handleFontSizeChange(action) {
+    if (action === "reset") {
+      this.fontSizeLevel = 0;
+    } else if (action === "increase") {
+      this.fontSizeLevel = Math.min(2, this.fontSizeLevel + 1);
+    } else if (action === "decrease") {
+      this.fontSizeLevel = Math.max(-2, this.fontSizeLevel - 1);
+    }
+    
+    this._applyFontSize();
+  }
+
+  /**
+   * 应用字体缩放
+   */
+  _applyFontSize() {
+    // 基础字体大小 14px，每级变化 2px
+    const baseFontSize = 14;
+    const fontSize = baseFontSize + (this.fontSizeLevel * 2);
+    
+    // Markdown 查看器
+    const markdownViewer = this.viewerPanel.querySelector('.markdown-viewer');
+    if (markdownViewer) {
+      // 设置基础字体大小
+      markdownViewer.style.fontSize = `${fontSize}px`;
+      
+      // 按比例调整标题大小
+      const h1 = markdownViewer.querySelectorAll('h1');
+      const h2 = markdownViewer.querySelectorAll('h2');
+      const h3 = markdownViewer.querySelectorAll('h3');
+      const h4 = markdownViewer.querySelectorAll('h4');
+      const h5 = markdownViewer.querySelectorAll('h5');
+      const h6 = markdownViewer.querySelectorAll('h6');
+      
+      h1.forEach(el => el.style.fontSize = `${fontSize * 1.71}px`); // 24/14 ≈ 1.71
+      h2.forEach(el => el.style.fontSize = `${fontSize * 1.43}px`); // 20/14 ≈ 1.43
+      h3.forEach(el => el.style.fontSize = `${fontSize * 1.14}px`); // 16/14 ≈ 1.14
+      h4.forEach(el => el.style.fontSize = `${fontSize}px`);
+      h5.forEach(el => el.style.fontSize = `${fontSize * 0.93}px`); // 13/14 ≈ 0.93
+      h6.forEach(el => el.style.fontSize = `${fontSize * 0.86}px`); // 12/14 ≈ 0.86
+      
+      // 调整 Mermaid 图表容器的字体大小
+      const mermaidContainers = markdownViewer.querySelectorAll('.mermaid-container');
+      mermaidContainers.forEach(container => {
+        container.style.fontSize = `${fontSize}px`;
+      });
+      
+      return;
+    }
+    
+    // 文本查看器
+    const textViewer = this.viewerPanel.querySelector('.text-viewer');
+    if (textViewer) {
+      // 设置整个查看器的字体大小
+      textViewer.style.fontSize = `${fontSize}px`;
+      
+      // 设置内容区域的字体大小
+      const contentDiv = textViewer.querySelector('.text-viewer-content');
+      if (contentDiv) {
+        contentDiv.style.fontSize = `${fontSize}px`;
+      }
+      
+      // 设置行号区域的字体大小
+      const lineNumbers = textViewer.querySelector('.text-viewer-line-numbers');
+      if (lineNumbers) {
+        lineNumbers.style.fontSize = `${fontSize}px`;
+      }
+      
+      return;
     }
   }
 
@@ -1490,14 +1600,17 @@ class ArtifactManager {
         this._renderJsonTextView(this.currentJsonRaw);
       }
     } else if (viewerType === "text") {
-      // 显示文本模式切换按钮
+      // 显示文本模式切换按钮和字体缩放按钮
       this.textModeToggle.style.display = "flex";
+      this.fontSizeControls.style.display = "flex";
       // 更新按钮标签为普通文本模式
       this._updateTextModeButtonLabels("纯文本", "Markdown");
       this.currentTextContent = typeof artifact.content === "string" 
         ? artifact.content 
         : JSON.stringify(artifact.content, null, 2);
       this._renderTextContent(this.currentTextContent);
+      // 应用字体大小
+      this._applyFontSize();
     } else if (viewerType === "image") {
       // 设置 viewerPanel 为 flex 容器（垂直布局）
       this.viewerPanel.style.display = "flex";
@@ -1567,6 +1680,8 @@ class ArtifactManager {
       
       // 显示文本模式切换按钮（用于HTML/文本切换）
       this.textModeToggle.style.display = "flex";
+      // 显示字体缩放按钮
+      this.fontSizeControls.style.display = "flex";
       // 更新按钮标签为HTML模式
       this._updateTextModeButtonLabels("源码", "预览");
       
@@ -1574,6 +1689,8 @@ class ArtifactManager {
       if (this.textDisplayMode === "text") {
         // 文本模式：显示HTML源码
         this._renderTextContent(this.currentTextContent);
+        // 应用字体大小
+        this._applyFontSize();
       } else {
         // Markdown模式：用作HTML预览模式
         this._renderHtmlViewer(artifact);
