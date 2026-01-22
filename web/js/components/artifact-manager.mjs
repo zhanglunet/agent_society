@@ -1029,6 +1029,29 @@ class ArtifactManager {
       
       return;
     }
+    
+    // HTML 查看器（iframe）
+    const htmlViewer = this.viewerPanel.querySelector('.html-viewer-iframe');
+    if (htmlViewer) {
+      // 计算缩放比例（基于14px基准）
+      const scale = fontSize / baseFontSize;
+      
+      // 使用 CSS transform 缩放 iframe
+      const wrapper = htmlViewer.parentElement;
+      if (wrapper && wrapper.classList.contains('html-viewer-wrapper')) {
+        // 设置 transform-origin 为左上角
+        htmlViewer.style.transformOrigin = 'top left';
+        htmlViewer.style.transform = `scale(${scale})`;
+        
+        // 调整 wrapper 的高度以适应缩放后的内容
+        // 因为 transform 不影响布局，需要手动调整容器
+        wrapper.style.height = '100%';
+        htmlViewer.style.width = `${100 / scale}%`;
+        htmlViewer.style.height = `${100 / scale}%`;
+      }
+      
+      return;
+    }
   }
 
   /**
