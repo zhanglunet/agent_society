@@ -829,11 +829,12 @@ class ArtifactManager {
 
     try {
       const artifact = this.selectedArtifact;
-      const displayName = artifact.actualFilename || artifact.filename;
       const type = (artifact.type || "").toLowerCase();
       
+      // 使用 name + extension 作为文件名
+      const filename = artifact.name + (artifact.extension || "");
+      
       let blob;
-      let filename = displayName;
 
       // 图片类型
       if (isImageType(type)) {
@@ -846,10 +847,6 @@ class ArtifactManager {
           // 文件路径
           const response = await fetch(imageUrl);
           blob = await response.blob();
-        }
-        // 确保文件名有扩展名
-        if (!filename.includes(".")) {
-          filename += "." + (type === "image" ? "png" : type);
         }
       } else {
         // 文本或 JSON 内容
