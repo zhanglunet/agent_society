@@ -23,6 +23,7 @@ import { exec } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * 解析命令行参数
@@ -170,8 +171,13 @@ async function main() {
   }
 }
 
-// 运行主函数
-main().catch((err) => {
-  console.error("启动错误:", err);
-  process.exit(1);
-});
+const isMain = typeof import.meta.main === "boolean"
+  ? import.meta.main
+  : process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMain) {
+  main().catch((err) => {
+    console.error("启动错误:", err);
+    process.exit(1);
+  });
+}

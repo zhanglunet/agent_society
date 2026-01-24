@@ -87,6 +87,7 @@ const ModulesPanel = {
   getModuleIcon(moduleName) {
     const icons = {
       'chrome': '🌐',
+      'ssh': '🖧',
       'file': '📁',
       'database': '🗄️',
       'api': '🔗',

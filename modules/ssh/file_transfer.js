@@ -521,6 +521,48 @@ class FileTransfer {
     }
   }
 
+  listTransfers(options = {}) {
+    const includeCompleted = options.includeCompleted ?? true;
+    const includeFailed = options.includeFailed ?? true;
+    const includeCancelled = options.includeCancelled ?? true;
+    const includePending = options.includePending ?? true;
+    const includeTransferring = options.includeTransferring ?? true;
+
+    const transfers = [];
+
+    for (const task of this.tasks.values()) {
+      if (task.status === 'pending' && !includePending) continue;
+      if (task.status === 'transferring' && !includeTransferring) continue;
+      if (task.status === 'completed' && !includeCompleted) continue;
+      if (task.status === 'failed' && !includeFailed) continue;
+      if (task.status === 'cancelled' && !includeCancelled) continue;
+
+      transfers.push({
+        taskId: task.taskId,
+        type: task.type,
+        connectionId: task.connectionId,
+        status: task.status,
+        progress: task.progress,
+        bytesTransferred: task.bytesTransferred,
+        totalBytes: task.totalBytes,
+        remotePath: task.remotePath,
+        artifactId: task.artifactId ?? null,
+        fileName: task.fileName ?? null,
+        error: task.error ?? null,
+        createdAt: task.createdAt instanceof Date ? task.createdAt.toISOString() : null,
+        completedAt: task.completedAt instanceof Date ? task.completedAt.toISOString() : null
+      });
+    }
+
+    transfers.sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
+    });
+
+    return { ok: true, transfers, count: transfers.length };
+  }
+
   /**
    * 取消传输任务
    * 

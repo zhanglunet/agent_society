@@ -69,6 +69,113 @@ export default {
   // 工具组描述
   toolGroupDescription: 'SSH远程操作工具，提供SSH连接、Shell会话和文件传输能力',
 
+  getWebComponent() {
+    return {
+      moduleName: 'ssh',
+      displayName: 'SSH 连接与传输管理',
+      icon: '🖧',
+      panelPath: 'modules/ssh/web/panel.html'
+    };
+  },
+
+  getHttpHandler() {
+    return async (req, res, pathParts, body) => {
+      const [resource, id, action] = pathParts;
+
+      try {
+        if (!connectionManager || !fileTransfer) {
+          return { error: 'module_not_initialized', message: 'SSH模块尚未初始化' };
+        }
+
+        if (resource === 'overview') {
+          const url = new URL(req.url, 'http://localhost');
+          const showCompleted = url.searchParams.get('showCompleted') !== '0';
+
+          const hostsResult = connectionManager.listHosts();
+          if (hostsResult?.error) return hostsResult;
+
+          const connectionsResult = connectionManager.listConnections();
+          if (connectionsResult?.error) return connectionsResult;
+
+          const transfersResult = fileTransfer.listTransfers({
+            includeCompleted: showCompleted,
+            includeFailed: showCompleted,
+            includeCancelled: showCompleted
+          });
+          if (transfersResult?.error) return transfersResult;
+
+          const hosts = hostsResult.hosts ?? [];
+          const connections = connectionsResult.connections ?? [];
+          const transfers = transfersResult.transfers ?? [];
+          const activeTransfersCount = transfers.filter(t => t.status === 'pending' || t.status === 'transferring').length;
+
+          return {
+            ok: true,
+            stats: {
+              hostsCount: hosts.length,
+              connectionsCount: connections.length,
+              transfersCount: transfers.length,
+              activeTransfersCount
+            },
+            hosts,
+            connections,
+            transfers
+          };
+        }
+
+        if (resource === 'connections') {
+          if (!id) {
+            return connectionManager.listConnections();
+          }
+          if (!action) {
+            const connectionsResult = connectionManager.listConnections();
+            if (connectionsResult?.error) return connectionsResult;
+            const connections = connectionsResult.connections ?? [];
+            const found = connections.find(c => String(c.connectionId) === String(id));
+            if (!found) {
+              return { error: 'connection_not_found', message: `连接不存在：${id}` };
+            }
+            return { ok: true, connection: found };
+          }
+          if (action === 'disconnect') {
+            return await connectionManager.disconnect(id);
+          }
+        }
+
+        if (resource === 'transfers') {
+          if (!id) {
+            const url = new URL(req.url, 'http://localhost');
+            const showCompleted = url.searchParams.get('showCompleted') !== '0';
+            return fileTransfer.listTransfers({
+              includeCompleted: showCompleted,
+              includeFailed: showCompleted,
+              includeCancelled: showCompleted
+            });
+          }
+          if (!action) {
+            return fileTransfer.getTransferStatus(id);
+          }
+          if (action === 'cancel') {
+            return await fileTransfer.cancelTransfer(id);
+          }
+        }
+
+        if (resource === 'hosts') {
+          return connectionManager.listHosts();
+        }
+
+        return { error: 'not_found', message: '未知的资源路径' };
+      } catch (error) {
+        log?.error?.('[SSH] HTTP API 处理失败', {
+          pathParts,
+          error: error.message,
+          stack: error.stack
+        });
+        return { error: 'http_handler_failed', message: error.message };
+      }
+    };
+  },
+
   /**
    * 初始化模块
    * @param {any} rt - 运行时实例
