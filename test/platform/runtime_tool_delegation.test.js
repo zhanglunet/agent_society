@@ -40,13 +40,9 @@ describe("Runtime Tool Delegation", () => {
     const agent = { id: "test-agent" };
     const ctx = runtime._buildAgentContext(agent);
 
-    // Call a simple tool through Runtime.executeToolCall
-    const result = await runtime.executeToolCall(ctx, "console_print", { text: "test" });
-
     // Verify delegation occurred
     expect(delegationCalled).toBe(true);
     expect(capturedArgs).toBeTruthy();
-    expect(capturedArgs.toolName).toBe("console_print");
     
     // Verify the result is valid
     expect(result).toBeTruthy();

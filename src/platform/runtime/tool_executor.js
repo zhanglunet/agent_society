@@ -218,19 +218,6 @@ export class ToolExecutor {
           }
         }
       },
-      // 控制台输出
-      {
-        type: "function",
-        function: {
-          name: "console_print",
-          description: "向控制台输出文本。",
-          parameters: {
-            type: "object",
-            properties: { text: { type: "string" } },
-            required: ["text"]
-          }
-        }
-      },
       // 终止智能体
       {
         type: "function",
@@ -421,8 +408,6 @@ export class ToolExecutor {
           return await this._executeGetArtifact(ctx, args);
         case "show_artifacts":
           return await this._executeShowArtifacts(ctx, args);
-        case "console_print":
-          return this._executeConsolePrint(ctx, args);
         case "terminate_agent":
           return await this._executeTerminateAgent(ctx, args);
         case "run_javascript":
@@ -873,11 +858,6 @@ export class ToolExecutor {
     
     // 返回有效的工件ID数组，聊天界面会自动展示这些工件
     return { artifactIds: validIds };
-  }
-
-  _executeConsolePrint(ctx, args) {
-    process.stdout.write(String(args.text ?? ""));
-    return { ok: true };
   }
 
   async _executeTerminateAgent(ctx, args) {

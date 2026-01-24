@@ -162,11 +162,7 @@ describe("RuntimeTools", () => {
       });
       
       const ctx = runtime._buildAgentContext(agent);
-      
-      // 执行 console_print 工具（简单且不依赖外部状态）
-      const result = await tools.executeToolCall(ctx, "console_print", {
-        message: "test message"
-      });
+ 
       
       expect(result).toBeTruthy();
       expect(result.error).toBeUndefined();

@@ -241,15 +241,6 @@ describe("ToolExecutor", () => {
     expect(result.error).toBe("artifact_not_found");
   });
 
-  test("executeToolCall executes console_print", async () => {
-    const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
-    const result = await runtime._toolExecutor.executeToolCall(ctx, "console_print", {
-      text: "test output"
-    });
-
-    expect(result).toBeTruthy();
-    expect(result.ok).toBe(true);
-  });
 
   test("executeToolCall executes terminate_agent", async () => {
     // 创建父子智能体

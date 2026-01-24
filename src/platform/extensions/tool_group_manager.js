@@ -28,10 +28,6 @@ export const BUILTIN_TOOL_GROUPS = {
   context: {
     description: "上下文管理工具 - 用于管理智能体的对话上下文，包括压缩历史记录和查询上下文状态。",
     tools: ["compress_context", "get_context_status"]
-  },
-  console: {
-    description: "控制台工具 - 用于向控制台输出调试信息。",
-    tools: ["console_print"]
   }
 };
 

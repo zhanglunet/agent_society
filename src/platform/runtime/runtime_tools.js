@@ -76,8 +76,7 @@ export class RuntimeTools {
       run_javascript: "command",
       http_request: "network",
       compress_context: "context",
-      get_context_status: "context",
-      console_print: "console"
+      get_context_status: "context"
     };
     
     // 按工具组分类

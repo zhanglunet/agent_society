@@ -3,7 +3,6 @@
 6 分层提示词
 7 HTTP服务器功能
 8 修复工作区工件访问
-9 SSH访问能力
 10 智能体请求调度优化
 11 spawn_agent_with_task 没有调用大模型
 12 删除 console_print
