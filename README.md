@@ -39,7 +39,7 @@ Agent Society 是一个基于大语言模型（LLM）的自组织多智能体协
 - 📨 **异步消息通道**：发送、投递、接收与基础排队，支持并发控制
 - 📦 **工件存储与引用**：跨岗位交付以工件引用为主，避免长上下文传递
 - 📝 **提示词模板系统**：系统预置提示词与拼接模板加载
-- 🔧 **丰富的工具集**：文件操作、命令执行、HTTP 请求、JavaScript 沙箱运行、上下文压缩等
+- 🔧 **丰富的工具集**：文件操作、命令执行、HTTP 请求、JavaScript 沙箱运行、上下文压缩、SSH远程连接等
 - 📊 **上下文管理**：自动监控上下文使用率，支持压缩、摘要与硬性限制保护
 - 🌐 **HTTP API & Web UI**：内置 HTTP 服务器与可视化 Web 界面
 - 📋 **完整日志系统**：分模块日志记录，支持多级别配置与生命周期追踪
@@ -83,6 +83,9 @@ cp config/llmservices_template.json config/llmservices.local.json
   "modules": {
     "chrome": {
       "headless": false
+    },
+    "ssh": {
+      "enabled": true
     }
   } // 启用可选模块
 }
@@ -331,6 +334,8 @@ agent-society/
 │       ├── prompt_loader.js  # 提示词加载器
 │       └── index.js       # 统一导出
 ├── modules/               # 可插拔模块
+│   ├── chrome/           # Chrome浏览器控制模块
+│   └── ssh/              # SSH远程连接模块
 ├── demo/                  # 示例程序
 ├── test/                  # 测试文件
 ├── docs/                  # 文档

@@ -1,0 +1,33 @@
+{
+  "maxConnections": 10,
+  "connectionTimeout": 30000,
+  "commandTimeout": 30000,
+  "idleTimeout": 300000,
+  "maxOutputSize": 10485760,
+  "verifyHostKey": false,
+  "keepaliveInterval": 10000,
+  "hosts": {
+    "production-server": {
+      "description": "生产服务器",
+      "host": "192.168.1.100",
+      "port": 22,
+      "username": "root",
+      "password": "your_password_here"
+    },
+    "dev-server": {
+      "description": "开发服务器",
+      "host": "dev.example.com",
+      "port": 22,
+      "username": "admin",
+      "privateKey": "/path/to/private/key"
+    },
+    "test-server": {
+      "description": "测试服务器（密钥认证示例）",
+      "host": "test.example.com",
+      "port": 2222,
+      "username": "testuser",
+      "privateKey": "/home/user/.ssh/id_rsa",
+      "passphrase": "key_passphrase_if_needed"
+    }
+  }
+}

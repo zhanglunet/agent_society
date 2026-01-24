@@ -27,6 +27,24 @@
         "username": "",
         "password": ""
       }
+    },
+    "ssh": {
+      "maxConnections": 10,
+      "connectionTimeout": 30000,
+      "commandTimeout": 30000,
+      "idleTimeout": 300000,
+      "maxOutputSize": 10485760,
+      "verifyHostKey": false,
+      "keepaliveInterval": 10000,
+      "hosts": {
+        "example-server": {
+          "description": "示例主机",
+          "host": "192.0.2.1",
+          "port": 22,
+          "username": "user",
+          "password": "your_password_here"
+        }
+      }
     }
   }
 }

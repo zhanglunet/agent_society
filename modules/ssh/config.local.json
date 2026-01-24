@@ -1,0 +1,12 @@
+{
+  "hosts": [
+    {
+      "name": "test-server",
+      "description": "测试服务器",
+      "host": "127.0.0.1",
+      "port": 22,
+      "username": "testuser",
+      "password": "testpass"
+    }
+  ]
+}
