@@ -16,7 +16,12 @@ const API = {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`);
       if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
+        let detail = null;
+        try {
+          detail = await response.json();
+        } catch {}
+        const message = detail?.message || detail?.error || `HTTP 错误: ${response.status}`;
+        throw new Error(message);
       }
       return await response.json();
     } catch (error) {
@@ -41,7 +46,12 @@ const API = {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
+        let detail = null;
+        try {
+          detail = await response.json();
+        } catch {}
+        const message = detail?.message || detail?.error || `HTTP 错误: ${response.status}`;
+        throw new Error(message);
       }
       return await response.json();
     } catch (error) {
@@ -66,7 +76,12 @@ const API = {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        throw new Error(`HTTP 错误: ${response.status}`);
+        let detail = null;
+        try {
+          detail = await response.json();
+        } catch {}
+        const message = detail?.message || detail?.error || `HTTP 错误: ${response.status}`;
+        throw new Error(message);
       }
       return await response.json();
     } catch (error) {

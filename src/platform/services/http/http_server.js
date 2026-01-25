@@ -1056,7 +1056,9 @@ export class HTTPServer {
       const result = this.society.sendTextToAgent(agentId, messagePayload, options);
 
       if (result.error) {
-        this._sendJson(res, 400, { error: result.error });
+        const isAgentStateError = typeof result.error === "string" && result.error.startsWith("agent_");
+        const statusCode = isAgentStateError ? 409 : 400;
+        this._sendJson(res, statusCode, { error: result.error });
         return;
       }
 
@@ -1962,13 +1964,22 @@ export class HTTPServer {
           return;
         }
 
-        const termination = await org.recordTermination(agentId, deletedBy, reason);
+        const forceResult = await this.society.runtime.forceTerminateAgent(agentId, { deletedBy, reason });
+        if (!forceResult.ok) {
+          const statusCode =
+            forceResult.reason === "agent_not_found" ? 404
+              : forceResult.reason === "agent_already_terminated" ? 400
+                : forceResult.reason === "cannot_delete_system_agent" ? 400
+                  : 500;
+          this._sendJson(res, statusCode, { error: forceResult.reason ?? "delete_failed" });
+          return;
+        }
 
         void this.log.info("删除智能体", { agentId, deletedBy, reason });
-        this._sendJson(res, 200, { 
-          ok: true, 
+        this._sendJson(res, 200, {
+          ok: true,
           agentId,
-          termination
+          termination: forceResult.termination
         });
       } catch (deleteErr) {
         void this.log.error("删除智能体失败", { agentId, error: deleteErr.message });

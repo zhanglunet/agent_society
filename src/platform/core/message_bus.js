@@ -52,7 +52,7 @@ export class MessageBus {
     // 检查目标智能体状态
     if (this._getAgentStatus) {
       const status = this._getAgentStatus(message.to);
-      if (status === 'stopped' || status === 'stopping' || status === 'terminating') {
+      if (status === 'terminating') {
         void this.log.info("拒绝发送消息：目标智能体已停止", {
           to: message.to,
           from: message.from,

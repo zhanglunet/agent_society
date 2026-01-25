@@ -692,6 +692,16 @@ export class Runtime {
   }
 
   /**
+   * 强制终止指定智能体及其后代（用于 HTTP/管理员侧删除）。
+   * @param {string} agentId
+   * @param {{deletedBy?:string, reason?:string}} [options]
+   * @returns {Promise<{ok:boolean, agentId:string, termination?:any, reason?:string}>}
+   */
+  async forceTerminateAgent(agentId, options = {}) {
+    return await this._lifecycle.forceTerminateAgent(agentId, options);
+  }
+
+  /**
    * 启动常驻异步消息循环（不阻塞调用者）。
    * @returns {Promise<void>}
    */

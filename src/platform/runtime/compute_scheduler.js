@@ -58,6 +58,15 @@ export class ComputeScheduler {
   }
 
   /**
+   * 丢弃某个 agent 的 inFlight 占位（用于 stop 后允许新消息立即恢复处理）。
+   * @param {string} agentId
+   */
+  cancelInFlight(agentId) {
+    if (!agentId) return;
+    this._inFlight.delete(agentId);
+  }
+
+  /**
    * 调度循环主体。
    * @private
    */
@@ -100,7 +109,7 @@ export class ComputeScheduler {
       if (this._inFlight.has(agentId)) continue;
 
       const status = this.runtime._state.getAgentComputeStatus(agentId);
-      if (status === "stopped" || status === "stopping" || status === "terminating") {
+      if (status === "stopping" || status === "terminating") {
         continue;
       }
 
@@ -116,6 +125,9 @@ export class ComputeScheduler {
       if (agentId === "user" || agent?.roleName === "user" || agent?.roleId === "user") {
         this._dispatchEndpointMessage(agentId, agent, ctx, msg);
       } else {
+        if (status === "stopped") {
+          this.runtime._state.setAgentComputeStatus(agentId, "idle");
+        }
         this.turnEngine.enqueueMessageTurn(agentId, ctx, msg);
         this._markReady(agentId);
       }
@@ -164,6 +176,14 @@ export class ComputeScheduler {
     const agentId = this._takeReady();
     if (!agentId) return false;
 
+    if (!this.runtime._agents.has(agentId)) {
+      this._inFlight.delete(agentId);
+      this.turnEngine.clearAgent?.(agentId);
+      this.runtime._state.unmarkAgentAsActivelyProcessing(agentId);
+      this.runtime._state.setAgentComputeStatus(agentId, "idle");
+      return false;
+    }
+
     if (this._inFlight.has(agentId)) return false;
 
     const status = this.runtime._state.getAgentComputeStatus(agentId);
@@ -175,18 +195,30 @@ export class ComputeScheduler {
     const outcome = this.turnEngine.step(agentId, cancelScope);
 
     if (!outcome || outcome.kind === "noop") {
-      if (this.turnEngine.hasRunnable(agentId)) this._markReady(agentId);
+      if (this.turnEngine.hasRunnable(agentId)) {
+        this._markReady(agentId);
+      } else {
+        this._maybeSetIdle(agentId);
+      }
       return false;
     }
 
     if (outcome.kind === "done") {
-      if (this.turnEngine.hasRunnable(agentId)) this._markReady(agentId);
+      if (this.turnEngine.hasRunnable(agentId)) {
+        this._markReady(agentId);
+      } else {
+        this._maybeSetIdle(agentId);
+      }
       return true;
     }
 
     if (outcome.kind === "send") {
       this.runtime.bus.send(outcome.message);
-      if (this.turnEngine.hasRunnable(agentId)) this._markReady(agentId);
+      if (this.turnEngine.hasRunnable(agentId)) {
+        this._markReady(agentId);
+      } else {
+        this._maybeSetIdle(agentId);
+      }
       return true;
     }
 
@@ -246,6 +278,7 @@ export class ComputeScheduler {
           }
           return;
         }
+        if (!this.runtime._agents.has(agentId)) return;
         this.turnEngine.onLlmResult(agentId, { turnId: outcome.turnId, stepId: outcome.stepId, msg });
         this.runtime._state.setAgentComputeStatus(agentId, "processing");
       })
@@ -260,6 +293,7 @@ export class ComputeScheduler {
           }
           return;
         }
+        if (!this.runtime._agents.has(agentId)) return;
         this.turnEngine.onLlmError(agentId, { turnId: outcome.turnId, stepId: outcome.stepId, error: err });
         this.runtime._state.setAgentComputeStatus(agentId, "idle");
       })
@@ -269,7 +303,14 @@ export class ComputeScheduler {
           this._inFlight.delete(agentId);
         }
         this.runtime._state.unmarkAgentAsActivelyProcessing(agentId);
-        this._markReady(agentId);
+        if (!this.runtime._agents.has(agentId)) return;
+        const status = this.runtime._state.getAgentComputeStatus(agentId);
+        if (status === "stopping" || status === "stopped" || status === "terminating") return;
+        if (this.turnEngine.hasRunnable(agentId)) {
+          this._markReady(agentId);
+        } else {
+          this._maybeSetIdle(agentId);
+        }
       });
   }
 
@@ -305,6 +346,7 @@ export class ComputeScheduler {
       .then((result) => {
         const currentEpoch = this.runtime._cancelManager?.getEpoch(agentId) ?? epoch;
         if (currentEpoch !== epoch) return;
+        if (!this.runtime._agents.has(agentId)) return;
         this.turnEngine.onToolResult(agentId, {
           turnId: outcome.turnId,
           stepId: outcome.stepId,
@@ -315,6 +357,7 @@ export class ComputeScheduler {
       .catch((err) => {
         const currentEpoch = this.runtime._cancelManager?.getEpoch(agentId) ?? epoch;
         if (currentEpoch !== epoch) return;
+        if (!this.runtime._agents.has(agentId)) return;
         this.turnEngine.onToolError(agentId, {
           turnId: outcome.turnId,
           stepId: outcome.stepId,
@@ -329,8 +372,33 @@ export class ComputeScheduler {
           this._inFlight.delete(agentId);
         }
         this.runtime._state.unmarkAgentAsActivelyProcessing(agentId);
-        this._markReady(agentId);
+        if (!this.runtime._agents.has(agentId)) return;
+        const status = this.runtime._state.getAgentComputeStatus(agentId);
+        if (status === "stopping" || status === "stopped" || status === "terminating") return;
+        if (this.turnEngine.hasRunnable(agentId)) {
+          this._markReady(agentId);
+        } else {
+          this._maybeSetIdle(agentId);
+        }
       });
+  }
+
+  /**
+   * 将空闲智能体的 computeStatus 收敛为 idle，避免 UI 长期显示“处理中/等待”。
+   * @param {string} agentId
+   * @private
+   */
+  _maybeSetIdle(agentId) {
+    if (!agentId) return;
+    if (this._inFlight.has(agentId)) return;
+    if (this.turnEngine.hasRunnable(agentId)) return;
+    const queueDepth = this.runtime.bus?.getQueueDepth?.(agentId) ?? 0;
+    if (queueDepth > 0) return;
+
+    const status = this.runtime._state.getAgentComputeStatus(agentId);
+    if (status === "stopping" || status === "stopped" || status === "terminating") return;
+    if (!status || status === "idle") return;
+    this.runtime._state.setAgentComputeStatus(agentId, "idle");
   }
 
   /**

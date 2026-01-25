@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { Agent } from "../../agents/agent.js";
 import { Runtime } from "./runtime.js";
@@ -133,12 +133,15 @@ export class AgentSociety {
     }
     
     // 直接发送到目标智能体，from="user"
-    this.runtime.bus.send({
+    const sendResult = this.runtime.bus.send({
       to: toAgentId,
       from: "user",
       taskId,
       payload
     });
+    if (sendResult?.rejected) {
+      return { error: sendResult.reason ?? "message_rejected" };
+    }
     void this.log.info("用户消息已发送", { toAgentId, taskId, hasAttachments: !!(payload.attachments?.length) });
     return { taskId, to: toAgentId };
   }

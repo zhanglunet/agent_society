@@ -470,11 +470,12 @@ const AgentList = {
   async abortLlmCall(agentId) {
     try {
       const result = await API.abortAgentLlmCall(agentId);
-      if (result.aborted) {
-        Toast.show('已停止 LLM 调用', 'success');
-      } else {
-        Toast.show('当前没有进行中的 LLM 调用', 'info');
+      if (result.stopped) {
+        Toast.show('已停止智能体处理', 'success');
+        return;
       }
+      if (result.aborted) Toast.show('已停止 LLM 调用', 'success');
+      else Toast.show('当前没有进行中的 LLM 调用', 'info');
     } catch (error) {
       console.error('中断 LLM 调用失败:', error);
       Toast.show('停止调用失败: ' + error.message, 'error');

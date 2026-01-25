@@ -65,6 +65,15 @@ export class TurnEngine {
   }
 
   /**
+   * 清理某个 agent 的回合队列与活跃回合（用于终止/删除）。
+   * @param {string} agentId
+   */
+  clearAgent(agentId) {
+    if (!agentId) return;
+    this._byAgentId.delete(agentId);
+  }
+
+  /**
    * 推进某个 agent 的一个 step，返回下一步需要的原子动作。
    * @param {string} agentId
    * @param {{epoch:number, signal:AbortSignal, assertActive:() => void}|null} cancelScope

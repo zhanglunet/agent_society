@@ -150,26 +150,32 @@ export class RuntimeLifecycle {
    * 4. 更新智能体状态
    * 
    * @param {string} agentId - 智能体ID
-   * @returns {{ok: boolean, agentId: string, aborted: boolean}} 中止结果
+   * @returns {{ok: boolean, agentId: string, aborted: boolean, reason?: string}} 中止结果
    */
   abortAgentLlmCall(agentId) {
     const runtime = this.runtime;
     
+    if (agentId === "user") {
+      return { ok: false, agentId, aborted: false, reason: "cannot_stop_user" };
+    }
+
     // 验证智能体是否存在
     if (!runtime._agents.has(agentId)) {
       void runtime.log?.warn?.("中止 LLM 调用失败：智能体不存在", { agentId });
-      return { ok: false, agentId, aborted: false };
+      return { ok: false, agentId, aborted: false, reason: "agent_not_found" };
     }
 
-    // 统一取消语义：递增 epoch + abort signal（用于丢弃晚到结果）
-    runtime._cancelManager?.abort(agentId, { reason: "abort_llm_call" });
+    runtime._state.setAgentComputeStatus(agentId, "stopping");
 
-    // 中止 LLM 调用（尽最大努力取消 active/queued）
+    runtime._cancelManager?.abort(agentId, { reason: "user_stop" });
     const aborted = runtime.llm?.abort(agentId) ?? false;
 
-    // 无论是否能在网络层真正中止，都将当前计算状态置为 idle
-    // 具体的“丢弃响应/停止推进”由调用方在 await 返回后通过 epoch 校验保证
-    runtime._state.setAgentComputeStatus(agentId, 'idle');
+    runtime._state.getAndClearInterruptions?.(agentId);
+    runtime._turnEngine?.clearAgent?.(agentId);
+    runtime._computeScheduler?.cancelInFlight?.(agentId);
+    runtime._state.unmarkAgentAsActivelyProcessing(agentId);
+
+    runtime._state.setAgentComputeStatus(agentId, "stopped");
 
     if (aborted) {
       void runtime.log?.info?.("已发起 LLM 中止请求", { agentId });
@@ -177,7 +183,7 @@ export class RuntimeLifecycle {
       void runtime.log?.info?.("未发现可中止的 LLM 请求，但已触发取消 epoch", { agentId });
     }
 
-    return { ok: true, agentId, aborted };
+    return { ok: true, agentId, aborted, stopped: true };
   }
 
   /**
@@ -239,6 +245,56 @@ export class RuntimeLifecycle {
     }
     
     return stoppedAgents;
+  }
+
+  /**
+   * 强制终止指定智能体及其所有后代（用于 HTTP/管理员侧删除）。
+   * @param {string} agentId
+   * @param {{deletedBy?:string, reason?:string}} [options]
+   * @returns {Promise<{ok:boolean, agentId:string, termination?:any, reason?:string}>}
+   */
+  async forceTerminateAgent(agentId, options = {}) {
+    const runtime = this.runtime;
+    const targetId = String(agentId ?? "").trim();
+    const deletedBy = String(options.deletedBy ?? "user");
+    const reason = String(options.reason ?? "用户删除");
+
+    if (!targetId) return { ok: false, agentId: targetId, reason: "missing_agent_id" };
+    if (targetId === "root" || targetId === "user") {
+      return { ok: false, agentId: targetId, reason: "cannot_delete_system_agent" };
+    }
+
+    const meta = runtime.org?.getAgent?.(targetId) ?? null;
+    if (!meta) return { ok: false, agentId: targetId, reason: "agent_not_found" };
+    if (meta.status === "terminated") {
+      return { ok: false, agentId: targetId, reason: "agent_already_terminated" };
+    }
+
+    const descendants = runtime._agentManager.collectDescendantAgents(targetId);
+    const agentsToTerminate = [targetId, ...descendants];
+
+    for (const id of agentsToTerminate) {
+      runtime._state.setAgentComputeStatus(id, "terminating");
+      runtime._cancelManager?.abort(id, { reason: "force_terminate" });
+      runtime.llm?.abort(id);
+      runtime.bus?.clearQueue?.(id);
+      runtime._turnEngine?.clearAgent?.(id);
+    }
+
+    for (const id of [...agentsToTerminate].reverse()) {
+      runtime._agents.delete(id);
+      runtime._conversations.delete(id);
+      void runtime._conversationManager?.deletePersistedConversation?.(id);
+      runtime._agentMetaById.delete(id);
+      runtime._agentLastActivityTime.delete(id);
+      runtime._idleWarningEmitted?.delete?.(id);
+      runtime._state.unmarkAgentAsActivelyProcessing(id);
+      runtime._state.setAgentComputeStatus(id, "idle");
+      runtime._cancelManager?.clear(id);
+    }
+
+    const termination = await runtime.org.recordTermination(targetId, deletedBy, reason);
+    return { ok: true, agentId: targetId, termination };
   }
 
   /**
