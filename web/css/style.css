@@ -2335,6 +2335,273 @@ body {
   margin: 0;
 }
 
+/* ========== 组织模板管理面板样式 ========== */
+.org-templates-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  background-color: #252525;
+}
+
+.org-templates-window {
+  width: 1000px;
+  height: 720px;
+  background-color: #252525;
+}
+
+.org-templates-window .org-templates-panel-header {
+  background-color: #252525;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.org-templates-window .org-templates-panel-title {
+  color: #fff;
+}
+
+.org-templates-window .org-templates-panel-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.org-templates-window .org-templates-panel-editor {
+  overflow: auto;
+}
+
+.org-templates-panel.hidden {
+  display: none !important;
+}
+
+.org-templates-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px;
+  border-bottom: 1px solid #1a1a1a;
+  background-color: #252525;
+}
+
+.org-templates-panel-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.org-templates-panel-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-panel-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.org-templates-panel-sidebar {
+  width: 280px;
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-right: 1px solid #1a1a1a;
+  background-color: #2e2e2e;
+}
+
+.org-templates-panel-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-panel-toolbar input,
+.org-templates-panel-create input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #fff;
+  background-color: #252525;
+  transition: border-color 0.2s;
+}
+
+.org-templates-panel-toolbar input:focus,
+.org-templates-panel-create input:focus {
+  outline: none;
+  border-color: #07c160;
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.12);
+}
+
+.org-templates-panel-list {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background-color: #252525;
+}
+
+.org-templates-panel-empty {
+  padding: 12px;
+  color: #888;
+  font-size: 13px;
+}
+
+.org-templates-panel-item {
+  padding: 10px 10px;
+  border-bottom: 1px solid #3a3a3a;
+  cursor: pointer;
+}
+
+.org-templates-panel-item:last-child {
+  border-bottom: none;
+}
+
+.org-templates-panel-item:hover {
+  background-color: #2e2e2e;
+}
+
+.org-templates-panel-item.active {
+  background-color: rgba(7, 193, 96, 0.16);
+}
+
+.org-templates-panel-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.org-templates-panel-item-excerpt {
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.3;
+}
+
+.org-templates-panel-create {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-panel-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow: auto;
+  min-width: 0;
+}
+
+.org-templates-panel-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #fff;
+}
+
+.org-templates-panel-editor-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.org-templates-panel-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.org-templates-panel-editor-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #fff;
+}
+
+.org-templates-panel-editor-section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-panel-editor textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #fff;
+  background-color: #1f1f1f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  resize: vertical;
+}
+
+.org-templates-panel.maximized {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background-color: #fff;
+}
+
+.org-templates-panel.maximized .org-templates-panel-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.org-templates-panel.maximized .org-templates-panel-title,
+.org-templates-panel.maximized .org-templates-panel-editor-header,
+.org-templates-panel.maximized .org-templates-panel-editor-section-header {
+  color: #333;
+}
+
+.org-templates-panel.maximized .org-templates-panel-sidebar {
+  background-color: #fafafa;
+  border-right: 1px solid #e8e8e8;
+}
+
+.org-templates-panel.maximized .org-templates-panel-toolbar input,
+.org-templates-panel.maximized .org-templates-panel-create input {
+  background-color: #fff;
+  color: #333;
+  border-color: #d9d9d9;
+}
+
+.org-templates-panel.maximized .org-templates-panel-list {
+  background-color: #fff;
+  border-color: #e8e8e8;
+}
+
+.org-templates-panel.maximized .org-templates-panel-item {
+  border-bottom-color: #f0f0f0;
+}
+
+.org-templates-panel.maximized .org-templates-panel-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.org-templates-panel.maximized .org-templates-panel-item-name {
+  color: #333;
+}
+
+.org-templates-panel.maximized .org-templates-panel-item-excerpt {
+  color: #666;
+}
+
+.org-templates-panel.maximized .org-templates-panel-editor {
+  background-color: #fff;
+}
+
+.org-templates-panel.maximized .org-templates-panel-editor textarea {
+  background-color: #fff;
+  color: #333;
+  border-color: #d9d9d9;
+}
+
 .module-refresh-btn {
   background-color: #3a3a3a;
   border: none;

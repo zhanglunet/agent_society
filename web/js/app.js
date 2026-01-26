@@ -34,6 +34,7 @@ const App = {
     ChatPanel.init();
     OverviewPanel.init();
     ModulesPanel.init();
+    OrgTemplatesPanel.init();
     MessageModal.init();
     AgentDetailModal.init();
     RoleDetailModal.init();
@@ -71,6 +72,7 @@ const App = {
     const modulesBtn = document.getElementById('view-modules-btn');
     const openArtifactsBtn = document.getElementById('open-artifacts-btn');
     const openSettingsBtn = document.getElementById('open-settings-btn');
+    const openOrgTemplatesBtn = document.getElementById('view-org-templates-btn');
 
     if (listBtn) {
       listBtn.addEventListener('click', () => this.switchToListView());
@@ -86,6 +88,9 @@ const App = {
     }
     if (openSettingsBtn) {
       openSettingsBtn.addEventListener('click', () => this.openSettings());
+    }
+    if (openOrgTemplatesBtn) {
+      openOrgTemplatesBtn.addEventListener('click', () => this.toggleOrgTemplatesManager());
     }
 
     // 监听导航到消息事件（从工件管理器触发）
@@ -204,6 +209,26 @@ const App = {
     if (modulesPanel) modulesPanel.classList.add('hidden');
   },
 
+  openOrgTemplatesManager() {
+    OrgTemplatesPanel.show();
+    this.updateViewToggleButtons();
+  },
+
+  closeOrgTemplatesManager() {
+    OrgTemplatesPanel.hide();
+    this.updateViewToggleButtons();
+  },
+
+  toggleOrgTemplatesManager() {
+    const win = document.getElementById('org-templates-window');
+    const isOpen = win && !win.classList.contains('hidden');
+    if (isOpen) {
+      this.closeOrgTemplatesManager();
+    } else {
+      this.openOrgTemplatesManager();
+    }
+  },
+
   /**
    * 处理导航到消息事件
    * @param {string} messageId - 消息 ID
@@ -247,6 +272,8 @@ const App = {
     const listBtn = document.getElementById('view-list-btn');
     const overviewBtn = document.getElementById('view-overview-btn');
     const modulesBtn = document.getElementById('view-modules-btn');
+    const orgTemplatesBtn = document.getElementById('view-org-templates-btn');
+    const orgTemplatesWindow = document.getElementById('org-templates-window');
 
     if (listBtn) {
       listBtn.classList.toggle('active', this.currentView === 'list');
@@ -256,6 +283,10 @@ const App = {
     }
     if (modulesBtn) {
       modulesBtn.classList.toggle('active', this.currentView === 'modules');
+    }
+    if (orgTemplatesBtn) {
+      const isOpen = orgTemplatesWindow && !orgTemplatesWindow.classList.contains('hidden');
+      orgTemplatesBtn.classList.toggle('active', !!isOpen);
     }
   },
 
