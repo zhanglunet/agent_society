@@ -21,6 +21,7 @@ const ChatPanel = {
   thinkingMap: {},       // 思考过程映射（tool_call_id -> reasoning_content）
   isUploading: false,    // 是否正在上传附件
   autoScroll: true,      // 是否自动滚动到底部
+  uiStateByAgentId: new Map(), // 每个智能体的 UI 状态（展开/折叠等）
 
   // DOM 元素引用
   headerTitle: null,
@@ -93,6 +94,101 @@ const ChatPanel = {
     
     // 初始化工件交互处理器
     this._initArtifactInteractionHandler();
+  },
+
+  /**
+   * 获取当前智能体对应的 UI 状态对象
+   * @returns {{thinkingExpanded:Set<string>, toolDetailsExpanded:Set<string>, toolGroupExpanded:Set<string>}}
+   * @private
+   */
+  _getUiState() {
+    const agentId = this.currentAgentId || '__no_agent__';
+    let state = this.uiStateByAgentId.get(agentId);
+    if (!state) {
+      state = {
+        thinkingExpanded: new Set(),
+        toolDetailsExpanded: new Set(),
+        toolGroupExpanded: new Set(),
+      };
+      this.uiStateByAgentId.set(agentId, state);
+    }
+    return state;
+  },
+
+  /**
+   * 从当前 DOM 捕获 UI 折叠状态，避免 render() 重建 DOM 后状态丢失
+   * @private
+   */
+  _captureUiStateFromDom() {
+    if (!this.messageList) return;
+
+    const state = this._getUiState();
+
+    const thinkingEls = this.messageList.querySelectorAll('.thinking-content[id^="thinking-"]');
+    thinkingEls.forEach(el => {
+      const messageId = el.id.replace(/^thinking-/, '');
+      if (!messageId) return;
+      if (el.classList.contains('hidden')) {
+        state.thinkingExpanded.delete(messageId);
+      } else {
+        state.thinkingExpanded.add(messageId);
+      }
+    });
+
+    const toolDetailsEls = this.messageList.querySelectorAll('.tool-call-details[id^="tool-details-"]');
+    toolDetailsEls.forEach(el => {
+      const messageId = el.id.replace(/^tool-details-/, '');
+      if (!messageId) return;
+      if (el.classList.contains('hidden')) {
+        state.toolDetailsExpanded.delete(messageId);
+      } else {
+        state.toolDetailsExpanded.add(messageId);
+      }
+    });
+
+    const toolGroupEls = this.messageList.querySelectorAll('.tool-call-group-content[id^="tool-group-"]');
+    toolGroupEls.forEach(el => {
+      const groupId = el.id;
+      if (!groupId) return;
+      if (el.classList.contains('hidden')) {
+        state.toolGroupExpanded.delete(groupId);
+      } else {
+        state.toolGroupExpanded.add(groupId);
+      }
+    });
+  },
+
+  /**
+   * 捕获滚动锚点（第一个可见消息 + 相对偏移），用于在 DOM 更新后恢复滚动稳定性
+   * @returns {{messageId:string, offset:number}|null}
+   * @private
+   */
+  _captureScrollAnchor() {
+    if (!this.messageList) return null;
+    const scrollTop = this.messageList.scrollTop;
+    const items = this.messageList.querySelectorAll('.message-item[data-message-id]');
+    for (const el of items) {
+      const top = el.offsetTop;
+      const bottom = top + el.offsetHeight;
+      if (bottom >= scrollTop) {
+        const messageId = el.getAttribute('data-message-id');
+        if (!messageId) return null;
+        return { messageId, offset: scrollTop - top };
+      }
+    }
+    return null;
+  },
+
+  /**
+   * 恢复滚动锚点
+   * @param {{messageId:string, offset:number}|null} anchor - 捕获的锚点
+   * @private
+   */
+  _restoreScrollAnchor(anchor) {
+    if (!anchor || !this.messageList) return;
+    const el = this.messageList.querySelector(`[data-message-id="${anchor.messageId}"]`);
+    if (!el) return;
+    this.messageList.scrollTop = el.offsetTop + (anchor.offset || 0);
   },
 
   _syncChatInputHeight() {
@@ -891,10 +987,16 @@ const ChatPanel = {
     // 清空待渲染的 JSON 查看器列表
     this._pendingJsonViewers = [];
 
+    const scrollAnchor = this.autoScroll ? null : this._captureScrollAnchor();
+    this._captureUiStateFromDom();
+
     if (!this.currentAgentId) {
       this.messageList.innerHTML = `
         <div class="empty-state">请从左侧选择一个智能体查看对话</div>
       `;
+      if (!this.autoScroll) {
+        this._restoreScrollAnchor(scrollAnchor);
+      }
       return;
     }
 
@@ -902,6 +1004,9 @@ const ChatPanel = {
       this.messageList.innerHTML = `
         <div class="empty-state">暂无消息</div>
       `;
+      if (!this.autoScroll) {
+        this._restoreScrollAnchor(scrollAnchor);
+      }
       return;
     }
 
@@ -992,6 +1097,10 @@ const ChatPanel = {
     
     // 渲染完成后初始化 JSON 查看器
     this._initPendingJsonViewers();
+
+    if (!this.autoScroll) {
+      this._restoreScrollAnchor(scrollAnchor);
+    }
   },
   
   /**
@@ -1071,6 +1180,11 @@ const ChatPanel = {
     // 生成组的唯一 ID
     const groupId = `tool-group-${firstMessage.id}`;
     const artifactsContainerId = `artifacts-${groupId}`;
+    const state = this._getUiState();
+    const isGroupExpanded = state.toolGroupExpanded.has(groupId);
+    const groupArrow = isGroupExpanded ? '▼' : '▶';
+    const groupLabel = isGroupExpanded ? '收起工具调用' : '展开全部工具调用';
+    const groupContentClass = isGroupExpanded ? 'tool-call-group-content' : 'tool-call-group-content hidden';
     
     // 渲染每个工具调用的详情
     const toolCallsHtml = toolCallMessages.map((message, index) => {
@@ -1102,10 +1216,10 @@ const ChatPanel = {
           </div>
           <div class="tool-call-group-wrapper">
             <div class="tool-call-group-toggle" onclick="ChatPanel.toggleToolCallGroup('${groupId}')">
-              <span class="tool-call-toggle-arrow" id="${groupId}-arrow">▶</span>
-              <span class="tool-call-toggle-label">展开全部工具调用</span>
+              <span class="tool-call-toggle-arrow" id="${groupId}-arrow">${groupArrow}</span>
+              <span class="tool-call-toggle-label">${groupLabel}</span>
             </div>
-            <div class="tool-call-group-content hidden" id="${groupId}">
+            <div class="${groupContentClass}" id="${groupId}">
               ${toolCallsHtml}
             </div>
           </div>
@@ -1122,6 +1236,7 @@ const ChatPanel = {
    * @private
    */
   async _loadToolCallGroupArtifacts(toolCallMessages, containerId) {
+    const scrollAnchor = this.autoScroll ? null : this._captureScrollAnchor();
     try {
       const html = await this.renderToolCallGroupArtifacts(toolCallMessages);
       const container = document.getElementById(containerId);
@@ -1135,6 +1250,10 @@ const ChatPanel = {
         container.innerHTML = '<div class="artifacts-error">工件加载失败</div>';
         container.classList.remove('artifacts-loading');
         container.classList.add('artifacts-error');
+      }
+    } finally {
+      if (!this.autoScroll) {
+        this._restoreScrollAnchor(scrollAnchor);
       }
     }
   },
@@ -1395,6 +1514,10 @@ const ChatPanel = {
     const detailsId = `tool-details-${message.id}`;
     const argsContainerId = `tool-args-json-${message.id}`;
     const resultContainerId = `tool-result-json-${message.id}`;
+    const state = this._getUiState();
+    const isDetailsExpanded = state.toolDetailsExpanded.has(message.id);
+    const detailsArrow = isDetailsExpanded ? '▼' : '▶';
+    const detailsClass = isDetailsExpanded ? 'tool-call-details' : 'tool-call-details hidden';
     
     // 存储数据供后续渲染 JSON 查看器使用
     this._pendingJsonViewers = this._pendingJsonViewers || [];
@@ -1418,10 +1541,10 @@ const ChatPanel = {
         ${thinkingHtml}
         <div class="tool-call-details-wrapper">
           <div class="tool-call-toggle" onclick="ChatPanel.toggleToolDetails('${detailsId}')">
-            <span class="tool-call-toggle-arrow" id="${detailsId}-arrow">▶</span>
+            <span class="tool-call-toggle-arrow" id="${detailsId}-arrow">${detailsArrow}</span>
             <span class="tool-call-toggle-label">参数与结果</span>
           </div>
-          <div class="tool-call-details hidden" id="${detailsId}">
+          <div class="${detailsClass}" id="${detailsId}">
             <div class="tool-call-section">
               <span class="tool-call-section-label">参数:</span>
               <div class="tool-call-json-viewer" id="${argsContainerId}"></div>
@@ -1448,6 +1571,12 @@ const ChatPanel = {
     if (contentEl && arrowEl) {
       const isHidden = contentEl.classList.toggle('hidden');
       arrowEl.textContent = isHidden ? '▶' : '▼';
+      const state = this._getUiState();
+      if (isHidden) {
+        state.toolGroupExpanded.delete(groupId);
+      } else {
+        state.toolGroupExpanded.add(groupId);
+      }
       if (toggleEl) {
         const label = toggleEl.querySelector('.tool-call-toggle-label');
         if (label) {
@@ -1472,14 +1601,18 @@ const ChatPanel = {
     }
 
     const uniqueId = `thinking-${message.id}`;
+    const state = this._getUiState();
+    const isExpanded = state.thinkingExpanded.has(message.id);
+    const contentClass = isExpanded ? 'thinking-content' : 'thinking-content hidden';
+    const arrow = isExpanded ? '▼' : '▶';
     return `
       <div class="thinking-section">
         <div class="thinking-toggle" onclick="ChatPanel.toggleThinking('${uniqueId}')">
           <span class="thinking-icon">💭</span>
           <span class="thinking-label">思考过程</span>
-          <span class="thinking-arrow" id="${uniqueId}-arrow">▶</span>
+          <span class="thinking-arrow" id="${uniqueId}-arrow">${arrow}</span>
         </div>
-        <div class="thinking-content hidden" id="${uniqueId}">
+        <div class="${contentClass}" id="${uniqueId}">
           <pre class="thinking-text">${this.escapeHtml(thinkingContent)}</pre>
         </div>
       </div>
@@ -1532,7 +1665,15 @@ const ChatPanel = {
     
     if (contentEl && arrowEl) {
       contentEl.classList.toggle('hidden');
-      arrowEl.textContent = contentEl.classList.contains('hidden') ? '▶' : '▼';
+      const isHidden = contentEl.classList.contains('hidden');
+      arrowEl.textContent = isHidden ? '▶' : '▼';
+      const messageId = id.replace(/^thinking-/, '');
+      const state = this._getUiState();
+      if (isHidden) {
+        state.thinkingExpanded.delete(messageId);
+      } else {
+        state.thinkingExpanded.add(messageId);
+      }
     }
   },
 
@@ -1557,6 +1698,10 @@ const ChatPanel = {
     const detailsId = `tool-details-${message.id}`;
     const argsContainerId = `tool-args-json-${message.id}`;
     const resultContainerId = `tool-result-json-${message.id}`;
+    const state = this._getUiState();
+    const isDetailsExpanded = state.toolDetailsExpanded.has(message.id);
+    const detailsArrow = isDetailsExpanded ? '▼' : '▶';
+    const detailsClass = isDetailsExpanded ? 'tool-call-details' : 'tool-call-details hidden';
     
     // 存储数据供后续渲染 JSON 查看器使用
     this._pendingJsonViewers = this._pendingJsonViewers || [];
@@ -1579,10 +1724,10 @@ const ChatPanel = {
           ${thinkingHtml}
           <div class="tool-call-details-wrapper">
             <div class="tool-call-toggle" onclick="ChatPanel.toggleToolDetails('${detailsId}')">
-              <span class="tool-call-toggle-arrow" id="${detailsId}-arrow">▶</span>
+              <span class="tool-call-toggle-arrow" id="${detailsId}-arrow">${detailsArrow}</span>
               <span class="tool-call-toggle-label">参数与结果</span>
             </div>
-            <div class="tool-call-details hidden" id="${detailsId}">
+            <div class="${detailsClass}" id="${detailsId}">
               <div class="tool-call-section">
                 <span class="tool-call-section-label">参数:</span>
                 <div class="tool-call-json-viewer" id="${argsContainerId}"></div>
@@ -1612,7 +1757,15 @@ const ChatPanel = {
     
     if (contentEl && arrowEl) {
       contentEl.classList.toggle('hidden');
-      arrowEl.textContent = contentEl.classList.contains('hidden') ? '▶' : '▼';
+      const isHidden = contentEl.classList.contains('hidden');
+      arrowEl.textContent = isHidden ? '▶' : '▼';
+      const messageId = id.replace(/^tool-details-/, '');
+      const state = this._getUiState();
+      if (isHidden) {
+        state.toolDetailsExpanded.delete(messageId);
+      } else {
+        state.toolDetailsExpanded.add(messageId);
+      }
     }
   },
 

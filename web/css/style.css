@@ -605,6 +605,7 @@ body {
   overflow-y: auto;
   padding: 20px;
   background-color: #ededed;
+  overflow-anchor: none;
 }
 
 .empty-state {
