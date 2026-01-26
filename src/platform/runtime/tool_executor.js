@@ -98,6 +98,28 @@ export class ToolExecutor {
           }
         }
       },
+      {
+        type: "function",
+        function: {
+          name: "list_org_template_infos",
+          description: "列出所有组织架构模板的简介（org/[orgName]/info.md）。只读取 info.md，不读取 org.md。",
+          parameters: { type: "object", properties: {} }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_org_template_org",
+          description: "按 orgName 读取组织架构模板的完整内容（org/[orgName]/org.md）。",
+          parameters: {
+            type: "object",
+            properties: {
+              orgName: { type: "string", description: "模板目录名（org/[orgName]/）" }
+            },
+            required: ["orgName"]
+          }
+        }
+      },
 
       // 创建智能体并发送任务
       {
@@ -381,6 +403,10 @@ export class ToolExecutor {
           return this._executeFindRoleByName(ctx, args);
         case "create_role":
           return await this._executeCreateRole(ctx, args);
+        case "list_org_template_infos":
+          return await this._executeListOrgTemplateInfos(ctx);
+        case "get_org_template_org":
+          return await this._executeGetOrgTemplateOrg(ctx, args);
         case "spawn_agent_with_task":
           return await this._executeSpawnAgentWithTask(ctx, args);
         case "send_message":
@@ -885,6 +911,32 @@ export class ToolExecutor {
         hardLimit: runtime._conversationManager.contextLimit.hardLimitThreshold
       }
     };
+  }
+
+  async _executeListOrgTemplateInfos(ctx) {
+    const runtime = this.runtime;
+    if (!runtime.orgTemplates) return { error: "org_templates_not_initialized" };
+    const templates = await runtime.orgTemplates.listTemplateInfos();
+    return { templates };
+  }
+
+  async _executeGetOrgTemplateOrg(ctx, args) {
+    const runtime = this.runtime;
+    if (!runtime.orgTemplates) return { error: "org_templates_not_initialized" };
+    const orgName = args?.orgName;
+    if (!orgName || typeof orgName !== "string") {
+      return { error: "missing_org_name", message: "必须提供 orgName 参数" };
+    }
+    try {
+      const orgMd = await runtime.orgTemplates.readOrg(orgName);
+      return { orgName, orgMd };
+    } catch (err) {
+      if (err && (err.code === "INVALID_ORG_NAME" || err.code === "ENOENT")) {
+        return { error: "org_template_not_found", orgName };
+      }
+      const message = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+      return { error: "org_template_read_failed", orgName, message };
+    }
   }
 
   async _executeHttpRequest(ctx, args) {

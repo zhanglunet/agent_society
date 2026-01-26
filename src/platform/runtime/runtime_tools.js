@@ -65,6 +65,8 @@ export class RuntimeTools {
       spawn_agent_with_task: "org_management",
       terminate_agent: "org_management",
       send_message: "org_management",
+      list_org_template_infos: "org_management",
+      get_org_template_org: "org_management",
       put_artifact: "artifact",
       get_artifact: "artifact",
       show_artifacts: "artifact",

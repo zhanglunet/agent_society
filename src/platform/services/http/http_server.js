@@ -714,7 +714,7 @@ export class HTTPServer {
 
       // 设置CORS头
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
       if (method === "OPTIONS") {
@@ -744,6 +744,65 @@ export class HTTPServer {
         this._handleGetEvents(req, res);
       } else if (method === "GET" && pathname === "/api/roles") {
         this._handleGetRoles(res);
+      } else if (method === "GET" && pathname === "/api/org-templates") {
+        this._handleGetOrgTemplates(req, res).catch(err => {
+          void this.log.error("处理组织模板列表请求失败", { error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "POST" && pathname === "/api/org-templates") {
+        this._handleCreateOrgTemplate(req, res);
+      } else if (method === "POST" && pathname.startsWith("/api/org-templates/") && pathname.endsWith("/rename")) {
+        const match = pathname.match(/^\/api\/org-templates\/(.+)\/rename$/);
+        if (match) {
+          const orgName = decodeURIComponent(match[1]);
+          this._handleRenameOrgTemplate(req, orgName, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
+      } else if (method === "DELETE" && pathname.startsWith("/api/org-templates/")) {
+        const orgName = decodeURIComponent(pathname.slice("/api/org-templates/".length));
+        this._handleDeleteOrgTemplate(orgName, res).catch(err => {
+          void this.log.error("处理删除组织模板请求失败", { orgName, error: err.message, stack: err.stack });
+          this._sendJson(res, 500, { error: "internal_error", message: err.message });
+        });
+      } else if (method === "GET" && pathname.startsWith("/api/org-templates/") && pathname.endsWith("/info")) {
+        const match = pathname.match(/^\/api\/org-templates\/(.+)\/info$/);
+        if (match) {
+          const orgName = decodeURIComponent(match[1]);
+          this._handleGetOrgTemplateInfo(orgName, res).catch(err => {
+            void this.log.error("处理组织模板 info.md 请求失败", { orgName, error: err.message, stack: err.stack });
+            this._sendJson(res, 500, { error: "internal_error", message: err.message });
+          });
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
+      } else if (method === "PUT" && pathname.startsWith("/api/org-templates/") && pathname.endsWith("/info")) {
+        const match = pathname.match(/^\/api\/org-templates\/(.+)\/info$/);
+        if (match) {
+          const orgName = decodeURIComponent(match[1]);
+          this._handleUpdateOrgTemplateInfo(req, orgName, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
+      } else if (method === "GET" && pathname.startsWith("/api/org-templates/") && pathname.endsWith("/org")) {
+        const match = pathname.match(/^\/api\/org-templates\/(.+)\/org$/);
+        if (match) {
+          const orgName = decodeURIComponent(match[1]);
+          this._handleGetOrgTemplateOrg(orgName, res).catch(err => {
+            void this.log.error("处理组织模板 org.md 请求失败", { orgName, error: err.message, stack: err.stack });
+            this._sendJson(res, 500, { error: "internal_error", message: err.message });
+          });
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
+      } else if (method === "PUT" && pathname.startsWith("/api/org-templates/") && pathname.endsWith("/org")) {
+        const match = pathname.match(/^\/api\/org-templates\/(.+)\/org$/);
+        if (match) {
+          const orgName = decodeURIComponent(match[1]);
+          this._handleUpdateOrgTemplateOrg(req, orgName, res);
+        } else {
+          this._sendJson(res, 404, { error: "not_found", path: pathname });
+        }
       } else if (method === "GET" && pathname === "/api/tool-groups") {
         // 获取工具组列表
         this._handleGetToolGroups(res);
@@ -1541,6 +1600,231 @@ export class HTTPServer {
       void this.log.error("查询岗位列表失败", { error: err.message, stack: err.stack });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
     }
+  }
+
+  async _handleGetOrgTemplates(req, res) {
+    if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+      this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+      return;
+    }
+
+    const templates = await this.society.runtime.orgTemplates.listTemplateInfos();
+    this._sendJson(res, 200, { templates, count: templates.length });
+  }
+
+  _handleCreateOrgTemplate(req, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+      const orgName = body?.orgName;
+      if (!orgName || typeof orgName !== "string") {
+        this._sendJson(res, 400, { error: "missing_org_name", message: "请求体必须包含 orgName 字段" });
+        return;
+      }
+
+      if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+        this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+        return;
+      }
+
+      try {
+        const result = await this.society.runtime.orgTemplates.createTemplate(orgName);
+        this._sendJson(res, 200, result);
+      } catch (createErr) {
+        if (createErr && createErr.code === "EEXIST") {
+          this._sendJson(res, 409, { error: "already_exists", message: "组织模板已存在" });
+          return;
+        }
+        if (createErr && createErr.code === "INVALID_ORG_NAME") {
+          this._sendJson(res, 400, { error: "invalid_org_name", message: createErr.message });
+          return;
+        }
+        void this.log.error("创建组织模板失败", { orgName, error: createErr.message, stack: createErr.stack });
+        this._sendJson(res, 500, { error: "create_failed", message: createErr.message });
+      }
+    });
+  }
+
+  _handleRenameOrgTemplate(req, orgName, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+
+      const newOrgName = body?.newOrgName;
+      if (!newOrgName || typeof newOrgName !== "string") {
+        this._sendJson(res, 400, { error: "missing_new_org_name", message: "请求体必须包含 newOrgName 字段" });
+        return;
+      }
+
+      if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+        this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+        return;
+      }
+
+      try {
+        const result = await this.society.runtime.orgTemplates.renameTemplate(orgName, newOrgName);
+        this._sendJson(res, 200, result);
+      } catch (renameErr) {
+        if (renameErr && renameErr.code === "INVALID_ORG_NAME") {
+          this._sendJson(res, 400, { error: "invalid_org_name", message: renameErr.message });
+          return;
+        }
+        if (renameErr && renameErr.code === "ENOENT") {
+          this._sendJson(res, 404, { error: "not_found", orgName });
+          return;
+        }
+        if (renameErr && (renameErr.code === "EEXIST" || renameErr.code === "ENOTEMPTY")) {
+          this._sendJson(res, 409, { error: "already_exists", message: "目标组织模板已存在" });
+          return;
+        }
+        void this.log.error("重命名组织模板失败", { orgName, newOrgName, error: renameErr.message, stack: renameErr.stack });
+        this._sendJson(res, 500, { error: "rename_failed", message: renameErr.message });
+      }
+    });
+  }
+
+  async _handleDeleteOrgTemplate(orgName, res) {
+    if (!orgName || typeof orgName !== "string") {
+      this._sendJson(res, 400, { error: "missing_org_name" });
+      return;
+    }
+    if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+      this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+      return;
+    }
+    try {
+      await this.society.runtime.orgTemplates.deleteTemplate(orgName);
+      this._sendJson(res, 200, { ok: true, orgName });
+    } catch (deleteErr) {
+      if (deleteErr && (deleteErr.code === "ENOENT" || deleteErr.code === "INVALID_ORG_NAME")) {
+        this._sendJson(res, 404, { error: "not_found", orgName });
+        return;
+      }
+      void this.log.error("删除组织模板失败", { orgName, error: deleteErr.message, stack: deleteErr.stack });
+      this._sendJson(res, 500, { error: "delete_failed", message: deleteErr.message });
+    }
+  }
+
+  async _handleGetOrgTemplateInfo(orgName, res) {
+    if (!orgName || typeof orgName !== "string") {
+      this._sendJson(res, 400, { error: "missing_org_name" });
+      return;
+    }
+    if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+      this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+      return;
+    }
+    try {
+      const infoMd = await this.society.runtime.orgTemplates.readInfo(orgName);
+      this._sendJson(res, 200, { orgName, infoMd });
+    } catch (readErr) {
+      if (readErr && (readErr.code === "ENOENT" || readErr.code === "INVALID_ORG_NAME")) {
+        this._sendJson(res, 404, { error: "not_found", orgName });
+        return;
+      }
+      void this.log.error("读取组织模板 info.md 失败", { orgName, error: readErr.message, stack: readErr.stack });
+      this._sendJson(res, 500, { error: "read_failed", message: readErr.message });
+    }
+  }
+
+  _handleUpdateOrgTemplateInfo(req, orgName, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+      const content = body?.content ?? body?.infoMd;
+      if (content === undefined || typeof content !== "string") {
+        this._sendJson(res, 400, { error: "invalid_content", message: "content 必须是字符串" });
+        return;
+      }
+      if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+        this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+        return;
+      }
+      try {
+        await this.society.runtime.orgTemplates.readInfo(orgName);
+      } catch (readErr) {
+        if (readErr && (readErr.code === "ENOENT" || readErr.code === "INVALID_ORG_NAME")) {
+          this._sendJson(res, 404, { error: "not_found", orgName });
+          return;
+        }
+      }
+      try {
+        await this.society.runtime.orgTemplates.writeInfo(orgName, content);
+        this._sendJson(res, 200, { ok: true, orgName });
+      } catch (saveErr) {
+        if (saveErr && saveErr.code === "INVALID_ORG_NAME") {
+          this._sendJson(res, 400, { error: "invalid_org_name", message: saveErr.message });
+          return;
+        }
+        void this.log.error("更新组织模板 info.md 失败", { orgName, error: saveErr.message, stack: saveErr.stack });
+        this._sendJson(res, 500, { error: "update_failed", message: saveErr.message });
+      }
+    });
+  }
+
+  async _handleGetOrgTemplateOrg(orgName, res) {
+    if (!orgName || typeof orgName !== "string") {
+      this._sendJson(res, 400, { error: "missing_org_name" });
+      return;
+    }
+    if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+      this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+      return;
+    }
+    try {
+      const orgMd = await this.society.runtime.orgTemplates.readOrg(orgName);
+      this._sendJson(res, 200, { orgName, orgMd });
+    } catch (readErr) {
+      if (readErr && (readErr.code === "ENOENT" || readErr.code === "INVALID_ORG_NAME")) {
+        this._sendJson(res, 404, { error: "not_found", orgName });
+        return;
+      }
+      void this.log.error("读取组织模板 org.md 失败", { orgName, error: readErr.message, stack: readErr.stack });
+      this._sendJson(res, 500, { error: "read_failed", message: readErr.message });
+    }
+  }
+
+  _handleUpdateOrgTemplateOrg(req, orgName, res) {
+    this._readJsonBody(req, async (err, body) => {
+      if (err) {
+        this._sendJson(res, 400, { error: "invalid_json", message: err.message });
+        return;
+      }
+      const content = body?.content ?? body?.orgMd;
+      if (content === undefined || typeof content !== "string") {
+        this._sendJson(res, 400, { error: "invalid_content", message: "content 必须是字符串" });
+        return;
+      }
+      if (!this.society || !this.society.runtime || !this.society.runtime.orgTemplates) {
+        this._sendJson(res, 500, { error: "org_templates_not_initialized" });
+        return;
+      }
+      try {
+        await this.society.runtime.orgTemplates.readOrg(orgName);
+      } catch (readErr) {
+        if (readErr && (readErr.code === "ENOENT" || readErr.code === "INVALID_ORG_NAME")) {
+          this._sendJson(res, 404, { error: "not_found", orgName });
+          return;
+        }
+      }
+      try {
+        await this.society.runtime.orgTemplates.writeOrg(orgName, content);
+        this._sendJson(res, 200, { ok: true, orgName });
+      } catch (saveErr) {
+        if (saveErr && saveErr.code === "INVALID_ORG_NAME") {
+          this._sendJson(res, 400, { error: "invalid_org_name", message: saveErr.message });
+          return;
+        }
+        void this.log.error("更新组织模板 org.md 失败", { orgName, error: saveErr.message, stack: saveErr.stack });
+        this._sendJson(res, 500, { error: "update_failed", message: saveErr.message });
+      }
+    });
   }
 
   /**

@@ -61,6 +61,36 @@ const API = {
   },
 
   /**
+   * 发送 PUT 请求
+   * @param {string} endpoint - API 端点
+   * @param {object} data - 请求数据
+   * @returns {Promise<any>} 响应数据
+   */
+  async put(endpoint, data) {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        let detail = null;
+        try {
+          detail = await response.json();
+        } catch {}
+        const message = detail?.message || detail?.error || `HTTP 错误: ${response.status}`;
+        throw new Error(message);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`API PUT 请求失败 [${endpoint}]:`, error);
+      throw error;
+    }
+  },
+
+  /**
    * 发送 DELETE 请求
    * @param {string} endpoint - API 端点
    * @param {object} data - 请求数据
@@ -129,6 +159,38 @@ const API = {
    */
   async getRoleTree() {
     return this.get('/org/role-tree');
+  },
+
+  async getOrgTemplates() {
+    return this.get('/org-templates');
+  },
+
+  async createOrgTemplate(orgName) {
+    return this.post('/org-templates', { orgName });
+  },
+
+  async deleteOrgTemplate(orgName) {
+    return this.delete(`/org-templates/${encodeURIComponent(orgName)}`);
+  },
+
+  async renameOrgTemplate(orgName, newOrgName) {
+    return this.post(`/org-templates/${encodeURIComponent(orgName)}/rename`, { newOrgName });
+  },
+
+  async getOrgTemplateInfo(orgName) {
+    return this.get(`/org-templates/${encodeURIComponent(orgName)}/info`);
+  },
+
+  async updateOrgTemplateInfo(orgName, content) {
+    return this.put(`/org-templates/${encodeURIComponent(orgName)}/info`, { content });
+  },
+
+  async getOrgTemplateOrg(orgName) {
+    return this.get(`/org-templates/${encodeURIComponent(orgName)}/org`);
+  },
+
+  async updateOrgTemplateOrg(orgName, content) {
+    return this.put(`/org-templates/${encodeURIComponent(orgName)}/org`, { content });
   },
 
   /**

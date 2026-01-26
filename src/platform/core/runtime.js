@@ -16,6 +16,7 @@ import { ModelSelector } from "../services/llm/model_selector.js";
 import { ToolGroupManager } from "../extensions/tool_group_manager.js";
 import { ContentAdapter } from "../utils/content/content_adapter.js";
 import { ContentRouter } from "../services/artifact/content_router.js";
+import { OrgTemplateRepository } from "../services/org_templates/org_template_repository.js";
 
 // 导入子模块
 import { JavaScriptExecutor } from "../runtime/javascript_executor.js";
@@ -449,6 +450,7 @@ export class Runtime {
     this.prompts = new PromptLoader({ promptsDir: this.config.promptsDir, logger: this.loggerRoot.forModule("prompts") });
     this.org = new OrgPrimitives({ runtimeDir: this.config.runtimeDir, logger: this.loggerRoot.forModule("org") });
     await this.org.loadIfExists();
+    this.orgTemplates = new OrgTemplateRepository({ baseDir: path.resolve(process.cwd(), "org"), logger: this.loggerRoot.forModule("org_templates") });
     this.systemBasePrompt = await this.prompts.loadSystemPromptFile("base.txt");
     this.systemComposeTemplate = await this.prompts.loadSystemPromptFile("compose.txt");
     this.systemToolRules = await this.prompts.loadSystemPromptFile("tool_rules.txt");

@@ -73,6 +73,11 @@ const LlmSettingsModal = {
   services: [],
   editingServiceId: null, // 正在编辑的服务 ID（null 表示新增）
 
+  orgTemplates: [],
+  filteredOrgTemplates: [],
+  selectedOrgTemplateName: null,
+  selectedOrgTemplateOrgLoaded: false,
+
   /**
    * 初始化组件
    */
@@ -103,6 +108,7 @@ const LlmSettingsModal = {
           <div class="llm-settings-tabs">
             <button class="llm-tab-btn active" data-tab="default">默认配置</button>
             <button class="llm-tab-btn" data-tab="services">服务管理</button>
+            <button class="llm-tab-btn" data-tab="org-templates">组织模板</button>
           </div>
           
           <!-- 默认配置标签页 -->
@@ -251,6 +257,49 @@ const LlmSettingsModal = {
               </form>
             </div>
           </div>
+
+          <div class="llm-tab-content" data-tab="org-templates">
+            <div class="org-templates-layout">
+              <div class="org-templates-sidebar">
+                <div class="org-templates-toolbar">
+                  <input id="org-templates-search" type="text" placeholder="搜索 orgName / info..." />
+                  <button id="org-templates-refresh-btn" class="btn-secondary" type="button">刷新</button>
+                </div>
+                <div id="org-templates-list" class="org-templates-list"></div>
+                <div class="org-templates-create">
+                  <input id="org-templates-new-name" type="text" placeholder="orgName（字母数字_-）" />
+                  <button id="org-templates-create-btn" class="btn-primary" type="button">新增</button>
+                </div>
+              </div>
+              <div class="org-templates-editor">
+                <div class="org-templates-editor-header">
+                  <div>当前：<span id="org-templates-current-name">-</span></div>
+                  <div class="org-templates-editor-actions">
+                    <button id="org-templates-rename-btn" class="btn-secondary" type="button" disabled>重命名</button>
+                    <button id="org-templates-save-all-btn" class="btn-primary" type="button" disabled>保存全部</button>
+                    <button id="org-templates-delete-btn" class="btn-danger" type="button" disabled>删除</button>
+                  </div>
+                </div>
+                <div class="org-templates-editor-section">
+                  <div class="org-templates-editor-section-header">
+                    <div class="org-templates-editor-section-title">info.md</div>
+                    <button id="org-templates-save-info-btn" class="btn-primary" type="button" disabled>保存</button>
+                  </div>
+                  <textarea id="org-templates-info-md" rows="10" placeholder="简介（用于匹配）..." disabled></textarea>
+                </div>
+                <div class="org-templates-editor-section">
+                  <div class="org-templates-editor-section-header">
+                    <div class="org-templates-editor-section-title">org.md</div>
+                    <div class="org-templates-editor-section-actions">
+                      <button id="org-templates-load-org-btn" class="btn-secondary" type="button" disabled>重新加载</button>
+                      <button id="org-templates-save-org-btn" class="btn-primary" type="button" disabled>保存</button>
+                    </div>
+                  </div>
+                  <textarea id="org-templates-org-md" rows="14" placeholder="完整组织架构内容（提示词）..." disabled></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -300,6 +349,21 @@ const LlmSettingsModal = {
     this.defaultCapabilitiesToggleBtn = this.overlay.querySelector('#default-capabilities-toggle-btn');
     this.defaultInputCapabilitiesContainer = this.overlay.querySelector('#default-input-capabilities');
     this.defaultOutputCapabilitiesContainer = this.overlay.querySelector('#default-output-capabilities');
+
+    this.orgTemplatesSearchInput = this.overlay.querySelector('#org-templates-search');
+    this.orgTemplatesRefreshBtn = this.overlay.querySelector('#org-templates-refresh-btn');
+    this.orgTemplatesList = this.overlay.querySelector('#org-templates-list');
+    this.orgTemplatesNewNameInput = this.overlay.querySelector('#org-templates-new-name');
+    this.orgTemplatesCreateBtn = this.overlay.querySelector('#org-templates-create-btn');
+    this.orgTemplatesCurrentName = this.overlay.querySelector('#org-templates-current-name');
+    this.orgTemplatesRenameBtn = this.overlay.querySelector('#org-templates-rename-btn');
+    this.orgTemplatesSaveAllBtn = this.overlay.querySelector('#org-templates-save-all-btn');
+    this.orgTemplatesDeleteBtn = this.overlay.querySelector('#org-templates-delete-btn');
+    this.orgTemplatesInfoTextarea = this.overlay.querySelector('#org-templates-info-md');
+    this.orgTemplatesSaveInfoBtn = this.overlay.querySelector('#org-templates-save-info-btn');
+    this.orgTemplatesOrgTextarea = this.overlay.querySelector('#org-templates-org-md');
+    this.orgTemplatesLoadOrgBtn = this.overlay.querySelector('#org-templates-load-org-btn');
+    this.orgTemplatesSaveOrgBtn = this.overlay.querySelector('#org-templates-save-org-btn');
     
     // 初始化能力配置复选框
     this._initCapabilitiesCheckboxes();
@@ -363,6 +427,24 @@ const LlmSettingsModal = {
     this.defaultCapabilitiesSection.querySelector('.capabilities-header').addEventListener('click', (e) => {
       if (e.target !== this.defaultCapabilitiesToggleBtn) {
         this._toggleDefaultCapabilitiesSection();
+      }
+    });
+
+    this.orgTemplatesRefreshBtn.addEventListener('click', () => this._loadOrgTemplates());
+    this.orgTemplatesSearchInput.addEventListener('input', () => this._applyOrgTemplatesFilter());
+    this.orgTemplatesCreateBtn.addEventListener('click', () => this._createOrgTemplate());
+    this.orgTemplatesRenameBtn.addEventListener('click', () => this._renameSelectedOrgTemplate());
+    this.orgTemplatesSaveAllBtn.addEventListener('click', () => this._saveAllSelectedOrgTemplate());
+    this.orgTemplatesDeleteBtn.addEventListener('click', () => this._deleteSelectedOrgTemplate());
+    this.orgTemplatesSaveInfoBtn.addEventListener('click', () => this._saveSelectedOrgTemplateInfo());
+    this.orgTemplatesLoadOrgBtn.addEventListener('click', () => this._loadSelectedOrgTemplateOrg());
+    this.orgTemplatesSaveOrgBtn.addEventListener('click', () => this._saveSelectedOrgTemplateOrg());
+
+    this.orgTemplatesList.addEventListener('click', (e) => {
+      const item = e.target.closest?.('.org-templates-item');
+      const orgName = item?.dataset?.orgName;
+      if (orgName) {
+        this._selectOrgTemplate(orgName);
       }
     });
   },
@@ -560,6 +642,10 @@ const LlmSettingsModal = {
     // 切换到服务管理时加载服务列表
     if (tabName === 'services') {
       this._loadServices();
+    }
+
+    if (tabName === 'org-templates') {
+      this._loadOrgTemplates();
     }
   },
 
@@ -979,6 +1065,224 @@ const LlmSettingsModal = {
   _clearServiceFormErrors() {
     this.serviceForm.querySelectorAll('.form-error').forEach(el => el.textContent = '');
     this.serviceForm.querySelectorAll('input.error, textarea.error').forEach(el => el.classList.remove('error'));
+  },
+
+  async _loadOrgTemplates() {
+    try {
+      const result = await API.getOrgTemplates();
+      this.orgTemplates = Array.isArray(result?.templates) ? result.templates : [];
+      this._applyOrgTemplatesFilter();
+
+      if (this.selectedOrgTemplateName) {
+        const stillExists = this.orgTemplates.some(t => t.orgName === this.selectedOrgTemplateName);
+        if (!stillExists) {
+          this._resetOrgTemplateEditor();
+        }
+      } else {
+        const first = this.filteredOrgTemplates[0]?.orgName ?? null;
+        if (first) {
+          await this._selectOrgTemplate(first);
+        }
+      }
+    } catch (err) {
+      Toast.error(`加载组织模板失败: ${err.message}`);
+    }
+  },
+
+  _applyOrgTemplatesFilter() {
+    const q = (this.orgTemplatesSearchInput.value || '').trim().toLowerCase();
+    this.filteredOrgTemplates = q
+      ? this.orgTemplates.filter(t => (t.orgName || '').toLowerCase().includes(q) || (t.infoMd || '').toLowerCase().includes(q))
+      : this.orgTemplates.slice();
+    this._renderOrgTemplatesList();
+  },
+
+  _renderOrgTemplatesList() {
+    const items = this.filteredOrgTemplates.map(t => {
+      const active = t.orgName === this.selectedOrgTemplateName ? ' active' : '';
+      const excerpt = (t.infoMd || '').replace(/\s+/g, ' ').slice(0, 120);
+      return `
+        <div class="org-templates-item${active}" data-org-name="${this._escapeHtml(t.orgName)}">
+          <div class="org-templates-item-name">${this._escapeHtml(t.orgName)}</div>
+          <div class="org-templates-item-excerpt">${this._escapeHtml(excerpt)}</div>
+        </div>
+      `;
+    }).join('');
+    this.orgTemplatesList.innerHTML = items || `<div class="org-templates-empty">没有组织模板</div>`;
+  },
+
+  async _selectOrgTemplate(orgName) {
+    this.selectedOrgTemplateName = orgName;
+    this.selectedOrgTemplateOrgLoaded = false;
+    this.orgTemplatesCurrentName.textContent = orgName;
+    this.orgTemplatesDeleteBtn.disabled = false;
+    this.orgTemplatesRenameBtn.disabled = false;
+    this.orgTemplatesSaveInfoBtn.disabled = true;
+    this.orgTemplatesSaveAllBtn.disabled = true;
+    this.orgTemplatesLoadOrgBtn.disabled = true;
+    this.orgTemplatesSaveOrgBtn.disabled = true;
+
+    this.orgTemplatesInfoTextarea.value = '加载中...';
+    this.orgTemplatesInfoTextarea.disabled = true;
+    this.orgTemplatesOrgTextarea.value = '加载中...';
+    this.orgTemplatesOrgTextarea.disabled = true;
+
+    const [infoRes, orgRes] = await Promise.allSettled([
+      API.getOrgTemplateInfo(orgName),
+      API.getOrgTemplateOrg(orgName)
+    ]);
+
+    if (infoRes.status === 'fulfilled') {
+      this.orgTemplatesInfoTextarea.value = infoRes.value?.infoMd ?? '';
+      this.orgTemplatesInfoTextarea.disabled = false;
+      this.orgTemplatesSaveInfoBtn.disabled = false;
+    } else {
+      this.orgTemplatesInfoTextarea.value = '';
+      this.orgTemplatesInfoTextarea.disabled = false;
+      Toast.error(`加载 info.md 失败: ${infoRes.reason?.message ?? 'unknown error'}`);
+    }
+
+    if (orgRes.status === 'fulfilled') {
+      this.orgTemplatesOrgTextarea.value = orgRes.value?.orgMd ?? '';
+      this.orgTemplatesOrgTextarea.disabled = false;
+      this.orgTemplatesSaveOrgBtn.disabled = false;
+      this.selectedOrgTemplateOrgLoaded = true;
+    } else {
+      this.orgTemplatesOrgTextarea.value = '';
+      this.orgTemplatesOrgTextarea.disabled = true;
+      Toast.warning(`org.md 未加载：${orgRes.reason?.message ?? 'unknown error'}`);
+    }
+
+    this.orgTemplatesLoadOrgBtn.disabled = false;
+    this.orgTemplatesSaveAllBtn.disabled = !this.selectedOrgTemplateOrgLoaded;
+    this._renderOrgTemplatesList();
+  },
+
+  async _loadSelectedOrgTemplateOrg() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    try {
+      const result = await API.getOrgTemplateOrg(orgName);
+      this.orgTemplatesOrgTextarea.value = result?.orgMd ?? '';
+      this.orgTemplatesOrgTextarea.disabled = false;
+      this.orgTemplatesSaveOrgBtn.disabled = false;
+      this.selectedOrgTemplateOrgLoaded = true;
+      this.orgTemplatesSaveAllBtn.disabled = false;
+    } catch (err) {
+      Toast.error(`加载 org.md 失败: ${err.message}`);
+    }
+  },
+
+  async _saveSelectedOrgTemplateInfo() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    try {
+      await API.updateOrgTemplateInfo(orgName, this.orgTemplatesInfoTextarea.value ?? '');
+      Toast.success('info.md 已保存');
+      await this._loadOrgTemplates();
+      this._renderOrgTemplatesList();
+    } catch (err) {
+      Toast.error(`保存 info.md 失败: ${err.message}`);
+    }
+  },
+
+  async _saveSelectedOrgTemplateOrg() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    if (!this.selectedOrgTemplateOrgLoaded) {
+      Toast.warning('请先加载 org.md');
+      return;
+    }
+    try {
+      await API.updateOrgTemplateOrg(orgName, this.orgTemplatesOrgTextarea.value ?? '');
+      Toast.success('org.md 已保存');
+    } catch (err) {
+      Toast.error(`保存 org.md 失败: ${err.message}`);
+    }
+  },
+
+  async _saveAllSelectedOrgTemplate() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    if (!this.selectedOrgTemplateOrgLoaded) {
+      await this._loadSelectedOrgTemplateOrg();
+      if (!this.selectedOrgTemplateOrgLoaded) return;
+    }
+    try {
+      await Promise.all([
+        API.updateOrgTemplateInfo(orgName, this.orgTemplatesInfoTextarea.value ?? ''),
+        API.updateOrgTemplateOrg(orgName, this.orgTemplatesOrgTextarea.value ?? '')
+      ]);
+      Toast.success('已保存');
+      await this._loadOrgTemplates();
+    } catch (err) {
+      Toast.error(`保存失败: ${err.message}`);
+    }
+  },
+
+  async _renameSelectedOrgTemplate() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    const next = window.prompt('输入新的 orgName（字母数字_-）', orgName);
+    const newOrgName = (next || '').trim();
+    if (!newOrgName || newOrgName === orgName) return;
+    try {
+      await API.renameOrgTemplate(orgName, newOrgName);
+      Toast.success('已重命名');
+      await this._loadOrgTemplates();
+      await this._selectOrgTemplate(newOrgName);
+    } catch (err) {
+      Toast.error(`重命名失败: ${err.message}`);
+    }
+  },
+
+  async _createOrgTemplate() {
+    const orgName = (this.orgTemplatesNewNameInput.value || '').trim();
+    if (!orgName) {
+      Toast.warning('请输入 orgName');
+      return;
+    }
+    try {
+      await API.createOrgTemplate(orgName);
+      this.orgTemplatesNewNameInput.value = '';
+      Toast.success('组织模板已创建');
+      await this._loadOrgTemplates();
+      await this._selectOrgTemplate(orgName);
+    } catch (err) {
+      Toast.error(`创建组织模板失败: ${err.message}`);
+    }
+  },
+
+  async _deleteSelectedOrgTemplate() {
+    const orgName = this.selectedOrgTemplateName;
+    if (!orgName) return;
+    const ok = window.confirm(`确定删除组织模板 "${orgName}" 吗？该目录下的 info.md 与 org.md 将被删除。`);
+    if (!ok) return;
+    try {
+      await API.deleteOrgTemplate(orgName);
+      Toast.success('组织模板已删除');
+      this._resetOrgTemplateEditor();
+      await this._loadOrgTemplates();
+    } catch (err) {
+      Toast.error(`删除组织模板失败: ${err.message}`);
+    }
+  },
+
+  _resetOrgTemplateEditor() {
+    this.selectedOrgTemplateName = null;
+    this.selectedOrgTemplateOrgLoaded = false;
+    this.orgTemplatesCurrentName.textContent = '-';
+    this.orgTemplatesRenameBtn.disabled = true;
+    this.orgTemplatesSaveAllBtn.disabled = true;
+    this.orgTemplatesDeleteBtn.disabled = true;
+    this.orgTemplatesInfoTextarea.value = '';
+    this.orgTemplatesInfoTextarea.disabled = true;
+    this.orgTemplatesSaveInfoBtn.disabled = true;
+    this.orgTemplatesOrgTextarea.value = '';
+    this.orgTemplatesOrgTextarea.disabled = true;
+    this.orgTemplatesLoadOrgBtn.disabled = true;
+    this.orgTemplatesSaveOrgBtn.disabled = true;
+    this._renderOrgTemplatesList();
   },
 
   /**

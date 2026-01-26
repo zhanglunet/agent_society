@@ -4338,12 +4338,16 @@ body {
 
 /* ========== LLM 设置模态框 ========== */
 .llm-settings-modal {
-  max-width: 600px;
-  width: 90%;
+  max-width: 980px;
+  width: 96%;
+  max-height: 88vh;
 }
 
 .llm-settings-body {
   padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .llm-settings-error {
@@ -4392,6 +4396,8 @@ body {
 .llm-tab-content {
   display: none;
   padding: 16px;
+  overflow: auto;
+  flex: 1;
 }
 
 .llm-tab-content.active {
@@ -4501,6 +4507,28 @@ body {
   color: #07c160;
 }
 
+.btn-danger {
+  padding: 8px 16px;
+  background-color: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+  background-color: #e04345;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-icon {
   padding: 4px 8px;
   background: none;
@@ -4526,6 +4554,143 @@ body {
 .llm-services-count {
   font-size: 13px;
   color: #666;
+}
+
+.org-templates-layout {
+  display: flex;
+  gap: 14px;
+  height: 100%;
+  min-height: 520px;
+}
+
+.org-templates-sidebar {
+  width: 260px;
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.org-templates-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-toolbar input,
+.org-templates-create input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+.org-templates-toolbar input:focus,
+.org-templates-create input:focus {
+  outline: none;
+  border-color: #07c160;
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.1);
+}
+
+.org-templates-list {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  overflow: auto;
+  flex: 1;
+  background: #fff;
+}
+
+.org-templates-empty {
+  padding: 12px;
+  color: #888;
+  font-size: 13px;
+}
+
+.org-templates-item {
+  padding: 10px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.org-templates-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.org-templates-item:last-child {
+  border-bottom: none;
+}
+
+.org-templates-item.active {
+  background: rgba(7, 193, 96, 0.08);
+}
+
+.org-templates-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.org-templates-item-excerpt {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.3;
+}
+
+.org-templates-create {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.org-templates-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.org-templates-editor-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.org-templates-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.org-templates-editor-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.org-templates-editor-section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.org-templates-editor-section textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  resize: vertical;
 }
 
 .llm-service-list {
