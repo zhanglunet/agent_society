@@ -36,7 +36,7 @@ export function createApp(doc: Document): void {
         ...state,
         status: {
           kind: 'ready',
-          text: `模型已加载（${modeText}，threads=${runtime.threads}，batch=${runtime.batchSize}）`,
+          text: `模型已加载（${modeText}，ctx=${loadParams.nCtx}，threads=${runtime.threads}，batch=${runtime.batchSize}）`,
         },
         model: { loaded: true },
       });
@@ -97,7 +97,7 @@ export function createApp(doc: Document): void {
     generationSeq += 1;
     const mySeq = generationSeq;
     const sendStartMs = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now();
-    let statusText = '处理提示词...';
+    let statusText = `处理提示词...（nPredict=${genParams.nPredict}）`;
     let firstDeltaMs: number | null = null;
 
     let finished = false;
@@ -125,7 +125,7 @@ export function createApp(doc: Document): void {
         if (firstDeltaMs === null) {
           const nowMs = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now();
           firstDeltaMs = nowMs - sendStartMs;
-          statusText = `生成中...（首 token：${Math.max(0, Math.round(firstDeltaMs))}ms）`;
+          statusText = `生成中...（首 token：${Math.max(0, Math.round(firstDeltaMs))}ms，nPredict=${genParams.nPredict}）`;
         }
         assistantText += deltaText;
         scheduleFlush();
@@ -155,10 +155,9 @@ export function createApp(doc: Document): void {
 }
 
 function readModelLoadParams(dom: { modelUrl: HTMLInputElement; nCtx: HTMLInputElement }): ModelLoadParams {
-  return {
-    modelUrl: dom.modelUrl.value.trim(),
-    nCtx: clampNumber(parseNumberOr(dom.nCtx.value, 2048), 256, 16384),
-  };
+  const nCtx = clampNumber(parseNumberOr(dom.nCtx.value, 2048), 256, 16384);
+  if (dom.nCtx.value.trim() !== String(nCtx)) dom.nCtx.value = String(nCtx);
+  return { modelUrl: dom.modelUrl.value.trim(), nCtx };
 }
 
 function readGenerationParams(dom: {
@@ -167,8 +166,10 @@ function readGenerationParams(dom: {
   topK: HTMLInputElement;
   topP: HTMLInputElement;
 }): GenerationParams {
+  const nPredict = clampNumber(parseNumberOr(dom.nPredict.value, 1024), 1, 4096);
+  if (dom.nPredict.value.trim() !== String(nPredict)) dom.nPredict.value = String(nPredict);
   return {
-    nPredict: clampNumber(parseNumberOr(dom.nPredict.value, 256), 1, 4096),
+    nPredict,
     temp: clampNumber(parseNumberOr(dom.temp.value, 0.7), 0, 5),
     topK: clampNumber(parseNumberOr(dom.topK.value, 40), 0, 200),
     topP: clampNumber(parseNumberOr(dom.topP.value, 0.9), 0, 1),
