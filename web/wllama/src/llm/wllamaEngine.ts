@@ -82,7 +82,7 @@ export function createWllamaEngine(): WllamaEngine {
       throw new Error('模型未加载');
     }
     const inst = getOrCreate();
-    let lastTextLen = 0;
+    const decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null;
     await inst.createChatCompletion(messages, {
       useCache: true,
       abortSignal,
@@ -92,16 +92,21 @@ export function createWllamaEngine(): WllamaEngine {
         top_k: params.topK,
         top_p: params.topP,
       },
-      onNewToken: (_token, _piece, currentText) => {
-        if (typeof currentText !== 'string') return;
-        if (lastTextLen > currentText.length) {
-          lastTextLen = 0;
+      onNewToken: (_token, piece, currentText) => {
+        if (decoder && piece instanceof Uint8Array) {
+          const delta = decoder.decode(piece, { stream: true });
+          if (delta) onTextDelta(delta);
+          return;
         }
-        const delta = currentText.slice(lastTextLen);
-        lastTextLen = currentText.length;
-        if (delta) onTextDelta(delta);
+        if (typeof currentText === 'string') {
+          onTextDelta(currentText);
+        }
       },
     });
+    if (decoder) {
+      const tail = decoder.decode();
+      if (tail) onTextDelta(tail);
+    }
   };
 
   return {
