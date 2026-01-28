@@ -953,15 +953,15 @@ export class HTTPServer {
         } else {
           this._sendJson(res, 404, { error: "not_found", path: pathname });
         }
-      } else if (method === "GET" && pathname.startsWith("/web/")) {
+      } else if ((method === "GET" || method === "HEAD") && pathname.startsWith("/web/")) {
         // 异步处理静态文件
-        this._handleStaticFile(pathname, res).catch(err => {
+        this._handleStaticFile(req, pathname, res).catch(err => {
           void this.log.error("处理静态文件请求失败", { pathname, error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
-      } else if (method === "GET" && (pathname === "/web" || pathname === "/")) {
+      } else if ((method === "GET" || method === "HEAD") && (pathname === "/web" || pathname === "/")) {
         // 重定向到 /web/index.html
-        this._handleStaticFile("/web/index.html", res).catch(err => {
+        this._handleStaticFile(req, "/web/index.html", res).catch(err => {
           void this.log.error("处理静态文件请求失败", { pathname: "/web/index.html", error: err.message, stack: err.stack });
           this._sendJson(res, 500, { error: "internal_error", message: err.message });
         });
@@ -2594,7 +2594,7 @@ export class HTTPServer {
    * @param {string} pathname - 请求路径
    * @param {import("node:http").ServerResponse} res
    */
-  async _handleStaticFile(pathname, res) {
+  async _handleStaticFile(req, pathname, res) {
     // 移除 /web/ 前缀，获取相对路径
     let relativePath = pathname.replace(/^\/web\/?/, "");
     if (!relativePath || relativePath === "") {
@@ -2632,6 +2632,8 @@ export class HTTPServer {
         ".js": "application/javascript; charset=utf-8",
         ".mjs": "text/javascript; charset=utf-8",
         ".json": "application/json; charset=utf-8",
+        ".wasm": "application/wasm",
+        ".map": "application/json; charset=utf-8",
         ".png": "image/png",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
@@ -2642,7 +2644,15 @@ export class HTTPServer {
       const contentType = contentTypes[ext] ?? "application/octet-stream";
 
       res.setHeader("Content-Type", contentType);
+      if (relativePath === "wllama/dist" || relativePath.startsWith("wllama/dist/")) {
+        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+      }
       res.writeHead(200);
+      if (req.method === "HEAD") {
+        res.end();
+        return;
+      }
       res.end(content);
 
       void this.log.debug("HTTP静态文件", { path: relativePath });

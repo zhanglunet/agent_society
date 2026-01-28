@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wllama - 本地对话</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="title">wllama / LFM2-700M</div>
+        <div class="status" id="statusText">未加载模型</div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-title">模型</div>
+        <div class="grid">
+          <label class="field">
+            <div class="field-label">模型 URL（HTTP 可访问）</div>
+            <input id="modelUrl" class="input" value="models/LFM2-700M-Q4_K_M.gguf" />
+          </label>
+          <label class="field">
+            <div class="field-label">提示</div>
+            <input class="input" value="把 gguf 放到本目录 models/，用静态服务器暴露 /models" disabled />
+          </label>
+          <label class="field">
+            <div class="field-label">上下文 n_ctx</div>
+            <input id="nCtx" class="input" value="2048" />
+          </label>
+          <div class="field actions">
+            <button id="btnLoadFromUrl" class="btn primary">从 URL 加载</button>
+            <button id="btnUnload" class="btn">卸载</button>
+          </div>
+        </div>
+
+        <div class="progress-row">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+          <div class="progress-text" id="progressText">0%</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">参数</div>
+        <div class="grid">
+          <label class="field">
+            <div class="field-label">nPredict</div>
+            <input id="nPredict" class="input" value="256" />
+          </label>
+          <label class="field">
+            <div class="field-label">temp</div>
+            <input id="temp" class="input" value="0.7" />
+          </label>
+          <label class="field">
+            <div class="field-label">top_k</div>
+            <input id="topK" class="input" value="40" />
+          </label>
+          <label class="field">
+            <div class="field-label">top_p</div>
+            <input id="topP" class="input" value="0.9" />
+          </label>
+        </div>
+      </section>
+
+      <main class="chat">
+        <div id="chatList" class="chat-list"></div>
+      </main>
+
+      <footer class="composer">
+        <textarea id="chatInput" class="composer-input" rows="3" placeholder="输入内容，回车发送；Shift+Enter 换行"></textarea>
+        <div class="composer-actions">
+          <button id="btnStop" class="btn" disabled>停止</button>
+          <button id="btnSend" class="btn primary">发送</button>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
