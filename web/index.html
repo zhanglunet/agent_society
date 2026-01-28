@@ -79,7 +79,6 @@
           <span class="agent-role" style="display: none;"></span>
         </div>
         <div class="chat-header-actions">
-          <button id="root-new-session-btn" class="root-new-session-btn" type="button" style="display: none;">新会话</button>
           <div class="chat-status"></div>
         </div>
       </div>
@@ -103,7 +102,10 @@
           <input type="file" id="file-input" multiple style="display: none;">
         </div>
         <textarea id="chat-input" class="chat-input" placeholder="输入消息（以 user 身份发送）..." rows="1"></textarea>
-        <button id="send-btn" class="send-btn">发送</button>
+        <div class="chat-input-right-actions">
+          <button id="root-new-session-btn" class="root-new-session-btn" type="button" style="display: none;">新会话</button>
+          <button id="send-btn" class="send-btn">发送</button>
+        </div>
       </div>
     </main>
   </div>
@@ -238,6 +240,7 @@
   <script src="js/components/json-viewer.js"></script>
   <script src="js/components/text-viewer.js"></script>
   <script src="js/components/thumbnail-navigator.js"></script>
+  <script src="js/ui-page-tools.js"></script>
   <!-- 主应用 -->
   <script type="module" src="js/app.js"></script>
 </body>
