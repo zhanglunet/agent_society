@@ -5,6 +5,7 @@ import { clampNumber, parseNumberOr } from '../utils/dom';
 import { createWllamaEngine } from '../llm/wllamaEngine';
 import { planSendMessage } from './messageComposer';
 import { applyUrlOverrides, readUrlOverrides, setToggleButton } from './urlOverrides';
+import { createLlmChatApi } from './llmChatApi';
 
 export function createApp(doc: Document): void {
   const dom = getAppDom(doc);
@@ -15,15 +16,38 @@ export function createApp(doc: Document): void {
   let state: AppState = createInitialState();
   let generationAbort: AbortController | null = null;
   let generationSeq = 0;
+  let idleWaiters: Array<() => void> = [];
+
+  const isBusy = () => state.status.kind === 'loadingModel' || state.status.kind === 'generating';
+  const flushIdleWaiters = () => {
+    if (isBusy()) return;
+    const waiters = idleWaiters;
+    idleWaiters = [];
+    for (const w of waiters) w();
+  };
+  const waitUntilIdle = async () => {
+    if (!isBusy()) return;
+    await new Promise<void>((resolve) => {
+      idleWaiters.push(resolve);
+    });
+  };
 
   const setState = (next: AppState) => {
     state = next;
     render(dom, state);
+    flushIdleWaiters();
   };
 
   const updateStatus = (next: AppState['status']) => setState({ ...state, status: next });
 
   setState(state);
+
+  (globalThis as any).llmChat = createLlmChatApi({
+    isModelLoaded: () => state.model.loaded,
+    waitUntilIdle,
+    readParams: () => readGenerationParams(dom),
+    chat: (messages, params, abortSignal, onText) => engine.chat(messages, params, abortSignal, onText),
+  });
 
   dom.btnToggleStream.addEventListener('click', () => {
     const pressed = dom.btnToggleStream.getAttribute('aria-pressed') === 'true';
