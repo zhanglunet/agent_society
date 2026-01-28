@@ -370,6 +370,18 @@ export class AgentManager {
       runtime._agentLastActivityTime.set(agent.id, Date.now());
       restoredCount++;
 
+      if (meta.parentAgentId === "root") {
+        const path = await import("node:path");
+        const baseDir = runtime.config.dataDir ?? path.dirname(runtime.config.runtimeDir);
+        const workspacePath = path.join(baseDir, "workspaces", agent.id);
+        await runtime.workspaceManager.assignWorkspace(agent.id, workspacePath);
+        void runtime.log?.info?.("为恢复的智能体分配工作空间", {
+          agentId: agent.id,
+          workspaceId: agent.id,
+          workspacePath
+        });
+      }
+
       void runtime.log?.debug?.("恢复智能体实例", {
         id: agent.id,
         roleId: agent.roleId,

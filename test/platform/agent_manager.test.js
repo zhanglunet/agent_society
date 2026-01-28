@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AgentManager 单元测试
  * 
  * 测试 AgentManager 的核心功能：
@@ -12,7 +12,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 
 describe("AgentManager", () => {
   let runtime;
@@ -31,6 +31,7 @@ describe("AgentManager", () => {
       JSON.stringify({
         promptsDir: "config/prompts",
         artifactsDir,
+        dataDir: tmpDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
@@ -365,5 +366,26 @@ describe("AgentManager", () => {
     const restoredAgent = runtime._agents.get(agentId);
     expect(restoredAgent.roleId).toBe(role.id);
     expect(restoredAgent.roleName).toBe("test-role");
+  });
+
+  test("workspace assignment survives process restart", async () => {
+    const role1 = await runtime.org.createRole({ name: "ws-root-role", rolePrompt: "p1" });
+    const parent = await runtime._agentManager.spawnAgent({
+      roleId: role1.id,
+      parentAgentId: "root"
+    });
+
+    const role2 = await runtime.org.createRole({ name: "ws-child-role", rolePrompt: "p2", createdBy: parent.id });
+    const child = await runtime._agentManager.spawnAgent({
+      roleId: role2.id,
+      parentAgentId: parent.id
+    });
+
+    const configPath = path.resolve(tmpDir, "app.json");
+    const restarted = new Runtime({ configPath });
+    await restarted.init();
+
+    expect(restarted.workspaceManager.hasWorkspace(parent.id)).toBe(true);
+    expect(restarted.findWorkspaceIdForAgent(child.id)).toBe(parent.id);
   });
 });
