@@ -69,3 +69,23 @@ wllama 的多线程版本需要跨域隔离（`crossOriginIsolated === true`）�
 
 - 先看页面状态栏：加载完成后会显示 `单线程/多线程`、`threads`、`batch`。如果是单线程，通常是部署服务器没有正确返回 COOP/COEP 响应头。
 - 如果生成速度“越生成越慢”，常见原因是 UI 渲染负载过高（每 token 更新导致频繁重排）。本工程已对流式输出做了节流与增量渲染；如果你在本工程之外做二次开发，建议保持同样的策略。
+
+## URL 参数覆盖（用于自动填充界面）
+
+页面启动时会读取 URL query 参数，并覆盖界面上的默认值（未提供的参数保持原值）。
+
+支持的参数（含别名）：
+
+- `modelUrl`（别名：`model`、`m`）
+- `nCtx`（别名：`ctx`）
+- `nPredict`（别名：`predict`）
+- `temp`（别名：`temperature`）
+- `topK`（别名：`top_k`）
+- `topP`（别名：`top_p`）
+- `systemPrompt`（别名：`system`、`prompt`、`sp`）
+- `stream`（别名：`streamOutput`、`s`，可用：`1/0`、`true/false`、`on/off`）
+- `autoLoad`（别名：`autoload`、`load`、`loadModel`，可用：`1/0`、`true/false`、`on/off`；为 `true` 时页面启动后会自动按当前输入框参数加载模型）
+
+示例：
+
+`index.html?model=../models/LFM2-700M-Q4_K_M.gguf&ctx=4096&predict=1024&temp=0.7&top_k=40&top_p=0.9&stream=1&autoload=1&sp=%E4%BD%A0%E6%98%AF%E4%B8%80%E4%B8%AA%E6%9C%89%E5%B8%AE%E5%8A%A9%E7%9A%84%E5%8A%A9%E6%89%8B%E3%80%82`

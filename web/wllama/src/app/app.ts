@@ -4,10 +4,13 @@ import { getAppDom, render, setInputValue } from './ui';
 import { clampNumber, parseNumberOr } from '../utils/dom';
 import { createWllamaEngine } from '../llm/wllamaEngine';
 import { planSendMessage } from './messageComposer';
+import { applyUrlOverrides, readUrlOverrides, setToggleButton } from './urlOverrides';
 
 export function createApp(doc: Document): void {
   const dom = getAppDom(doc);
   const engine = createWllamaEngine();
+  const urlOverrides = readUrlOverrides(globalThis.location?.href ?? 'http://localhost/');
+  applyUrlOverrides(dom, urlOverrides);
 
   let state: AppState = createInitialState();
   let generationAbort: AbortController | null = null;
@@ -24,12 +27,10 @@ export function createApp(doc: Document): void {
 
   dom.btnToggleStream.addEventListener('click', () => {
     const pressed = dom.btnToggleStream.getAttribute('aria-pressed') === 'true';
-    const next = !pressed;
-    dom.btnToggleStream.setAttribute('aria-pressed', next ? 'true' : 'false');
-    dom.btnToggleStream.textContent = next ? '开' : '关';
+    setToggleButton(dom.btnToggleStream, !pressed);
   });
 
-  dom.btnLoadFromUrl.addEventListener('click', async () => {
+  async function loadModelFromUi(): Promise<void> {
     if (state.status.kind === 'loadingModel' || state.status.kind === 'generating') return;
     const loadParams = readModelLoadParams(dom);
     try {
@@ -52,6 +53,10 @@ export function createApp(doc: Document): void {
       const message = e instanceof Error ? e.message : String(e);
       setState({ ...state, status: { kind: 'error', text: `加载失败：${message}` }, model: { loaded: false } });
     }
+  }
+
+  dom.btnLoadFromUrl.addEventListener('click', async () => {
+    await loadModelFromUi();
   });
 
   dom.btnUnload.addEventListener('click', async () => {
@@ -85,6 +90,12 @@ export function createApp(doc: Document): void {
       await onSend();
     }
   });
+
+  if (urlOverrides.autoLoad === true) {
+    queueMicrotask(async () => {
+      await loadModelFromUi();
+    });
+  }
 
   async function onSend(): Promise<void> {
     if (!state.model.loaded) return;
