@@ -20,6 +20,26 @@ function applyMainViewVisibility(els, activeView) {
   els.chatView.classList.toggle('hidden', isOrg);
 }
 
+function getVisibleMessagesForTab(state, agentId, messages) {
+  if (agentId !== 'user') return messages;
+  if (state.activeTabId === 'home') return messages;
+
+  const orgId = getOrgIdFromTabId(state.activeTabId);
+  if (!orgId) return [];
+
+  const memberIds = state.orgMemberIdsByOrgId.get(orgId);
+  const allowedPeerIds = new Set(Array.isArray(memberIds) ? memberIds : []);
+  allowedPeerIds.add(orgId);
+  allowedPeerIds.delete('user');
+
+  return messages.filter(m => {
+    if (!m) return false;
+    if (m.from === 'user' && allowedPeerIds.has(m.to)) return true;
+    if (m.to === 'user' && allowedPeerIds.has(m.from)) return true;
+    return false;
+  });
+}
+
 function getSidebarItems(state) {
   const items = [];
 
@@ -193,11 +213,12 @@ async function refreshMessagesForAgent(state, agentId, force = false) {
   if (agentId === HOME_ORG_VIEW_ID) return;
   const res = await api.getAgentMessages(agentId);
   const messages = Array.isArray(res.messages) ? res.messages : [];
+  const visibleMessages = getVisibleMessagesForTab(state, agentId, messages);
   const nextCount = messages.length;
   const prevCount = state.lastMessageCounts.get(agentId) || 0;
 
   if (force) {
-    setChatMessages(messages);
+    setChatMessages(visibleMessages);
     state.lastMessageCounts.set(agentId, nextCount);
     return;
   }
@@ -207,13 +228,14 @@ async function refreshMessagesForAgent(state, agentId, force = false) {
   }
 
   if (nextCount < prevCount) {
-    setChatMessages(messages);
+    setChatMessages(visibleMessages);
     state.lastMessageCounts.set(agentId, nextCount);
     return;
   }
 
   const newMessages = messages.slice(prevCount);
-  newMessages.forEach(m => appendChatMessage(m));
+  const visibleNewMessages = getVisibleMessagesForTab(state, agentId, newMessages);
+  visibleNewMessages.forEach(m => appendChatMessage(m));
   state.lastMessageCounts.set(agentId, nextCount);
 }
 
