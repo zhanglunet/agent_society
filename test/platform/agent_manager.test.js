@@ -11,8 +11,9 @@
 
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { Runtime } from "../../src/platform/core/runtime.js";
+import { HTTPServer } from "../../src/platform/services/http/http_server.js";
 
 describe("AgentManager", () => {
   let runtime;
@@ -69,6 +70,56 @@ describe("AgentManager", () => {
     const meta = runtime._agentMetaById.get(agent.id);
     expect(meta.parentAgentId).toBe("root");
     expect(meta.roleId).toBe(role.id);
+  });
+
+  test("spawnAgent auto assigns customName after creation", async () => {
+    runtime.localLlmChat = async () => "张三";
+
+    const role = await runtime.org.createRole({
+      name: "name-role",
+      rolePrompt: "Name role prompt"
+    });
+
+    const agent = await runtime._agentManager.spawnAgent({
+      roleId: role.id,
+      parentAgentId: "root"
+    });
+
+    const filePath = path.join(tmpDir, "web", "custom-names.json");
+    const deadline = Date.now() + 2000;
+
+    while (Date.now() < deadline) {
+      try {
+        const content = await readFile(filePath, "utf8");
+        const data = JSON.parse(content);
+        if (data && typeof data[agent.id] === "string" && data[agent.id].trim()) {
+          expect(data[agent.id]).toBe("张三");
+          const http = new HTTPServer();
+          http.setSociety({ runtime });
+          http.setRuntimeDir(tmpDir);
+          let body = null;
+          const res = {
+            headersSent: false,
+            setHeader() {},
+            writeHead(code) {
+              this.statusCode = code;
+            },
+            end(text) {
+              body = text;
+            }
+          };
+          await http._handleGetAgents(res);
+          expect(res.statusCode).toBe(200);
+          const payload = JSON.parse(body);
+          const apiAgent = payload.agents.find((a) => a.id === agent.id);
+          expect(apiAgent.customName).toBe("张三");
+          return;
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    throw new Error("customName 未在预期时间内写入");
   });
 
   test("spawnAgent throws error when parentAgentId is missing", async () => {

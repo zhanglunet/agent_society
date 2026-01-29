@@ -101,6 +101,7 @@ export async function launchWllamaHeadless(options = {}) {
     _pageRef = page;
     if (!_onLLMResultExposed) {
       await page.exposeFunction("onLLMResult", (text) => {
+        void logger?.debug?.("Wllama headless 收到模型输出", { text });
         _handleLLMResult(text);
       });
       _onLLMResultExposed = true;
@@ -125,6 +126,9 @@ export async function launchWllamaHeadless(options = {}) {
 }
 
 export async function chat(messages, options = {}) {
+  const logger = options.logger ?? null;
+  void logger?.debug?.("Wllama headless 收到模型输入", { messages,options });
+
   const page = _pageRef;
   if (!page) {
     throw new Error("Wllama headless 尚未启动");

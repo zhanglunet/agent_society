@@ -746,7 +746,7 @@ export class HTTPServer {
         const taskId = pathname.slice("/api/messages/".length);
         this._handleGetMessages(taskId, res);
       } else if (method === "GET" && pathname === "/api/agents") {
-        this._handleGetAgents(res);
+        await this._handleGetAgents(res);
       } else if (method === "GET" && pathname === "/api/events") {
         // 获取最近的错误和重试事件
         this._handleGetEvents(req, res);
@@ -902,7 +902,7 @@ export class HTTPServer {
           this._sendJson(res, 404, { error: "not_found", path: pathname });
         }
       } else if (method === "GET" && pathname === "/api/agent-custom-names") {
-        this._handleGetCustomNames(res);
+        await this._handleGetCustomNames(res);
       } else if (method === "GET" && pathname === "/api/config/status") {
         // 获取配置状态
         this._handleGetConfigStatus(res);
@@ -1489,12 +1489,14 @@ export class HTTPServer {
    * 处理 GET /api/agents - 列出所有智能体（从OrgPrimitives读取持久化数据）。
    * @param {import("node:http").ServerResponse} res
    */
-  _handleGetAgents(res) {
+  async _handleGetAgents(res) {
     try {
       if (!this.society || !this.society.runtime) {
         this._sendJson(res, 500, { error: "society_not_initialized" });
         return;
       }
+
+      await this._loadCustomNames();
 
       // 从 OrgPrimitives 获取持久化的智能体数据
       const org = this.society.runtime.org;
@@ -2439,8 +2441,9 @@ export class HTTPServer {
    * 处理 GET /api/agent-custom-names - 获取所有智能体自定义名称。
    * @param {import("node:http").ServerResponse} res
    */
-  _handleGetCustomNames(res) {
+  async _handleGetCustomNames(res) {
     try {
+      await this._loadCustomNames();
       const customNames = this.getAllCustomNames();
       void this.log.debug("HTTP查询自定义名称", { count: Object.keys(customNames).length });
       this._sendJson(res, 200, { customNames });

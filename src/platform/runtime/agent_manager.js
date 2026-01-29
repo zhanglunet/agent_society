@@ -30,6 +30,10 @@
  */
 
 import { Agent } from "../../agents/agent.js";
+import path from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { chat as wllamaChat } from "../localllm/wllama_headless_launcher.js";
 
 /**
  * 智能体管理器类
@@ -45,6 +49,8 @@ export class AgentManager {
   constructor(runtime) {
     /** @type {object} Runtime 实例引用 */
     this.runtime = runtime;
+    this._customNameWriteChain = Promise.resolve();
+    this._nameGenerationChain = Promise.resolve();
   }
 
   /**
@@ -149,8 +155,144 @@ export class AgentManager {
       roleName: agent.roleName,
       parentAgentId: meta.parentAgentId ?? null
     });
+
+    await this._autoAssignCustomNameIfNeeded({ agentId: agent.id, roleName: agent.roleName });
     
     return agent;
+  }
+
+  async _autoAssignCustomNameIfNeeded({ agentId, roleName }) {
+    if (agentId === "root" || agentId === "user") return;
+    const runtimeDir = this.runtime?.config?.runtimeDir;
+    if (!runtimeDir) return;
+
+    const filePath = path.join(runtimeDir, "web", "custom-names.json");
+
+    const runOnce = async () => {
+      const existingNames = await this._buildExistingNamesSnapshot(filePath);
+      const name = await this._generateUniqueHumanName({ roleName, existingNames });
+      if (!name) return;
+      await this._setCustomNameIfAbsent(filePath, agentId, name);
+      void this.runtime.log?.info?.("自动设置智能体名称", { agentId, roleName, customName: name });
+    };
+
+    this._nameGenerationChain = this._nameGenerationChain.then(runOnce, runOnce).catch((err) => {
+      void this.runtime.log?.warn?.("自动设置智能体名称失败", {
+        agentId,
+        roleName,
+        error: err?.message ?? String(err),
+        stack: err?.stack ?? null
+      });
+    });
+  }
+
+  async _buildExistingNamesSnapshot(filePath) {
+    const customNames = await this._loadCustomNamesFile(filePath);
+    const existing = new Set(["root", "user"]);
+
+    const agents = this.runtime?.org?.listAgents?.() ?? [];
+    for (const a of agents) {
+      if (!a || typeof a.id !== "string") continue;
+      if (a.status === "terminated") continue;
+      const custom = customNames[a.id];
+      if (typeof custom === "string" && custom.trim()) {
+        existing.add(custom.trim());
+      } else {
+        existing.add(a.id);
+      }
+    }
+
+    return Array.from(existing);
+  }
+
+  async _generateUniqueHumanName({ roleName, existingNames }) {
+    const used = new Set((existingNames ?? []).map((s) => String(s ?? "").trim()).filter(Boolean));
+    const baseSystemPrompt =
+      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复。要一个姓名，而不是岗位。";
+
+    let lastBad = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const userPromptLines = [
+        `岗位名称：${String(roleName ?? "").trim() || "未知"}`,
+        `已存在名字（禁止重复）：${Array.from(used).slice(0, 200).join("、") || "无"}`,
+        lastBad ? `上次输出不合格原因：${lastBad}` : null,
+        "请生成一个新名字："
+      ].filter(Boolean);
+
+      const messages = [
+        { role: "system", content: baseSystemPrompt },
+        { role: "user", content: userPromptLines.join("\n") }
+      ];
+
+      let raw = "";
+      try {
+        const chatFn = this.runtime?.localLlmChat ?? wllamaChat;
+        raw = await chatFn(messages, { timeoutMs: 60000 });
+      } catch (e) {
+        lastBad = `模型调用失败：${e?.message ?? String(e)}`;
+        continue;
+      }
+
+      const name = this._sanitizeHumanName(raw);
+      if (!name) {
+        lastBad = "输出为空或无法解析";
+        continue;
+      }
+      if (!this._isValidChineseHumanName(name)) {
+        lastBad = `输出不符合中文人名要求：${name}`;
+        continue;
+      }
+      if (used.has(name)) {
+        lastBad = `输出与已存在名字重复：${name}`;
+        continue;
+      }
+      return name;
+    }
+    return null;
+  }
+
+  _sanitizeHumanName(raw) {
+    const s = typeof raw === "string" ? raw : String(raw ?? "");
+    const firstLine = s.split(/\r?\n/)[0] ?? "";
+    const trimmed = firstLine.trim();
+    const unquoted = trimmed.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
+    const noPunct = unquoted.replace(/[，。,\.!！?？;；:：\s]/g, "");
+    return noPunct.trim() || null;
+  }
+
+  _isValidChineseHumanName(name) {
+    if (typeof name !== "string") return false;
+    const s = name.trim();
+    if (s.length < 2 || s.length > 4) return false;
+    return /^[\u4e00-\u9fff]+$/.test(s);
+  }
+
+  async _setCustomNameIfAbsent(filePath, agentId, customName) {
+    this._customNameWriteChain = this._customNameWriteChain.then(async () => {
+      const current = await this._loadCustomNamesFile(filePath);
+      if (typeof current[agentId] === "string" && current[agentId].trim()) return;
+      current[agentId] = String(customName).trim();
+      await this._saveCustomNamesFile(filePath, current);
+    });
+    await this._customNameWriteChain;
+  }
+
+  async _loadCustomNamesFile(filePath) {
+    try {
+      if (!existsSync(filePath)) return {};
+      const content = await readFile(filePath, "utf8");
+      const data = JSON.parse(content);
+      if (!data || typeof data !== "object") return {};
+      return data;
+    } catch {
+      return {};
+    }
+  }
+
+  async _saveCustomNamesFile(filePath, data) {
+    const dir = path.dirname(filePath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
   }
 
   /**
