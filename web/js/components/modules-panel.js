@@ -40,6 +40,9 @@ const ModulesPanel = {
       const result = await API.getModules();
       this.modules = result.modules || [];
       this.renderModulesList();
+      if (!this.selectedModule && this.modules.length > 0) {
+        await this.selectModule(this.modules[0].name);
+      }
     } catch (err) {
       console.error('加载模块列表失败:', err);
       this.modulesList.innerHTML = `<div class="error-state">加载失败: ${err.message}</div>`;
