@@ -84,6 +84,34 @@ describe("ToolExecutor", () => {
     expect(toolNames).toContain("localllm_chat");
   });
 
+  test("executeToolCall get_org_structure includes agent names", async () => {
+    runtime.localLlmChat = async () => "张三";
+
+    const role = await runtime.org.createRole({
+      name: "name-role",
+      rolePrompt: "Test prompt",
+      createdBy: "root"
+    });
+
+    const created = await runtime.spawnAgent({
+      roleId: role.id,
+      parentAgentId: "root"
+    });
+
+    const rootAgent = runtime._agents.get("root");
+    const ctx = runtime._buildAgentContext(rootAgent);
+    const result = await runtime._toolExecutor.executeToolCall(ctx, "get_org_structure", {});
+
+    expect(result).toBeTruthy();
+    expect(Array.isArray(result.roles)).toBe(true);
+
+    const roleEntry = result.roles.find((r) => r.id === role.id);
+    expect(roleEntry).toBeTruthy();
+    expect(roleEntry.agentIds).toContain(created.id);
+    expect(Array.isArray(roleEntry.agents)).toBe(true);
+    expect(roleEntry.agents.some((a) => a.id === created.id && a.name === "张三")).toBe(true);
+  });
+
   test("executeToolCall localllm_chat returns not_ready when disabled", async () => {
     const old = process.env.AGENT_SOCIETY_WLLAMA_HEADLESS;
     process.env.AGENT_SOCIETY_WLLAMA_HEADLESS = "0";
@@ -173,6 +201,8 @@ describe("ToolExecutor", () => {
   });
 
   test("executeToolCall executes spawn_agent_with_task", async () => {
+    runtime.localLlmChat = async () => "张三";
+    
     // 创建岗位
     const role = await runtime.org.createRole({
       name: "test-role",
@@ -192,6 +222,13 @@ describe("ToolExecutor", () => {
       payload: {}
     };
     
+    let capturedSend = null;
+    const oldSend = runtime.bus.send.bind(runtime.bus);
+    runtime.bus.send = (args) => {
+      capturedSend = args;
+      return oldSend(args);
+    };
+    
     const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: role.id,
       taskBrief: {
@@ -207,6 +244,15 @@ describe("ToolExecutor", () => {
     expect(result).toBeTruthy();
     expect(result.error).toBeFalsy();
     expect(result.id).toBeTruthy();
+    
+    const createdMeta = runtime.org.getAgent(result.id);
+    expect(createdMeta).toBeTruthy();
+    expect(createdMeta.name).toBe("张三");
+    
+    expect(capturedSend).toBeTruthy();
+    expect(capturedSend.to).toBe(result.id);
+    expect(typeof capturedSend.payload?.text).toBe("string");
+    expect(capturedSend.payload.text).toContain("【你的姓名】张三");
     
     const storedTaskBrief = runtime._agentTaskBriefs.get(result.id);
     expect(storedTaskBrief).toBeTruthy();

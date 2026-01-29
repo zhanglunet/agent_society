@@ -1496,8 +1496,6 @@ export class HTTPServer {
         return;
       }
 
-      await this._loadCustomNames();
-
       // 从 OrgPrimitives 获取持久化的智能体数据
       const org = this.society.runtime.org;
       const persistedAgents = org ? org.listAgents() : [];
@@ -1526,7 +1524,7 @@ export class HTTPServer {
           lastActiveAt: this._getLastActiveAt("root"),
           status: "active",
           computeStatus: getComputeStatus("root"),
-          customName: this.getCustomName("root")
+          customName: null
         },
         {
           id: "user",
@@ -1537,7 +1535,7 @@ export class HTTPServer {
           lastActiveAt: this._getLastActiveAt("user"),
           status: "active",
           computeStatus: getComputeStatus("user"),
-          customName: this.getCustomName("user")
+          customName: null
         },
         ...persistedAgents.map(a => ({
           id: a.id,
@@ -1549,7 +1547,7 @@ export class HTTPServer {
           status: a.status ?? "active",
           computeStatus: getComputeStatus(a.id),
           terminatedAt: a.terminatedAt,
-          customName: this.getCustomName(a.id)
+          customName: a.name ?? null
         }))
       ];
       
@@ -2083,6 +2081,7 @@ export class HTTPServer {
         roleName: "root",
         parentAgentId: null,
         status: "active",
+        customName: null,
         children: []
       });
       agentMap.set("user", {
@@ -2090,6 +2089,7 @@ export class HTTPServer {
         roleName: "user",
         parentAgentId: null,
         status: "active",
+        customName: null,
         children: []
       });
 
@@ -2099,6 +2099,7 @@ export class HTTPServer {
           roleName: roleMap.get(agent.roleId) ?? agent.roleId,
           parentAgentId: agent.parentAgentId,
           status: agent.status ?? "active",
+          customName: agent.name ?? null,
           children: []
         });
       }
@@ -2238,12 +2239,21 @@ export class HTTPServer {
       }
 
       try {
-        await this.setCustomName(agentId, customName || "");
+        if (!this.society || !this.society.runtime || !this.society.runtime.org) {
+          this._sendJson(res, 500, { error: "society_not_initialized" });
+          return;
+        }
+
+        const updated = await this.society.runtime.org.setAgentName(agentId, customName || null);
+        if (!updated) {
+          this._sendJson(res, 404, { error: "agent_not_found", message: "智能体不存在" });
+          return;
+        }
         void this.log.info("设置智能体自定义名称", { agentId, customName: customName || "(cleared)" });
         this._sendJson(res, 200, { 
           ok: true, 
           agentId, 
-          customName: this.getCustomName(agentId) 
+          customName: updated.name ?? null
         });
       } catch (saveErr) {
         void this.log.error("保存自定义名称失败", { agentId, error: saveErr.message });
@@ -2443,8 +2453,20 @@ export class HTTPServer {
    */
   async _handleGetCustomNames(res) {
     try {
-      await this._loadCustomNames();
-      const customNames = this.getAllCustomNames();
+      if (!this.society || !this.society.runtime) {
+        this._sendJson(res, 500, { error: "society_not_initialized" });
+        return;
+      }
+
+      const org = this.society.runtime.org;
+      const agents = org ? org.listAgents() : [];
+      const customNames = {};
+      for (const a of agents) {
+        if (!a || typeof a.id !== "string") continue;
+        if (typeof a.name === "string" && a.name.trim()) {
+          customNames[a.id] = a.name.trim();
+        }
+      }
       void this.log.debug("HTTP查询自定义名称", { count: Object.keys(customNames).length });
       this._sendJson(res, 200, { customNames });
     } catch (err) {

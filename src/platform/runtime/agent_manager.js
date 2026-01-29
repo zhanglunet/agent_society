@@ -30,9 +30,6 @@
  */
 
 import { Agent } from "../../agents/agent.js";
-import path from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { chat as wllamaChat } from "../localllm/wllama_headless_launcher.js";
 
 /**
@@ -49,7 +46,6 @@ export class AgentManager {
   constructor(runtime) {
     /** @type {object} Runtime 实例引用 */
     this.runtime = runtime;
-    this._customNameWriteChain = Promise.resolve();
     this._nameGenerationChain = Promise.resolve();
   }
 
@@ -92,10 +88,12 @@ export class AgentManager {
       throw new Error("role_not_found");
     }
     
-    // 在组织中创建智能体记录
-    const meta = await runtime.org.createAgent(input);
-    const role = runtime.org.getRole(meta.roleId);
+    const role = runtime.org.getRole(input.roleId);
     const roleName = role?.name ?? "unknown";
+    const name = await this._generateNameForRole({ roleName });
+    
+    // 在组织中创建智能体记录（包含姓名）
+    const meta = await runtime.org.createAgent({ ...input, name });
     
     // 获取行为工厂或使用默认 LLM 行为
     const behaviorFactory = runtime._behaviorRegistry.get(roleName);
@@ -145,7 +143,8 @@ export class AgentManager {
       id: agent.id,
       roleId: agent.roleId,
       roleName: agent.roleName,
-      parentAgentId: meta.parentAgentId ?? null
+      parentAgentId: meta.parentAgentId ?? null,
+      name: meta?.name ?? null
     });
     
     // 记录生命周期事件
@@ -153,56 +152,55 @@ export class AgentManager {
       agentId: agent.id,
       roleId: agent.roleId,
       roleName: agent.roleName,
-      parentAgentId: meta.parentAgentId ?? null
+      parentAgentId: meta.parentAgentId ?? null,
+      name: meta?.name ?? null
     });
-
-    await this._autoAssignCustomNameIfNeeded({ agentId: agent.id, roleName: agent.roleName });
     
     return agent;
   }
 
-  async _autoAssignCustomNameIfNeeded({ agentId, roleName }) {
-    if (agentId === "root" || agentId === "user") return;
-    const runtimeDir = this.runtime?.config?.runtimeDir;
-    if (!runtimeDir) return;
-
-    const filePath = path.join(runtimeDir, "web", "custom-names.json");
-
-    const runOnce = async () => {
-      const existingNames = await this._buildExistingNamesSnapshot(filePath);
-      const name = await this._generateUniqueHumanName({ roleName, existingNames });
-      if (!name) return;
-      await this._setCustomNameIfAbsent(filePath, agentId, name);
-      void this.runtime.log?.info?.("自动设置智能体名称", { agentId, roleName, customName: name });
+  /**
+   * 生成一个不重名的人名，用于新智能体的元数据初始化。
+   * @param {{roleName:string}} input
+   * @returns {Promise<string|null>}
+   */
+  async _generateNameForRole({ roleName }) {
+    const buildExistingNamesSnapshot = () => {
+      const existing = new Set(["root", "user"]);
+      const agents = this.runtime?.org?.listAgents?.() ?? [];
+      for (const a of agents) {
+        if (!a || typeof a.id !== "string") continue;
+        if (a.status === "terminated") continue;
+        if (typeof a.name === "string" && a.name.trim()) {
+          existing.add(a.name.trim());
+        } else {
+          existing.add(a.id);
+        }
+      }
+      return Array.from(existing);
     };
 
-    this._nameGenerationChain = this._nameGenerationChain.then(runOnce, runOnce).catch((err) => {
-      void this.runtime.log?.warn?.("自动设置智能体名称失败", {
-        agentId,
+    const runOnce = async () => {
+      const existingNames = buildExistingNamesSnapshot();
+      const name = await this._generateUniqueHumanName({ roleName, existingNames });
+      return name;
+    };
+
+    const task = this._nameGenerationChain.then(runOnce, runOnce);
+    this._nameGenerationChain = task.catch(() => {});
+
+    try {
+      const name = await task;
+      if (name) return name;
+      return null;
+    } catch (err) {
+      void this.runtime.log?.warn?.("生成智能体姓名失败", {
         roleName,
         error: err?.message ?? String(err),
         stack: err?.stack ?? null
       });
-    });
-  }
-
-  async _buildExistingNamesSnapshot(filePath) {
-    const customNames = await this._loadCustomNamesFile(filePath);
-    const existing = new Set(["root", "user"]);
-
-    const agents = this.runtime?.org?.listAgents?.() ?? [];
-    for (const a of agents) {
-      if (!a || typeof a.id !== "string") continue;
-      if (a.status === "terminated") continue;
-      const custom = customNames[a.id];
-      if (typeof custom === "string" && custom.trim()) {
-        existing.add(custom.trim());
-      } else {
-        existing.add(a.id);
-      }
+      return null;
     }
-
-    return Array.from(existing);
   }
 
   async _generateUniqueHumanName({ roleName, existingNames }) {
@@ -271,33 +269,6 @@ export class AgentManager {
     return /^[\u4e00-\u9fff]+$/.test(s);
   }
 
-  async _setCustomNameIfAbsent(filePath, agentId, customName) {
-    this._customNameWriteChain = this._customNameWriteChain.then(async () => {
-      const current = await this._loadCustomNamesFile(filePath);
-      if (typeof current[agentId] === "string" && current[agentId].trim()) return;
-      current[agentId] = String(customName).trim();
-      await this._saveCustomNamesFile(filePath, current);
-    });
-    await this._customNameWriteChain;
-  }
-
-  async _loadCustomNamesFile(filePath) {
-    try {
-      if (!existsSync(filePath)) return {};
-      const content = await readFile(filePath, "utf8");
-      const data = JSON.parse(content);
-      if (!data || typeof data !== "object") return {};
-      return data;
-    } catch {
-      return {};
-    }
-  }
-
-  async _saveCustomNamesFile(filePath, data) {
-    const dir = path.dirname(filePath);
-    await mkdir(dir, { recursive: true });
-    await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
-  }
 
   /**
    * 以调用者身份创建子智能体

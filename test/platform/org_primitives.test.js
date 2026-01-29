@@ -1,6 +1,6 @@
-﻿import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
-import { OrgPrimitives } from "../src/platform/core/org_primitives.js";
+import { OrgPrimitives } from "../../src/platform/core/org_primitives.js";
 import path from "node:path";
 import { rm, readFile } from "node:fs/promises";
 
@@ -11,10 +11,11 @@ describe("OrgPrimitives", () => {
 
     const org = new OrgPrimitives({ runtimeDir });
     const role = await org.createRole({ name: "r1", rolePrompt: "p1" });
-    const agent = await org.createAgent({ roleId: role.id, parentAgentId: "root" });
+    const agent = await org.createAgent({ roleId: role.id, parentAgentId: "root", name: "张三" });
 
     expect(role.id).toBeTruthy();
     expect(agent.roleId).toBe(role.id);
+    expect(agent.name).toBe("张三");
   });
 
   test("createAgent throws when parentAgentId is invalid", async () => {
@@ -24,6 +25,24 @@ describe("OrgPrimitives", () => {
     const org = new OrgPrimitives({ runtimeDir });
     const role = await org.createRole({ name: "r1", rolePrompt: "p1" });
     await expect(org.createAgent({ roleId: role.id, parentAgentId: "null" })).rejects.toThrow("invalid_parentAgentId");
+  });
+  
+  test("setAgentName persists to org.json", async () => {
+    const runtimeDir = path.resolve(process.cwd(), "test/.tmp/runtime_test_set_agent_name");
+    await rm(runtimeDir, { recursive: true, force: true });
+
+    const org = new OrgPrimitives({ runtimeDir });
+    const role = await org.createRole({ name: "r1", rolePrompt: "p1" });
+    const agent = await org.createAgent({ roleId: role.id, parentAgentId: "root" });
+
+    const updated = await org.setAgentName(agent.id, "李四");
+    expect(updated).toBeTruthy();
+    expect(updated.name).toBe("李四");
+
+    const raw = await readFile(path.resolve(runtimeDir, "org.json"), "utf8");
+    const data = JSON.parse(raw);
+    const persistedAgent = data.agents.find((a) => a.id === agent.id);
+    expect(persistedAgent.name).toBe("李四");
   });
 
   /**

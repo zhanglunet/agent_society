@@ -451,8 +451,8 @@ export class OrgPrimitives {
 
   /**
    * 创建智能体实例（Agent Instance），必须绑定岗位 roleId。
-   * @param {{roleId:string, parentAgentId?:string}} input
-   * @returns {Promise<{id:string, roleId:string, parentAgentId:string|null, status:string}>}
+   * @param {{roleId:string, parentAgentId?:string, name?:string|null}} input
+   * @returns {Promise<{id:string, roleId:string, parentAgentId:string|null, status:string, name?:string|null}>}
    */
   async createAgent(input) {
     const id = randomUUID();
@@ -465,16 +465,48 @@ export class OrgPrimitives {
     ) {
       throw new Error("invalid_parentAgentId");
     }
+    
+    const name =
+      input && typeof input.name === "string"
+        ? (input.name.trim() ? input.name.trim() : null)
+        : null;
+    
     const agent = {
       id,
       roleId: input.roleId,
       parentAgentId,
       createdAt: formatLocalTimestamp(),
-      status: "active"  // 默认状态为活跃
+      status: "active",  // 默认状态为活跃
+      name
     };
     this._agents.set(id, agent);
     await this.persist();
-    void this.log.info("创建智能体元数据", { id, roleId: agent.roleId, parentAgentId: agent.parentAgentId, status: agent.status });
+    void this.log.info("创建智能体元数据", { id, roleId: agent.roleId, parentAgentId: agent.parentAgentId, status: agent.status, name: agent.name });
+    return agent;
+  }
+
+  /**
+   * 设置智能体姓名（持久化到 org.json）。
+   * @param {string} agentId
+   * @param {string|null} name - 传 null 或空字符串表示清除
+   * @returns {Promise<{id:string, roleId:string, parentAgentId:string|null, status:string, name?:string|null}|null>}
+   */
+  async setAgentName(agentId, name) {
+    if (!agentId || typeof agentId !== "string") {
+      throw new Error("invalid_agentId");
+    }
+    
+    const agent = this._agents.get(agentId);
+    if (!agent) return null;
+    
+    if (typeof name === "string" && name.trim()) {
+      agent.name = name.trim();
+    } else {
+      agent.name = null;
+    }
+    
+    await this.persist();
+    void this.log.info("更新智能体姓名", { agentId, name: agent.name });
     return agent;
   }
 

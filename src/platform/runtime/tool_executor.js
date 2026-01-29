@@ -513,6 +513,9 @@ export class ToolExecutor {
     const persistedRoles = org ? org.listRoles() : [];
     const persistedAgents = org ? org.listAgents() : [];
     const agentIdsByRoleId = new Map();
+    const agentMetaById = new Map();
+    agentMetaById.set("root", { id: "root", name: null });
+    agentMetaById.set("user", { id: "user", name: null });
 
     const pushAgentId = (roleId, agentId) => {
       if (!roleId || !agentId) return;
@@ -532,15 +535,27 @@ export class ToolExecutor {
       const status = a.status ?? "active";
       if (!includeTerminated && status === "terminated") continue;
       pushAgentId(a.roleId, a.id);
+      agentMetaById.set(a.id, { id: a.id, name: a.name ?? null });
     }
 
     const roles = [
-      { id: "root", name: "root", agentIds: agentIdsByRoleId.get("root") ?? [] },
-      { id: "user", name: "user", agentIds: agentIdsByRoleId.get("user") ?? [] },
+      {
+        id: "root",
+        name: "root",
+        agentIds: agentIdsByRoleId.get("root") ?? [],
+        agents: (agentIdsByRoleId.get("root") ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
+      },
+      {
+        id: "user",
+        name: "user",
+        agentIds: agentIdsByRoleId.get("user") ?? [],
+        agents: (agentIdsByRoleId.get("user") ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
+      },
       ...persistedRoles.map((r) => ({
         id: r.id,
         name: r.name,
-        agentIds: agentIdsByRoleId.get(r.id) ?? []
+        agentIds: agentIdsByRoleId.get(r.id) ?? [],
+        agents: (agentIdsByRoleId.get(r.id) ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
       }))
     ];
 
@@ -549,7 +564,8 @@ export class ToolExecutor {
       ? {
           agentId: selfAgentId,
           roleId: ctx.agent?.roleId ?? null,
-          roleName: ctx.agent?.roleName ?? null
+          roleName: ctx.agent?.roleName ?? null,
+          agentName: agentMetaById.get(selfAgentId)?.name ?? null
         }
       : null;
 
@@ -680,6 +696,12 @@ export class ToolExecutor {
         message_type: normalizedInitialMessage.message_type ?? "task_assignment",
         ...normalizedInitialMessage
       };
+      
+      const createdMeta = runtime.org?.getAgent?.(newAgentId) ?? null;
+      const createdName = createdMeta && typeof createdMeta.name === "string" && createdMeta.name.trim() ? createdMeta.name.trim() : null;
+      if (createdName && typeof messagePayload.text === "string") {
+        messagePayload.text = `${messagePayload.text}\n\n【你的姓名】${createdName}`;
+      }
 
       const sendResult = runtime.bus.send({
         to: newAgentId,
