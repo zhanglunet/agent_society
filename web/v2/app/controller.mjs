@@ -20,6 +20,52 @@ function applyMainViewVisibility(els, activeView) {
   els.chatView.classList.toggle('hidden', isOrg);
 }
 
+export function findOrgIdForAgent(state, agentId) {
+  if (!agentId) return null;
+
+  const activeOrgId = getOrgIdFromTabId(state.activeTabId);
+  if (activeOrgId) {
+    const memberIds = state.orgMemberIdsByOrgId.get(activeOrgId);
+    if (memberIds && memberIds.has(agentId)) return activeOrgId;
+  }
+
+  for (const org of state.orgs) {
+    const memberIds = state.orgMemberIdsByOrgId.get(org.orgId);
+    if (memberIds && memberIds.has(agentId)) return org.orgId;
+  }
+
+  return null;
+}
+
+function ensureOrgTabActive(state, els, handlers, orgId) {
+  if (!orgId) return;
+  const tabId = `org:${orgId}`;
+  const exists = state.openTabs.some(t => t.id === tabId);
+  if (!exists) {
+    const org = state.orgs.find(o => o.orgId === orgId);
+    state.openTabs.push({ id: tabId, type: 'org', title: org?.title || orgId, orgId });
+  }
+  state.activeTabId = tabId;
+  applyMainViewVisibility(els, 'chat');
+  renderAll(state, els, handlers);
+}
+
+async function selectAgentAndScrollToMessage(state, els, handlers, agentId, messageId) {
+  if (!agentId) return;
+
+  const orgId = findOrgIdForAgent(state, agentId);
+  if (orgId) {
+    ensureOrgTabActive(state, els, handlers, orgId);
+  }
+
+  await onSelectAgent(state, els, handlers, agentId, true);
+
+  const chatPanel = globalThis.ChatPanel;
+  if (chatPanel && typeof chatPanel.scrollToMessage === 'function' && messageId) {
+    chatPanel.scrollToMessage(messageId);
+  }
+}
+
 function getVisibleMessagesForTab(state, agentId, messages) {
   if (agentId !== 'user') return messages;
   if (state.activeTabId === 'home') return messages;
@@ -104,9 +150,16 @@ export async function bootstrap() {
 
   initChat();
   globalThis.App = globalThis.App || {};
+  globalThis.App.agentsById = state.agentsById;
   Object.assign(globalThis.App, {
     loadMessages: async (agentId) => {
       await refreshMessagesForAgent(state, agentId, true);
+    },
+    selectAgent: async (agentId) => {
+      await onSelectAgent(state, els, handlers, agentId, true);
+    },
+    selectAgentAndScrollToMessage: async (agentId, messageId) => {
+      await selectAgentAndScrollToMessage(state, els, handlers, agentId, messageId);
     },
     openOrgTemplatesManager: async () => {
       await globalThis.OrgTemplatesPanel?.show?.();
