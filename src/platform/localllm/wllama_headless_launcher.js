@@ -5,8 +5,12 @@ const DEFAULT_WLLAMA_QUERY =
   "ctx=4096&predict=1024&temp=0.7&top_k=40&top_p=0.9&stream=1&model=../models/LFM2-700M-Q4_K_M.gguf&autoload=1";
 
 let _browserRef = null;
+let _pageRef = null;
+let _pendingChat = null;
+let _onLLMResultExposed = false;
 let _sigintRegistered = false;
 let _sigtermRegistered = false;
+const _LLM_ERROR_PREFIX = "__LLM_ERROR__:";
 
 export function buildWllamaHeadlessUrl(options = {}) {
   const port = options.port ?? 3000;
@@ -61,6 +65,10 @@ export async function launchWllamaHeadless(options = {}) {
     return { ok: true, skipped: true };
   }
 
+  if (_browserRef && _pageRef) {
+    return { ok: true, alreadyRunning: true, url: options.url ?? buildWllamaHeadlessUrl({ port: options.port, query: options.query }) };
+  }
+
   const url = options.url ?? buildWllamaHeadlessUrl({ port: options.port, query: options.query });
   const chromePath = options.chromeExecutablePath ?? findChromeExecutablePath(options);
 
@@ -69,7 +77,7 @@ export async function launchWllamaHeadless(options = {}) {
     return { ok: false, error: "chrome_not_found" };
   }
 
-  const headless = options.headless ?? false;
+  const headless = options.headless ?? true;
   const navigationTimeoutMs = options.navigationTimeoutMs ?? 15000;
 
   try {
@@ -90,8 +98,18 @@ export async function launchWllamaHeadless(options = {}) {
     _browserRef = browser;
 
     const page = await browser.newPage();
+    _pageRef = page;
+    if (!_onLLMResultExposed) {
+      await page.exposeFunction("onLLMResult", (text) => {
+        _handleLLMResult(text);
+      });
+      _onLLMResultExposed = true;
+    }
     page.setDefaultNavigationTimeout(navigationTimeoutMs);
     await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page
+      .waitForFunction(() => typeof globalThis.llmChat === "function", { timeout: navigationTimeoutMs })
+      .catch(() => {});
 
     void logger?.info?.("Wllama headless 页面已打开", { url, headless });
 
@@ -104,6 +122,102 @@ export async function launchWllamaHeadless(options = {}) {
     await _closeBrowserIfAny(logger);
     return { ok: false, error: "launch_failed", message };
   }
+}
+
+export async function chat(messages, options = {}) {
+  const page = _pageRef;
+  if (!page) {
+    throw new Error("Wllama headless 尚未启动");
+  }
+  if (!Array.isArray(messages)) {
+    throw new Error("chat(messages) 参数必须是数组");
+  }
+  if (_pendingChat) {
+    throw new Error("chat(messages) 正在执行中");
+  }
+
+  const timeoutMs = options.timeoutMs ?? 120000;
+
+  return await new Promise((resolve, reject) => {
+    const cleanup = () => {
+      if (_pendingChat) _pendingChat = null;
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("chat(messages) 超时"));
+    }, timeoutMs);
+
+    _pendingChat = {
+      resolve: (text) => {
+        clearTimeout(timer);
+        cleanup();
+        resolve(text);
+      },
+      reject: (err) => {
+        clearTimeout(timer);
+        cleanup();
+        reject(err);
+      }
+    };
+
+    page
+      .evaluate(
+        (msgs, errorPrefix) => {
+          const fn = globalThis.llmChat;
+          if (typeof fn !== "function") {
+            return { ok: false, error: "llmChat_not_found" };
+          }
+
+          try {
+            const ret = fn(msgs);
+            if (ret && typeof ret.then === "function") {
+              ret
+                .then((text) => {
+                  globalThis.onLLMResult(String(text ?? ""));
+                })
+                .catch((e) => {
+                  const message = e?.message ?? String(e);
+                  globalThis.onLLMResult(`${errorPrefix}${message}`);
+                });
+            } else {
+              globalThis.onLLMResult(String(ret ?? ""));
+            }
+            return { ok: true };
+          } catch (e) {
+            const message = e?.message ?? String(e);
+            return { ok: false, error: message };
+          }
+        },
+        messages,
+        _LLM_ERROR_PREFIX
+      )
+      .then((startResult) => {
+        if (!startResult?.ok) {
+          clearTimeout(timer);
+          cleanup();
+          reject(new Error(`llmChat 调用失败: ${startResult?.error ?? "unknown"}`));
+        }
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        cleanup();
+        reject(err);
+      });
+  });
+}
+
+function _handleLLMResult(text) {
+  const pending = _pendingChat;
+  if (!pending) return;
+
+  const s = typeof text === "string" ? text : String(text ?? "");
+  if (s.startsWith(_LLM_ERROR_PREFIX)) {
+    const message = s.slice(_LLM_ERROR_PREFIX.length);
+    pending.reject(new Error(message || "llmChat 执行失败"));
+    return;
+  }
+  pending.resolve(s);
 }
 
 function _registerShutdownHandlers(logger) {
@@ -127,6 +241,9 @@ function _registerShutdownHandlers(logger) {
 async function _closeBrowserIfAny(logger) {
   const browser = _browserRef;
   _browserRef = null;
+  _pageRef = null;
+  _pendingChat = null;
+  _onLLMResultExposed = false;
   if (!browser) return;
 
   try {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildWllamaHeadlessUrl, findChromeExecutablePath } from "../../../src/platform/localllm/wllama_headless_launcher.js";
+import { buildWllamaHeadlessUrl, findChromeExecutablePath, chat } from "../../../src/platform/localllm/wllama_headless_launcher.js";
 
 describe("localllm/wllama_headless_launcher", () => {
   describe("buildWllamaHeadlessUrl", () => {
@@ -45,5 +45,10 @@ describe("localllm/wllama_headless_launcher", () => {
       expect(found).toBeNull();
     });
   });
-});
 
+  describe("chat", () => {
+    it("should throw when wllama is not launched", async () => {
+      await expect(chat([{ role: "user", content: "hi" }])).rejects.toThrow();
+    });
+  });
+});
