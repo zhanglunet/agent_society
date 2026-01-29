@@ -5,6 +5,7 @@ import { Runtime } from "./runtime.js";
 import { HTTPServer } from "../services/http/http_server.js";
 import { Config } from "../utils/config/config.js";
 import { createNoopModuleLogger } from "../utils/logger/logger.js";
+import { launchWllamaHeadless } from "../localllm/wllama_headless_launcher.js";
 
 /**
  * 面向"用户"的系统入口：隐藏运行时与根智能体的构建细节。
@@ -297,6 +298,11 @@ export class AgentSociety {
       
       if (result.ok) {
         void this.log.info("HTTP服务器启动成功", { port: result.port });
+        void launchWllamaHeadless({
+          port: result.port,
+          headless: false,
+          logger: this.runtime.loggerRoot.forModule("localllm")
+        });
         return result;
       } else {
         // HTTP服务器启动失败，抛出异常
