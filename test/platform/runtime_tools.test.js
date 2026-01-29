@@ -177,9 +177,11 @@ describe("RuntimeTools", () => {
       const result = await tools.executeToolCall(ctx, "get_org_structure", {});
       expect(result).toBeTruthy();
       expect(result.error).toBeUndefined();
-      expect(Array.isArray(result.roles)).toBe(true);
       expect(result.self).toBeTruthy();
       expect(result.self.agentId).toBe(agent.id);
+      expect(result.selfOrg).toBeTruthy();
+      expect(result.selfOrg.workspaceId).toBe(agent.id);
+      expect(Array.isArray(result.otherOrgs)).toBe(true);
     });
 
     test("执行不存在的工具返回错误", async () => {

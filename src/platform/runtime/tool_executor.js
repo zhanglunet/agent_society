@@ -129,7 +129,7 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "get_org_structure",
-          description: "获取组织结构摘要：有哪些岗位、每个岗位上的智能体ID列表，以及当前智能体所属岗位信息。默认只包含未终止的智能体。",
+          description: "获取组织结构摘要（按工作空间组织区分自己与其他组织）：返回 self（当前智能体信息）、selfOrg（自己组织的岗位与智能体列表）、otherOrgs（其他组织）。每个 role 仅返回 agents[{id,name}]。默认只包含未终止的智能体。",
           parameters: {
             type: "object",
             properties: {
@@ -508,56 +508,21 @@ export class ToolExecutor {
   }
 
   _executeGetOrgStructure(ctx, args) {
+    const runtime = this.runtime;
     const org = ctx.org;
     const includeTerminated = Boolean(args?.includeTerminated);
     const persistedRoles = org ? org.listRoles() : [];
     const persistedAgents = org ? org.listAgents() : [];
-    const agentIdsByRoleId = new Map();
     const agentMetaById = new Map();
     agentMetaById.set("root", { id: "root", name: null });
     agentMetaById.set("user", { id: "user", name: null });
-
-    const pushAgentId = (roleId, agentId) => {
-      if (!roleId || !agentId) return;
-      const list = agentIdsByRoleId.get(roleId);
-      if (list) {
-        list.push(agentId);
-      } else {
-        agentIdsByRoleId.set(roleId, [agentId]);
-      }
-    };
-
-    pushAgentId("root", "root");
-    pushAgentId("user", "user");
 
     for (const a of persistedAgents) {
       if (!a || typeof a.id !== "string" || typeof a.roleId !== "string") continue;
       const status = a.status ?? "active";
       if (!includeTerminated && status === "terminated") continue;
-      pushAgentId(a.roleId, a.id);
       agentMetaById.set(a.id, { id: a.id, name: a.name ?? null });
     }
-
-    const roles = [
-      {
-        id: "root",
-        name: "root",
-        agentIds: agentIdsByRoleId.get("root") ?? [],
-        agents: (agentIdsByRoleId.get("root") ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
-      },
-      {
-        id: "user",
-        name: "user",
-        agentIds: agentIdsByRoleId.get("user") ?? [],
-        agents: (agentIdsByRoleId.get("user") ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
-      },
-      ...persistedRoles.map((r) => ({
-        id: r.id,
-        name: r.name,
-        agentIds: agentIdsByRoleId.get(r.id) ?? [],
-        agents: (agentIdsByRoleId.get(r.id) ?? []).map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
-      }))
-    ];
 
     const selfAgentId = ctx.agent?.id ?? null;
     const self = selfAgentId
@@ -569,14 +534,70 @@ export class ToolExecutor {
         }
       : null;
 
+    const workspaceKeyOf = (agentId) => {
+      const ws = runtime.findWorkspaceIdForAgent(agentId);
+      return ws ?? "null";
+    };
+
+    const roleNameByRoleId = new Map(persistedRoles.map((r) => [r.id, r.name]));
+    const pushOrgRoleAgentId = (orgKey, roleId, agentId) => {
+      let byRole = orgRoleAgentIdsByOrgKey.get(orgKey);
+      if (!byRole) {
+        byRole = new Map();
+        orgRoleAgentIdsByOrgKey.set(orgKey, byRole);
+      }
+      const list = byRole.get(roleId);
+      if (list) list.push(agentId);
+      else byRole.set(roleId, [agentId]);
+    };
+
+    const orgRoleAgentIdsByOrgKey = new Map();
+    pushOrgRoleAgentId(workspaceKeyOf("root"), "root", "root");
+    pushOrgRoleAgentId(workspaceKeyOf("user"), "user", "user");
+    for (const a of persistedAgents) {
+      if (!a || typeof a.id !== "string" || typeof a.roleId !== "string") continue;
+      const status = a.status ?? "active";
+      if (!includeTerminated && status === "terminated") continue;
+      pushOrgRoleAgentId(workspaceKeyOf(a.id), a.roleId, a.id);
+    }
+
+    const buildOrg = (orgKey) => {
+      const byRole = orgRoleAgentIdsByOrgKey.get(orgKey) ?? new Map();
+      const orgRoleIds = Array.from(byRole.keys());
+      const outRoles = orgRoleIds.map((roleId) => {
+        const ids = byRole.get(roleId) ?? [];
+        const name = roleId === "root" || roleId === "user" ? roleId : (roleNameByRoleId.get(roleId) ?? roleId);
+        return {
+          id: roleId,
+          name,
+          agents: ids.map((id) => ({ id, name: agentMetaById.get(id)?.name ?? null }))
+        };
+      });
+      const agentIds = [];
+      for (const ids of byRole.values()) {
+        agentIds.push(...ids);
+      }
+      return {
+        workspaceId: orgKey === "null" ? null : orgKey,
+        agentCount: agentIds.length,
+        roles: outRoles
+      };
+    };
+
+    const selfOrgKey = selfAgentId ? workspaceKeyOf(selfAgentId) : "null";
+    const selfOrg = buildOrg(selfOrgKey);
+    const otherOrgs = Array.from(orgRoleAgentIdsByOrgKey.keys())
+      .filter((k) => k !== selfOrgKey)
+      .map((k) => buildOrg(k));
+
     void this.runtime.log?.debug?.("工具调用完成", {
       toolName: "get_org_structure",
       ok: true,
-      roleCount: roles.length,
+      orgCount: 1 + otherOrgs.length,
       selfAgentId
     });
 
-    return { roles, self };
+    return { self, selfOrg, otherOrgs };
   }
 
   async _executeCreateRole(ctx, args) {

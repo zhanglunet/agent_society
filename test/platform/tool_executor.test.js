@@ -98,18 +98,19 @@ describe("ToolExecutor", () => {
       parentAgentId: "root"
     });
 
-    const rootAgent = runtime._agents.get("root");
-    const ctx = runtime._buildAgentContext(rootAgent);
+    const ctx = runtime._buildAgentContext(created);
     const result = await runtime._toolExecutor.executeToolCall(ctx, "get_org_structure", {});
 
     expect(result).toBeTruthy();
-    expect(Array.isArray(result.roles)).toBe(true);
 
-    const roleEntry = result.roles.find((r) => r.id === role.id);
-    expect(roleEntry).toBeTruthy();
-    expect(roleEntry.agentIds).toContain(created.id);
-    expect(Array.isArray(roleEntry.agents)).toBe(true);
-    expect(roleEntry.agents.some((a) => a.id === created.id && a.name === "张三")).toBe(true);
+    expect(result.selfOrg).toBeTruthy();
+    expect(result.selfOrg.workspaceId).toBe(created.id);
+    const selfRoleEntry = result.selfOrg.roles.find((r) => r.id === role.id);
+    expect(selfRoleEntry).toBeTruthy();
+    expect(selfRoleEntry.agentIds).toBeUndefined();
+    expect(selfRoleEntry.agents.some((a) => a.id === created.id && a.name === "张三")).toBe(true);
+
+    expect(Array.isArray(result.otherOrgs)).toBe(true);
   });
 
   test("executeToolCall localllm_chat returns not_ready when disabled", async () => {
