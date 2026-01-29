@@ -208,7 +208,7 @@ export class AgentManager {
   async _generateUniqueHumanName({ roleName, existingNames }) {
     const used = new Set((existingNames ?? []).map((s) => String(s ?? "").trim()).filter(Boolean));
     const baseSystemPrompt =
-      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复。要一个姓名，而不是岗位。";
+      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复。要一个人名姓名，而不是岗位，不要把岗位名称回复回来。";
 
     let lastBad = null;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -236,6 +236,10 @@ export class AgentManager {
       const name = this._sanitizeHumanName(raw);
       if (!name) {
         lastBad = "输出为空或无法解析";
+        continue;
+      }
+      if (name === roleName) {
+        lastBad = `输出与岗位名称相同：${name}`;
         continue;
       }
       if (!this._isValidChineseHumanName(name)) {
