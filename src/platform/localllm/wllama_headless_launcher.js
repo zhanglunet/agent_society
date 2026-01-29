@@ -84,7 +84,7 @@ export async function launchWllamaHeadless(options = {}) {
     void logger?.info?.("启动 Wllama headless Chrome", { chromePath, url, headless });
 
     const browser = await puppeteer.launch({
-      headless: headless ? "new" : false,
+      headless: headless ? "new" : true,
       executablePath: chromePath,
       args: [
         "--no-sandbox",
