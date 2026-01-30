@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, nextTick } from 'vue';
 import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import OrganizationChart from 'primevue/organizationchart';
@@ -172,8 +172,31 @@ const zoomAtCenter = (delta: number) => {
 
 const resetView = () => {
     scale.value = 1;
-    offset.x = 0;
-    offset.y = 0;
+    centerChart();
+};
+
+const centerChart = async () => {
+    await nextTick();
+    // 等待一点时间确保 PrimeVue 组件完全渲染并应用了样式
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (!containerRef.value) return;
+    
+    const container = containerRef.value;
+    const chartContent = container.querySelector('.p-organizationchart');
+    
+    if (chartContent) {
+         const containerWidth = container.clientWidth;
+         const chartWidth = (chartContent as HTMLElement).offsetWidth;
+         
+         // 考虑外层 p-20 (80px) 的影响
+         offset.x = (containerWidth - chartWidth) / 2 - 80;
+         offset.y = 20;
+     } else {
+        // 如果找不到图表内容，则默认重置
+        offset.x = 0;
+        offset.y = 0;
+    }
 };
 
 // 构建岗位树
@@ -264,8 +287,8 @@ const fetchData = async () => {
         totalRoles.value = roles.length;
         totalAgents.value = agents.length;
         totalActiveAgents.value = agents.filter((a: any) => a.status === 'active' || a.computeStatus !== 'stopped').length;
-
         roleTree.value = buildTree(roles, agents);
+        centerChart();
     } catch (error) {
         console.error('获取岗位树数据失败:', error);
     } finally {
