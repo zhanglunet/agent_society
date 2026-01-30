@@ -1,0 +1,379 @@
+<template>
+    <div class="flex flex-col h-[70vh] bg-[var(--bg)] overflow-hidden rounded-b-xl relative">
+        <!-- 统计栏 -->
+        <div class="grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20">
+            <div class="flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
+                <Network class="w-5 h-5 text-[var(--primary)] mb-1" />
+                <span class="text-xs text-[var(--text-3)]">总岗位数</span>
+                <span class="text-xl font-bold text-[var(--text-1)]">{{ totalRoles }}</span>
+            </div>
+            <div class="flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
+                <Users class="w-5 h-5 text-blue-500 mb-1" />
+                <span class="text-xs text-[var(--text-3)]">总智能体</span>
+                <span class="text-xl font-bold text-[var(--text-1)]">{{ totalAgents }}</span>
+            </div>
+            <div class="flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
+                <Activity class="w-5 h-5 text-green-500 mb-1" />
+                <span class="text-xs text-[var(--text-3)]">存活智能体</span>
+                <span class="text-xl font-bold text-[var(--text-1)]">{{ totalActiveAgents }}</span>
+            </div>
+        </div>
+
+        <!-- 缩放和平移容器 -->
+        <div 
+            class="flex-grow overflow-hidden relative cursor-grab active:cursor-grabbing bg-[var(--bg)] select-none"
+            @wheel="onWheel"
+            @mousedown="onMouseDown"
+            @mousemove="onMouseMove"
+            @mouseup="onMouseUp"
+            @mouseleave="onMouseUp"
+        >
+            <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg)] bg-opacity-50 z-30">
+                <ProgressSpinner style="width: 40px; height: 40px" />
+            </div>
+
+            <div v-else-if="!roleTree || (Array.isArray(roleTree) && roleTree.length === 0)" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
+                <Network class="w-12 h-12 mb-4" />
+                <p>暂无组织架构数据</p>
+                <Button label="重新加载" icon="pi pi-refresh" variant="text" size="small" class="mt-4" @click="fetchData" />
+            </div>
+
+            <!-- 图形化画布 -->
+            <div 
+                v-if="roleTree"
+                class="absolute origin-center transition-transform duration-75 ease-out"
+                :style="{
+                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                }"
+            >
+                <div class="p-20">
+                    <OrganizationChart :value="roleTree">
+                        <template #default="slotProps">
+                            <div class="role-node-card" :class="{ 'virtual-root': slotProps.node.data?.isVirtual }">
+                                <div class="role-node-header">
+                                    <Network class="w-4 h-4 text-[var(--primary)]" />
+                                    <span class="role-name">{{ slotProps.node.label }}</span>
+                                </div>
+                                <div class="role-node-body">
+                                    <div v-if="!slotProps.node.data?.isVirtual" class="role-id">{{ slotProps.node.key?.toString().split('-')[0] }}</div>
+                                    <div class="role-stats">
+                                        <div class="stat-item" title="总智能体">
+                                            <Users class="w-3 h-3 text-blue-500" />
+                                            <span>{{ slotProps.node.data?.agentCount || 0 }}</span>
+                                        </div>
+                                        <div class="stat-item" :class="{ 'active': (slotProps.node.data?.activeAgentCount || 0) > 0 }" title="活跃智能体">
+                                            <Activity class="w-3 h-3" :class="(slotProps.node.data?.activeAgentCount || 0) > 0 ? 'text-green-500' : 'text-[var(--text-3)]'" />
+                                            <span>{{ slotProps.node.data?.activeAgentCount || 0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </OrganizationChart>
+                </div>
+            </div>
+
+            <!-- 操作提示和重置按钮 -->
+            <div class="absolute bottom-4 right-4 flex flex-col gap-2 z-20">
+                <div class="px-3 py-1.5 rounded-full bg-[var(--surface-1)] border border-[var(--border)] text-[10px] text-[var(--text-3)] shadow-lg">
+                    滚轮缩放 | 按住拖动
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <Button icon="pi pi-search-minus" @click="scale = Math.max(0.2, scale - 0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                    <Button icon="pi pi-refresh" @click="resetView" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                    <Button icon="pi pi-search-plus" @click="scale = Math.min(2, scale + 0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-3 border-t border-[var(--border)] flex justify-end bg-[var(--surface-1)] z-20">
+            <Button icon="pi pi-refresh" label="刷新数据" variant="text" size="small" :loading="loading" @click="fetchData" />
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, reactive } from 'vue';
+import { Network, Users, Activity } from 'lucide-vue-next';
+import Button from 'primevue/button';
+import ProgressSpinner from 'primevue/progressspinner';
+import OrganizationChart from 'primevue/organizationchart';
+
+const loading = ref(true);
+const roleTree = ref<any>(null);
+const totalRoles = ref(0);
+const totalAgents = ref(0);
+const totalActiveAgents = ref(0);
+
+// 缩放和平移状态
+const scale = ref(1);
+const offset = reactive({ x: 0, y: 0 });
+const isDragging = ref(false);
+const dragStart = reactive({ x: 0, y: 0 });
+
+const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    const newScale = Math.min(Math.max(0.2, scale.value + delta), 2);
+    scale.value = newScale;
+};
+
+const onMouseDown = (e: MouseEvent) => {
+    isDragging.value = true;
+    dragStart.x = e.clientX - offset.x;
+    dragStart.y = e.clientY - offset.y;
+};
+
+const onMouseMove = (e: MouseEvent) => {
+    if (!isDragging.value) return;
+    offset.x = e.clientX - dragStart.x;
+    offset.y = e.clientY - dragStart.y;
+};
+
+const onMouseUp = () => {
+    isDragging.value = false;
+};
+
+const resetView = () => {
+    scale.value = 1;
+    offset.x = 0;
+    offset.y = 0;
+};
+
+// 构建岗位树
+const buildTree = (roles: any[], agents: any[]) => {
+    const roleMap = new Map<string, any>();
+    
+    // 过滤掉名为 root 或 user 的特殊智能体
+    const filteredAgents = agents.filter(a => a.id !== 'root' && a.id !== 'user');
+    // 过滤掉名为 root 或 user 的岗位 (如果有的话)
+    const filteredRoles = roles.filter(r => r.name !== 'root' && r.name !== 'user' && r.id !== 'root' && r.id !== 'user');
+
+    // 统计每个岗位的智能体数量
+    const agentStats = new Map<string, { total: number, active: number }>();
+    filteredAgents.forEach(agent => {
+        const stats = agentStats.get(agent.roleId) || { total: 0, active: 0 };
+        stats.total++;
+        if (agent.status === 'active' || agent.computeStatus !== 'stopped') {
+            stats.active++;
+        }
+        agentStats.set(agent.roleId, stats);
+    });
+
+    // 创建所有节点
+    filteredRoles.forEach(role => {
+        const stats = agentStats.get(role.id) || { total: 0, active: 0 };
+        roleMap.set(role.id, {
+            key: role.id,
+            label: role.name,
+            data: {
+                createdBy: role.createdBy,
+                agentCount: stats.total,
+                activeAgentCount: stats.active
+            },
+            children: [],
+            expanded: true
+        });
+    });
+
+    const rootNodes: any[] = [];
+    
+    roleMap.forEach(node => {
+        const createdBy = node.data.createdBy;
+        // 如果创建者是 root，则将其视为顶级节点
+        if (createdBy === 'root' || !createdBy) {
+            rootNodes.push(node);
+        } else {
+            // 否则尝试找到创建该岗位的智能体所属的岗位
+            const creatorAgent = agents.find(a => a.id === createdBy);
+            if (creatorAgent && roleMap.has(creatorAgent.roleId)) {
+                const parentRole = roleMap.get(creatorAgent.roleId);
+                parentRole.children.push(node);
+            } else {
+                // 如果找不到父级，也作为顶级节点展示
+                rootNodes.push(node);
+            }
+        }
+    });
+
+    // 如果有多个根节点，创建一个虚拟根节点来统一展示
+    if (rootNodes.length > 1) {
+        return {
+            key: 'society-root',
+            label: '智能体社会',
+            data: {
+                agentCount: totalAgents.value,
+                activeAgentCount: totalActiveAgents.value,
+                isVirtual: true
+            },
+            children: rootNodes,
+            expanded: true
+        };
+    }
+
+    return rootNodes[0] || null;
+};
+
+const fetchData = async () => {
+    loading.value = true;
+    try {
+        const [rolesResponse, agentsResponse] = await Promise.all([
+            fetch('http://localhost:2999/api/roles').then(res => res.json()),
+            fetch('http://localhost:2999/api/agents').then(res => res.json())
+        ]);
+
+        const roles = rolesResponse.roles || [];
+        const agents = agentsResponse.agents || [];
+
+        totalRoles.value = roles.length;
+        totalAgents.value = agents.length;
+        totalActiveAgents.value = agents.filter((a: any) => a.status === 'active' || a.computeStatus !== 'stopped').length;
+
+        roleTree.value = buildTree(roles, agents);
+    } catch (error) {
+        console.error('获取岗位树数据失败:', error);
+    } finally {
+        loading.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchData();
+});
+</script>
+
+<style scoped>
+/* 节点卡片样式 */
+.role-node-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0;
+    min-width: 160px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px -5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.role-node-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -5px rgba(0,0,0,0.15);
+}
+
+.role-node-card.virtual-root {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--surface-1) 0%, var(--surface-2) 100%);
+}
+
+.role-node-card.virtual-root .role-node-header {
+    background: rgba(var(--primary-rgb), 0.1);
+}
+
+.role-node-card.virtual-root .role-name {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.role-node-header {
+    background: var(--surface-2);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.role-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-node-body {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.role-id {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.role-stats {
+    display: flex;
+    gap: 8px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.stat-item.active {
+    border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.05);
+}
+
+/* 覆盖 PrimeVue OrganizationChart 默认样式 */
+:deep(.p-organizationchart-connector-down) {
+    background: var(--primary);
+    width: 2px;
+    margin: 0 auto;
+}
+
+:deep(.p-organizationchart-connector-left) {
+    border-right: 1px solid var(--primary);
+}
+
+:deep(.p-organizationchart-connector-right) {
+    border-left: 1px solid var(--primary);
+}
+
+:deep(.p-organizationchart-connector-top) {
+    border-top: 2px solid var(--primary);
+}
+
+:deep(.p-organizationchart-table) {
+    border-spacing: 0;
+    border-collapse: separate;
+    margin: 0 auto;
+}
+
+:deep(.p-organizationchart-node-content) {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+}
+
+/* 兼容旧版本或其他主题可能的类名 */
+:deep(.p-organizationchart-line-down) {
+    background: var(--primary);
+    width: 2px;
+}
+
+:deep(.p-organizationchart-line-left),
+:deep(.p-organizationchart-line-right),
+:deep(.p-organizationchart-line-top) {
+    border-color: var(--primary);
+    border-width: 2px;
+}
+</style>

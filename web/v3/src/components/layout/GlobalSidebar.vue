@@ -8,6 +8,7 @@ import { useDialog } from 'primevue/usedialog';
 import { ref, computed } from 'vue';
 import ArtifactsList from '../artifacts/ArtifactsList.vue';
 import SettingsDialog from '../settings/SettingsDialog.vue';
+import RoleTreeView from '../overview/RoleTreeView.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
@@ -23,6 +24,19 @@ const filteredOrgs = computed(() => {
     org.id.toLowerCase().includes(query)
   );
 });
+
+const openOverview = () => {
+  dialog.open(RoleTreeView, {
+    props: {
+      header: '组织架构总览',
+      style: {
+        width: '800px',
+      },
+      modal: true,
+      dismissableMask: true,
+    }
+  });
+};
 
 const openArtifacts = () => {
   dialog.open(ArtifactsList, {
@@ -52,7 +66,7 @@ const openSettings = () => {
 };
 
 const tools = [
-  { id: 'overview', icon: LayoutGrid, label: '总览视图', action: () => {} },
+  { id: 'overview', icon: LayoutGrid, label: '总览视图', action: openOverview },
   { id: 'artifacts', icon: Briefcase, label: '工件管理', action: openArtifacts },
   { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
