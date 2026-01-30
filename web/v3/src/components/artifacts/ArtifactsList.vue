@@ -2,7 +2,16 @@
 import { Briefcase } from 'lucide-vue-next';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
-import { ref } from 'vue';
+import { ref, inject, onMounted } from 'vue';
+
+const dialogRef = inject<any>('dialogRef');
+const orgId = ref<string | undefined>();
+
+onMounted(() => {
+  if (dialogRef && dialogRef.value) {
+    orgId.value = dialogRef.value.data?.orgId;
+  }
+});
 
 // 模拟工件数据
 const artifacts = ref([
@@ -43,7 +52,10 @@ const formatTime = (ts: number) => {
       <!-- 左侧列表 -->
       <SplitterPanel :size="30" :minSize="20" class="flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
         <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)]">
-          <span class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider">生成的工件 ({{ artifacts.length }})</span>
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider">生成的工件 ({{ artifacts.length }})</span>
+            <span v-if="orgId" class="text-[10px] text-[var(--text-3)] opacity-70 mt-0.5">组织 ID: {{ orgId }}</span>
+          </div>
         </div>
         <div class="flex-grow overflow-y-auto p-2 space-y-1">
           <button

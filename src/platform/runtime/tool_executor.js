@@ -211,56 +211,56 @@ export class ToolExecutor {
         }
       },
       // 工件操作
-      {
-        type: "function",
-        function: {
-          name: "put_artifact",
-          description: "写入工件并返回 artifactRef。",
-          parameters: {
-            type: "object",
-            properties: {
-              type: { 
-                type: "string", 
-                description: "工件的MIME类型，如 'application/json', 'text/plain', 'text/html', 'image/png' 等。必须使用标准MIME类型，不要使用文件扩展名。" 
-              },
-              content: {},
-              name: { type: "string", description: "工件名称，用于在工件管理器中显示" },
-              meta: { type: "object" }
-            },
-            required: ["type", "content", "name"]
-          }
-        }
-      },
-      {
-        type: "function",
-        function: {
-          name: "get_artifact",
-          description: "读取工件引用并返回工件内容。",
-          parameters: {
-            type: "object",
-            properties: { ref: { type: "string" } },
-            required: ["ref"]
-          }
-        }
-      },
-      {
-        type: "function",
-        function: {
-          name: "show_artifacts",
-          description: "在聊天界面展示已存在的工件。接收工件ID数组，将这些工件在聊天消息中展示出来，就像新创建的工件一样。不会创建新工件，只是引用和展示现有工件。",
-          parameters: {
-            type: "object",
-            properties: {
-              artifactIds: {
-                type: "array",
-                items: { type: "string" },
-                description: "要展示的工件ID列表"
-              }
-            },
-            required: ["artifactIds"]
-          }
-        }
-      },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "put_artifact",
+      //     description: "写入工件并返回 artifactRef。",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         type: { 
+      //           type: "string", 
+      //           description: "工件的MIME类型，如 'application/json', 'text/plain', 'text/html', 'image/png' 等。必须使用标准MIME类型，不要使用文件扩展名。" 
+      //         },
+      //         content: {},
+      //         name: { type: "string", description: "工件名称，用于在工件管理器中显示" },
+      //         meta: { type: "object" }
+      //       },
+      //       required: ["type", "content", "name"]
+      //     }
+      //   }
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "get_artifact",
+      //     description: "读取工件引用并返回工件内容。",
+      //     parameters: {
+      //       type: "object",
+      //       properties: { ref: { type: "string" } },
+      //       required: ["ref"]
+      //     }
+      //   }
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "show_artifacts",
+      //     description: "在聊天界面展示已存在的工件。接收工件ID数组，将这些工件在聊天消息中展示出来，就像新创建的工件一样。不会创建新工件，只是引用和展示现有工件。",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         artifactIds: {
+      //           type: "array",
+      //           items: { type: "string" },
+      //           description: "要展示的工件ID列表"
+      //         }
+      //       },
+      //       required: ["artifactIds"]
+      //     }
+      //   }
+      // },
       // 终止智能体
       {
         type: "function",

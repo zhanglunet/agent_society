@@ -38,16 +38,19 @@ const openOverview = () => {
   });
 };
 
-const openArtifacts = () => {
+const openArtifacts = (org: any) => {
   dialog.open(ArtifactsList, {
     props: {
-      header: '工件管理器',
+      header: `工件管理器 - ${org.name}`,
       style: {
         width: '80vw',
         maxWidth: '1000px',
       },
       modal: true,
       dismissableMask: true,
+    },
+    data: {
+      orgId: org.id
     }
   });
 };
@@ -67,7 +70,6 @@ const openSettings = () => {
 
 const tools = [
   { id: 'overview', icon: LayoutGrid, label: '总览视图', action: openOverview },
-  { id: 'artifacts', icon: Briefcase, label: '工件管理', action: openArtifacts },
   { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
 
@@ -145,7 +147,7 @@ const handleOrgClick = (org: any) => {
             v-for="org in filteredOrgs" 
             :key="org.id"
             variant="text" 
-            class="w-full !justify-start !px-3 !py-2 text-[var(--text-2)] hover:text-[var(--text-1)] active:translate-y-[1px] active:scale-[0.98] transition-all"
+            class="w-full !justify-start !px-3 !py-2 text-[var(--text-2)] hover:text-[var(--text-1)] active:translate-y-[1px] active:scale-[0.98] transition-all group"
             :class="{ '!bg-[var(--surface-3)] !text-[var(--primary)]': appStore.currentTabId === org.id }"
             v-tooltip.right="appStore.isSidebarCollapsed ? org.name : null"
             @click="handleOrgClick(org)"
@@ -158,6 +160,17 @@ const handleOrgClick = (org: any) => {
               <span class="truncate font-medium leading-tight w-full text-left">{{ org.name }}</span>
               <span v-if="org.role" class="truncate text-[10px] text-[var(--text-3)] leading-tight mt-0.5 w-full text-left">{{ org.role }}</span>
             </div>
+            <!-- 工件管理器按钮 -->
+            <Button 
+              v-if="!appStore.isSidebarCollapsed && org.id !== 'home'"
+              variant="text"
+              rounded
+              class="!p-1.5 hover:!bg-[var(--surface-4)] transition-all shrink-0"
+              v-tooltip.top="'工件管理'"
+              @click.stop="openArtifacts(org)"
+            >
+              <Briefcase class="w-3.5 h-3.5 text-[var(--text-3)] hover:text-[var(--primary)]" />
+            </Button>
           </Button>
     </div>
   </aside>
