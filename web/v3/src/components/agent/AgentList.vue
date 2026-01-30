@@ -36,7 +36,7 @@ const openArtifacts = () => {
         maxWidth: '1000px',
       },
       modal: true,
-      dismissableMask: true,
+      dismissableMask: false,
     },
     data: {
       orgId: props.orgId
@@ -94,7 +94,7 @@ const handleAbortAgent = async (e: Event, agentId: string) => {
       </div>
       
       <div class="px-2 pb-1 flex items-center justify-between">
-        <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-widest opacity-70">
+        <span class="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider">
           智能体 ({{ currentAgentCount }})
         </span>
       </div>

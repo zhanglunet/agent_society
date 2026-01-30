@@ -33,7 +33,7 @@ const openOverview = () => {
         width: '800px',
       },
       modal: true,
-      dismissableMask: true,
+      dismissableMask: false,
     }
   });
 };
@@ -47,7 +47,7 @@ const openArtifacts = (org: any) => {
         maxWidth: '1000px',
       },
       modal: true,
-      dismissableMask: true,
+      dismissableMask: false,
     },
     data: {
       orgId: org.id
@@ -63,7 +63,7 @@ const openSettings = () => {
         width: '600px',
       },
       modal: true,
-      dismissableMask: true,
+      dismissableMask: false,
     }
   });
 };
