@@ -35,6 +35,7 @@ export interface Message {
   timestamp: number;
   status: 'sending' | 'sent' | 'error';
   isThinking?: boolean;
+  taskId?: string; // 关联的任务 ID
 }
 
 export interface Tab {

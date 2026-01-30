@@ -4,6 +4,7 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useChatStore } from '../../stores/chat';
+import { useAgentStore } from '../../stores/agent';
 
 const props = defineProps<{
   orgId: string;
@@ -11,10 +12,21 @@ const props = defineProps<{
 }>();
 
 const chatStore = useChatStore();
+const agentStore = useAgentStore();
 const message = ref('');
+const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
 
 const currentMessages = computed(() => chatStore.chatMessages[props.orgId] || []);
+
+/**
+ * 获取发送者名称
+ */
+const getSenderName = (msg: any) => {
+  if (msg.senderType === 'user') return '我';
+  const agent = agentStore.agents.find(a => a.id === msg.senderId);
+  return agent ? agent.name : msg.senderId;
+};
 
 const loadMessages = () => {
   if (props.orgId) {
@@ -35,14 +47,19 @@ watch(() => chatStore.chatMessages[props.orgId]?.length, () => {
 }, { deep: true });
 
 const sendMessage = async () => {
-  if (!message.value.trim()) return;
+  if (!message.value.trim() || isSending.value) return;
   const text = message.value;
   message.value = '';
+  isSending.value = true;
   
   try {
     await chatStore.sendMessage(props.orgId, text);
   } catch (error) {
     console.error('发送失败:', error);
+    // 如果发送失败，把消息弹回来（可选）
+    message.value = text;
+  } finally {
+    isSending.value = false;
   }
 };
 
@@ -106,16 +123,29 @@ const formatTime = (timestamp: number) => {
             <!-- 消息气泡 -->
             <div class="flex flex-col" :class="msg.senderType === 'user' ? 'items-end' : 'items-start'">
               <div class="flex items-center space-x-2 mb-1 px-1">
-                <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ msg.senderType }}</span>
+                <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(msg) }}</span>
                 <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(msg.timestamp) }}</span>
               </div>
               <div 
-                class="px-4 py-2.5 rounded-2xl text-sm shadow-sm"
-                :class="msg.senderType === 'user' 
-                  ? 'bg-[var(--primary)] text-white rounded-tr-none' 
-                  : 'bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none'"
+                class="px-4 py-2.5 rounded-2xl text-sm shadow-sm relative group/msg"
+                :class="[
+                  msg.senderType === 'user' 
+                    ? 'bg-[var(--primary)] text-white rounded-tr-none' 
+                    : 'bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none',
+                  msg.status === 'sending' ? 'opacity-70' : ''
+                ]"
               >
                 {{ msg.content }}
+                
+                <!-- 状态标识 -->
+                <div v-if="msg.status === 'sending'" class="absolute -right-6 top-1/2 -translate-y-1/2">
+                  <i class="pi pi-spin pi-spinner text-[10px] text-[var(--primary)]"></i>
+                </div>
+                
+                <!-- Task ID 悬浮提示 (如果是 agent 发送的或者关联了任务) -->
+                <div v-if="msg.taskId" class="hidden group-hover/msg:block absolute -top-8 left-0 bg-[var(--surface-3)] text-[10px] px-2 py-1 rounded border border-[var(--border)] whitespace-nowrap z-20">
+                  Task: {{ msg.taskId }}
+                </div>
               </div>
             </div>
           </div>
@@ -137,11 +167,12 @@ const formatTime = (timestamp: number) => {
           />
           <Button 
             @click="sendMessage"
-            :disabled="!message.trim()"
-            class="!rounded-xl !p-3 transition-all duration-300"
-            :class="message.trim() ? '!bg-[var(--primary)] !text-white' : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
+            :disabled="!message.trim() || isSending"
+            class="!rounded-xl !p-3 transition-all duration-300 min-w-[44px]"
+            :class="message.trim() && !isSending ? '!bg-[var(--primary)] !text-white' : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
           >
-            <Send class="w-4 h-4" />
+            <i v-if="isSending" class="pi pi-spin pi-spinner text-sm"></i>
+            <Send v-else class="w-4 h-4" />
           </Button>
         </div>
         <div class="mt-3 flex items-center justify-center space-x-6 text-[10px] text-[var(--text-3)] font-medium uppercase tracking-widest">

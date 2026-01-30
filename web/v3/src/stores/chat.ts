@@ -51,13 +51,17 @@ export const useChatStore = defineStore('chat', () => {
         senderType: 'user',
         content: text,
         timestamp: Date.now(),
-        status: 'sent'
+        status: 'sending', // 初始状态为发送中
+        taskId: response.taskId
       };
       
       if (!chatMessages.value[orgId]) {
         chatMessages.value[orgId] = [];
       }
       chatMessages.value[orgId].push(userMsg);
+      
+      // 更新为已发送状态
+      userMsg.status = 'sent';
       
       return response.taskId;
     } catch (error) {
