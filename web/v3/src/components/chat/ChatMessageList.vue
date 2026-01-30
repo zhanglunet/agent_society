@@ -20,6 +20,39 @@ const expandedToolCalls = ref<Record<string, boolean>>({});
 const expandedReasoning = ref<Record<string, boolean>>({});
 const expandedGroups = ref<Record<string, boolean>>({});
 
+// 悬停详情
+const hoveredAgentId = ref<string | null>(null);
+const tooltipPosition = ref({ x: 0, y: 0 });
+const tooltipTimer = ref<any>(null);
+
+const handleMouseEnter = (event: MouseEvent, agentId: string) => {
+  if (agentId === 'user' || agentId === 'system') return;
+  
+  // 清除之前的定时器
+  if (tooltipTimer.value) clearTimeout(tooltipTimer.value);
+  
+  // 设置延迟显示，避免快速划过时闪烁
+  tooltipTimer.value = setTimeout(() => {
+    hoveredAgentId.value = agentId;
+    // 获取元素位置，让 tooltip 出现在元素上方
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    tooltipPosition.value = {
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    };
+  }, 400);
+};
+
+const handleMouseLeave = () => {
+  if (tooltipTimer.value) clearTimeout(tooltipTimer.value);
+  hoveredAgentId.value = null;
+};
+
+const hoveredAgent = computed(() => {
+  if (!hoveredAgentId.value) return null;
+  return findAgentById(hoveredAgentId.value);
+});
+
 const toggleGroup = (groupId: string) => {
   expandedGroups.value[groupId] = !expandedGroups.value[groupId];
 };
@@ -195,12 +228,16 @@ const formatTime = (timestamp: number) => {
                 <span 
                   class="hover:text-[var(--primary)] cursor-pointer transition-colors"
                   @click="navigateToMessage(item.senderId, item.id)"
+                  @mouseenter="handleMouseEnter($event, item.senderId)"
+                  @mouseleave="handleMouseLeave"
                 >{{ getSenderName(item) }}</span>
                 <template v-if="getReceiverName(item)">
                   <span class="opacity-50 mx-1">→</span>
                   <span 
                     class="hover:text-[var(--primary)] cursor-pointer transition-colors"
                     @click="navigateToMessage(item.receiverId, item.id)"
+                    @mouseenter="handleMouseEnter($event, item.receiverId)"
+                    @mouseleave="handleMouseLeave"
                   >{{ getReceiverName(item) }}</span>
                 </template>
               </div>
@@ -292,12 +329,16 @@ const formatTime = (timestamp: number) => {
                 <span 
                   class="hover:text-[var(--primary)] cursor-pointer transition-colors"
                   @click="navigateToMessage(item.senderId, item.messages[0].id)"
+                  @mouseenter="handleMouseEnter($event, item.senderId)"
+                  @mouseleave="handleMouseLeave"
                 >{{ getSenderName(item.messages[0]) }}</span>
                 <template v-if="getReceiverName(item)">
                   <span class="opacity-50 mx-1">→</span>
                   <span 
                     class="hover:text-[var(--primary)] cursor-pointer transition-colors"
                     @click="navigateToMessage(item.receiverId, item.messages[0].id)"
+                    @mouseenter="handleMouseEnter($event, item.receiverId)"
+                    @mouseleave="handleMouseLeave"
                   >{{ getReceiverName(item) }}</span>
                 </template>
               </div>
@@ -357,5 +398,56 @@ const formatTime = (timestamp: number) => {
         </div>
       </div>
     </template>
+    
+    <!-- 智能体详情 Tooltip -->
+    <Teleport to="body">
+      <div 
+        v-if="hoveredAgent"
+        class="fixed z-[9999] pointer-events-none transition-all duration-200"
+        :style="{
+          left: tooltipPosition.x + 'px',
+          top: (tooltipPosition.y - 10) + 'px',
+          transform: 'translate(-50%, -100%)'
+        }"
+      >
+        <div class="bg-[var(--surface-4)] border border-[var(--border)] rounded-xl shadow-xl p-4 min-w-[240px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <Bot class="w-6 h-6 text-[var(--primary)]" />
+              </div>
+              <div>
+                <div class="text-sm font-bold text-[var(--text-1)]">{{ hoveredAgent.name }}</div>
+                <div class="text-[10px] text-[var(--text-3)] font-mono opacity-70">{{ hoveredAgent.id }}</div>
+              </div>
+            </div>
+            <div 
+              class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+              :class="{
+                'bg-green-500/10 text-green-500': hoveredAgent.status === 'online',
+                'bg-orange-500/10 text-orange-500': hoveredAgent.status === 'busy',
+                'bg-gray-500/10 text-gray-300': hoveredAgent.status === 'offline'
+              }"
+            >
+              {{ hoveredAgent.status === 'online' ? '在线' : (hoveredAgent.status === 'busy' ? '忙碌' : '离线') }}
+            </div>
+          </div>
+          
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[var(--text-3)]">岗位</span>
+              <span class="text-[var(--text-2)] font-medium">{{ hoveredAgent.role }}</span>
+            </div>
+            <div v-if="hoveredAgent.lastSeen" class="flex items-center justify-between text-xs">
+              <span class="text-[var(--text-3)]">最后活动</span>
+              <span class="text-[var(--text-2)]">{{ formatTime(hoveredAgent.lastSeen) }}</span>
+            </div>
+          </div>
+          
+          <!-- 装饰三角形 -->
+          <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[var(--border)]"></div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
