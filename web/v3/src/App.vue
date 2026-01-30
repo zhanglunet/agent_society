@@ -7,6 +7,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
 import { useOrgStore } from './stores/org';
+import DynamicDialog from 'primevue/dynamicdialog';
 
 const appStore = useAppStore();
 const agentStore = useAgentStore();
@@ -58,6 +59,7 @@ onUnmounted(stopGlobalSync);
 
 <template>
   <div class="flex h-screen w-screen overflow-hidden bg-[var(--bg)] text-[var(--text-1)]">
+    <DynamicDialog />
     <!-- 全局侧栏 -->
     <GlobalSidebar />
 

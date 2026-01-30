@@ -107,7 +107,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
       <section class="text-center space-y-4">
         <h1 class="text-3xl font-bold text-[var(--text-1)] tracking-tight">智能体社会化系统</h1>
         <p class="text-[var(--text-3)] max-w-2xl mx-auto">
-          欢迎回到 Agent Society。在这里，智能体像人类一样形成自组织的社会性团体，协助您完成复杂任务。
+          欢迎回到 Agent Society!<br/><br/>在这里，智能体像人类一样形成自组织的社会性团体，协助您完成复杂任务。
         </p>
       </section>
 

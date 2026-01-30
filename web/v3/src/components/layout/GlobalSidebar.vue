@@ -3,14 +3,45 @@ import Button from 'primevue/button';
 import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
+import { useDialog } from 'primevue/usedialog';
+import ArtifactsList from '../artifacts/ArtifactsList.vue';
+import SettingsDialog from '../settings/SettingsDialog.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
+const dialog = useDialog();
+
+const openArtifacts = () => {
+  dialog.open(ArtifactsList, {
+    props: {
+      header: '工件管理器',
+      style: {
+        width: '80vw',
+        maxWidth: '1000px',
+      },
+      modal: true,
+      dismissableMask: true,
+    }
+  });
+};
+
+const openSettings = () => {
+  dialog.open(SettingsDialog, {
+    props: {
+      header: '系统设置',
+      style: {
+        width: '600px',
+      },
+      modal: true,
+      dismissableMask: true,
+    }
+  });
+};
 
 const tools = [
-  { id: 'overview', icon: LayoutGrid, label: '总览视图' },
-  { id: 'artifacts', icon: Briefcase, label: '工件管理' },
-  { id: 'settings', icon: Settings, label: '系统设置' },
+  { id: 'overview', icon: LayoutGrid, label: '总览视图', action: () => {} },
+  { id: 'artifacts', icon: Briefcase, label: '工件管理', action: openArtifacts },
+  { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
 
 const handleOrgClick = (org: any) => {
@@ -51,6 +82,7 @@ const handleOrgClick = (org: any) => {
           rounded
           class="!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all"
           v-tooltip.bottom="tool.label"
+          @click="tool.action"
         >
           <component :is="tool.icon" class="w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" />
         </Button>
