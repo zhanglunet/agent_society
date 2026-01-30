@@ -130,9 +130,12 @@ export const apiService = {
         };
         content = `调用工具: ${toolCall.name}`;
       } else if (msg.payload) {
-        content = msg.payload.text || msg.payload.content || '';
+        // 如果 payload 是对象，且包含 text 或 content 字段
+        const rawContent = msg.payload.text || msg.payload.content || msg.payload;
+        content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent, null, 2);
       } else {
-        content = msg.content || msg.message || '';
+        const rawContent = msg.content || msg.message || '';
+        content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent, null, 2);
       }
 
       return {
@@ -144,7 +147,9 @@ export const apiService = {
         content: content,
         timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
         status: 'sent',
-        reasoning: msg.reasoning_content,
+        reasoning: typeof msg.reasoning_content === 'string' 
+          ? msg.reasoning_content 
+          : (msg.reasoning_content ? JSON.stringify(msg.reasoning_content, null, 2) : undefined),
         toolCall: toolCall,
         taskId: msg.taskId
       };

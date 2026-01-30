@@ -30,11 +30,16 @@ const message = computed({
 const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
 const expandedToolCalls = ref<Record<string, boolean>>({});
+const expandedReasoning = ref<Record<string, boolean>>({});
 const showScrollBottomButton = ref(false);
 const SCROLL_THRESHOLD = 150; // 距离底部小于 150px 视为“在底部”
 
 const toggleToolCall = (msgId: string) => {
   expandedToolCalls.value[msgId] = !expandedToolCalls.value[msgId];
+};
+
+const toggleReasoning = (msgId: string) => {
+  expandedReasoning.value[msgId] = !expandedReasoning.value[msgId];
 };
 
 /**
@@ -263,9 +268,21 @@ const formatTime = (timestamp: number) => {
                   ]"
                 >
                   <!-- 思考过程 (Reasoning) -->
-                  <div v-if="msg.reasoning" class="mb-3 pb-3 border-b border-[var(--border)] opacity-60 text-xs italic flex items-start space-x-2">
-                    <Sparkles class="w-3 h-3 mt-0.5 shrink-0" />
-                    <div class="whitespace-pre-wrap">{{ msg.reasoning }}</div>
+                  <div v-if="msg.reasoning" class="mb-3">
+                    <div 
+                      class="flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors opacity-80"
+                      @click="toggleReasoning(msg.id)"
+                    >
+                      <Sparkles class="w-3 h-3 text-[var(--primary)]" />
+                      <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">思考过程</span>
+                      <span class="flex-grow"></span>
+                      <ChevronDown v-if="!expandedReasoning[msg.id]" class="w-3 h-3" />
+                      <ChevronUp v-else class="w-3 h-3" />
+                    </div>
+                    
+                    <div v-if="expandedReasoning[msg.id]" class="mt-2 p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg text-xs italic text-[var(--text-2)] whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
+                      {{ msg.reasoning }}
+                    </div>
                   </div>
 
                   <!-- 工具调用 (Tool Call) -->
