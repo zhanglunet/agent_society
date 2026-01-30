@@ -112,6 +112,13 @@ export const apiService = {
   },
 
   /**
+   * 为 root 开启新会话
+   */
+  async rootNewSession(): Promise<void> {
+    await request('/root/new-session', { method: 'POST', body: JSON.stringify({}) });
+  },
+
+  /**
    * 获取消息历史
    */
   async getMessages(agentId: string): Promise<Message[]> {

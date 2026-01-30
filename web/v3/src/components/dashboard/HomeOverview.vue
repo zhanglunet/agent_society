@@ -2,11 +2,11 @@
 import { useOrgStore } from '../../stores/org';
 import { useAppStore } from '../../stores/app';
 import { useChatStore } from '../../stores/chat';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import { Sparkles, Users, ArrowRight, Send } from 'lucide-vue-next';
+import Textarea from 'primevue/textarea';
+import { Sparkles, Users, ArrowRight, Send, Bot, User as UserIcon } from 'lucide-vue-next';
 
 const orgStore = useOrgStore();
 const appStore = useAppStore();
@@ -14,12 +14,54 @@ const chatStore = useChatStore();
 
 const newGoal = ref('');
 const isCreating = ref(false);
+const showChat = ref(false);
+const chatScrollRef = ref<HTMLElement | null>(null);
 
 // 获取除了首页之外的所有组织
 const organizations = computed(() => orgStore.orgs.filter(o => o.id !== 'home'));
 
+// 获取 root 的当前会话消息
+const rootMessages = computed(() => chatStore.getSessionMessages('root'));
+
+// 自动滚动到底部
+watch(rootMessages, () => {
+  if (showChat.value) {
+    setTimeout(() => {
+      if (chatScrollRef.value) {
+        chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight;
+      }
+    }, 100);
+  }
+}, { deep: true });
+
+let pollTimer: any = null;
+const startPolling = () => {
+  stopPolling();
+  pollTimer = setInterval(() => {
+    chatStore.fetchMessages('root');
+  }, 2000);
+};
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+};
+
+onUnmounted(() => {
+  stopPolling();
+});
+
 onMounted(async () => {
   await orgStore.fetchOrgs();
+  
+  // 检查 root 是否有当前会话的消息，如果有则显示
+  await chatStore.fetchMessages('root');
+  if (rootMessages.value.length > 0) {
+    showChat.value = true;
+    startPolling();
+  }
 });
 
 const handleOrgClick = (org: any) => {
@@ -35,25 +77,28 @@ const createOrganization = async () => {
   
   isCreating.value = true;
   try {
-    // 创造一个团队的逻辑：发送消息给 root
-    // 这里我们先打开 root 的对话框，并发送初始目标
-    appStore.openTab({
-      id: 'home',
-      type: 'org',
-      title: '首页'
-    });
+    // 1. 开启新会话（清空 root 历史并记录起始时间）
+    await chatStore.rootNewSession();
     
-    // 设置活跃智能体为 root
-     await chatStore.setActiveAgent('home', 'root');
-     
-     // 发送消息
-     await chatStore.sendMessage('root', newGoal.value, 'user');
+    // 2. 显示聊天界面
+    showChat.value = true;
+    startPolling();
+    
+    // 3. 发送消息
+    await chatStore.sendMessage('root', newGoal.value, 'user');
     
     newGoal.value = '';
   } catch (error) {
     console.error('创建组织失败:', error);
   } finally {
     isCreating.value = false;
+  }
+};
+
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    createOrganization();
   }
 };
 </script>
@@ -79,20 +124,59 @@ const createOrganization = async () => {
         <Card class="!bg-[var(--surface-1)] !border-[var(--border)] overflow-hidden">
           <template #content>
             <div class="space-y-4">
+              <!-- 嵌入式聊天区域 -->
+              <div v-if="showChat" 
+                class="chat-expand-animation border border-[var(--border)] rounded-xl bg-[var(--surface-2)] overflow-hidden mb-4"
+              >
+                <div 
+                  ref="chatScrollRef"
+                  class="p-4 space-y-4 overflow-y-auto"
+                  style="max-height: 50vh; min-height: 100px;"
+                >
+                  <div v-for="msg in rootMessages" :key="msg.id" 
+                    :class="['flex items-start space-x-3', msg.senderType === 'user' ? 'flex-row-reverse space-x-reverse' : '']"
+                  >
+                    <div :class="['w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', 
+                      msg.senderType === 'user' ? 'bg-[var(--primary)]' : 'bg-[var(--surface-3)] border border-[var(--border)]']"
+                    >
+                      <UserIcon v-if="msg.senderType === 'user'" class="w-4 h-4 text-white" />
+                      <Bot v-else class="w-4 h-4 text-[var(--primary)]" />
+                    </div>
+                    <div :class="['max-w-[85%] px-4 py-2 rounded-2xl text-sm leading-relaxed shadow-sm', 
+                      msg.senderType === 'user' ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-[var(--surface-1)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none']"
+                    >
+                      <div class="whitespace-pre-wrap">{{ msg.content }}</div>
+                    </div>
+                  </div>
+                  
+                  <!-- 初始占位/加载状态 -->
+                  <div v-if="rootMessages.length === 0" class="flex justify-center py-8">
+                    <div class="flex items-center space-x-2 text-[var(--text-3)] text-sm">
+                      <div class="w-2 h-2 bg-[var(--primary)] rounded-full animate-bounce"></div>
+                      <div class="w-2 h-2 bg-[var(--primary)] rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                      <div class="w-2 h-2 bg-[var(--primary)] rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                      <span>正在规划您的团队...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="flex items-center space-x-3">
                 <div class="relative flex-grow">
-                  <InputText 
+                  <Textarea 
                     v-model="newGoal" 
+                    autoResize 
+                    rows="1"
                     placeholder="输入一个目标或者任务，我为你创造一个团队" 
-                    class="w-full !bg-[var(--surface-2)] !border-[var(--border)] focus:!border-[var(--primary)] !pl-4 !pr-12 !py-3 !rounded-xl"
-                    @keyup.enter="createOrganization"
+                    class="w-full !bg-[var(--surface-2)] !border-[var(--border)] focus:!border-[var(--primary)] !pl-4 !pr-14 !py-3 !rounded-xl !resize-none min-h-[52px]"
+                    @keydown="handleKeyDown"
                   />
-                  <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                  <div class="absolute right-3 bottom-2.5 flex items-center">
                     <Button 
                       icon="pi pi-arrow-right" 
                       @click="createOrganization"
                       :loading="isCreating"
-                      class="!w-8 !h-8 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!bg-[var(--primary-hover)] transition-colors"
+                      class="!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!bg-[var(--primary-hover)] transition-colors shadow-sm"
                     >
                       <template #icon>
                         <Send v-if="!isCreating" class="w-4 h-4" />
@@ -156,5 +240,23 @@ const createOrganization = async () => {
 }
 :deep(.p-card-body) {
   padding: 1.5rem;
+}
+
+.chat-expand-animation {
+  animation: expandDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    max-height: 50vh;
+  }
 }
 </style>

@@ -16,6 +16,34 @@ export const useChatStore = defineStore('chat', () => {
   // 存储每个组织当前选中的智能体 ID，key 为 orgId
   const activeAgentIds = ref<Record<string, string>>({});
 
+  // 存储每个会话的起始时间（用于隐藏旧消息），key 为 agentId
+  const sessionStartTimes = ref<Record<string, number>>({});
+
+  /**
+   * 为 root 开启新会话
+   */
+  const rootNewSession = async () => {
+    await apiService.rootNewSession();
+    // 立即刷新消息，并找到“新会话”标记的时刻
+    await fetchMessages('root');
+    const messages = chatMessages.value['root'] || [];
+    const markerMsg = [...messages].reverse().find(m => m.content.includes('--- 新会话 ---'));
+    if (markerMsg) {
+      sessionStartTimes.value['root'] = markerMsg.timestamp;
+    } else {
+      sessionStartTimes.value['root'] = Date.now();
+    }
+  };
+
+  /**
+   * 获取当前会话的消息（过滤掉旧消息）
+   */
+  const getSessionMessages = (agentId: string) => {
+    const messages = chatMessages.value[agentId] || [];
+    const startTime = sessionStartTimes.value[agentId] || 0;
+    return messages.filter(m => m.timestamp >= startTime);
+  };
+
   /**
    * 更新当前组织选中的智能体
    */
@@ -48,6 +76,14 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const messages = await apiService.getMessages(agentId);
       chatMessages.value[agentId] = messages;
+
+      // 如果是 root 且没有手动设置过 sessionStartTime，尝试从消息历史中寻找最新的“新会话”标记
+      if (agentId === 'root' && !sessionStartTimes.value['root']) {
+        const markerMsg = [...messages].reverse().find(m => m.content.includes('--- 新会话 ---'));
+        if (markerMsg) {
+          sessionStartTimes.value['root'] = markerMsg.timestamp;
+        }
+      }
     } catch (error) {
       console.error(`加载智能体 ${agentId} 的消息失败:`, error);
       if (!chatMessages.value[agentId]) {
@@ -106,6 +142,9 @@ export const useChatStore = defineStore('chat', () => {
     getActiveAgentId,
     updateInputValue,
     fetchMessages,
-    sendMessage
+    sendMessage,
+    rootNewSession,
+    getSessionMessages,
+    sessionStartTimes
   };
 });
