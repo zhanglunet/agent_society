@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useAgentStore } from '../../stores/agent';
 import { useChatStore } from '../../stores/chat';
-import { watch, onMounted, computed } from 'vue';
-import { User, Bot, Circle } from 'lucide-vue-next';
+import { watch, onMounted, onUnmounted, computed } from 'vue';
+import { User, Bot, Circle, Square, Loader2 } from 'lucide-vue-next';
 
 const props = defineProps<{
   orgId: string;
@@ -22,8 +22,35 @@ const loadAgents = () => {
   }
 };
 
-onMounted(loadAgents);
-watch(() => props.orgId, loadAgents);
+let pollingTimer: any = null;
+
+const startPolling = () => {
+  stopPolling();
+  pollingTimer = setInterval(() => {
+    if (props.orgId) {
+      agentStore.fetchAgentsByOrg(props.orgId);
+    }
+  }, 3000); // 每 3 秒轮询一次智能体状态
+};
+
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+};
+
+onMounted(() => {
+  loadAgents();
+  startPolling();
+});
+
+onUnmounted(stopPolling);
+
+watch(() => props.orgId, () => {
+  loadAgents();
+  startPolling();
+});
 
 /**
  * 处理智能体点击事件
@@ -31,6 +58,14 @@ watch(() => props.orgId, loadAgents);
 const handleAgentClick = (agent: any) => {
   // 更新当前组织选中的智能体，切换对话内容
   chatStore.setActiveAgent(props.orgId, agent.id);
+};
+
+/**
+ * 处理停止智能体调用
+ */
+const handleAbortAgent = async (e: Event, agentId: string) => {
+  e.stopPropagation(); // 阻止触发 handleAgentClick
+  await agentStore.abortAgent(agentId);
 };
 </script>
 
@@ -47,7 +82,7 @@ const handleAgentClick = (agent: any) => {
     <div class="flex-grow overflow-y-auto">
       <!-- 加载中 -->
       <div v-if="agentStore.loading && currentAgents.length === 0" class="flex flex-col items-center justify-center h-32 text-[var(--text-3)]">
-        <i class="pi pi-spin pi-spinner text-xl mb-2"></i>
+        <Loader2 class="w-6 h-6 mb-2 animate-spin" />
         <span class="text-xs">同步中...</span>
       </div>
 
@@ -79,9 +114,13 @@ const handleAgentClick = (agent: any) => {
             <!-- 状态指示器 -->
             <div 
               class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--surface-2)] flex items-center justify-center shadow-sm"
-              :class="agent.status === 'online' ? 'bg-green-500' : 'bg-gray-400'"
+              :class="[
+                agent.status === 'busy' ? 'bg-amber-500' : 
+                agent.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+              ]"
             >
-              <Circle class="w-1.5 h-1.5 text-white fill-white" />
+              <Loader2 v-if="agent.status === 'busy'" class="w-2 h-2 text-white animate-spin" />
+              <Circle v-else class="w-1.5 h-1.5 text-white fill-white" />
             </div>
           </div>
 
@@ -89,6 +128,15 @@ const handleAgentClick = (agent: any) => {
           <div class="flex-grow min-w-0 text-left">
             <div class="flex items-center justify-between mb-0.5">
               <span class="font-semibold text-sm text-[var(--text-1)] truncate">{{ agent.name }}</span>
+              <!-- 停止按钮 (仅在 busy 状态显示) -->
+              <button 
+                v-if="agent.status === 'busy'"
+                class="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all ml-2"
+                title="停止请求"
+                @click="handleAbortAgent($event, agent.id)"
+              >
+                <Square class="w-3 h-3 fill-current" />
+              </button>
             </div>
             <div class="text-xs text-[var(--text-3)] truncate flex items-center">
               <span class="inline-block px-1.5 py-0.5 rounded bg-[var(--surface-1)] mr-2 border border-[var(--border)]">

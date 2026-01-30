@@ -78,7 +78,7 @@ export const apiService = {
           orgId: 'home',
           name: agent.customName || agent.id,
           role: agent.roleName || '核心',
-          status: (agent.status === 'active' ? 'online' : 'offline') as 'online' | 'offline',
+          status: this.mapStatus(agent.computeStatus, agent.status),
           lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
         }));
     }
@@ -91,7 +91,7 @@ export const apiService = {
         orgId: orgId,
         name: agent.customName || agent.id,
         role: agent.roleName || (agent.id === orgId ? '组织主管' : '智能体'),
-        status: (agent.status === 'active' ? 'online' : 'offline') as 'online' | 'offline',
+        status: this.mapStatus(agent.computeStatus, agent.status),
         lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
       }));
 
@@ -109,6 +109,16 @@ export const apiService = {
     }
 
     return filteredAgents;
+  },
+
+  /**
+   * 状态映射逻辑
+   */
+  mapStatus(computeStatus?: string, agentStatus?: string): 'online' | 'offline' | 'busy' {
+    if (computeStatus === 'waiting_llm' || computeStatus === 'computing' || computeStatus === 'processing') {
+      return 'busy';
+    }
+    return agentStatus === 'active' ? 'online' : 'offline';
   },
 
   /**
@@ -174,5 +184,22 @@ export const apiService = {
         message: content,
       }),
     });
-  }
+  },
+
+  /**
+   * 中断指定智能体的 LLM 调用
+   */
+  async abortAgentLlmCall(agentId: string): Promise<{ ok: boolean; aborted: boolean; stopped?: boolean }> {
+    return request<{ ok: boolean; aborted: boolean; stopped?: boolean }>(`/agent/${encodeURIComponent(agentId)}/abort`, {
+      method: 'POST'
+    });
+  },
+
+  /**
+   * 获取所有智能体
+   */
+  async getAllAgents(): Promise<any[]> {
+    const data = await request<{ agents: any[] }>('/agents');
+    return data.agents;
+  },
 };

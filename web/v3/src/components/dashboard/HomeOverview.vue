@@ -6,7 +6,8 @@ import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
-import { Sparkles, Users, ArrowRight, Send, Bot, User as UserIcon } from 'lucide-vue-next';
+import { Sparkles, Users, ArrowRight, Send } from 'lucide-vue-next';
+import ChatMessageList from '../chat/ChatMessageList.vue';
 
 const orgStore = useOrgStore();
 const appStore = useAppStore();
@@ -56,12 +57,8 @@ onUnmounted(() => {
 onMounted(async () => {
   await orgStore.fetchOrgs();
   
-  // 检查 root 是否有当前会话的消息，如果有则显示
+  // 仅加载消息，但不自动显示对话框
   await chatStore.fetchMessages('root');
-  if (rootMessages.value.length > 0) {
-    showChat.value = true;
-    startPolling();
-  }
 });
 
 const handleOrgClick = (org: any) => {
@@ -77,14 +74,14 @@ const createOrganization = async () => {
   
   isCreating.value = true;
   try {
-    // 1. 开启新会话（清空 root 历史并记录起始时间）
-    await chatStore.rootNewSession();
+    // 只有在对话框未显示（即开启新对话）时，才开启新会话
+    if (!showChat.value) {
+      await chatStore.rootNewSession();
+      showChat.value = true;
+      startPolling();
+    }
     
-    // 2. 显示聊天界面
-    showChat.value = true;
-    startPolling();
-    
-    // 3. 发送消息
+    // 发送消息到当前会话
     await chatStore.sendMessage('root', newGoal.value, 'user');
     
     newGoal.value = '';
@@ -130,24 +127,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
               >
                 <div 
                   ref="chatScrollRef"
-                  class="p-4 space-y-4 overflow-y-auto"
+                  class="p-4 overflow-y-auto"
                   style="max-height: 50vh; min-height: 100px;"
                 >
-                  <div v-for="msg in rootMessages" :key="msg.id" 
-                    :class="['flex items-start space-x-3', msg.senderType === 'user' ? 'flex-row-reverse space-x-reverse' : '']"
-                  >
-                    <div :class="['w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', 
-                      msg.senderType === 'user' ? 'bg-[var(--primary)]' : 'bg-[var(--surface-3)] border border-[var(--border)]']"
-                    >
-                      <UserIcon v-if="msg.senderType === 'user'" class="w-4 h-4 text-white" />
-                      <Bot v-else class="w-4 h-4 text-[var(--primary)]" />
-                    </div>
-                    <div :class="['max-w-[85%] px-4 py-2 rounded-2xl text-sm leading-relaxed shadow-sm', 
-                      msg.senderType === 'user' ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-[var(--surface-1)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none']"
-                    >
-                      <div class="whitespace-pre-wrap">{{ msg.content }}</div>
-                    </div>
-                  </div>
+                  <ChatMessageList agent-id="root" only-current-session />
                   
                   <!-- 初始占位/加载状态 -->
                   <div v-if="rootMessages.length === 0" class="flex justify-center py-8">

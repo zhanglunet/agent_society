@@ -15,6 +15,9 @@ export const useOrgStore = defineStore('org', () => {
       // 过滤掉 root 和 user，它们是智能体，不是组织
       const filteredOrgs = allOrgs.filter(org => org.id !== 'root' && org.id !== 'user');
       
+      // 逆序排序（最新的在前面）
+      filteredOrgs.reverse();
+      
       // 添加虚拟的“首页”组织
       const homeOrg: Organization = {
         id: 'home',

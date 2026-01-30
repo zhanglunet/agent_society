@@ -65,12 +65,29 @@ export const useAgentStore = defineStore('agent', () => {
    */
   const agentCount = computed(() => agents.value.length);
 
+  /**
+   * 中断智能体的 LLM 调用
+   * @param agentId 智能体 ID
+   */
+  const abortAgent = async (agentId: string) => {
+    try {
+      await apiService.abortAgentLlmCall(agentId);
+      // 中断后立即刷新当前组织的智能体状态
+      if (currentOrgId.value) {
+        await fetchAgentsByOrg(currentOrgId.value);
+      }
+    } catch (error) {
+      console.error('中断智能体调用失败:', error);
+    }
+  };
+
   return {
     agentsMap,
     agents,
     loading,
     currentOrgId,
     fetchAgentsByOrg,
+    abortAgent,
     agentCount
   };
 });

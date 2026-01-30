@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Send, User, Bot, Sparkles, Wrench, ChevronDown, ChevronUp, ArrowDown } from 'lucide-vue-next';
+import { Send, Bot, Sparkles, ArrowDown, User } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
+import ChatMessageList from './ChatMessageList.vue';
 
 const props = defineProps<{
   orgId: string;
@@ -29,18 +30,8 @@ const message = computed({
 });
 const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
-const expandedToolCalls = ref<Record<string, boolean>>({});
-const expandedReasoning = ref<Record<string, boolean>>({});
 const showScrollBottomButton = ref(false);
 const SCROLL_THRESHOLD = 150; // 距离底部小于 150px 视为“在底部”
-
-const toggleToolCall = (msgId: string) => {
-  expandedToolCalls.value[msgId] = !expandedToolCalls.value[msgId];
-};
-
-const toggleReasoning = (msgId: string) => {
-  expandedReasoning.value[msgId] = !expandedReasoning.value[msgId];
-};
 
 /**
  * 检查滚动位置，决定是否显示“返回底部”按钮
@@ -72,44 +63,6 @@ const scrollToBottom = (force = false) => {
       }
     }, 50);
   }
-};
-
-const currentMessages = computed(() => {
-  const msgs = chatStore.chatMessages[activeAgentId.value] || [];
-  
-  // 如果当前是 user 视图，过滤出与当前组织成员相关的消息
-  if (activeAgentId.value === 'user') {
-    // 排除 user 自身 ID，只关注组织内的智能体
-    const orgAgentIds = (agentStore.agentsMap[props.orgId] || [])
-      .map(a => a.id)
-      .filter(id => id !== 'user');
-
-    return msgs.filter(m => {
-      // 发送者是组织成员（且不是 user 自身）
-      const isFromOrgAgent = m.senderId !== 'user' && orgAgentIds.includes(m.senderId);
-      // 接收者是组织成员
-      const isToOrgAgent = m.receiverId && orgAgentIds.includes(m.receiverId);
-      
-      return isFromOrgAgent || isToOrgAgent;
-    });
-  }
-  
-  return msgs;
-});
-
-/**
- * 获取发送者名称
- */
-const getSenderName = (msg: any) => {
-  if (msg.senderType === 'user') return '我';
-  // 先从当前组织成员中找
-  const orgAgents = agentStore.agentsMap[props.orgId] || [];
-  const agent = orgAgents.find(a => a.id === msg.senderId);
-  if (agent) return agent.name;
-
-  // 如果没找到（可能是其他组织的消息，理论上 user 视图已过滤掉，但这里做个保险）
-  // 也可以从全局 agent 列表找，或者直接显示 ID
-  return msg.senderId;
 };
 
 const loadMessages = () => {
@@ -191,10 +144,6 @@ const sendMessage = async () => {
     isSending.value = false;
   }
 };
-
-const formatTime = (timestamp: number) => {
-  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
 </script>
 
 <template>
@@ -224,7 +173,7 @@ const formatTime = (timestamp: number) => {
     <div class="flex-grow overflow-hidden relative group/chat">
       <div ref="messageContainer" class="absolute inset-0 overflow-y-auto p-6 space-y-6">
         <!-- 空状态 -->
-        <div v-if="currentMessages.length === 0" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] space-y-4 opacity-50">
+        <div v-if="!(chatStore.chatMessages[activeAgentId] || []).length" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] space-y-4 opacity-50">
           <div class="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
             <Sparkles class="w-12 h-12" />
           </div>
@@ -235,96 +184,11 @@ const formatTime = (timestamp: number) => {
         </div>
 
         <!-- 消息列表 -->
-        <div v-else class="max-w-4xl mx-auto space-y-6">
-          <div 
-            v-for="msg in currentMessages" 
-            :key="msg.id"
-            class="flex group"
-            :class="msg.senderType === 'user' ? 'justify-end' : 'justify-start'"
-          >
-            <div 
-              class="flex max-w-[80%] items-start space-x-3"
-              :class="msg.senderType === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'"
-            >
-              <!-- 头像 -->
-              <div class="w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                <User v-if="msg.senderType === 'user'" class="w-4 h-4 text-[var(--text-2)]" />
-                <Bot v-else class="w-4 h-4 text-[var(--primary)]" />
-              </div>
-
-              <!-- 消息气泡 -->
-              <div class="flex flex-col" :class="msg.senderType === 'user' ? 'items-end' : 'items-start'">
-                <div class="flex items-center space-x-2 mb-1 px-1">
-                  <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(msg) }}</span>
-                  <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(msg.timestamp) }}</span>
-                </div>
-                <div 
-                  class="px-4 py-2.5 rounded-2xl text-sm shadow-sm relative group/msg"
-                  :class="[
-                    msg.senderType === 'user' 
-                      ? 'bg-[var(--primary)] text-white rounded-tr-none' 
-                      : 'bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none',
-                    msg.status === 'sending' ? 'opacity-70' : ''
-                  ]"
-                >
-                  <!-- 思考过程 (Reasoning) -->
-                  <div v-if="msg.reasoning" class="mb-3">
-                    <div 
-                      class="flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors opacity-80"
-                      @click="toggleReasoning(msg.id)"
-                    >
-                      <Sparkles class="w-3 h-3 text-[var(--primary)]" />
-                      <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">思考过程</span>
-                      <span class="flex-grow"></span>
-                      <ChevronDown v-if="!expandedReasoning[msg.id]" class="w-3 h-3" />
-                      <ChevronUp v-else class="w-3 h-3" />
-                    </div>
-                    
-                    <div v-if="expandedReasoning[msg.id]" class="mt-2 p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg text-xs italic text-[var(--text-2)] whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
-                      {{ msg.reasoning }}
-                    </div>
-                  </div>
-
-                  <!-- 工具调用 (Tool Call) -->
-                  <div v-if="msg.toolCall" class="mb-2">
-                    <div 
-                      class="flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors"
-                      @click="toggleToolCall(msg.id)"
-                    >
-                      <Wrench class="w-3 h-3 text-[var(--primary)]" />
-                      <span class="text-xs font-mono font-bold">{{ msg.toolCall.name }}</span>
-                      <span class="text-[10px] text-[var(--text-3)] flex-grow">工具调用</span>
-                      <ChevronDown v-if="!expandedToolCalls[msg.id]" class="w-3 h-3" />
-                      <ChevronUp v-else class="w-3 h-3" />
-                    </div>
-                    
-                    <div v-if="expandedToolCalls[msg.id]" class="mt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div class="p-2 rounded bg-[var(--surface-1)] border border-[var(--border)] text-[10px] font-mono overflow-x-auto">
-                        <div class="text-[var(--text-3)] mb-1 uppercase font-bold">参数:</div>
-                        <pre>{{ JSON.stringify(msg.toolCall.args, null, 2) }}</pre>
-                      </div>
-                      <div class="p-2 rounded bg-[var(--surface-1)] border border-[var(--border)] text-[10px] font-mono overflow-x-auto">
-                        <div class="text-[var(--text-3)] mb-1 uppercase font-bold">结果:</div>
-                        <pre>{{ JSON.stringify(msg.toolCall.result, null, 2) }}</pre>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="!msg.toolCall" class="whitespace-pre-wrap">{{ msg.content }}</div>
-                  
-                  <!-- 状态标识 -->
-                  <div v-if="msg.status === 'sending'" class="absolute -right-6 top-1/2 -translate-y-1/2">
-                    <i class="pi pi-spin pi-spinner text-[10px] text-[var(--primary)]"></i>
-                  </div>
-                  
-                  <!-- Task ID 悬浮提示 (如果是 agent 发送的或者关联了任务) -->
-                  <div v-if="msg.taskId" class="hidden group-hover/msg:block absolute -top-8 left-0 bg-[var(--surface-3)] text-[10px] px-2 py-1 rounded border border-[var(--border)] whitespace-nowrap z-20">
-                    Task: {{ msg.taskId }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div v-else class="max-w-4xl mx-auto">
+          <ChatMessageList 
+            :agent-id="activeAgentId" 
+            :org-id="orgId" 
+          />
         </div>
       </div>
 
@@ -368,12 +232,6 @@ const formatTime = (timestamp: number) => {
             <i v-if="isSending" class="pi pi-spin pi-spinner text-sm"></i>
             <Send v-else class="w-4 h-4" />
           </Button>
-        </div>
-        <div class="mt-3 flex items-center justify-center space-x-6 text-[10px] text-[var(--text-3)] font-medium uppercase tracking-widest">
-          <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></span> 系统就绪</span>
-          <span class="flex items-center opacity-50 hover:opacity-100 cursor-help transition-opacity">
-            <Sparkles class="w-3 h-3 mr-1.5" /> 自动分发模式
-          </span>
         </div>
       </div>
     </div>

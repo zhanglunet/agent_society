@@ -1,0 +1,265 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { User, Bot, Sparkles, Wrench, ChevronDown, ChevronUp } from 'lucide-vue-next';
+import { useChatStore } from '../../stores/chat';
+import { useAgentStore } from '../../stores/agent';
+
+const props = defineProps<{
+  agentId: string;
+  orgId?: string;
+  // 是否只显示当前会话的消息（过滤掉旧消息）
+  onlyCurrentSession?: boolean;
+}>();
+
+const chatStore = useChatStore();
+const agentStore = useAgentStore();
+
+const expandedToolCalls = ref<Record<string, boolean>>({});
+const expandedReasoning = ref<Record<string, boolean>>({});
+const expandedGroups = ref<Record<string, boolean>>({});
+
+const toggleGroup = (groupId: string) => {
+  expandedGroups.value[groupId] = !expandedGroups.value[groupId];
+};
+
+const toggleToolCall = (msgId: string) => {
+  expandedToolCalls.value[msgId] = !expandedToolCalls.value[msgId];
+};
+
+const toggleReasoning = (msgId: string) => {
+  expandedReasoning.value[msgId] = !expandedReasoning.value[msgId];
+};
+
+const currentMessages = computed(() => {
+  let msgs = props.onlyCurrentSession 
+    ? chatStore.getSessionMessages(props.agentId)
+    : (chatStore.chatMessages[props.agentId] || []);
+  
+  let filteredMsgs = msgs;
+  
+  // 如果当前是 user 视图，过滤出与当前组织成员相关的消息
+  if (props.agentId === 'user' && props.orgId) {
+    const orgAgentIds = (agentStore.agentsMap[props.orgId] || [])
+      .map(a => a.id)
+      .filter(id => id !== 'user');
+
+    filteredMsgs = msgs.filter(m => {
+      const isFromOrgAgent = m.senderId !== 'user' && orgAgentIds.includes(m.senderId);
+      const isToOrgAgent = m.receiverId && orgAgentIds.includes(m.receiverId);
+      return isFromOrgAgent || isToOrgAgent;
+    });
+  }
+  
+  // 处理连续的函数调用折叠逻辑
+  const groupedMsgs: any[] = [];
+  let currentGroup: any = null;
+
+  filteredMsgs.forEach((msg) => {
+    const isToolCall = !!msg.toolCall;
+    
+    if (isToolCall) {
+      if (!currentGroup) {
+        currentGroup = {
+          id: `group-${msg.id}`,
+          type: 'tool-group',
+          senderId: msg.senderId,
+          senderType: msg.senderType,
+          timestamp: msg.timestamp,
+          messages: [msg]
+        };
+        groupedMsgs.push(currentGroup);
+      } else if (currentGroup.senderId === msg.senderId) {
+        currentGroup.messages.push(msg);
+      } else {
+        currentGroup = {
+          id: `group-${msg.id}`,
+          type: 'tool-group',
+          senderId: msg.senderId,
+          senderType: msg.senderType,
+          timestamp: msg.timestamp,
+          messages: [msg]
+        };
+        groupedMsgs.push(currentGroup);
+      }
+    } else {
+      currentGroup = null;
+      groupedMsgs.push(msg);
+    }
+  });
+  
+  return groupedMsgs;
+});
+
+const getSenderName = (msg: any) => {
+  if (msg.senderType === 'user') return '我';
+  if (props.orgId) {
+    const orgAgents = agentStore.agentsMap[props.orgId] || [];
+    const agent = orgAgents.find(a => a.id === msg.senderId);
+    if (agent) return agent.name;
+  }
+  return msg.senderId;
+};
+
+const formatTime = (timestamp: number) => {
+  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+</script>
+
+<template>
+  <div class="space-y-6">
+    <template v-for="item in currentMessages" :key="item.id">
+      <!-- 普通消息 -->
+      <div 
+        v-if="item.type !== 'tool-group'"
+        class="flex group"
+        :class="item.senderType === 'user' ? 'justify-end' : 'justify-start'"
+      >
+        <div 
+          class="flex max-w-[90%] items-start space-x-3"
+          :class="item.senderType === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'"
+        >
+          <!-- 头像 -->
+          <div class="w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0">
+            <User v-if="item.senderType === 'user'" class="w-4 h-4 text-[var(--text-2)]" />
+            <Bot v-else class="w-4 h-4 text-[var(--primary)]" />
+          </div>
+
+          <!-- 消息气泡 -->
+          <div class="flex flex-col min-w-0" :class="item.senderType === 'user' ? 'items-end' : 'items-start'">
+            <div class="flex items-center space-x-2 mb-1 px-1">
+              <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(item) }}</span>
+              <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
+            </div>
+            <div 
+              class="px-4 py-2.5 rounded-2xl text-sm shadow-sm relative group/msg overflow-hidden"
+              :class="[
+                item.senderType === 'user' 
+                  ? 'bg-[var(--primary)] text-white rounded-tr-none' 
+                  : 'bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none',
+                item.status === 'sending' ? 'opacity-70' : ''
+              ]"
+            >
+              <!-- 思考过程 (Reasoning) -->
+              <div v-if="item.reasoning" class="mb-3">
+                <div 
+                  class="flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors opacity-80"
+                  @click="toggleReasoning(item.id)"
+                >
+                  <Sparkles class="w-3 h-3 text-[var(--primary)]" />
+                  <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">思考过程</span>
+                  <span class="flex-grow"></span>
+                  <ChevronDown v-if="!expandedReasoning[item.id]" class="w-3 h-3" />
+                  <ChevronUp v-else class="w-3 h-3" />
+                </div>
+                
+                <div v-if="expandedReasoning[item.id]" class="mt-2 p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg text-xs italic text-[var(--text-2)] whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
+                  {{ item.reasoning }}
+                </div>
+              </div>
+
+              <!-- 单个工具调用 (非组内) -->
+              <div v-if="item.toolCall" class="mb-2">
+                <div 
+                  class="flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors"
+                  @click="toggleToolCall(item.id)"
+                >
+                  <Wrench class="w-3 h-3 text-[var(--primary)]" />
+                  <span class="text-xs font-mono font-bold">{{ item.toolCall.name }}</span>
+                  <span class="text-[10px] text-[var(--text-3)] flex-grow">工具调用</span>
+                  <ChevronDown v-if="!expandedToolCalls[item.id]" class="w-3 h-3" />
+                  <ChevronUp v-else class="w-3 h-3" />
+                </div>
+                
+                <div v-if="expandedToolCalls[item.id]" class="mt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div class="p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
+                    <div class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1">参数</div>
+                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(item.toolCall.arguments, null, 2) }}</pre>
+                  </div>
+                  <div v-if="item.toolResult" class="p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
+                    <div class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1">执行结果</div>
+                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ typeof item.toolResult === 'object' ? JSON.stringify(item.toolResult, null, 2) : item.toolResult }}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 消息内容 -->
+              <div v-if="item.content" class="whitespace-pre-wrap leading-relaxed break-words">{{ item.content }}</div>
+              
+              <!-- 负载 (Payload) -->
+              <div v-if="item.payload && !item.content && !item.toolCall" class="mt-2">
+                <pre class="text-xs font-mono text-[var(--text-3)] bg-[var(--surface-1)] p-2 rounded border border-[var(--border)] overflow-x-auto">{{ typeof item.payload === 'object' ? JSON.stringify(item.payload, null, 2) : item.payload }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 连续工具调用组 -->
+      <div 
+        v-else
+        class="flex justify-start group"
+      >
+        <div class="flex max-w-[90%] items-start space-x-3 flex-row">
+          <!-- 头像 -->
+          <div class="w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0">
+            <Bot class="w-4 h-4 text-[var(--primary)]" />
+          </div>
+
+          <!-- 组气泡 -->
+          <div class="flex flex-col items-start w-full min-w-0">
+            <div class="flex items-center space-x-2 mb-1 px-1">
+              <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(item.messages[0]) }}</span>
+              <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
+            </div>
+            
+            <div class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl rounded-tl-none overflow-hidden shadow-sm">
+              <!-- 组头：显示调用次数 -->
+              <div 
+                class="px-4 py-2 bg-[var(--surface-3)] border-b border-[var(--border)] flex items-center justify-between cursor-pointer hover:bg-[var(--surface-4)] transition-colors"
+                @click="toggleGroup(item.id)"
+              >
+                <div class="flex items-center space-x-2">
+                  <Wrench class="w-4 h-4 text-[var(--primary)]" />
+                  <span class="text-xs font-bold text-[var(--text-2)]">连续执行了 {{ item.messages.length }} 个工具</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-[10px] text-[var(--text-3)] uppercase tracking-wider">{{ expandedGroups[item.id] ? '收起详情' : '展开详情' }}</span>
+                  <ChevronDown v-if="!expandedGroups[item.id]" class="w-3 h-3" />
+                  <ChevronUp v-else class="w-3 h-3" />
+                </div>
+              </div>
+
+              <!-- 组内容：展开时显示所有调用 -->
+              <div v-if="expandedGroups[item.id]" class="p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div v-for="msg in item.messages" :key="msg.id" class="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface-1)]">
+                  <div 
+                    class="px-3 py-1.5 bg-[var(--surface-2)] flex items-center justify-between cursor-pointer hover:bg-[var(--surface-3)]"
+                    @click="toggleToolCall(msg.id)"
+                  >
+                    <div class="flex items-center space-x-2">
+                      <Wrench class="w-3 h-3 text-[var(--primary)] opacity-70" />
+                      <span class="text-xs font-mono font-medium">{{ msg.toolCall.name }}</span>
+                    </div>
+                    <ChevronDown v-if="!expandedToolCalls[msg.id]" class="w-3 h-3 opacity-50" />
+                    <ChevronUp v-else class="w-3 h-3 opacity-50" />
+                  </div>
+                  
+                  <div v-if="expandedToolCalls[msg.id]" class="p-3 space-y-2 border-t border-[var(--border)]">
+                    <div class="space-y-1">
+                      <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">参数</div>
+                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(msg.toolCall.arguments, null, 2) }}</pre>
+                    </div>
+                    <div v-if="msg.toolResult" class="space-y-1">
+                      <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">结果</div>
+                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ typeof msg.toolResult === 'object' ? JSON.stringify(msg.toolResult, null, 2) : msg.toolResult }}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
