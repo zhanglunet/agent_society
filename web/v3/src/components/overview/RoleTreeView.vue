@@ -21,6 +21,7 @@
 
         <!-- 缩放和平移容器 -->
         <div 
+            ref="containerRef"
             class="flex-grow overflow-hidden relative cursor-grab active:cursor-grabbing bg-[var(--bg)] select-none"
             @wheel="onWheel"
             @mousedown="onMouseDown"
@@ -41,7 +42,7 @@
             <!-- 图形化画布 -->
             <div 
                 v-if="roleTree"
-                class="absolute origin-center transition-transform duration-75 ease-out"
+                class="absolute origin-[0_0]"
                 :style="{
                     transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
                 }"
@@ -79,9 +80,9 @@
                     滚轮缩放 | 按住拖动
                 </div>
                 <div class="flex gap-2 justify-end">
-                    <Button icon="pi pi-search-minus" @click="scale = Math.max(0.2, scale - 0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                    <Button icon="pi pi-search-minus" @click="zoomAtCenter(-0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
                     <Button icon="pi pi-refresh" @click="resetView" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
-                    <Button icon="pi pi-search-plus" @click="scale = Math.min(2, scale + 0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                    <Button icon="pi pi-search-plus" @click="zoomAtCenter(0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
                 </div>
             </div>
         </div>
@@ -100,6 +101,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import OrganizationChart from 'primevue/organizationchart';
 
 const loading = ref(true);
+const containerRef = ref<HTMLElement | null>(null);
 const roleTree = ref<any>(null);
 const totalRoles = ref(0);
 const totalAgents = ref(0);
@@ -113,8 +115,22 @@ const dragStart = reactive({ x: 0, y: 0 });
 
 const onWheel = (e: WheelEvent) => {
     e.preventDefault();
+    if (!containerRef.value) return;
+
+    const rect = containerRef.value.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // 计算当前鼠标位置在内容坐标系中的位置 (相对于内容左上角)
+    const contentX = (mouseX - offset.x) / scale.value;
+    const contentY = (mouseY - offset.y) / scale.value;
+
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     const newScale = Math.min(Math.max(0.2, scale.value + delta), 2);
+    
+    // 更新偏移量，使缩放后鼠标指向的内容坐标保持在鼠标当前位置
+    offset.x = mouseX - contentX * newScale;
+    offset.y = mouseY - contentY * newScale;
     scale.value = newScale;
 };
 
@@ -132,6 +148,21 @@ const onMouseMove = (e: MouseEvent) => {
 
 const onMouseUp = () => {
     isDragging.value = false;
+};
+
+const zoomAtCenter = (delta: number) => {
+    if (!containerRef.value) return;
+    const rect = containerRef.value.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const contentX = (centerX - offset.x) / scale.value;
+    const contentY = (centerY - offset.y) / scale.value;
+    
+    const newScale = Math.min(Math.max(0.2, scale.value + delta), 2);
+    offset.x = centerX - contentX * newScale;
+    offset.y = centerY - contentY * newScale;
+    scale.value = newScale;
 };
 
 const resetView = () => {
