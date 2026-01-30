@@ -166,34 +166,36 @@ const formatTime = (ts: string) => {
   <div class="flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]">
     <Splitter class="flex-grow border-none">
       <!-- 左侧列表 -->
-      <SplitterPanel :size="30" :minSize="20" class="flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
-        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)]">
+      <SplitterPanel :size="30" :minSize="20" class="flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)] relative">
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider">项目工作区 ({{ files.length }})</span>
             <span v-if="orgId" class="text-[10px] text-[var(--text-3)] opacity-70 mt-0.5">组织: {{ orgId }}</span>
           </div>
         </div>
         
-        <div class="flex-grow overflow-y-auto p-2">
-          <div v-if="loading" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
-            <Loader2 class="w-6 h-6 animate-spin mb-2" />
-            <span class="text-xs">加载文件列表中...</span>
-          </div>
-          <div v-else-if="files.length === 0" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
-            <Folder class="w-8 h-8 mb-2" />
-            <span class="text-xs">暂无文件</span>
-          </div>
-          <div v-else class="space-y-0.5">
-            <!-- 递归渲染文件树 -->
-            <FileTreeNode 
-              v-for="node in fileTree" 
-              :key="node.path" 
-              :node="node" 
-              :depth="0"
-              :selected-id="selectedId"
-              :expanded-dirs="expandedDirs"
-              @select="selectFile"
-            />
+        <div class="flex-grow relative overflow-hidden">
+          <div class="absolute inset-0 overflow-y-auto p-2">
+            <div v-if="loading" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
+              <Loader2 class="w-6 h-6 animate-spin mb-2" />
+              <span class="text-xs">加载文件列表中...</span>
+            </div>
+            <div v-else-if="files.length === 0" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
+              <Folder class="w-8 h-8 mb-2" />
+              <span class="text-xs">暂无文件</span>
+            </div>
+            <div v-else class="space-y-0.5">
+              <!-- 递归渲染文件树 -->
+              <FileTreeNode 
+                v-for="node in fileTree" 
+                :key="node.path" 
+                :node="node" 
+                :depth="0"
+                :selected-id="selectedId"
+                :expanded-dirs="expandedDirs"
+                @select="selectFile"
+              />
+            </div>
           </div>
         </div>
       </SplitterPanel>
@@ -250,19 +252,19 @@ const formatTime = (ts: string) => {
           </div>
 
           <!-- 详情列表 -->
-          <div v-else class="h-full flex flex-col bg-[var(--bg)]">
-            <div class="overflow-y-auto">
+          <div v-else class="absolute inset-0 flex flex-col bg-[var(--bg)]">
+            <div class="flex-grow overflow-y-auto">
               <div v-if="currentItems.length === 0" class="flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50">
                 <Folder class="w-16 h-16 mb-4" />
                 <p>该目录下暂无内容</p>
               </div>
-              <table v-else class="w-full text-left border-collapse">
+              <table v-else class="w-full text-left border-collapse min-w-[500px]">
                 <thead>
-                  <tr class="border-b border-[var(--border)] bg-[var(--surface-1)] sticky top-0 z-10">
-                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-10"></th>
-                    <th class="py-2 px-2 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">名称</th>
-                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-24">大小</th>
-                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-40">修改时间</th>
+                  <tr class="border-b border-[var(--border)] bg-[var(--surface-1)] sticky top-0 z-10 shadow-sm">
+                    <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-10"></th>
+                    <th class="py-2.5 px-2 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">名称</th>
+                    <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-24">大小</th>
+                    <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-40">修改时间</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -272,20 +274,20 @@ const formatTime = (ts: string) => {
                     @click="selectFile(item)"
                     class="border-b border-[var(--border)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer group"
                   >
-                    <td class="py-2 px-4">
+                    <td class="py-2.5 px-4">
                       <Folder v-if="item.type === 'directory'" class="w-4 h-4 text-[var(--primary)] opacity-70" />
                       <FileCode v-else class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
                     </td>
-                    <td class="py-2 px-2 min-w-0">
+                    <td class="py-2.5 px-2 min-w-0">
                       <span class="text-sm font-medium text-[var(--text-1)] truncate block">{{ item.name }}</span>
                     </td>
-                    <td class="py-2 px-4">
+                    <td class="py-2.5 px-4">
                       <span class="text-xs text-[var(--text-3)]">
                         {{ item.type === 'directory' ? '--' : (item.size / 1024).toFixed(1) + ' KB' }}
                       </span>
                     </td>
-                    <td class="py-2 px-4">
-                      <span class="text-xs text-[var(--text-3)]">{{ formatTime(item.modifiedAt) }}</span>
+                    <td class="py-2.5 px-4 text-right sm:text-left">
+                      <span class="text-xs text-[var(--text-3)] whitespace-nowrap">{{ formatTime(item.modifiedAt) }}</span>
                     </td>
                   </tr>
                 </tbody>
