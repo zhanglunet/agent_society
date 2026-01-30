@@ -4,6 +4,7 @@ import { User, Bot, Sparkles, Wrench, ChevronDown, ChevronUp } from 'lucide-vue-
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
 import { useAppStore } from '../../stores/app';
+import { useOrgStore } from '../../stores/org';
 
 const props = defineProps<{
   agentId: string;
@@ -15,6 +16,7 @@ const props = defineProps<{
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
 const appStore = useAppStore();
+const orgStore = useOrgStore();
 
 const expandedToolCalls = ref<Record<string, boolean>>({});
 const expandedReasoning = ref<Record<string, boolean>>({});
@@ -169,28 +171,41 @@ const findAgentById = (id: string) => {
  * 跳转到指定智能体的对话位置
  */
 const navigateToMessage = (agentId: string, messageId: string) => {
-  const agent = findAgentById(agentId);
-  if (!agent) return;
+  let targetOrgId = '';
+  let targetAgentId = agentId;
+
+  if (agentId === 'user') {
+    // 如果点击的是 user，优先跳转到当前组件所属的组织（保持上下文）
+    targetOrgId = props.orgId || 'home';
+  } else {
+    // 如果点击的是智能体，通过智能体信息定位组织
+    const agent = findAgentById(agentId);
+    if (!agent) return;
+    targetOrgId = agent.orgId;
+  }
 
   // 设置待滚动消息 ID
   chatStore.pendingScrollMessageId = messageId;
   
   // 切换智能体和组织
-  chatStore.setActiveAgent(agent.orgId, agent.id);
+  chatStore.setActiveAgent(targetOrgId, targetAgentId);
   
-  // 确保标签页已打开
-  // 我们需要找到组织名称，这里假设 agentStore 中有组织列表
-  // 或者从 agentsMap 中寻找
-  let orgName = agent.orgId === 'home' ? '首页' : '组织';
+  // 确定组织名称
+  let orgName = targetOrgId === 'home' ? '首页' : '组织';
   
-  // 尝试在 activeTabs 中寻找已有名称
-  const existingTab = appStore.activeTabs.find(t => t.id === agent.orgId);
+  // 优先从已打开的标签中找名称
+  const existingTab = appStore.activeTabs.find(t => t.id === targetOrgId);
   if (existingTab) {
     orgName = existingTab.title;
+  } else {
+    // 其次从组织仓库中找名称
+    const org = orgStore.orgs.find(o => o.id === targetOrgId);
+    if (org) orgName = org.name;
   }
 
+  // 打开或切换标签页
   appStore.openTab({
-    id: agent.orgId,
+    id: targetOrgId,
     type: 'org',
     title: orgName
   });

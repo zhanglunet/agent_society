@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAgentStore } from '../../stores/agent';
 import { useChatStore } from '../../stores/chat';
-import { watch, onMounted, onUnmounted, computed } from 'vue';
+import { watch, onMounted, computed } from 'vue';
 import { User, Bot, Circle, Square, Loader2 } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -22,34 +22,12 @@ const loadAgents = () => {
   }
 };
 
-let pollingTimer: any = null;
-
-const startPolling = () => {
-  stopPolling();
-  pollingTimer = setInterval(() => {
-    if (props.orgId) {
-      agentStore.fetchAgentsByOrg(props.orgId);
-    }
-  }, 3000); // 每 3 秒轮询一次智能体状态
-};
-
-const stopPolling = () => {
-  if (pollingTimer) {
-    clearInterval(pollingTimer);
-    pollingTimer = null;
-  }
-};
-
 onMounted(() => {
   loadAgents();
-  startPolling();
 });
-
-onUnmounted(stopPolling);
 
 watch(() => props.orgId, () => {
   loadAgents();
-  startPolling();
 });
 
 /**

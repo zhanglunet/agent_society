@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import Button from 'primevue/button';
 import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
@@ -13,10 +12,6 @@ const tools = [
   { id: 'artifacts', icon: Briefcase, label: '工件管理' },
   { id: 'settings', icon: Settings, label: '系统设置' },
 ];
-
-onMounted(() => {
-  orgStore.fetchOrgs();
-});
 
 const handleOrgClick = (org: any) => {
   appStore.openTab({

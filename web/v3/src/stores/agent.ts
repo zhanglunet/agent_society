@@ -16,7 +16,8 @@ export const useAgentStore = defineStore('agent', () => {
   /**
    * 加载所有智能体，用于全局搜索和跨组织解析
    */
-  const fetchAllAgents = async () => {
+  const fetchAllAgents = async (silent = false) => {
+    if (!silent) loading.value = true;
     try {
       // getAgents('home') 内部会调用 /api/agents 并返回所有
       // 但我们需要一个干净的全局列表，不带 orgId 过滤
@@ -26,16 +27,19 @@ export const useAgentStore = defineStore('agent', () => {
     } catch (error) {
       console.error('加载全局智能体列表失败:', error);
       return [];
+    } finally {
+      if (!silent) loading.value = false;
     }
   };
 
   /**
    * 根据组织 ID 获取智能体
    * @param orgId 组织 ID
+   * @param silent 是否静默更新 (不触发 loading 状态)
    */
-  const fetchAgentsByOrg = async (orgId: string) => {
+  const fetchAgentsByOrg = async (orgId: string, silent = false) => {
     currentOrgId.value = orgId;
-    loading.value = true;
+    if (!silent) loading.value = true;
     try {
       // 1. 获取针对该组织的智能体列表
       const fetchedAgents = await apiService.getAgents(orgId);
@@ -75,7 +79,7 @@ export const useAgentStore = defineStore('agent', () => {
         agentsMap.value[orgId] = [];
       }
     } finally {
-      loading.value = false;
+      if (!silent) loading.value = false;
     }
   };
 

@@ -6,9 +6,10 @@ import { apiService } from '../services/api';
 export const useOrgStore = defineStore('org', () => {
   const orgs = ref<Organization[]>([]);
   const loading = ref(false);
+  const lastUpdated = ref(0);
 
-  const fetchOrgs = async () => {
-    loading.value = true;
+  const fetchOrgs = async (silent = false) => {
+    if (!silent) loading.value = true;
     try {
       const allOrgs = await apiService.getOrganizations();
       
@@ -27,14 +28,16 @@ export const useOrgStore = defineStore('org', () => {
       };
       
       orgs.value = [homeOrg, ...filteredOrgs];
+      lastUpdated.value = Date.now();
     } finally {
-      loading.value = false;
+      if (!silent) loading.value = false;
     }
   };
 
   return {
     orgs,
     loading,
+    lastUpdated,
     fetchOrgs
   };
 });

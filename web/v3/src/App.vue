@@ -3,12 +3,14 @@ import GlobalSidebar from './components/layout/GlobalSidebar.vue';
 import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
 import Button from 'primevue/button';
 import { Sun, Moon } from 'lucide-vue-next';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
+import { useOrgStore } from './stores/org';
 
 const appStore = useAppStore();
 const agentStore = useAgentStore();
+const orgStore = useOrgStore();
 const isDark = ref(false);
 
 const toggleDarkMode = () => {
@@ -16,11 +18,42 @@ const toggleDarkMode = () => {
     document.documentElement.classList.toggle('my-app-dark');
 };
 
+let syncTimer: any = null;
+
+const startGlobalSync = () => {
+    stopGlobalSync();
+    syncTimer = setInterval(async () => {
+        // 1. 同步组织列表
+        await orgStore.fetchOrgs(true);
+        // 2. 同步全局智能体列表
+        await agentStore.fetchAllAgents(true);
+        // 3. 同步当前活动组织的智能体列表
+        if (agentStore.currentOrgId) {
+            await agentStore.fetchAgentsByOrg(agentStore.currentOrgId, true);
+        }
+    }, 2000); // 用户要求 2 秒更新一次
+};
+
+const stopGlobalSync = () => {
+    if (syncTimer) {
+        clearInterval(syncTimer);
+        syncTimer = null;
+    }
+};
+
 onMounted(() => {
     isDark.value = document.documentElement.classList.contains('my-app-dark');
     appStore.initApp();
+    
+    // 初始加载
+    orgStore.fetchOrgs();
     agentStore.fetchAllAgents();
+    
+    // 启动全局轮询
+    startGlobalSync();
 });
+
+onUnmounted(stopGlobalSync);
 </script>
 
 <template>
