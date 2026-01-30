@@ -8,7 +8,7 @@ import { apiService } from '../services/api';
  * 负责根据当前选中的组织加载智能体列表
  */
 export const useAgentStore = defineStore('agent', () => {
-  const agents = ref<Agent[]>([]);
+  const agentsMap = ref<Record<string, Agent[]>>({});
   const loading = ref(false);
   const currentOrgId = ref<string | null>(null);
 
@@ -23,9 +23,10 @@ export const useAgentStore = defineStore('agent', () => {
       // 1. 获取针对该组织的智能体列表
       const fetchedAgents = await apiService.getAgents(orgId);
       
+      let result: Agent[] = [];
       if (orgId === 'home') {
         // 首页：只显示 root 和 user
-        agents.value = fetchedAgents.filter(a => a.id === 'root' || a.id === 'user');
+        result = fetchedAgents.filter(a => a.id === 'root' || a.id === 'user');
       } else {
         // 普通组织：
         // 1. 提取 user
@@ -36,19 +37,28 @@ export const useAgentStore = defineStore('agent', () => {
           .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
         
         // 3. 组合：user 始终在第一位
-        const result: Agent[] = [];
         if (userAgent) result.push(userAgent);
         result.push(...otherAgents);
-        
-        agents.value = result;
       }
+      
+      agentsMap.value[orgId] = result;
     } catch (error) {
       console.error('加载智能体列表失败:', error);
-      agents.value = [];
+      if (!agentsMap.value[orgId]) {
+        agentsMap.value[orgId] = [];
+      }
     } finally {
       loading.value = false;
     }
   };
+
+  /**
+   * 获取当前选中的智能体列表 (兼容旧接口)
+   */
+  const agents = computed(() => {
+    if (!currentOrgId.value) return [];
+    return agentsMap.value[currentOrgId.value] || [];
+  });
 
   /**
    * 获取当前选中的智能体数量
@@ -56,6 +66,7 @@ export const useAgentStore = defineStore('agent', () => {
   const agentCount = computed(() => agents.value.length);
 
   return {
+    agentsMap,
     agents,
     loading,
     currentOrgId,

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Send, Paperclip, Sparkles, User, Bot } from 'lucide-vue-next';
+import { Send, User, Bot } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
 
@@ -13,32 +13,80 @@ const props = defineProps<{
 
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
-const message = ref('');
+
+// 当前正在对话的智能体 ID
+const activeAgentId = computed(() => chatStore.getActiveAgentId(props.orgId));
+
+// 当前对话的智能体信息
+const activeAgent = computed(() => {
+  const orgAgents = agentStore.agentsMap[props.orgId] || [];
+  return orgAgents.find(a => a.id === activeAgentId.value);
+});
+
+const message = computed({
+  get: () => chatStore.inputValues[activeAgentId.value] || '',
+  set: (val) => chatStore.updateInputValue(activeAgentId.value, val)
+});
 const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
 
-const currentMessages = computed(() => chatStore.chatMessages[props.orgId] || []);
+const currentMessages = computed(() => chatStore.chatMessages[activeAgentId.value] || []);
 
 /**
  * 获取发送者名称
  */
 const getSenderName = (msg: any) => {
   if (msg.senderType === 'user') return '我';
-  const agent = agentStore.agents.find(a => a.id === msg.senderId);
+  const orgAgents = agentStore.agentsMap[props.orgId] || [];
+  const agent = orgAgents.find(a => a.id === msg.senderId);
   return agent ? agent.name : msg.senderId;
 };
 
 const loadMessages = () => {
-  if (props.orgId) {
-    chatStore.fetchMessages(props.orgId);
+  if (activeAgentId.value) {
+    chatStore.fetchMessages(activeAgentId.value);
   }
 };
 
-onMounted(loadMessages);
-watch(() => props.orgId, loadMessages);
+let pollingTimer: any = null;
+
+const startPolling = () => {
+  stopPolling();
+  pollingTimer = setInterval(() => {
+    if (activeAgentId.value) {
+      chatStore.fetchMessages(activeAgentId.value);
+    }
+  }, 3000); // 每 3 秒轮询一次
+};
+
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+};
+
+onMounted(() => {
+  loadMessages();
+  startPolling();
+});
+
+onUnmounted(stopPolling);
+
+// 监听 activeAgentId 的变化，重新加载消息
+watch(activeAgentId, () => {
+  loadMessages();
+  startPolling();
+});
+
+// 监听 orgId 变化（虽然通常 orgId 变化会对应不同的组件实例，但在某些复用场景下需要）
+watch(() => props.orgId, () => {
+  loadMessages();
+  startPolling();
+});
 
 // 自动滚动到底部
-watch(() => chatStore.chatMessages[props.orgId]?.length, () => {
+watch(() => chatStore.chatMessages[activeAgentId.value]?.length, () => {
   setTimeout(() => {
     if (messageContainer.value) {
       messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
@@ -49,15 +97,15 @@ watch(() => chatStore.chatMessages[props.orgId]?.length, () => {
 const sendMessage = async () => {
   if (!message.value.trim() || isSending.value) return;
   const text = message.value;
-  message.value = '';
+  chatStore.updateInputValue(activeAgentId.value, ''); // 清空当前对话的输入框
   isSending.value = true;
   
   try {
-    await chatStore.sendMessage(props.orgId, text);
+    await chatStore.sendMessage(activeAgentId.value, text);
   } catch (error) {
     console.error('发送失败:', error);
-    // 如果发送失败，把消息弹回来（可选）
-    message.value = text;
+    // 如果发送失败，把消息弹回来
+    chatStore.updateInputValue(activeAgentId.value, text);
   } finally {
     isSending.value = false;
   }
@@ -70,24 +118,26 @@ const formatTime = (timestamp: number) => {
 
 <template>
   <div class="flex flex-col h-full bg-[var(--bg)]">
-    <!-- 头部信息 -->
-    <div class="h-14 px-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg)]/80 backdrop-blur-md sticky top-0 z-10">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-[var(--primary-weak)] flex items-center justify-center text-[var(--primary)]">
-          <Sparkles class="w-4 h-4" />
+    <!-- 聊天头部 -->
+    <header class="h-16 border-b border-[var(--border)] flex items-center justify-between px-6 bg-[var(--surface-1)] shrink-0">
+      <div class="flex items-center space-x-3 min-w-0">
+        <div class="w-10 h-10 rounded-full bg-[var(--primary-weak)] flex items-center justify-center text-[var(--primary)] shrink-0">
+          <Bot v-if="activeAgent?.id !== 'user'" class="w-5 h-5" />
+          <User v-else class="w-5 h-5" />
         </div>
-        <div>
-          <h2 class="text-sm font-bold text-[var(--text-1)]">{{ tabTitle }}</h2>
-          <p class="text-[10px] text-[var(--text-3)] uppercase tracking-tighter">智能体协同会话</p>
+        <div class="min-w-0">
+          <h2 class="font-bold text-[var(--text-1)] truncate">{{ activeAgent?.name || tabTitle }}</h2>
+          <div class="flex items-center text-xs text-[var(--text-3)]">
+            <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+            <span class="truncate">{{ activeAgent?.role || '智能体' }}</span>
+          </div>
         </div>
       </div>
-      
       <div class="flex items-center space-x-2">
-        <Button variant="text" rounded size="small" class="!p-2">
-          <Paperclip class="w-4 h-4 text-[var(--text-3)]" />
-        </Button>
+        <Button icon="pi pi-search" variant="text" rounded class="!text-[var(--text-3)] hover:!bg-[var(--surface-3)]" />
+        <Button icon="pi pi-ellipsis-v" variant="text" rounded class="!text-[var(--text-3)] hover:!bg-[var(--surface-3)]" />
       </div>
-    </div>
+    </header>
 
     <!-- 消息流区域 -->
     <div ref="messageContainer" class="flex-grow overflow-y-auto p-6 space-y-6">

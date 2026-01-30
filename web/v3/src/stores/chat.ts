@@ -8,25 +8,48 @@ import { apiService } from '../services/api';
  * 负责管理不同组织的聊天消息流
  */
 export const useChatStore = defineStore('chat', () => {
-  // 使用 Map 存储每个组织的聊天记录，key 为 orgId
+  // 使用 Map 存储每个会话的聊天记录，key 为 agentId
   const chatMessages = ref<Record<string, Message[]>>({});
   const loading = ref(false);
+  const inputValues = ref<Record<string, string>>({}); // 存储每个会话的输入框内容
+  
+  // 存储每个组织当前选中的智能体 ID，key 为 orgId
+  const activeAgentIds = ref<Record<string, string>>({});
 
   /**
-   * 获取指定组织的聊天消息
-   * @param orgId 组织 ID
+   * 更新当前组织选中的智能体
    */
-  const fetchMessages = async (orgId: string) => {
+  const setActiveAgent = (orgId: string, agentId: string) => {
+    activeAgentIds.value[orgId] = agentId;
+  };
+
+  /**
+   * 获取当前组织选中的智能体 ID
+   */
+  const getActiveAgentId = (orgId: string) => {
+    return activeAgentIds.value[orgId] || orgId;
+  };
+
+  /**
+   * 更新输入框内容
+   */
+  const updateInputValue = (agentId: string, value: string) => {
+    inputValues.value[agentId] = value;
+  };
+
+  /**
+   * 获取指定智能体的聊天消息
+   * @param agentId 智能体 ID
+   */
+  const fetchMessages = async (agentId: string) => {
     loading.value = true;
     try {
-      // 1. 获取针对该组织的对话记录
-      // 这里的逻辑改为：每个组织的对话记录独立存储在后端的 [orgId].jsonl 中
-      const messages = await apiService.getMessages(orgId);
-      chatMessages.value[orgId] = messages;
+      const messages = await apiService.getMessages(agentId);
+      chatMessages.value[agentId] = messages;
     } catch (error) {
-      console.error(`加载组织 ${orgId} 的消息失败:`, error);
-      if (!chatMessages.value[orgId]) {
-        chatMessages.value[orgId] = [];
+      console.error(`加载智能体 ${agentId} 的消息失败:`, error);
+      if (!chatMessages.value[agentId]) {
+        chatMessages.value[agentId] = [];
       }
     } finally {
       loading.value = false;
@@ -35,30 +58,29 @@ export const useChatStore = defineStore('chat', () => {
 
   /**
    * 发送消息
-   * @param orgId 组织 ID
+   * @param agentId 目标智能体 ID
    * @param text 消息内容
    */
-  const sendMessage = async (orgId: string, text: string) => {
+  const sendMessage = async (agentId: string, text: string) => {
     try {
-      // 默认发送给该组织的根节点（即组织 ID 对应的智能体）
-      const response = await apiService.sendMessage(orgId, text);
+      const response = await apiService.sendMessage(agentId, text);
       
       // 乐观更新：先在本地添加用户消息
       const userMsg: Message = {
         id: Date.now().toString(),
-        agentId: orgId,
+        agentId: agentId,
         senderId: 'user',
         senderType: 'user',
         content: text,
         timestamp: Date.now(),
-        status: 'sending', // 初始状态为发送中
+        status: 'sending',
         taskId: response.taskId
       };
       
-      if (!chatMessages.value[orgId]) {
-        chatMessages.value[orgId] = [];
+      if (!chatMessages.value[agentId]) {
+        chatMessages.value[agentId] = [];
       }
-      chatMessages.value[orgId].push(userMsg);
+      chatMessages.value[agentId].push(userMsg);
       
       // 更新为已发送状态
       userMsg.status = 'sent';
@@ -73,6 +95,11 @@ export const useChatStore = defineStore('chat', () => {
   return {
     chatMessages,
     loading,
+    inputValues,
+    activeAgentIds,
+    setActiveAgent,
+    getActiveAgentId,
+    updateInputValue,
     fetchMessages,
     sendMessage
   };

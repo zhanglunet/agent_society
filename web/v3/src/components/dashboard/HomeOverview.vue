@@ -16,9 +16,8 @@ const organizations = computed(() => orgStore.orgs.filter(o => o.id !== 'home'))
 
 // 获取核心智能体 (root, user)
 const coreAgents = computed(() => {
-  // 这里我们假设 agentStore 已经加载了 home 的智能体
-  // 如果没有，我们可以在 onMounted 中加载
-  return agentStore.agents.filter(a => a.id === 'root' || a.id === 'user');
+  const homeAgents = agentStore.agentsMap['home'] || [];
+  return homeAgents.filter(a => a.id === 'root' || a.id === 'user');
 });
 
 onMounted(async () => {
