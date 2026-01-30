@@ -249,31 +249,47 @@ const formatTime = (ts: string) => {
             </div>
           </div>
 
-          <!-- 目录列表 -->
+          <!-- 详情列表 -->
           <div v-else class="h-full flex flex-col bg-[var(--bg)]">
-            <div class="overflow-y-auto p-4">
+            <div class="overflow-y-auto">
               <div v-if="currentItems.length === 0" class="flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50">
                 <Folder class="w-16 h-16 mb-4" />
                 <p>该目录下暂无内容</p>
               </div>
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <button
-                  v-for="item in currentItems"
-                  :key="item.path"
-                  @click="selectFile(item)"
-                  class="flex items-center p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:border-[var(--primary-weak)] hover:bg-[var(--surface-3)] transition-all group text-left"
-                >
-                  <Folder v-if="item.type === 'directory'" class="w-8 h-8 mr-3 text-[var(--primary)] opacity-70 group-hover:scale-110 transition-transform" />
-                  <FileCode v-else class="w-8 h-8 mr-3 text-[var(--text-3)] group-hover:text-[var(--primary)] opacity-70 group-hover:scale-110 transition-transform" />
-                  
-                  <div class="flex flex-col min-w-0">
-                    <span class="text-sm font-medium text-[var(--text-1)] truncate">{{ item.name }}</span>
-                    <span class="text-[10px] text-[var(--text-3)] truncate">
-                      {{ item.type === 'directory' ? '文件夹' : (item.size / 1024).toFixed(1) + ' KB' }}
-                    </span>
-                  </div>
-                </button>
-              </div>
+              <table v-else class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-[var(--border)] bg-[var(--surface-1)] sticky top-0 z-10">
+                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-10"></th>
+                    <th class="py-2 px-2 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">名称</th>
+                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-24">大小</th>
+                    <th class="py-2 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-40">修改时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="item in currentItems"
+                    :key="item.path"
+                    @click="selectFile(item)"
+                    class="border-b border-[var(--border)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer group"
+                  >
+                    <td class="py-2 px-4">
+                      <Folder v-if="item.type === 'directory'" class="w-4 h-4 text-[var(--primary)] opacity-70" />
+                      <FileCode v-else class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
+                    </td>
+                    <td class="py-2 px-2 min-w-0">
+                      <span class="text-sm font-medium text-[var(--text-1)] truncate block">{{ item.name }}</span>
+                    </td>
+                    <td class="py-2 px-4">
+                      <span class="text-xs text-[var(--text-3)]">
+                        {{ item.type === 'directory' ? '--' : (item.size / 1024).toFixed(1) + ' KB' }}
+                      </span>
+                    </td>
+                    <td class="py-2 px-4">
+                      <span class="text-xs text-[var(--text-3)]">{{ formatTime(item.modifiedAt) }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
