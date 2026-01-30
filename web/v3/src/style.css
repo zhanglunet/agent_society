@@ -50,4 +50,12 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  @keyframes pulse-quick {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.02); background-color: var(--primary-weak); }
+  }
+  .animate-pulse-quick {
+    animation: pulse-quick 0.5s ease-in-out 3;
+  }
 }

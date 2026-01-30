@@ -94,9 +94,30 @@ const scrollToBottom = (force = false) => {
   }
 };
 
-const loadMessages = () => {
+/**
+ * 滚动到指定消息
+ */
+const scrollToMessage = (messageId: string) => {
+  setTimeout(() => {
+    const element = document.getElementById(`msg-${messageId}`);
+    if (element && messageContainer.value) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // 闪烁提醒
+      element.classList.add('animate-pulse-quick');
+      setTimeout(() => element.classList.remove('animate-pulse-quick'), 2000);
+      // 清除待滚动 ID
+      chatStore.pendingScrollMessageId = null;
+    }
+  }, 100);
+};
+
+const loadMessages = async () => {
   if (activeAgentId.value) {
-    chatStore.fetchMessages(activeAgentId.value);
+    await chatStore.fetchMessages(activeAgentId.value);
+    // 如果有待滚动的消息，加载完后执行滚动
+    if (chatStore.pendingScrollMessageId) {
+      scrollToMessage(chatStore.pendingScrollMessageId);
+    }
   }
 };
 
@@ -133,18 +154,30 @@ onUnmounted(() => {
   }
 });
 
-// 监听 activeAgentId 的变化，重新加载消息并强制滚动到底部
+// 监听 activeAgentId 的变化，重新加载消息
 watch(activeAgentId, () => {
   loadMessages();
   startPolling();
-  scrollToBottom(true);
+  // 只有在没有待滚动消息时，才默认滚动到底部
+  if (!chatStore.pendingScrollMessageId) {
+    scrollToBottom(true);
+  }
 });
 
 // 监听 orgId 变化
 watch(() => props.orgId, () => {
   loadMessages();
   startPolling();
-  scrollToBottom(true);
+  if (!chatStore.pendingScrollMessageId) {
+    scrollToBottom(true);
+  }
+});
+
+// 监听待滚动消息 ID，实现同页面跳转
+watch(() => chatStore.pendingScrollMessageId, (newId) => {
+  if (newId) {
+    scrollToMessage(newId);
+  }
 });
 
 // 自动滚动到底部（仅在靠近底部时）

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { User, Bot, Sparkles, Wrench, ChevronDown, ChevronUp } from 'lucide-vue-next';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
+import { useAppStore } from '../../stores/app';
 
 const props = defineProps<{
   agentId: string;
@@ -13,6 +14,7 @@ const props = defineProps<{
 
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
+const appStore = useAppStore();
 
 const expandedToolCalls = ref<Record<string, boolean>>({});
 const expandedReasoning = ref<Record<string, boolean>>({});
@@ -63,18 +65,20 @@ const currentMessages = computed(() => {
           id: `group-${msg.id}`,
           type: 'tool-group',
           senderId: msg.senderId,
+          receiverId: msg.receiverId,
           senderType: msg.senderType,
           timestamp: msg.timestamp,
           messages: [msg]
         };
         groupedMsgs.push(currentGroup);
-      } else if (currentGroup.senderId === msg.senderId) {
+      } else if (currentGroup.senderId === msg.senderId && currentGroup.receiverId === msg.receiverId) {
         currentGroup.messages.push(msg);
       } else {
         currentGroup = {
           id: `group-${msg.id}`,
           type: 'tool-group',
           senderId: msg.senderId,
+          receiverId: msg.receiverId,
           senderType: msg.senderType,
           timestamp: msg.timestamp,
           messages: [msg]
@@ -92,12 +96,57 @@ const currentMessages = computed(() => {
 
 const getSenderName = (msg: any) => {
   if (msg.senderType === 'user') return '我';
-  if (props.orgId) {
-    const orgAgents = agentStore.agentsMap[props.orgId] || [];
-    const agent = orgAgents.find(a => a.id === msg.senderId);
-    if (agent) return agent.name;
+  const agent = findAgentById(msg.senderId);
+  return agent ? agent.name : msg.senderId;
+};
+
+const getReceiverName = (msg: any) => {
+  if (!msg.receiverId) return null;
+  if (msg.receiverId === 'user') return '我';
+  const agent = findAgentById(msg.receiverId);
+  return agent ? agent.name : msg.receiverId;
+};
+
+const findAgentById = (id: string) => {
+  for (const orgId in agentStore.agentsMap) {
+    const agents = agentStore.agentsMap[orgId];
+    if (agents) {
+      const agent = agents.find(a => a.id === id);
+      if (agent) return agent;
+    }
   }
-  return msg.senderId;
+  return null;
+};
+
+/**
+ * 跳转到指定智能体的对话位置
+ */
+const navigateToMessage = (agentId: string, messageId: string) => {
+  const agent = findAgentById(agentId);
+  if (!agent) return;
+
+  // 设置待滚动消息 ID
+  chatStore.pendingScrollMessageId = messageId;
+  
+  // 切换智能体和组织
+  chatStore.setActiveAgent(agent.orgId, agent.id);
+  
+  // 确保标签页已打开
+  // 我们需要找到组织名称，这里假设 agentStore 中有组织列表
+  // 或者从 agentsMap 中寻找
+  let orgName = agent.orgId === 'home' ? '首页' : '组织';
+  
+  // 尝试在 activeTabs 中寻找已有名称
+  const existingTab = appStore.activeTabs.find(t => t.id === agent.orgId);
+  if (existingTab) {
+    orgName = existingTab.title;
+  }
+
+  appStore.openTab({
+    id: agent.orgId,
+    type: 'org',
+    title: orgName
+  });
 };
 
 const formatTime = (timestamp: number) => {
@@ -111,6 +160,7 @@ const formatTime = (timestamp: number) => {
       <!-- 普通消息 -->
       <div 
         v-if="item.type !== 'tool-group'"
+        :id="'msg-' + item.id"
         class="flex group"
         :class="item.senderType === 'user' ? 'justify-end' : 'justify-start'"
       >
@@ -127,7 +177,19 @@ const formatTime = (timestamp: number) => {
           <!-- 消息气泡 -->
           <div class="flex flex-col min-w-0" :class="item.senderType === 'user' ? 'items-end' : 'items-start'">
             <div class="flex items-center space-x-2 mb-1 px-1">
-              <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(item) }}</span>
+              <div class="flex items-center space-x-1 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">
+                <span 
+                  class="hover:text-[var(--primary)] cursor-pointer transition-colors"
+                  @click="navigateToMessage(item.senderId, item.id)"
+                >{{ getSenderName(item) }}</span>
+                <template v-if="getReceiverName(item)">
+                  <span class="opacity-50 mx-1">→</span>
+                  <span 
+                    class="hover:text-[var(--primary)] cursor-pointer transition-colors"
+                    @click="navigateToMessage(item.receiverId, item.id)"
+                  >{{ getReceiverName(item) }}</span>
+                </template>
+              </div>
               <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
             </div>
             <div 
@@ -197,6 +259,7 @@ const formatTime = (timestamp: number) => {
       <!-- 连续工具调用组 -->
       <div 
         v-else
+        :id="'msg-' + item.messages[0].id"
         class="flex justify-start group"
       >
         <div class="flex max-w-[90%] items-start space-x-3 flex-row">
@@ -208,7 +271,19 @@ const formatTime = (timestamp: number) => {
           <!-- 组气泡 -->
           <div class="flex flex-col items-start w-full min-w-0">
             <div class="flex items-center space-x-2 mb-1 px-1">
-              <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">{{ getSenderName(item.messages[0]) }}</span>
+              <div class="flex items-center space-x-1 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">
+                <span 
+                  class="hover:text-[var(--primary)] cursor-pointer transition-colors"
+                  @click="navigateToMessage(item.senderId, item.messages[0].id)"
+                >{{ getSenderName(item.messages[0]) }}</span>
+                <template v-if="getReceiverName(item)">
+                  <span class="opacity-50 mx-1">→</span>
+                  <span 
+                    class="hover:text-[var(--primary)] cursor-pointer transition-colors"
+                    @click="navigateToMessage(item.receiverId, item.messages[0].id)"
+                  >{{ getReceiverName(item) }}</span>
+                </template>
+              </div>
               <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
             </div>
             
