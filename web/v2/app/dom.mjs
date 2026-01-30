@@ -14,6 +14,7 @@ export function getEls() {
     sysArtifacts: document.getElementById('sys-artifacts'),
     sysTemplates: document.getElementById('sys-templates'),
     sysModules: document.getElementById('sys-modules'),
+    sysTheme: document.getElementById('sys-theme'),
   };
 }
 

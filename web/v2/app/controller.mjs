@@ -20,6 +20,64 @@ function applyMainViewVisibility(els, activeView) {
   els.chatView.classList.toggle('hidden', isOrg);
 }
 
+function resolveThemeMode(pref) {
+  if (pref === 'light' || pref === 'dark') return pref;
+  const isDark = globalThis.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+  return isDark ? 'dark' : 'light';
+}
+
+function setThemePref(pref) {
+  try {
+    localStorage.setItem('ui_theme', pref);
+  } catch {
+  }
+}
+
+function getThemePref() {
+  try {
+    const v = localStorage.getItem('ui_theme');
+    if (v === 'light' || v === 'dark' || v === 'system') return v;
+  } catch {
+  }
+  return 'system';
+}
+
+let themeMediaListenerBound = false;
+
+function applyThemePref(pref) {
+  const mode = resolveThemeMode(pref);
+  document.documentElement.dataset.theme = mode;
+  if (pref === 'system') {
+    if (!themeMediaListenerBound && globalThis.matchMedia) {
+      const mq = globalThis.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener?.('change', () => {
+        const next = getThemePref();
+        if (next === 'system') applyThemePref('system');
+      });
+      themeMediaListenerBound = true;
+    }
+  }
+}
+
+function cycleThemePref(current) {
+  if (current === 'light') return 'dark';
+  if (current === 'dark') return 'system';
+  return 'light';
+}
+
+function updateThemeButton(els) {
+  if (!els.sysTheme) return;
+  const pref = getThemePref();
+  const mode = resolveThemeMode(pref);
+  els.sysTheme.title = pref === 'system' ? `主题：跟随系统（当前：${mode === 'dark' ? '暗黑' : '明亮'}）` : `主题：${pref === 'dark' ? '暗黑' : '明亮'}`;
+}
+
+function initTheme(els) {
+  const pref = getThemePref();
+  applyThemePref(pref);
+  updateThemeButton(els);
+}
+
 export function findOrgIdForAgent(state, agentId) {
   if (!agentId) return null;
 
@@ -148,6 +206,7 @@ export async function bootstrap() {
     onSelectAgent: (agentId) => onSelectAgent(state, els, handlers, agentId),
   };
 
+  initTheme(els);
   initChat();
   globalThis.App = globalThis.App || {};
   globalThis.App.agentsById = state.agentsById;
@@ -355,6 +414,15 @@ function bindGlobalActions(els) {
   if (modulesCloseBtn) {
     modulesCloseBtn.addEventListener('click', () => {
       document.getElementById('modules-window')?.classList.add('hidden');
+    });
+  }
+
+  if (els.sysTheme) {
+    els.sysTheme.addEventListener('click', () => {
+      const next = cycleThemePref(getThemePref());
+      setThemePref(next);
+      applyThemePref(next);
+      updateThemeButton(els);
     });
   }
 }
