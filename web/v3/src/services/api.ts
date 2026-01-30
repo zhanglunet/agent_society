@@ -117,15 +117,38 @@ export const apiService = {
   async getMessages(agentId: string): Promise<Message[]> {
     const data = await request<{ messages: any[] }>(`/agent-messages/${encodeURIComponent(agentId)}`);
     
-    return data.messages.map(msg => ({
-      id: msg.id || Math.random().toString(36).substring(7),
-      agentId: agentId,
-      senderId: msg.from || 'system',
-      senderType: msg.from === 'user' ? 'user' : 'agent',
-      content: msg.content || msg.message || '',
-      timestamp: msg.timestamp || Date.now(),
-      status: 'sent'
-    }));
+    return data.messages.map(msg => {
+      // 处理 payload 中的内容
+      let content = '';
+      let toolCall = undefined;
+
+      if (msg.type === 'tool_call') {
+        toolCall = {
+          name: msg.payload?.toolName || 'unknown',
+          args: msg.payload?.args,
+          result: msg.payload?.result
+        };
+        content = `调用工具: ${toolCall.name}`;
+      } else if (msg.payload) {
+        content = msg.payload.text || msg.payload.content || '';
+      } else {
+        content = msg.content || msg.message || '';
+      }
+
+      return {
+        id: msg.id || Math.random().toString(36).substring(7),
+        agentId: agentId,
+        senderId: msg.from || 'system',
+        receiverId: msg.to,
+        senderType: msg.from === 'user' ? 'user' : 'agent',
+        content: content,
+        timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
+        status: 'sent',
+        reasoning: msg.reasoning_content,
+        toolCall: toolCall,
+        taskId: msg.taskId
+      };
+    });
   },
 
   /**

@@ -19,8 +19,10 @@ export const useChatStore = defineStore('chat', () => {
   /**
    * 更新当前组织选中的智能体
    */
-  const setActiveAgent = (orgId: string, agentId: string) => {
+  const setActiveAgent = async (orgId: string, agentId: string) => {
     activeAgentIds.value[orgId] = agentId;
+    // 切换智能体时自动加载消息
+    await fetchMessages(agentId);
   };
 
   /**
@@ -60,8 +62,10 @@ export const useChatStore = defineStore('chat', () => {
    * 发送消息
    * @param agentId 目标智能体 ID
    * @param text 消息内容
+   * @param storeId 消息存储的目标 ID (默认为 agentId，如果是 user 视图则为 'user')
    */
-  const sendMessage = async (agentId: string, text: string) => {
+  const sendMessage = async (agentId: string, text: string, storeId?: string) => {
+    const targetStoreId = storeId || agentId;
     try {
       const response = await apiService.sendMessage(agentId, text);
       
@@ -70,6 +74,7 @@ export const useChatStore = defineStore('chat', () => {
         id: Date.now().toString(),
         agentId: agentId,
         senderId: 'user',
+        receiverId: agentId,
         senderType: 'user',
         content: text,
         timestamp: Date.now(),
@@ -77,10 +82,10 @@ export const useChatStore = defineStore('chat', () => {
         taskId: response.taskId
       };
       
-      if (!chatMessages.value[agentId]) {
-        chatMessages.value[agentId] = [];
+      if (!chatMessages.value[targetStoreId]) {
+        chatMessages.value[targetStoreId] = [];
       }
-      chatMessages.value[agentId].push(userMsg);
+      chatMessages.value[targetStoreId].push(userMsg);
       
       // 更新为已发送状态
       userMsg.status = 'sent';

@@ -29,14 +29,8 @@ watch(() => props.orgId, loadAgents);
  * 处理智能体点击事件
  */
 const handleAgentClick = (agent: any) => {
-  if (agent.id === 'user') return;
-  
   // 更新当前组织选中的智能体，切换对话内容
   chatStore.setActiveAgent(props.orgId, agent.id);
-  
-  // 以前的逻辑是添加 @，现在改为直接切换对话
-  // 如果需要 @ 可以在后续对话中由用户自己输入，或者我们保留这个功能作为某种快捷方式
-  // 但根据用户要求“切换到与这个智能体聊天对话的内容”，这里核心应该是切换状态
 };
 </script>
 

@@ -31,11 +31,18 @@ export interface Message {
   agentId: string;
   senderId: string; // User ID or Agent ID
   senderType: 'user' | 'agent';
+  receiverId?: string;
   content: string;
   timestamp: number;
   status: 'sending' | 'sent' | 'error';
   isThinking?: boolean;
   taskId?: string; // 关联的任务 ID
+  reasoning?: string; // 思考过程
+  toolCall?: {
+    name: string;
+    args: any;
+    result: any;
+  };
 }
 
 export interface Tab {
