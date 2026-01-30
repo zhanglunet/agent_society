@@ -66,7 +66,10 @@ const handleAgentClick = (agent: any) => {
               <Bot v-else class="w-5 h-5 text-[var(--primary)]" />
             </div>
             <!-- 状态指示器 -->
-            <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--surface-2)] bg-green-500 flex items-center justify-center shadow-sm">
+            <div 
+              class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--surface-2)] flex items-center justify-center shadow-sm"
+              :class="agent.status === 'online' ? 'bg-green-500' : 'bg-gray-400'"
+            >
               <Circle class="w-1.5 h-1.5 text-white fill-white" />
             </div>
           </div>

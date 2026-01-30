@@ -20,23 +20,26 @@ export const useAgentStore = defineStore('agent', () => {
     currentOrgId.value = orgId;
     loading.value = true;
     try {
-      // 1. 先获取所有智能体（用于过滤或查找 root/user）
-      const allAgents = await apiService.getAgents(orgId);
+      // 1. 获取针对该组织的智能体列表
+      const fetchedAgents = await apiService.getAgents(orgId);
       
       if (orgId === 'home') {
         // 首页：只显示 root 和 user
-        agents.value = allAgents.filter(a => a.id === 'root' || a.id === 'user');
+        agents.value = fetchedAgents.filter(a => a.id === 'root' || a.id === 'user');
       } else {
-        // 普通组织：显示 user + 该组织的所有智能体
-        // 注意：目前后端 apiService.getAgents(orgId) 返回的是所有智能体，但带了 orgId 标记
-        // 我们需要找到属于该组织的智能体，并确保 user 也在列表中
-        const orgAgents = allAgents.filter(a => a.orgId === orgId);
-        const userAgent = allAgents.find(a => a.id === 'user');
+        // 普通组织：
+        // 1. 提取 user
+        const userAgent = fetchedAgents.find(a => a.id === 'user');
+        // 2. 提取其他智能体并按最后活跃时间排序
+        const otherAgents = fetchedAgents
+          .filter(a => a.id !== 'user')
+          .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
         
-        const result: Agent[] = [...orgAgents];
-        if (userAgent && !result.find(a => a.id === 'user')) {
-          result.unshift(userAgent);
-        }
+        // 3. 组合：user 始终在第一位
+        const result: Agent[] = [];
+        if (userAgent) result.push(userAgent);
+        result.push(...otherAgents);
+        
         agents.value = result;
       }
     } catch (error) {

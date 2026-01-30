@@ -19,9 +19,8 @@ export const useChatStore = defineStore('chat', () => {
   const fetchMessages = async (orgId: string) => {
     loading.value = true;
     try {
-      // 注意：这里的 API 路径和逻辑需要根据后端实际情况调整
-      // 目前后端 apiService.getMessages 接受的是 agentId
-      // 这里为了演示，暂时传入 orgId 作为 agentId 的代理
+      // 1. 获取针对该组织的对话记录
+      // 这里的逻辑改为：每个组织的对话记录独立存储在后端的 [orgId].jsonl 中
       const messages = await apiService.getMessages(orgId);
       chatMessages.value[orgId] = messages;
     } catch (error) {
@@ -41,13 +40,13 @@ export const useChatStore = defineStore('chat', () => {
    */
   const sendMessage = async (orgId: string, text: string) => {
     try {
-      // 默认发送给 root 智能体
-      const response = await apiService.sendMessage('root', text);
+      // 默认发送给该组织的根节点（即组织 ID 对应的智能体）
+      const response = await apiService.sendMessage(orgId, text);
       
       // 乐观更新：先在本地添加用户消息
       const userMsg: Message = {
         id: Date.now().toString(),
-        agentId: 'root',
+        agentId: orgId,
         senderId: 'user',
         senderType: 'user',
         content: text,

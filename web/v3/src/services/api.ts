@@ -78,20 +78,37 @@ export const apiService = {
           orgId: 'home',
           name: agent.customName || agent.id,
           role: agent.roleName || '核心',
-          status: agent.status === 'active' ? 'online' : 'offline'
+          status: (agent.status === 'active' ? 'online' : 'offline') as 'online' | 'offline',
+          lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
         }));
     }
 
     // 2. 否则，返回 parentAgentId 等于 orgId 的智能体
-    return data.agents
+    const filteredAgents: Agent[] = data.agents
       .filter(agent => agent.parentAgentId === orgId)
       .map(agent => ({
         id: agent.id,
         orgId: orgId,
         name: agent.customName || agent.id,
         role: agent.roleName || '智能体',
-        status: agent.status === 'active' ? 'online' : 'offline'
+        status: (agent.status === 'active' ? 'online' : 'offline') as 'online' | 'offline',
+        lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
       }));
+
+    // 3. 将 user 加入到每个组织的列表中（作为对话入口）
+    const userAgent = data.agents.find(a => a.id === 'user');
+    if (userAgent) {
+      filteredAgents.unshift({
+        id: 'user',
+        orgId: orgId,
+        name: userAgent.customName || '我 (User)',
+        role: '用户',
+        status: 'online',
+        lastSeen: Date.now()
+      });
+    }
+
+    return filteredAgents;
   },
 
   /**
