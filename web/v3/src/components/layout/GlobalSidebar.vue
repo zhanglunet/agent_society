@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
-import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home } from 'lucide-vue-next';
+import InputText from 'primevue/inputtext';
+import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
 import { useDialog } from 'primevue/usedialog';
+import { ref, computed } from 'vue';
 import ArtifactsList from '../artifacts/ArtifactsList.vue';
 import SettingsDialog from '../settings/SettingsDialog.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
 const dialog = useDialog();
+
+const searchQuery = ref('');
+
+const filteredOrgs = computed(() => {
+  if (!searchQuery.value.trim()) return orgStore.orgs;
+  const query = searchQuery.value.toLowerCase().trim();
+  return orgStore.orgs.filter(org => 
+    org.name.toLowerCase().includes(query) || 
+    org.id.toLowerCase().includes(query)
+  );
+});
 
 const openArtifacts = () => {
   dialog.open(ArtifactsList, {
@@ -90,7 +103,24 @@ const handleOrgClick = (org: any) => {
     </div>
 
     <div class="flex-grow overflow-y-auto p-2 space-y-1">
-      <div v-if="!appStore.isSidebarCollapsed" class="px-3 py-2 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider">组织列表</div>
+      <div v-if="!appStore.isSidebarCollapsed" class="px-3 py-2 flex items-center justify-between">
+        <span class="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider shrink-0">组织列表</span>
+        <div class="relative ml-2 flex-grow max-w-[120px]">
+          <Search class="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-3)]" />
+          <InputText 
+            v-model="searchQuery" 
+            placeholder="搜索..." 
+            class="!text-[10px] !py-1 !pl-6 !pr-6 !w-full !bg-[var(--surface-3)] !border-none !rounded-md focus:!ring-1 focus:!ring-[var(--primary)]"
+          />
+          <button 
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-[var(--surface-4)] text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors"
+          >
+            <X class="w-2.5 h-2.5" />
+          </button>
+        </div>
+      </div>
       
       <!-- 加载状态 -->
       <div v-if="orgStore.loading" class="flex justify-center p-4">
@@ -98,7 +128,7 @@ const handleOrgClick = (org: any) => {
       </div>
 
       <Button 
-            v-for="org in orgStore.orgs" 
+            v-for="org in filteredOrgs" 
             :key="org.id"
             variant="text" 
             class="w-full !justify-start !px-3 !py-2 text-[var(--text-2)] hover:text-[var(--text-1)] active:translate-y-[1px] active:scale-[0.98] transition-all"
