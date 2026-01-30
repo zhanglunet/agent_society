@@ -69,6 +69,18 @@ export const apiService = {
   async getAgents(orgId: string): Promise<Agent[]> {
     const data = await request<{ agents: any[] }>('/agents');
     
+    // 0. 如果是 all，返回所有智能体，不进行组织过滤
+    if (orgId === 'all') {
+      return data.agents.map(agent => ({
+        id: agent.id,
+        orgId: agent.parentAgentId || 'home',
+        name: agent.customName || agent.id,
+        role: agent.roleName || '智能体',
+        status: this.mapStatus(agent.computeStatus, agent.status),
+        lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
+      }));
+    }
+
     // 1. 如果是 home，返回 root 和 user
     if (orgId === 'home') {
       return data.agents

@@ -9,8 +9,25 @@ import { apiService } from '../services/api';
  */
 export const useAgentStore = defineStore('agent', () => {
   const agentsMap = ref<Record<string, Agent[]>>({});
+  const allAgents = ref<Agent[]>([]); // 全局智能体列表
   const loading = ref(false);
   const currentOrgId = ref<string | null>(null);
+
+  /**
+   * 加载所有智能体，用于全局搜索和跨组织解析
+   */
+  const fetchAllAgents = async () => {
+    try {
+      // getAgents('home') 内部会调用 /api/agents 并返回所有
+      // 但我们需要一个干净的全局列表，不带 orgId 过滤
+      const all = await apiService.getAgents('all'); 
+      allAgents.value = all;
+      return all;
+    } catch (error) {
+      console.error('加载全局智能体列表失败:', error);
+      return [];
+    }
+  };
 
   /**
    * 根据组织 ID 获取智能体
@@ -22,6 +39,16 @@ export const useAgentStore = defineStore('agent', () => {
     try {
       // 1. 获取针对该组织的智能体列表
       const fetchedAgents = await apiService.getAgents(orgId);
+      
+      // 更新全局列表中的这部分智能体信息（可选，保持同步）
+      fetchedAgents.forEach(agent => {
+        const index = allAgents.value.findIndex(a => a.id === agent.id);
+        if (index !== -1) {
+          allAgents.value[index] = agent;
+        } else {
+          allAgents.value.push(agent);
+        }
+      });
       
       let result: Agent[] = [];
       if (orgId === 'home') {
@@ -83,10 +110,12 @@ export const useAgentStore = defineStore('agent', () => {
 
   return {
     agentsMap,
+    allAgents,
     agents,
     loading,
     currentOrgId,
     fetchAgentsByOrg,
+    fetchAllAgents,
     abortAgent,
     agentCount
   };

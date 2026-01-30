@@ -108,6 +108,11 @@ const getReceiverName = (msg: any) => {
 };
 
 const findAgentById = (id: string) => {
+  // 1. 先从全局列表中找（最全，支持跨组织）
+  const globalAgent = agentStore.allAgents.find(a => a.id === id);
+  if (globalAgent) return globalAgent;
+
+  // 2. 兜底：从各组织 Map 中找
   for (const orgId in agentStore.agentsMap) {
     const agents = agentStore.agentsMap[orgId];
     if (agents) {

@@ -5,8 +5,10 @@ import Button from 'primevue/button';
 import { Sun, Moon } from 'lucide-vue-next';
 import { ref, onMounted } from 'vue';
 import { useAppStore } from './stores/app';
+import { useAgentStore } from './stores/agent';
 
 const appStore = useAppStore();
+const agentStore = useAgentStore();
 const isDark = ref(false);
 
 const toggleDarkMode = () => {
@@ -17,6 +19,7 @@ const toggleDarkMode = () => {
 onMounted(() => {
     isDark.value = document.documentElement.classList.contains('my-app-dark');
     appStore.initApp();
+    agentStore.fetchAllAgents();
 });
 </script>
 
