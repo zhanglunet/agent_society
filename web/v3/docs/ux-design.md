@@ -6,10 +6,27 @@
 - **空间效率**: 利用可调节宽度的 `Splitter` 布局，允许用户根据需要调整侧栏和聊天区的占比。
 
 ## 2. 页面骨架与布局
-### 2.1 三段式布局结构
-1.  **左侧全局侧栏 (Global Sidebar)**: 宽度固定 (64px - 80px)，存放设置、工件、组织模板、插件管理和主题切换按钮。
-2.  **中间工作区 (Agent Explorer)**: 默认宽度 (280px - 320px)，顶部为 Tab 胶囊，下方为搜索框和智能体列表。
-3.  **右侧主内容区 (Main Workspace)**: 占据剩余空间，分为“聊天视图”和“组织架构图视图”。
+### 2.1 嵌套布局结构 (Hierarchical Layout)
+1.  **第一层：全局框架 (App Shell)**:
+    - **左侧全局侧栏 (Global Sidebar)**: 宽度固定 (64px - 80px)，支持点击收缩。
+        - **顶部工具栏 (Global Toolbar)**: 存放全局管理入口（总览视图、工件管理器、系统设置）。
+        - **组织列表 (Org List)**: 存放由 root 创建的所有组织，以图标或缩写形式垂直排列。
+    - **右侧主容器**: 填充剩余屏幕空间，承载 **标签页系统**。
+2.  **第二层：标签页系统 (Workspace Tabs)**:
+    - 顶部为胶囊风格的标签栏。
+    - 标签内容区（Tab Panel）是工作区的核心容器。
+3.  **第三层：工作区内部布局 (Inner Workspace)**:
+    - 在每个标签页内部，采用 **Splitter (水平分割)** 布局：
+        - **左侧边栏 (Agent Sidebar)**: 当前组织的智能体列表，支持搜索和选择。
+        - **右侧内容区 (Main Content)**: 聊天视图或组织视图。
+
+### 2.2 视觉层级示意
+```text
+[Global Sidebar] | [Tabs Header (Org A) (Org B) (Org C) ...]
+                 |-------------------------------------------
+                 | [Agent Sidebar] | [Main Content (Chat)]
+                 | (Inner Left)    | (Inner Right)
+```
 
 ### 2.2 窗口系统 (Windowing)
 - 采用 **Overlay/Dialog** 承载复杂的功能管理（如工件管理器）。

@@ -42,7 +42,18 @@ web/v3/
 - **Layout 层**: 负责页面的宏观结构（三段式布局），管理各个功能区的显示/隐藏。
 - **UI 组件层**: 负责具体信息的呈现，通过 Props 接收数据，通过 Events 向上反馈。
 
-## 5. 设计模式
+## 5. 设计模式与结构
+- **组件树层次**:
+    - `App.vue`
+        - `AppLayout` (主容器)
+            - `GlobalSidebar` (左侧收缩边栏)
+                - `GlobalToolbar` (顶部工具入口：总览、工件、设置)
+                - `OrgList` (组织图标/缩写列表)
+            - `WorkspaceTabs` (核心标签页系统)
+                - `TabPanel` (标签页内容区)
+                    - `Splitter` (内部水平分割)
+                        - `AgentSidebar` (当前组织智能体列表)
+                        - `ChatPanel` (主聊天/内容区域)
 - **Provider/Inject**: 用于深层组件的主题或配置传递。
 - **Singleton (Store)**: 每个业务领域（智能体、聊天、组织）拥有唯一的 Store 实例。
 - **Factory (Preset)**: 利用 PrimeVue 的 `definePreset` 工厂函数动态生成主题配置。

@@ -27,7 +27,16 @@
     - `isSelected`: 左侧显示 2px 宽的 Primary 垂直线条。
     - `hover`: 背景变为 `surface-200`。
 
-### 2.4 WindowFrame (通用窗口框架)
+### 2.4 OrgItem (组织列表项)
+- **职责**: 全局侧栏中的组织选择入口。
+- **接口**:
+    - `props`: `org`, `isActive`, `isCollapsed`。
+- **表现**: 
+    - 展开状态：显示图标 + 组织名称。
+    - 收缩状态：仅显示图标或首字母缩写。
+    - `isActive`: 背景高亮，图标呈现 Primary 色。
+
+### 2.5 WindowFrame (通用窗口框架)
 - **职责**: 包装 Dialog 内容，提供统一的标题栏和双栏布局。
 - **接口**:
     - `props`: `title`, `showMaximize`, `sidebarWidth`。
