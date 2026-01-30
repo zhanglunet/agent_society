@@ -83,14 +83,14 @@ export const apiService = {
         }));
     }
 
-    // 2. 否则，返回 parentAgentId 等于 orgId 的智能体
+    // 2. 否则，返回该组织根智能体（id 等于 orgId）以及其子智能体（parentAgentId 等于 orgId）
     const filteredAgents: Agent[] = data.agents
-      .filter(agent => agent.parentAgentId === orgId)
+      .filter(agent => agent.parentAgentId === orgId || agent.id === orgId)
       .map(agent => ({
         id: agent.id,
         orgId: orgId,
         name: agent.customName || agent.id,
-        role: agent.roleName || '智能体',
+        role: agent.roleName || (agent.id === orgId ? '组织主管' : '智能体'),
         status: (agent.status === 'active' ? 'online' : 'offline') as 'online' | 'offline',
         lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
       }));
