@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { useAgentStore } from '../../stores/agent';
 import { useChatStore } from '../../stores/chat';
+import { useOrgStore } from '../../stores/org';
+import { useDialog } from 'primevue/usedialog';
 import { watch, onMounted, computed } from 'vue';
-import { User, Bot, Circle, Square, Loader2 } from 'lucide-vue-next';
+import { User, Bot, Circle, Square, Loader2, Briefcase } from 'lucide-vue-next';
+import Button from 'primevue/button';
+import ArtifactsList from '../artifacts/ArtifactsList.vue';
 
 const props = defineProps<{
   orgId: string;
@@ -10,10 +14,35 @@ const props = defineProps<{
 
 const agentStore = useAgentStore();
 const chatStore = useChatStore();
+const orgStore = useOrgStore();
+const dialog = useDialog();
 
 // 当前组织的智能体列表
 const currentAgents = computed(() => agentStore.agentsMap[props.orgId] || []);
 const currentAgentCount = computed(() => currentAgents.value.length);
+const currentOrg = computed(() => orgStore.orgs.find(o => o.id === props.orgId));
+
+/**
+ * 打开工件管理器
+ */
+const openArtifacts = () => {
+  if (!currentOrg.value) return;
+  
+  dialog.open(ArtifactsList, {
+    props: {
+      header: `工件管理器 - ${currentOrg.value.name}`,
+      style: {
+        width: '80vw',
+        maxWidth: '1000px',
+      },
+      modal: true,
+      dismissableMask: true,
+    },
+    data: {
+      orgId: props.orgId
+    }
+  });
+};
 
 // 当组件挂载或 orgId 改变时加载智能体
 const loadAgents = () => {
@@ -49,11 +78,26 @@ const handleAbortAgent = async (e: Event, agentId: string) => {
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- 头部统计 -->
-    <div class="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-1)]">
-      <span class="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider">
-        智能体 ({{ currentAgentCount }})
-      </span>
+    <!-- 头部功能区 -->
+    <div class="p-2 border-b border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="flex items-center space-x-1 mb-1 px-1">
+        <Button 
+          v-if="props.orgId !== 'home'"
+          variant="text" 
+          size="small"
+          class="!p-2 hover:!bg-[var(--surface-3)] group transition-all !min-w-0"
+          title="工件管理器"
+          @click="openArtifacts"
+        >
+          <Briefcase class="w-4 h-4 text-[var(--text-3)] group-hover:text-[var(--primary)]" />
+        </Button>
+      </div>
+      
+      <div class="px-2 pb-1 flex items-center justify-between">
+        <span class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-widest opacity-70">
+          智能体 ({{ currentAgentCount }})
+        </span>
+      </div>
     </div>
 
     <!-- 列表内容 -->

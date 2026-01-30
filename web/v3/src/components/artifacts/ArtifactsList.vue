@@ -1,48 +1,178 @@
 <script setup lang="ts">
-import { Briefcase } from 'lucide-vue-next';
+import { FileCode, Folder, Loader2, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
-import { ref, inject, onMounted } from 'vue';
+import { ref, inject, onMounted, computed } from 'vue';
 
 const dialogRef = inject<any>('dialogRef');
 const orgId = ref<string | undefined>();
+const files = ref<any[]>([]);
+const loading = ref(false);
+const contentLoading = ref(false);
+const expandedDirs = ref<Set<string>>(new Set());
+
+// 树形结构转换
+const fileTree = computed(() => {
+  const root: any = { name: 'root', type: 'directory', children: [], path: '' };
+  
+  files.value.forEach((file: any) => {
+    const parts = file.path.split('/');
+    let current = root;
+    let currentPath = '';
+    
+    parts.forEach((part: string, index: number) => {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      
+      if (index === parts.length - 1) {
+        current.children.push({ ...file, type: 'file' });
+      } else {
+        let dir = current.children.find((c: any) => c.type === 'directory' && c.name === part);
+        if (!dir) {
+          dir = { name: part, type: 'directory', children: [], path: currentPath };
+          current.children.push(dir);
+        }
+        current = dir;
+      }
+    });
+  });
+
+  // 排序：目录在前，文件在后，按名称排序
+  const sortNodes = (nodes: any[]) => {
+    nodes.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    nodes.forEach((node: any) => {
+      if (node.children) sortNodes(node.children);
+    });
+  };
+  
+  sortNodes(root.children);
+  return root.children;
+});
+
+const selectedId = ref('');
+const selectedFile = ref<any>(null);
+const fileContent = ref('');
+
+const toggleDir = (path: string) => {
+  if (expandedDirs.value.has(path)) {
+    expandedDirs.value.delete(path);
+  } else {
+    expandedDirs.value.add(path);
+  }
+};
+
+const selectFile = async (file: any) => {
+  if (file.type === 'directory') {
+    toggleDir(file.path);
+    return;
+  }
+  
+  selectedId.value = file.path;
+  selectedFile.value = file;
+  fileContent.value = '';
+  
+  if (!orgId.value) return;
+  
+  contentLoading.value = true;
+  try {
+    const res = await fetch(`/api/workspaces/${orgId.value}/file?path=${encodeURIComponent(file.path)}`);
+    if (res.ok) {
+      const data = await res.json();
+      fileContent.value = data.content || '';
+    }
+  } catch (err) {
+    console.error('加载文件内容失败:', err);
+  } finally {
+    contentLoading.value = false;
+  }
+};
+
+const fetchData = async () => {
+  if (!orgId.value) return;
+  
+  loading.value = true;
+  try {
+    const res = await fetch(`/api/workspaces/${orgId.value}`);
+    if (res.ok) {
+      const data = await res.json();
+      files.value = data.files || [];
+      // 默认展开第一层目录
+      fileTree.value.forEach((node: any) => {
+        if (node.type === 'directory') expandedDirs.value.add(node.path);
+      });
+    }
+  } catch (err) {
+    console.error('获取工作空间文件失败:', err);
+  } finally {
+    loading.value = false;
+  }
+};
 
 onMounted(() => {
   if (dialogRef && dialogRef.value) {
     orgId.value = dialogRef.value.data?.orgId;
+    fetchData();
   }
 });
 
-// 模拟工件数据
-const artifacts = ref([
-  {
-    id: '1',
-    title: 'roadmap.md',
-    type: 'markdown',
-    content: '# 项目路线图\n\n## 阶段一: 基础框架\n- [x] 环境搭建\n- [x] 主题系统\n\n## 阶段二: 核心交互\n- [ ] 窗口系统',
-    timestamp: Date.now() - 1000 * 60 * 60,
-    author: 'root'
-  },
-  {
-    id: '2',
-    title: 'api_service.ts',
-    type: 'typescript',
-    content: 'export const api = {\n  fetch: () => Promise.resolve([])\n};',
-    timestamp: Date.now() - 1000 * 60 * 120,
-    author: 'agent_01'
-  }
-]);
-
-const selectedId = ref(artifacts.value[0]?.id || '');
-const selectedArtifact = ref<any>(artifacts.value[0] || null);
-
-const selectArtifact = (item: any) => {
-  selectedId.value = item.id;
-  selectedArtifact.value = item;
+const formatTime = (ts: string) => {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString();
 };
 
-const formatTime = (ts: number) => {
-  return new Date(ts).toLocaleString();
+const icons = { ChevronRight, ChevronDown, Folder, FileCode };
+
+// 递归子组件定义
+const FileTreeNode: any = {
+  name: 'FileTreeNode',
+  props: ['node', 'depth', 'selectedId', 'expandedDirs'],
+  emits: ['select'],
+  setup(props: any, { emit }: any) {
+    return {
+      ...icons,
+      props,
+      emit
+    };
+  },
+  template: `
+    <div class="flex flex-col">
+      <button
+        @click="emit('select', props.node)"
+        class="w-full text-left px-2 py-1.5 rounded flex items-center transition-all group"
+        :class="[
+          props.selectedId === props.node.path ? 'bg-[var(--primary-weak)] text-[var(--primary)]' : 'hover:bg-[var(--surface-3)] text-[var(--text-2)]'
+        ]"
+        :style="{ paddingLeft: (props.depth * 12 + 8) + 'px' }"
+      >
+        <span class="mr-1.5 shrink-0 opacity-60">
+          <template v-if="props.node.type === 'directory'">
+            <ChevronDown v-if="props.expandedDirs.has(props.node.path)" class="w-3.5 h-3.5" />
+            <ChevronRight v-else class="w-3.5 h-3.5" />
+          </template>
+          <span v-else class="w-3.5 inline-block"></span>
+        </span>
+        
+        <Folder v-if="props.node.type === 'directory'" class="w-4 h-4 mr-2 text-[var(--primary)] opacity-70" />
+        <FileCode v-else class="w-4 h-4 mr-2 text-[var(--text-3)] group-hover:text-[var(--primary)] opacity-70" />
+        
+        <span class="text-sm truncate flex-grow">{{ props.node.name }}</span>
+      </button>
+      
+      <div v-if="props.node.type === 'directory' && props.expandedDirs.has(props.node.path)" class="flex flex-col">
+        <FileTreeNode 
+          v-for="child in props.node.children" 
+          :key="child.path" 
+          :node="child" 
+          :depth="props.depth + 1"
+          :selected-id="props.selectedId"
+          :expanded-dirs="props.expandedDirs"
+          @select="emit('select', $event)"
+        />
+      </div>
+    </div>
+  `
 };
 </script>
 
@@ -53,46 +183,67 @@ const formatTime = (ts: number) => {
       <SplitterPanel :size="30" :minSize="20" class="flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
         <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)]">
           <div class="flex flex-col">
-            <span class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider">生成的工件 ({{ artifacts.length }})</span>
-            <span v-if="orgId" class="text-[10px] text-[var(--text-3)] opacity-70 mt-0.5">组织 ID: {{ orgId }}</span>
+            <span class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider">项目工作区 ({{ files.length }})</span>
+            <span v-if="orgId" class="text-[10px] text-[var(--text-3)] opacity-70 mt-0.5">组织: {{ orgId }}</span>
           </div>
         </div>
-        <div class="flex-grow overflow-y-auto p-2 space-y-1">
-          <button
-            v-for="item in artifacts"
-            :key="item.id"
-            @click="selectArtifact(item)"
-            class="w-full text-left p-3 rounded-lg transition-all"
-            :class="[selectedId === item.id ? 'bg-[var(--primary-weak)] text-[var(--primary)]' : 'hover:bg-[var(--surface-3)] text-[var(--text-2)]']"
-          >
-            <div class="flex items-center space-x-2 mb-1">
-              <Briefcase class="w-3.5 h-3.5" />
-              <span class="font-medium text-sm truncate">{{ item.title }}</span>
-            </div>
-            <div class="flex items-center justify-between text-[10px] opacity-60">
-              <span>{{ item.author }}</span>
-              <span>{{ new Date(item.timestamp).toLocaleDateString() }}</span>
-            </div>
-          </button>
+        
+        <div class="flex-grow overflow-y-auto p-2">
+          <div v-if="loading" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
+            <Loader2 class="w-6 h-6 animate-spin mb-2" />
+            <span class="text-xs">加载文件列表中...</span>
+          </div>
+          <div v-else-if="files.length === 0" class="flex flex-col items-center justify-center py-10 text-[var(--text-3)] opacity-50">
+            <Folder class="w-8 h-8 mb-2" />
+            <span class="text-xs">暂无文件</span>
+          </div>
+          <div v-else class="space-y-0.5">
+            <!-- 递归渲染文件树 -->
+            <FileTreeNode 
+              v-for="node in fileTree" 
+              :key="node.path" 
+              :node="node" 
+              :depth="0"
+              :selected-id="selectedId"
+              :expanded-dirs="expandedDirs"
+              @select="selectFile"
+            />
+          </div>
         </div>
       </SplitterPanel>
 
       <!-- 右侧预览 -->
       <SplitterPanel :size="70" class="flex flex-col bg-[var(--bg)]">
-        <div v-if="selectedArtifact" class="flex flex-col h-full overflow-hidden">
-          <div class="p-4 border-b border-[var(--border)] flex items-center justify-between">
-            <div>
-              <h3 class="font-bold text-[var(--text-1)]">{{ selectedArtifact.title }}</h3>
-              <p class="text-[10px] text-[var(--text-3)] mt-0.5">最后修改于 {{ formatTime(selectedArtifact.timestamp) }}</p>
+        <div v-if="selectedFile" class="flex flex-col h-full overflow-hidden">
+          <div class="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-1)]">
+            <div class="flex flex-col min-w-0">
+              <h3 class="font-bold text-[var(--text-1)] truncate">{{ selectedFile.name }}</h3>
+              <p class="text-[10px] text-[var(--text-3)] mt-0.5 truncate">{{ selectedFile.path }}</p>
+            </div>
+            <div class="flex items-center space-x-4 shrink-0 ml-4 text-[10px] text-[var(--text-3)]">
+              <div class="flex flex-col items-end">
+                <span>大小: {{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
+                <span>修改于: {{ formatTime(selectedFile.modifiedAt) }}</span>
+              </div>
             </div>
           </div>
-          <div class="flex-grow overflow-auto p-4">
-            <pre class="text-sm font-mono p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-2)] whitespace-pre-wrap">{{ selectedArtifact.content }}</pre>
+          
+          <div class="flex-grow overflow-hidden relative bg-[var(--surface-2)]">
+            <div v-if="contentLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--surface-2)] bg-opacity-50 z-10">
+              <Loader2 class="w-8 h-8 animate-spin text-[var(--primary)]" />
+            </div>
+            <div class="h-full overflow-auto p-4">
+              <pre v-if="fileContent" class="text-sm font-mono text-[var(--text-2)] whitespace-pre-wrap break-all">{{ fileContent }}</pre>
+              <div v-else-if="!contentLoading" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
+                <FileCode class="w-12 h-12 mb-2" />
+                <p>文件内容为空或无法读取</p>
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
-          <Briefcase class="w-12 h-12 mb-4" />
-          <p>选择一个工件查看内容</p>
+          <Folder class="w-12 h-12 mb-4" />
+          <p>从左侧选择一个文件查看内容</p>
         </div>
       </SplitterPanel>
     </Splitter>
