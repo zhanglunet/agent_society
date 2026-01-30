@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col h-[70vh] bg-[var(--bg)] overflow-hidden rounded-b-xl relative">
+    <div class="flex flex-col h-[70vh] bg-transparent overflow-hidden rounded-b-xl relative text-[var(--text-1)]">
         <!-- 统计栏 -->
         <div class="grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20">
             <div class="flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
@@ -360,8 +360,13 @@ onMounted(() => {
 
 :deep(.p-organizationchart-node-content) {
     border: none;
-    background: transparent;
+    background: transparent !important;
     padding: 10px 20px;
+}
+
+:deep(.p-organizationchart-node) {
+    background: transparent !important;
+    border: none !important;
 }
 
 /* 兼容旧版本或其他主题可能的类名 */

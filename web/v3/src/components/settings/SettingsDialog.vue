@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Settings, Puzzle, Info, Moon, Sun, Monitor } from 'lucide-vue-next';
+import { Settings, Puzzle, Info, Moon, Sun } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -14,7 +14,6 @@ const appStore = useAppStore();
 
 const themeOptions = ref([
     { icon: Sun, value: 'light', label: '明亮' },
-    { icon: Monitor, value: 'system', label: '跟随系统' },
     { icon: Moon, value: 'dark', label: '暗黑' }
 ]);
 
@@ -30,7 +29,7 @@ const togglePlugin = (plugin: any) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[500px] bg-[var(--bg)] overflow-hidden rounded-b-xl">
+  <div class="flex flex-col h-[500px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]">
     <Tabs value="general" class="h-full flex flex-col">
         <TabList class="px-4 border-b border-[var(--border)]">
             <Tab value="general" class="flex items-center gap-2">

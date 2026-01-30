@@ -59,3 +59,101 @@
     animation: pulse-quick 0.5s ease-in-out 3;
   }
 }
+
+/* PrimeVue Dialog / DynamicDialog Theme Overrides */
+.p-dialog {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-1) !important;
+  box-shadow: 0 20px 25px -5px var(--overlay), 0 8px 10px -6px var(--overlay) !important;
+}
+
+.p-dialog-header {
+  background: var(--surface-1) !important;
+  color: var(--text-1) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.p-dialog-content {
+  background: var(--surface-1) !important;
+  color: var(--text-2) !important;
+  padding: 0 !important; /* 让内部组件自己控制内边距，方便实现沉浸式效果 */
+}
+
+.p-dialog-footer {
+  background: var(--surface-1) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.p-dialog .p-dialog-header-icons .p-dialog-header-icon {
+  color: var(--text-3) !important;
+  transition: all 0.2s !important;
+}
+
+.p-dialog .p-dialog-header-icons .p-dialog-header-icon:hover {
+  background: var(--surface-3) !important;
+  color: var(--text-1) !important;
+}
+
+.p-dialog-mask {
+  background: var(--overlay) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* PrimeVue Tabs Overrides */
+.p-tabs {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.p-tablist {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.p-tablist-content {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.p-tab {
+  background: transparent !important;
+  color: var(--text-3) !important;
+  border-color: transparent !important;
+  transition: all 0.2s !important;
+}
+
+.p-tab:hover {
+  color: var(--text-1) !important;
+  background: var(--surface-3) !important;
+}
+
+.p-tab-active {
+  color: var(--primary) !important;
+  border-bottom-color: var(--primary) !important;
+}
+
+.p-tabpanels {
+  background: transparent !important;
+  color: var(--text-2) !important;
+}
+
+.p-tabpanel {
+  background: transparent !important;
+}
+
+/* PrimeVue Splitter Overrides */
+.p-splitter {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.p-splitter-gutter {
+  background: var(--surface-2) !important;
+}
+
+.p-splitter-gutter-handle {
+  background: var(--border) !important;
+}

@@ -3,7 +3,7 @@ import GlobalSidebar from './components/layout/GlobalSidebar.vue';
 import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
 import Button from 'primevue/button';
 import { Sun, Moon } from 'lucide-vue-next';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
 import { useOrgStore } from './stores/org';
@@ -14,9 +14,19 @@ const agentStore = useAgentStore();
 const orgStore = useOrgStore();
 const isDark = ref(false);
 
+// 监听主题变化并更新 DOM
+watch(() => appStore.theme, (newTheme) => {
+    isDark.value = newTheme === 'dark';
+    if (newTheme === 'dark') {
+        document.documentElement.classList.add('my-app-dark');
+    } else {
+        document.documentElement.classList.remove('my-app-dark');
+    }
+}, { immediate: true });
+
 const toggleDarkMode = () => {
-    isDark.value = !isDark.value;
-    document.documentElement.classList.toggle('my-app-dark');
+    const newTheme = appStore.theme === 'dark' ? 'light' : 'dark';
+    appStore.setTheme(newTheme);
 };
 
 let syncTimer: any = null;
@@ -43,7 +53,6 @@ const stopGlobalSync = () => {
 };
 
 onMounted(() => {
-    isDark.value = document.documentElement.classList.contains('my-app-dark');
     appStore.initApp();
     
     // 初始加载

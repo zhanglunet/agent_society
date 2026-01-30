@@ -38,7 +38,7 @@ const formatTime = (ts: number) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[600px] bg-[var(--bg)] overflow-hidden rounded-b-xl">
+  <div class="flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]">
     <Splitter class="flex-grow border-none">
       <!-- 左侧列表 -->
       <SplitterPanel :size="30" :minSize="20" class="flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
