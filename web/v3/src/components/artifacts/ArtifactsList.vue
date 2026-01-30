@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { FileCode, Folder, Loader2, ChevronRight, ChevronDown } from 'lucide-vue-next';
+import { FileCode, Folder, Loader2 } from 'lucide-vue-next';
+import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import { ref, inject, onMounted, computed } from 'vue';
+import FileTreeNode from './FileTreeNode.vue';
 
 const dialogRef = inject<any>('dialogRef');
 const orgId = ref<string | undefined>();
@@ -13,25 +15,38 @@ const expandedDirs = ref<Set<string>>(new Set());
 
 // 树形结构转换
 const fileTree = computed(() => {
-  const root: any = { name: 'root', type: 'directory', children: [], path: '' };
+  const workspaceRoot: any = { 
+    name: 'Workspace', 
+    type: 'directory', 
+    children: [], 
+    path: 'root' // 使用 'root' 作为根路径标识
+  };
   
   files.value.forEach((file: any) => {
-    const parts = file.path.split('/');
-    let current = root;
+    // 确保 path 不以 / 开头，方便 split
+    const cleanPath = file.path.startsWith('/') ? file.path.slice(1) : file.path;
+    const parts = cleanPath.split('/');
+    let current = workspaceRoot;
     let currentPath = '';
     
     parts.forEach((part: string, index: number) => {
-      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      // 构建当前部分的路径，相对于 workspaceRoot
+      const partPath = currentPath ? `${currentPath}/${part}` : part;
+      const fullPath = `root/${partPath}`; // 保持全局唯一路径
       
       if (index === parts.length - 1) {
-        current.children.push({ ...file, type: 'file' });
+        // 检查是否已经存在同名文件，防止重复
+        if (!current.children.find((c: any) => c.type === 'file' && c.name === part)) {
+          current.children.push({ ...file, type: 'file', name: part, path: fullPath });
+        }
       } else {
         let dir = current.children.find((c: any) => c.type === 'directory' && c.name === part);
         if (!dir) {
-          dir = { name: part, type: 'directory', children: [], path: currentPath };
+          dir = { name: part, type: 'directory', children: [], path: fullPath };
           current.children.push(dir);
         }
         current = dir;
+        currentPath = partPath;
       }
     });
   });
@@ -47,25 +62,42 @@ const fileTree = computed(() => {
     });
   };
   
-  sortNodes(root.children);
-  return root.children;
+  sortNodes(workspaceRoot.children);
+  return [workspaceRoot]; // 返回包含根目录的数组
 });
 
-const selectedId = ref('');
+const selectedId = ref('root'); // 默认选中根目录
 const selectedFile = ref<any>(null);
 const fileContent = ref('');
 
-const toggleDir = (path: string) => {
+// 当前选中的目录
+const currentDir = ref<any>(null);
+
+// 当前目录下的文件和文件夹列表
+const currentItems = computed(() => {
+  if (currentDir.value) {
+    return currentDir.value.children || [];
+  }
+  // 默认显示根目录下的内容
+  return fileTree.value[0]?.children || [];
+});
+
+const toggleDir = (node: any) => {
+  const path = node.path;
   if (expandedDirs.value.has(path)) {
     expandedDirs.value.delete(path);
   } else {
     expandedDirs.value.add(path);
   }
+  // 切换目录时，更新右侧显示的内容
+  currentDir.value = node;
+  selectedId.value = node.path; // 标记当前选中的路径
+  selectedFile.value = null; // 清除当前选中的文件预览
 };
 
 const selectFile = async (file: any) => {
   if (file.type === 'directory') {
-    toggleDir(file.path);
+    toggleDir(file);
     return;
   }
   
@@ -77,7 +109,9 @@ const selectFile = async (file: any) => {
   
   contentLoading.value = true;
   try {
-    const res = await fetch(`/api/workspaces/${orgId.value}/file?path=${encodeURIComponent(file.path)}`);
+    // API 请求时需要去掉 'root/' 前缀
+    const apiPath = file.path.replace(/^root\//, '');
+    const res = await fetch(`/api/workspaces/${orgId.value}/file?path=${encodeURIComponent(apiPath)}`);
     if (res.ok) {
       const data = await res.json();
       fileContent.value = data.content || '';
@@ -98,10 +132,15 @@ const fetchData = async () => {
     if (res.ok) {
       const data = await res.json();
       files.value = data.files || [];
-      // 默认展开第一层目录
-      fileTree.value.forEach((node: any) => {
-        if (node.type === 'directory') expandedDirs.value.add(node.path);
-      });
+      // 初始化选中状态
+      if (fileTree.value.length > 0) {
+        currentDir.value = fileTree.value[0];
+        expandedDirs.value.add('root');
+        // 默认展开第二层目录
+        fileTree.value[0].children.forEach((node: any) => {
+          if (node.type === 'directory') expandedDirs.value.add(node.path);
+        });
+      }
     }
   } catch (err) {
     console.error('获取工作空间文件失败:', err);
@@ -120,59 +159,6 @@ onMounted(() => {
 const formatTime = (ts: string) => {
   if (!ts) return '';
   return new Date(ts).toLocaleString();
-};
-
-const icons = { ChevronRight, ChevronDown, Folder, FileCode };
-
-// 递归子组件定义
-const FileTreeNode: any = {
-  name: 'FileTreeNode',
-  props: ['node', 'depth', 'selectedId', 'expandedDirs'],
-  emits: ['select'],
-  setup(props: any, { emit }: any) {
-    return {
-      ...icons,
-      props,
-      emit
-    };
-  },
-  template: `
-    <div class="flex flex-col">
-      <button
-        @click="emit('select', props.node)"
-        class="w-full text-left px-2 py-1.5 rounded flex items-center transition-all group"
-        :class="[
-          props.selectedId === props.node.path ? 'bg-[var(--primary-weak)] text-[var(--primary)]' : 'hover:bg-[var(--surface-3)] text-[var(--text-2)]'
-        ]"
-        :style="{ paddingLeft: (props.depth * 12 + 8) + 'px' }"
-      >
-        <span class="mr-1.5 shrink-0 opacity-60">
-          <template v-if="props.node.type === 'directory'">
-            <ChevronDown v-if="props.expandedDirs.has(props.node.path)" class="w-3.5 h-3.5" />
-            <ChevronRight v-else class="w-3.5 h-3.5" />
-          </template>
-          <span v-else class="w-3.5 inline-block"></span>
-        </span>
-        
-        <Folder v-if="props.node.type === 'directory'" class="w-4 h-4 mr-2 text-[var(--primary)] opacity-70" />
-        <FileCode v-else class="w-4 h-4 mr-2 text-[var(--text-3)] group-hover:text-[var(--primary)] opacity-70" />
-        
-        <span class="text-sm truncate flex-grow">{{ props.node.name }}</span>
-      </button>
-      
-      <div v-if="props.node.type === 'directory' && props.expandedDirs.has(props.node.path)" class="flex flex-col">
-        <FileTreeNode 
-          v-for="child in props.node.children" 
-          :key="child.path" 
-          :node="child" 
-          :depth="props.depth + 1"
-          :selected-id="props.selectedId"
-          :expanded-dirs="props.expandedDirs"
-          @select="emit('select', $event)"
-        />
-      </div>
-    </div>
-  `
 };
 </script>
 
@@ -212,38 +198,84 @@ const FileTreeNode: any = {
         </div>
       </SplitterPanel>
 
-      <!-- 右侧预览 -->
+      <!-- 右侧预览与列表 -->
       <SplitterPanel :size="70" class="flex flex-col bg-[var(--bg)]">
-        <div v-if="selectedFile" class="flex flex-col h-full overflow-hidden">
-          <div class="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-1)]">
-            <div class="flex flex-col min-w-0">
-              <h3 class="font-bold text-[var(--text-1)] truncate">{{ selectedFile.name }}</h3>
-              <p class="text-[10px] text-[var(--text-3)] mt-0.5 truncate">{{ selectedFile.path }}</p>
-            </div>
-            <div class="flex items-center space-x-4 shrink-0 ml-4 text-[10px] text-[var(--text-3)]">
-              <div class="flex flex-col items-end">
-                <span>大小: {{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
-                <span>修改于: {{ formatTime(selectedFile.modifiedAt) }}</span>
-              </div>
-            </div>
+        <!-- 面包屑导航或当前目录信息 -->
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between">
+          <div class="flex items-center text-xs text-[var(--text-2)] overflow-hidden">
+            <Folder class="w-3.5 h-3.5 mr-2 text-[var(--primary)] opacity-70" />
+            <span class="font-medium truncate">{{ currentDir ? currentDir.path : '根目录' }}</span>
           </div>
-          
-          <div class="flex-grow overflow-hidden relative bg-[var(--surface-2)]">
-            <div v-if="contentLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--surface-2)] bg-opacity-50 z-10">
-              <Loader2 class="w-8 h-8 animate-spin text-[var(--primary)]" />
-            </div>
-            <div class="h-full overflow-auto p-4">
-              <pre v-if="fileContent" class="text-sm font-mono text-[var(--text-2)] whitespace-pre-wrap break-all">{{ fileContent }}</pre>
-              <div v-else-if="!contentLoading" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
-                <FileCode class="w-12 h-12 mb-2" />
-                <p>文件内容为空或无法读取</p>
-              </div>
-            </div>
+          <div v-if="selectedFile" class="flex items-center ml-4">
+            <Button 
+              variant="text" 
+              size="small" 
+              class="!py-1 !px-2 !text-[10px]"
+              @click="selectedFile = null"
+            >
+              返回列表
+            </Button>
           </div>
         </div>
-        <div v-else class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
-          <Folder class="w-12 h-12 mb-4" />
-          <p>从左侧选择一个文件查看内容</p>
+
+        <!-- 内容区域：文件预览或目录列表 -->
+        <div class="flex-grow overflow-hidden relative">
+          <!-- 文件预览 -->
+          <div v-if="selectedFile" class="flex flex-col h-full overflow-hidden">
+            <div class="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-2)]">
+              <div class="flex flex-col min-w-0">
+                <h3 class="font-bold text-[var(--text-1)] truncate">{{ selectedFile.name }}</h3>
+                <p class="text-[10px] text-[var(--text-3)] mt-0.5 truncate">{{ selectedFile.path }}</p>
+              </div>
+              <div class="flex items-center space-x-4 shrink-0 ml-4 text-[10px] text-[var(--text-3)]">
+                <div class="flex flex-col items-end">
+                  <span>大小: {{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
+                  <span>修改于: {{ formatTime(selectedFile.modifiedAt) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex-grow overflow-hidden relative bg-[var(--bg)]">
+              <div v-if="contentLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg)] bg-opacity-50 z-10">
+                <Loader2 class="w-8 h-8 animate-spin text-[var(--primary)]" />
+              </div>
+              <div class="h-full overflow-auto p-4">
+                <pre v-if="fileContent" class="text-sm font-mono text-[var(--text-2)] whitespace-pre-wrap break-all">{{ fileContent }}</pre>
+                <div v-else-if="!contentLoading" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
+                  <FileCode class="w-12 h-12 mb-2" />
+                  <p>文件内容为空或无法读取</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 目录列表 -->
+          <div v-else class="h-full flex flex-col bg-[var(--bg)]">
+            <div class="overflow-y-auto p-4">
+              <div v-if="currentItems.length === 0" class="flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50">
+                <Folder class="w-16 h-16 mb-4" />
+                <p>该目录下暂无内容</p>
+              </div>
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <button
+                  v-for="item in currentItems"
+                  :key="item.path"
+                  @click="selectFile(item)"
+                  class="flex items-center p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:border-[var(--primary-weak)] hover:bg-[var(--surface-3)] transition-all group text-left"
+                >
+                  <Folder v-if="item.type === 'directory'" class="w-8 h-8 mr-3 text-[var(--primary)] opacity-70 group-hover:scale-110 transition-transform" />
+                  <FileCode v-else class="w-8 h-8 mr-3 text-[var(--text-3)] group-hover:text-[var(--primary)] opacity-70 group-hover:scale-110 transition-transform" />
+                  
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-sm font-medium text-[var(--text-1)] truncate">{{ item.name }}</span>
+                    <span class="text-[10px] text-[var(--text-3)] truncate">
+                      {{ item.type === 'directory' ? '文件夹' : (item.size / 1024).toFixed(1) + ' KB' }}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </SplitterPanel>
     </Splitter>
