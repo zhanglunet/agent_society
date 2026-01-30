@@ -30,13 +30,16 @@
             @mouseleave="onMouseUp"
         >
             <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg)] bg-opacity-50 z-30">
-                <ProgressSpinner style="width: 40px; height: 40px" />
+                <Loader2 class="w-10 h-10 animate-spin text-[var(--primary)]" />
             </div>
 
             <div v-else-if="!roleTree || (Array.isArray(roleTree) && roleTree.length === 0)" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
                 <Network class="w-12 h-12 mb-4" />
                 <p>暂无组织架构数据</p>
-                <Button label="重新加载" icon="pi pi-refresh" variant="text" size="small" class="mt-4" @click="fetchData" />
+                <Button variant="text" size="small" class="mt-4" @click="fetchData">
+                    <RefreshCw class="w-4 h-4 mr-2" />
+                    重新加载
+                </Button>
             </div>
 
             <!-- 图形化画布 -->
@@ -80,24 +83,26 @@
                     滚轮缩放 | 按住拖动
                 </div>
                 <div class="flex gap-2 justify-end">
-                    <Button icon="pi pi-search-minus" @click="zoomAtCenter(-0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
-                    <Button icon="pi pi-refresh" @click="resetView" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
-                    <Button icon="pi pi-search-plus" @click="zoomAtCenter(0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md" />
+                    <Button @click="zoomAtCenter(-0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md !w-8 !h-8 !p-0 flex items-center justify-center">
+                        <ZoomOut class="w-4 h-4 text-[var(--text-1)]" />
+                    </Button>
+                    <Button @click="resetView" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md !w-8 !h-8 !p-0 flex items-center justify-center">
+                        <RefreshCw class="w-4 h-4 text-[var(--text-1)]" />
+                    </Button>
+                    <Button @click="zoomAtCenter(0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md !w-8 !h-8 !p-0 flex items-center justify-center">
+                        <ZoomIn class="w-4 h-4 text-[var(--text-1)]" />
+                    </Button>
                 </div>
             </div>
         </div>
         
-        <div class="p-3 border-t border-[var(--border)] flex justify-end bg-[var(--surface-1)] z-20">
-            <Button icon="pi pi-refresh" label="刷新数据" variant="text" size="small" :loading="loading" @click="fetchData" />
-        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
-import { Network, Users, Activity } from 'lucide-vue-next';
+import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
-import ProgressSpinner from 'primevue/progressspinner';
 import OrganizationChart from 'primevue/organizationchart';
 
 const loading = ref(true);

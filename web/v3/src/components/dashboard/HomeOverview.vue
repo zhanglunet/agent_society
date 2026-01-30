@@ -6,7 +6,7 @@ import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
-import { Sparkles, Users, ArrowRight, Send } from 'lucide-vue-next';
+import { Sparkles, Users, ArrowRight, Send, Loader2 } from 'lucide-vue-next';
 import ChatMessageList from '../chat/ChatMessageList.vue';
 
 const orgStore = useOrgStore();
@@ -156,11 +156,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
                   />
                   <div class="absolute right-3 bottom-2.5 flex items-center">
                     <Button 
-                      icon="pi pi-arrow-right" 
                       @click="createOrganization"
                       :loading="isCreating"
                       class="!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!bg-[var(--primary-hover)] transition-colors shadow-sm"
                     >
+                      <template #loadingicon>
+                        <Loader2 class="w-4 h-4 animate-spin" />
+                      </template>
                       <template #icon>
                         <Send v-if="!isCreating" class="w-4 h-4" />
                       </template>

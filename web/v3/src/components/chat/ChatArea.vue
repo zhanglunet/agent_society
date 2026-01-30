@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Send, Bot, Sparkles, ArrowDown, User } from 'lucide-vue-next';
+import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
@@ -225,9 +225,13 @@ const sendMessage = async () => {
           </div>
         </div>
       </div>
-      <div class="flex items-center space-x-2">
-        <Button icon="pi pi-search" variant="text" rounded class="!text-[var(--text-3)] hover:!bg-[var(--surface-3)]" />
-        <Button icon="pi pi-ellipsis-v" variant="text" rounded class="!text-[var(--text-3)] hover:!bg-[var(--surface-3)]" />
+      <div class="flex items-center space-x-1">
+        <Button variant="text" rounded class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]">
+          <Search class="w-4 h-4" />
+        </Button>
+        <Button variant="text" rounded class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]">
+          <MoreVertical class="w-4 h-4" />
+        </Button>
       </div>
     </header>
 
@@ -291,7 +295,7 @@ const sendMessage = async () => {
             class="!rounded-xl !p-3 transition-all duration-300 min-w-[44px]"
             :class="message.trim() && !isSending ? '!bg-[var(--primary)] !text-white' : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
           >
-            <i v-if="isSending" class="pi pi-spin pi-spinner text-sm"></i>
+            <Loader2 v-if="isSending" class="w-4 h-4 animate-spin" />
             <Send v-else class="w-4 h-4" />
           </Button>
         </div>

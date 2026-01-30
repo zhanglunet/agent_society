@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X } from 'lucide-vue-next';
+import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2 } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
 import { useDialog } from 'primevue/usedialog';
@@ -138,7 +138,7 @@ const handleOrgClick = (org: any) => {
       
       <!-- 加载状态 -->
       <div v-if="orgStore.loading" class="flex justify-center p-4">
-        <i class="pi pi-spin pi-spinner text-[var(--text-3)]"></i>
+        <Loader2 class="w-5 h-5 animate-spin text-[var(--text-3)]" />
       </div>
 
       <Button 
