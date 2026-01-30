@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  /* Light Mode Semantic Tokens (N0-N12 Mapping) */
+  --bg: #F7F8FB;        /* N1: 页面底 */
+  --surface-1: #FFFFFF; /* N0: 纯白表面 */
+  --surface-2: #EEF2F7; /* N2: 次级底/分组底 */
+  --surface-3: #F0F4F8; /* N3: hover/选中弱底 */
+  
+  --text-1: #0F172A;    /* N10: 主文本 */
+  --text-2: #475569;    /* N8: 次文本 */
+  --text-3: #8899AA;    /* N9: 弱信息 */
+  
+  --border: rgba(15, 23, 42, 0.08);
+  --primary: #16B981;
+  --primary-weak: rgba(22, 185, 129, 0.12);
+  --overlay: rgba(15, 23, 42, 0.30);
+}
+
+.my-app-dark {
+  /* Dark Mode Semantic Tokens (N0-N12 Mapping) */
+  --bg: #0B0F17;        /* N0: 极暗背景 */
+  --surface-1: #151B26; /* N2: 主表面 */
+  --surface-2: #0F172A; /* N1: 次表面 */
+  --surface-3: #1E293B; /* N3: 交互表面 */
+  
+  --text-1: #EEF2F7;    /* N10: 主文本 */
+  --text-2: #9CA3AF;    /* N9: 次文本 */
+  --text-3: #6B7280;    /* N8: 弱信息 */
+  
+  --border: #2A3A55;    /* N6: 分割线/描边 */
+  --primary: #2DD36F;
+  --primary-weak: rgba(45, 211, 111, 0.15);
+  --overlay: rgba(0, 0, 0, 0.40);
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text-1);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
