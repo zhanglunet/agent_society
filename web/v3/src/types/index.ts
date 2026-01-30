@@ -31,6 +31,7 @@ export interface Message {
   agentId: string;
   senderId: string; // User ID or Agent ID
   senderType: 'user' | 'agent';
+  type?: string; // 消息类型，如 tool_call, text 等
   receiverId?: string;
   content: string;
   timestamp: number;

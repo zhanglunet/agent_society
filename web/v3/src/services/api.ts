@@ -150,17 +150,27 @@ export const apiService = {
       // 处理 payload 中的内容
       let content = '';
       let toolCall = undefined;
+      
+      // 尝试解析 payload (如果是字符串)
+      let payload = msg.payload;
+      if (typeof payload === 'string' && payload.trim().startsWith('{')) {
+        try {
+          payload = JSON.parse(payload);
+        } catch (e) {
+          // 解析失败，保持原样
+        }
+      }
 
       if (msg.type === 'tool_call') {
         toolCall = {
-          name: msg.payload?.toolName || 'unknown',
-          args: msg.payload?.args,
-          result: msg.payload?.result
+          name: payload?.toolName || 'unknown',
+          args: payload?.args,
+          result: payload?.result
         };
         content = `调用工具: ${toolCall.name}`;
-      } else if (msg.payload) {
+      } else if (payload) {
         // 如果 payload 是对象，且包含 text 或 content 字段
-        const rawContent = msg.payload.text || msg.payload.content || msg.payload;
+        const rawContent = payload.text || payload.content || payload;
         content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent, null, 2);
       } else {
         const rawContent = msg.content || msg.message || '';
@@ -173,6 +183,7 @@ export const apiService = {
         senderId: msg.from || 'system',
         receiverId: msg.to,
         senderType: msg.from === 'user' ? 'user' : 'agent',
+        type: msg.type, // 保留原始类型
         content: content,
         timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
         status: 'sent',

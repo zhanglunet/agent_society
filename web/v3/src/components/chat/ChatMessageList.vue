@@ -28,6 +28,15 @@ const toggleToolCall = (msgId: string) => {
   expandedToolCalls.value[msgId] = !expandedToolCalls.value[msgId];
 };
 
+const parseJson = (str: any) => {
+  if (typeof str !== 'string') return str;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
+
 const toggleReasoning = (msgId: string) => {
   expandedReasoning.value[msgId] = !expandedReasoning.value[msgId];
 };
@@ -240,17 +249,20 @@ const formatTime = (timestamp: number) => {
                 <div v-if="expandedToolCalls[item.id]" class="mt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                   <div class="p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
                     <div class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1">参数</div>
-                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(item.toolCall.arguments, null, 2) }}</pre>
+                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(item.toolCall.args), null, 2) }}</pre>
                   </div>
-                  <div v-if="item.toolResult" class="p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
+                  <div v-if="item.toolCall.result" class="p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
                     <div class="text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1">执行结果</div>
-                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ typeof item.toolResult === 'object' ? JSON.stringify(item.toolResult, null, 2) : item.toolResult }}</pre>
+                    <pre class="text-xs font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(item.toolCall.result), null, 2) }}</pre>
                   </div>
                 </div>
               </div>
 
               <!-- 消息内容 -->
-              <div v-if="item.content" class="whitespace-pre-wrap leading-relaxed break-words">{{ item.content }}</div>
+              <div v-if="item.content && !item.toolCall" class="whitespace-pre-wrap leading-relaxed break-words">{{ item.content }}</div>
+              
+              <!-- 如果是工具调用且有额外内容（非自动生成的提示）才显示 -->
+              <div v-if="item.content && item.toolCall && !item.content.startsWith('调用工具:')" class="mt-2 whitespace-pre-wrap leading-relaxed break-words border-t border-[var(--border)] pt-2 opacity-80">{{ item.content }}</div>
               
               <!-- 负载 (Payload) -->
               <div v-if="item.payload && !item.content && !item.toolCall" class="mt-2">
@@ -325,13 +337,17 @@ const formatTime = (timestamp: number) => {
                   </div>
                   
                   <div v-if="expandedToolCalls[msg.id]" class="p-3 space-y-2 border-t border-[var(--border)]">
+                    <!-- 组内消息的思考过程 -->
+                    <div v-if="msg.reasoning" class="mb-2 p-2 bg-[var(--surface-3)] rounded text-[11px] italic text-[var(--text-3)] whitespace-pre-wrap border-l-2 border-[var(--primary)]">
+                      {{ msg.reasoning }}
+                    </div>
                     <div class="space-y-1">
                       <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">参数</div>
-                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(msg.toolCall.arguments, null, 2) }}</pre>
+                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(msg.toolCall.args), null, 2) }}</pre>
                     </div>
-                    <div v-if="msg.toolResult" class="space-y-1">
+                    <div v-if="msg.toolCall.result" class="space-y-1">
                       <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">结果</div>
-                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ typeof msg.toolResult === 'object' ? JSON.stringify(msg.toolResult, null, 2) : msg.toolResult }}</pre>
+                      <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(msg.toolCall.result), null, 2) }}</pre>
                     </div>
                   </div>
                 </div>
