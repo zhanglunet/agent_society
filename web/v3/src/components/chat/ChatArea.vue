@@ -24,6 +24,35 @@ const activeAgent = computed(() => {
   return orgAgents.find(a => a.id === activeAgentId.value);
 });
 
+// 计算消息实际发送的目标智能体
+const chatTarget = computed(() => {
+  const orgAgents = agentStore.agentsMap[props.orgId] || [];
+  
+  // 1. 如果当前选中的是智能体（不是 user），则发送给该智能体
+  if (activeAgentId.value !== 'user') {
+    return activeAgent.value;
+  }
+
+  // 2. 如果当前选中是 user 视角
+  const messages = chatStore.chatMessages['user'] || [];
+  
+  // a. 如果有对话记录，找到最后一个与 user 对话的智能体
+  const lastResponse = [...messages].reverse().find(m => m.senderId !== 'user');
+  if (lastResponse) {
+    const target = orgAgents.find(a => a.id === lastResponse.senderId);
+    if (target) return target;
+  }
+
+  // b. 如果没有记录，发给组织里第一个智能体（排除 user）
+  return orgAgents.find(a => a.id !== 'user');
+});
+
+// 输入框占位符
+const placeholder = computed(() => {
+  const name = chatTarget.value?.name || '智能体';
+  return `向${name}发送信息`;
+});
+
 const message = computed({
   get: () => chatStore.inputValues[activeAgentId.value] || '',
   set: (val) => chatStore.updateInputValue(activeAgentId.value, val)
@@ -130,12 +159,12 @@ const sendMessage = async () => {
   isSending.value = true;
   
   try {
-    // 如果是 user 视图，默认发送给组织的负责人 (orgId)
-    const targetId = activeAgentId.value === 'user' ? props.orgId : activeAgentId.value;
+    const targetId = chatTarget.value?.id;
+    if (!targetId) {
+      console.warn('无法确定消息目标智能体');
+      return;
+    }
     await chatStore.sendMessage(targetId, text, activeAgentId.value);
-    
-    // 如果是 user 视图，发送后不需要手动加载，乐观更新已经处理了显示
-    // 但为了确保服务端状态同步，轮询会自动处理后续刷新
   } catch (error) {
     console.error('发送失败:', error);
     // 如果发送失败，把消息弹回来
@@ -219,7 +248,7 @@ const sendMessage = async () => {
         <div class="relative flex items-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)] group-focus-within:ring-4 group-focus-within:ring-[var(--primary-weak)]">
           <InputText 
             v-model="message" 
-            placeholder="向组织发送指令或询问..." 
+            :placeholder="placeholder" 
             class="flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm"
             @keyup.enter="sendMessage"
           />
