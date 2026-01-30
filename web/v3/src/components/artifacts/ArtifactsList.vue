@@ -73,13 +73,17 @@ const fileContent = ref('');
 // 当前选中的目录
 const currentDir = ref<any>(null);
 
-// 当前目录下的文件和文件夹列表
+// 当前目录下的文件列表（过滤掉文件夹）
 const currentItems = computed(() => {
+  let items = [];
   if (currentDir.value) {
-    return currentDir.value.children || [];
+    items = currentDir.value.children || [];
+  } else {
+    // 默认显示根目录下的内容
+    items = fileTree.value[0]?.children || [];
   }
-  // 默认显示根目录下的内容
-  return fileTree.value[0]?.children || [];
+  // 仅保留文件类型
+  return items.filter((item: any) => item.type === 'file');
 });
 
 const toggleDir = (node: any) => {
@@ -89,15 +93,22 @@ const toggleDir = (node: any) => {
   } else {
     expandedDirs.value.add(path);
   }
-  // 切换目录时，更新右侧显示的内容
-  currentDir.value = node;
-  selectedId.value = node.path; // 标记当前选中的路径
-  selectedFile.value = null; // 清除当前选中的文件预览
 };
 
 const selectFile = async (file: any) => {
   if (file.type === 'directory') {
-    toggleDir(file);
+    // 切换选中的目录
+    currentDir.value = file;
+    selectedId.value = file.path;
+    selectedFile.value = null;
+
+    // 自动展开父级目录
+    const parts = file.path.split('/');
+    let pathAcc = '';
+    parts.forEach((part: string) => {
+      pathAcc = pathAcc ? `${pathAcc}/${part}` : part;
+      expandedDirs.value.add(pathAcc);
+    });
     return;
   }
   
@@ -132,14 +143,13 @@ const fetchData = async () => {
     if (res.ok) {
       const data = await res.json();
       files.value = data.files || [];
-      // 初始化选中状态
+      // 初始化选中状态：只展开并选中根目录 Workspace
       if (fileTree.value.length > 0) {
-        currentDir.value = fileTree.value[0];
-        expandedDirs.value.add('root');
-        // 默认展开第二层目录
-        fileTree.value[0].children.forEach((node: any) => {
-          if (node.type === 'directory') expandedDirs.value.add(node.path);
-        });
+        const root = fileTree.value[0];
+        currentDir.value = root;
+        selectedId.value = root.path;
+        expandedDirs.value.clear();
+        expandedDirs.value.add(root.path);
       }
     }
   } catch (err) {
@@ -194,6 +204,7 @@ const formatTime = (ts: string) => {
                 :selected-id="selectedId"
                 :expanded-dirs="expandedDirs"
                 @select="selectFile"
+                @toggle="toggleDir"
               />
             </div>
           </div>
@@ -255,8 +266,8 @@ const formatTime = (ts: string) => {
           <div v-else class="absolute inset-0 flex flex-col bg-[var(--bg)]">
             <div class="flex-grow overflow-y-auto">
               <div v-if="currentItems.length === 0" class="flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50">
-                <Folder class="w-16 h-16 mb-4" />
-                <p>该目录下暂无内容</p>
+                <FileCode class="w-16 h-16 mb-4" />
+                <p>该目录下暂无文件</p>
               </div>
               <table v-else class="w-full text-left border-collapse min-w-[500px]">
                 <thead>
@@ -275,15 +286,14 @@ const formatTime = (ts: string) => {
                     class="border-b border-[var(--border)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer group"
                   >
                     <td class="py-2.5 px-4">
-                      <Folder v-if="item.type === 'directory'" class="w-4 h-4 text-[var(--primary)] opacity-70" />
-                      <FileCode v-else class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
+                      <FileCode class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
                     </td>
                     <td class="py-2.5 px-2 min-w-0">
                       <span class="text-sm font-medium text-[var(--text-1)] truncate block">{{ item.name }}</span>
                     </td>
                     <td class="py-2.5 px-4">
                       <span class="text-xs text-[var(--text-3)]">
-                        {{ item.type === 'directory' ? '--' : (item.size / 1024).toFixed(1) + ' KB' }}
+                        {{ (item.size / 1024).toFixed(1) + ' KB' }}
                       </span>
                     </td>
                     <td class="py-2.5 px-4 text-right sm:text-left">
