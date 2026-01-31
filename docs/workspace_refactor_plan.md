@@ -20,9 +20,10 @@
     - **全局元数据 (`.meta/.meta`)**：存储工作区的全局状态、最后同步时间。**关键：存储所有文件和目录的基本信息（高频数据）**，包括路径、类型、大小、修改时间、MIME 类型。只要读取此文件，即可推断出完整的目录结构。
     - **文件级元数据 (`.meta/{path}`)**：存储单个文件的详细、低频数据。例如：详细修改历史、关联的消息 ID 列表、复杂的状态数据。
   - **加载策略**：UI 导航和目录树构建仅读取 `.meta/.meta`；具体查看文件属性或操作审计日志时才读取文件级元数据。
-  - **同步要求**：文件操作成功后，必须同步更新对应的文件级元数据，并增量或全量更新全局元数据。
-- **并发处理**：
-  - **无锁设计**：由于 Node.js 的单线程特性，且文件操作多为异步非阻塞，不引入复杂的锁机制。异步竞争导致的文件状态微小偏差可通过元数据同步和审计日志回溯，不视为系统故障。
+  - **同步要求**：文件操作成功后，必须同步更新对应的文件级元数据，并增量或全量更新全局元数据。**若写入或同步时未提供 MIME 类型，系统必须通过技术手段（如扩展名或内容嗅探）自动探测并记录。**
+- **并发处理与安全性**：
+  - **无锁设计**：由于 Node.js 的单线程特性，且文件操作多为异步非阻塞，不引入复杂的锁机制。不考虑写入原子性问题。
+  - **磁盘配额监控**：提供 `diskUsage` 统计功能，允许智能体和用户通过 UI 查看空间占用。
 - **路径安全**：强制执行路径安全检查，防止路径遍历攻击。
 - **分层访问模型 (关键设计原则)**：
   - **智能体层 (Agent Tier)**: 智能体在处理任务时，其工作区是天然隔离且隐式的。智能体调用的工具（如 `read_file`, `write_file`）**不需要提供 `workspaceId`**，只需要提供相对路径。系统负责从智能体的执行上下文中自动提取并注入 `workspaceId`。
@@ -65,15 +66,21 @@ class Workspace {
   }
 
   // 文件操作 (维护 .meta/ 下的对应元数据文件)
-  async writeFile(relativePath, content, options = { operator, messageId }) {}
-  async readFile(relativePath) {}
+  // options 包含 { operator, messageId, mimeType }
+  async writeFile(relativePath, content, options) {}
+  
+  // 随机读写支持：返回 { content, start, total, readLength }
+  // length 限制：文本文件最大 5000 字符 (UTF-8)，二进制最大 5000 字节
+  async readFile(relativePath, options = { offset: 0, length: 5000 }) {}
+
   async listFiles(subDir) {} // 获取指定目录下的文件列表（包含基本信息）
   async deleteFile(relativePath, options = { operator, messageId }) {}
   async getMetadata(relativePath) {}
   async getHistory(limit = 100) {} // 从 .meta/.meta 读取全局日志
   async getFileHistory(relativePath) {} // 从 .meta/{path} 读取该文件的详细历史
   async getTree() {} // 从 .meta/.meta 中推断并返回纯目录树结构（不含文件节点）
-  async sync() {} // 同步外部变更并更新 .meta/ 结构
+  async sync() {} // 同步外部变更并更新 .meta/ 结构（需包含 MIME 自动探测）
+  async getDiskUsage() {} // 获取当前工作区的磁盘占用情况
 }
 ```
 
@@ -119,8 +126,10 @@ class Workspace {
   - 接口：`write_file(path, content, mimeType)`
   - 逻辑：获取 `Workspace` 对象后调用 `ws.writeFile(path, content, { operator: ctx.agentId, messageId: ctx.messageId, mimeType })`。
 - **read_file (原 get_artifact)**:
-  - 接口：`read_file(path)`
-  - 逻辑：获取 `Workspace` 对象后调用 `ws.readFile(path)`。
+  - 接口：`read_file(path, offset = 0, length = 5000)`
+  - 逻辑：获取 `Workspace` 对象后调用 `ws.readFile(path, { offset, length })`。
+  - **限制**：单次读取长度限制为 5000（文本字符或二进制字节）。
+  - **返回值**：包含 `content`, `start`, `total`, `readLength`。
 - **delete_file (新增)**:
   - 接口：`delete_file(path)`
   - 逻辑：调用 `ws.deleteFile(path, { operator: ctx.agentId, messageId: ctx.messageId })`。
@@ -134,7 +143,7 @@ class Workspace {
   - **返回值**：返回包含文件元数据和 UI 展示指令的对象。
 - **get_workspace_info**:
   - 接口：`get_workspace_info()`
-  - 逻辑：返回工作区的统计信息（文件数、总大小、最后修改时间等）。
+  - 逻辑：返回工作区的统计信息（文件数、总大小/diskUsage、最后修改时间等）。
 
 #### 2.3 扩展模块迁移 (Modules Migration)
 - **SSH 模块** (`modules/ssh/file_transfer.js`):
@@ -187,7 +196,11 @@ class Workspace {
 3. **FFmpeg 模块**：音视频处理结果写入工作区。
 **测试交付**：每迁移一个模块，通过 UI 观测其生成的文件结果。
 
-### 第五阶段：清理与废弃 (Final Cleanup)
+### 第五阶段：内容路由器重构 (Content Router Refactoring)
+**目标**：适配工作区路径。
+1. **重构 ContentRouter**：使其能够从 `workspaceId + relativePath` 中提取内容并转换为模型消息，不再依赖 `artifact/`。
+
+### 第六阶段：清理与废弃 (Final Cleanup)
 1. **彻底删除**：删除 `src/platform/services/artifact/` 及其相关测试、引用。
 **交付物**：干净、高效的单中心文件管理系统。
 
@@ -196,7 +209,11 @@ class Workspace {
 ## 4. 关键设计约束
 
 - **路径规范化**：所有 `relativePath` 在处理前必须进行规范化处理（正斜杠统一）。
-- **元数据同步**：文件操作成功后，必须同步更新 `.workspace.json`，确保一致性。
+- **元数据同步**：文件操作成功后，必须同步更新 `.meta/`，确保一致性。
+- **读取限制**：所有读操作强制执行 5000 单位限制（字符或字节），超过部分需通过 `offset` 分片读取。
+- **MIME 探测**：若操作未显式提供 MIME，系统需具备自动探测能力。
+- **不考虑原子性**：接受并发导致的非关键性数据偏差，不引入复杂的原子写入保证。
+- **不考虑兼容性**：本次重构不考虑任何向后兼容性。
 
 ## 5. 风险评估与切换策略
 
