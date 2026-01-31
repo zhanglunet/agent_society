@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile, readdir, stat, unlink, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { createNoopModuleLogger } from "../../utils/logger/logger.js";
 import { extractExtension, MIME_TYPE_MAPPINGS } from "../../utils/content/content_type_utils.js";
@@ -115,36 +116,42 @@ export class Workspace {
     await writeFile(fullPath, buffer);
 
     // 更新文件级元数据
-    const fileMetaPath = path.join(this.metaDir, relativePath + ".json");
-    await mkdir(path.dirname(fileMetaPath), { recursive: true });
+    const existingMeta = await this._readFileMeta(relativePath);
+    const fileMeta = {
+      ...existingMeta,
+      path: relativePath,
+      mimeType,
+      deleted: false
+    };
 
-    let history = [];
-    try {
-      const existing = await readFile(fileMetaPath, "utf8");
-      history = JSON.parse(existing).history || [];
-    } catch (e) { /* ignore */ }
+    if (!options.operator) {
+      throw new Error(`writeFile_missing_operator: ${relativePath}`);
+    }
+    if (!options.messageId) {
+      throw new Error(`writeFile_missing_messageId: ${relativePath}`);
+    }
 
     const record = {
-      operator: options.operator || 'system',
-      messageId: options.messageId || null,
+      operator: options.operator,
+      messageId: options.messageId,
       timestamp: new Date().toISOString(),
       action: 'write',
       size: buffer.length
     };
-    history.push(record);
 
-    await writeFile(fileMetaPath, JSON.stringify({
-      path: relativePath,
-      mimeType,
-      history: history.slice(-100) // 保留最近 100 条
-    }, null, 2));
+    fileMeta.history.push(record);
 
-    // 更新全局元数据
+    // 写入文件级元数据（保留完整历史和所有字段）
+    await this._writeFileMeta(relativePath, fileMeta);
+
+    // 更新全局索引（仅保留最新高频数据）
     await this._updateGlobalMeta(relativePath, {
       type: 'file',
       size: buffer.length,
       mimeType,
-      updatedAt: record.timestamp
+      updatedAt: record.timestamp,
+      lastOperator: record.operator,
+      lastMessageId: record.messageId
     });
 
     return { ok: true, path: relativePath, size: buffer.length, mimeType };
@@ -170,24 +177,20 @@ export class Workspace {
       }
       throw e;
     }
+
     const total = stats.size;
     const offset = Math.max(0, options.offset || 0);
     // 默认读取 5000 字节，最大支持 10MB
     const length = Math.min(10 * 1024 * 1024, options.length || 5000);
 
-    // 使用 Buffer 读取
-    const fd = await import('node:fs').then(fs => new Promise((resolve, reject) => {
-      fs.open(fullPath, 'r', (err, fd) => err ? reject(err) : resolve(fd));
-    }));
-
+    const fsPromises = await import('node:fs/promises');
+    const handle = await fsPromises.open(fullPath, 'r');
     try {
       const buffer = Buffer.alloc(length);
-      const { bytesRead } = await import('node:fs').then(fs => new Promise((resolve, reject) => {
-        fs.read(fd, buffer, 0, length, offset, (err, bytesRead) => err ? reject(err) : resolve({ bytesRead }));
-      }));
-
-      const resultBuffer = buffer.slice(0, bytesRead);
-      const mimeType = await this.getMetadata(relativePath).then(m => m.mimeType).catch(() => 'application/octet-stream');
+      const { bytesRead } = await handle.read(buffer, 0, length, offset);
+      const resultBuffer = buffer.subarray(0, bytesRead);
+      
+      const mimeType = await this.getFileInfo(relativePath).then(m => m?.mimeType).catch(() => 'application/octet-stream') || 'application/octet-stream';
       
       let content;
       if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/javascript') {
@@ -204,7 +207,7 @@ export class Workspace {
         mimeType
       };
     } finally {
-      await import('node:fs').then(fs => fs.close(fd, () => {}));
+      await handle.close();
     }
   }
 
@@ -216,14 +219,40 @@ export class Workspace {
       throw new Error("path_traversal_blocked");
     }
 
+    if (!options.operator) {
+      throw new Error(`deleteFile_missing_operator: ${relativePath}`);
+    }
+    if (!options.messageId) {
+      throw new Error(`deleteFile_missing_messageId: ${relativePath}`);
+    }
+
     const fullPath = path.resolve(this.rootPath, relativePath);
     await unlink(fullPath);
 
-    // 删除元数据
-    const fileMetaPath = path.join(this.metaDir, relativePath + ".json");
-    try { await unlink(fileMetaPath); } catch (e) {}
+    // 记录删除历史到元数据文件
+    const existingMeta = await this._readFileMeta(relativePath);
+    const fileMeta = {
+      ...existingMeta,
+      path: relativePath,
+      deleted: true,
+      deletedAt: null
+    };
 
-    // 更新全局元数据
+    const record = {
+      operator: options.operator,
+      messageId: options.messageId,
+      timestamp: new Date().toISOString(),
+      action: 'delete'
+    };
+
+    fileMeta.history.push(record);
+    fileMeta.deleted = true;
+    fileMeta.deletedAt = record.timestamp;
+
+    // 写入文件级元数据（保留完整历史，不随文件物理删除而销毁）
+    await this._writeFileMeta(relativePath, fileMeta);
+
+    // 仅从全局索引中移除，让前端列表变干净，但保留文件审计历史
     await this._removeFromGlobalMeta(relativePath);
 
     return { ok: true };
@@ -243,7 +272,7 @@ export class Workspace {
    * 获取文件详细历史
    */
   async getFileHistory(relativePath) {
-    const fileMetaPath = path.join(this.metaDir, relativePath + ".json");
+    const fileMetaPath = path.join(this.metaDir, relativePath);
     const content = await readFile(fileMetaPath, "utf8");
     return JSON.parse(content).history;
   }
@@ -255,7 +284,10 @@ export class Workspace {
     const globalMeta = await this._readGlobalMeta();
     const dirs = new Set();
     Object.keys(globalMeta.files).forEach(filePath => {
-      let parts = filePath.split(/[/\\]/);
+      // 统一使用正斜杠处理路径
+      const normalizedPath = filePath.replace(/\\/g, "/");
+      const parts = normalizedPath.split("/");
+      // 如果文件在子目录下，每一级父目录都算一个目录
       for (let i = 1; i < parts.length; i++) {
         dirs.add(parts.slice(0, i).join('/'));
       }
@@ -351,13 +383,31 @@ export class Workspace {
       if (f.startsWith(".meta")) continue;
       const fullPath = path.resolve(this.rootPath, f);
       const stats = await stat(fullPath);
-      const mimeType = this._detectMimeType(f);
-      newFiles[f] = {
+      // 统一使用正斜杠作为 key
+      const key = f.replace(/\\/g, "/");
+      const mimeType = this._detectMimeType(key);
+      newFiles[key] = {
         type: 'file',
         size: stats.size,
         mimeType,
-        updatedAt: stats.mtime.toISOString()
+        updatedAt: stats.mtime.toISOString(),
+        // 尝试从文件级元数据中恢复最后的操作者信息
+        lastOperator: null,
+        lastMessageId: null
       };
+      
+      try {
+        const fileMetaPath = path.join(this.metaDir, key);
+        if (existsSync(fileMetaPath)) {
+          const metaContent = await readFile(fileMetaPath, "utf8");
+          const fileMeta = JSON.parse(metaContent);
+          const lastRecord = fileMeta.history?.[fileMeta.history.length - 1];
+          if (lastRecord) {
+            newFiles[key].lastOperator = lastRecord.operator;
+            newFiles[key].lastMessageId = lastRecord.messageId;
+          }
+        }
+      } catch (e) { /* ignore recovery failure */ }
     }
 
     const meta = {
@@ -397,7 +447,8 @@ export class Workspace {
       const content = await readFile(this.globalMetaFile, "utf8");
       return JSON.parse(content);
     } catch (e) {
-      return { id: this.id, files: {} };
+      // 仅在文件不存在（初始化）时触发一次同步，之后完全依赖增量更新
+      return await this.sync();
     }
   }
 
@@ -406,7 +457,12 @@ export class Workspace {
    */
   async _updateGlobalMeta(relativePath, info) {
     const meta = await this._readGlobalMeta();
-    meta.files[relativePath.replace(/\\/g, "/")] = info;
+    // 强制转换为正斜杠存储，确保 API 和 getTree 逻辑一致
+    const key = relativePath.replace(/\\/g, "/");
+    meta.files[key] = {
+      ...(meta.files[key] || {}),
+      ...info
+    };
     meta.lastSync = new Date().toISOString();
     await mkdir(this.metaDir, { recursive: true });
     await writeFile(this.globalMetaFile, JSON.stringify(meta, null, 2));
@@ -417,7 +473,36 @@ export class Workspace {
    */
   async _removeFromGlobalMeta(relativePath) {
     const meta = await this._readGlobalMeta();
-    delete meta.files[relativePath.replace(/\\/g, "/")];
+    const key = relativePath.replace(/\\/g, "/");
+    delete meta.files[key];
     await writeFile(this.globalMetaFile, JSON.stringify(meta, null, 2));
+  }
+
+  /**
+   * 读取文件级元数据
+   * @private
+   */
+  async _readFileMeta(relativePath) {
+    const fileMetaPath = path.join(this.metaDir, relativePath);
+    try {
+      const content = await readFile(fileMetaPath, "utf8");
+      return JSON.parse(content);
+    } catch (e) {
+      return {
+        path: relativePath,
+        history: [],
+        deleted: false
+      };
+    }
+  }
+
+  /**
+   * 写入文件级元数据
+   * @private
+   */
+  async _writeFileMeta(relativePath, meta) {
+    const fileMetaPath = path.join(this.metaDir, relativePath);
+    await mkdir(path.dirname(fileMetaPath), { recursive: true });
+    await writeFile(fileMetaPath, JSON.stringify(meta, null, 2));
   }
 }

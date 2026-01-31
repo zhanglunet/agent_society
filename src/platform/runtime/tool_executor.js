@@ -355,6 +355,20 @@ export class ToolExecutor {
           }
         }
       },
+      {
+        type: "function",
+        function: {
+          name: "delete_file",
+          description: "删除工作空间内的指定文件。",
+          parameters: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "要删除的文件相对路径" }
+            },
+            required: ["path"]
+          }
+        }
+      },
       // 工作空间信息
       {
         type: "function",
@@ -428,6 +442,8 @@ export class ToolExecutor {
           return await this._executeWriteFile(ctx, args);
         case "list_files":
           return await this._executeListFiles(ctx, args);
+        case "delete_file":
+          return await this._executeDeleteFile(ctx, args);
         case "get_workspace_info":
           return await this._executeGetWorkspaceInfo(ctx, args);
         default:
@@ -995,6 +1011,22 @@ export class ToolExecutor {
     }
     const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
     return await ws.listFiles(args.path ?? ".");
+  }
+
+  async _executeDeleteFile(ctx, args) {
+    const runtime = this.runtime;
+    const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+    if (!workspaceId) {
+      return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
+    }
+    
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    const result = await ws.deleteFile(args.path, { 
+      operator: ctx.agent?.id,
+      messageId: ctx.currentMessage?.id
+    });
+    
+    return result;
   }
 
   async _executeGetWorkspaceInfo(ctx, args) {

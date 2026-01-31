@@ -3014,6 +3014,7 @@ export class HTTPServer {
   async _handleGetWorkspaceFiles(workspaceId, res) {
     try {
       const ws = await this._workspaceManager.getWorkspace(workspaceId);
+      
       const meta = await ws._readGlobalMeta();
       const tree = await ws.getTree();
       

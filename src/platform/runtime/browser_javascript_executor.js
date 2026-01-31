@@ -489,9 +489,9 @@ export class BrowserJavaScriptExecutor {
         // 写入文件到工作区
         await workspace.writeFile(fileName, pngBuffer, {
           mimeType: "image/png",
+          operator: agentId,
+          messageId: messageId,
           meta: {
-            messageId,
-            agentId,
             name: name.trim(),
             width: canvasSize.width,
             height: canvasSize.height,
