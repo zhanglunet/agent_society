@@ -97,6 +97,9 @@ export class HTTPServer {
     if (runtime && runtime.uiCommandBroker) {
       this._uiCommandBroker = runtime.uiCommandBroker;
     }
+    if (runtime && runtime.workspaceManager) {
+      this._workspaceManager = runtime.workspaceManager;
+    }
   }
 
   /**
@@ -116,10 +119,8 @@ export class HTTPServer {
    */
   setRuntimeDir(runtimeDir) {
     this._runtimeDir = runtimeDir;
-    // 更新工作区管理器的目录
-    if (this._workspaceManager) {
-      this._workspaceManager.setWorkspacesDir(path.join(runtimeDir, "workspaces"));
-    }
+    // 不再这里更新工作区管理器的目录，因为在 setRuntime 中已经继承了 Runtime 的 workspaceManager，
+    // 其目录由 Runtime 统一管理。在这里修改会导致路径不一致（runtimeDir/workspaces vs dataDir/workspaces）。
   }
 
   /**

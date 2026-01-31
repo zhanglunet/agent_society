@@ -220,10 +220,10 @@ export class JavaScriptExecutor {
           // 写入文件到工作区
           await ws.writeFile(fileName, pngBuffer, {
             mimeType: "image/png",
+            operator: agentId,
+            messageId,
             meta: {
               source: "canvas",
-              messageId,
-              agentId,
               width: canvas.width,
               height: canvas.height,
               canvasIndex: i

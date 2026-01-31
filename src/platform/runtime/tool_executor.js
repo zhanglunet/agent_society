@@ -991,7 +991,7 @@ export class ToolExecutor {
     const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
     const result = await ws.writeFile(args.path, args.content, { 
       mimeType: args.mimeType,
-      agentId: ctx.agent?.id,
+      operator: ctx.agent?.id,
       messageId: ctx.currentMessage?.id
     });
     

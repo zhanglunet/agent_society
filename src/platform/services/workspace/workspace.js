@@ -64,7 +64,10 @@ export class Workspace {
     const ext = extractExtension(relativePath);
     if (ext) {
       const e = ext.toLowerCase();
-      if (['.txt', '.md', '.js', '.json', '.ts', '.py', '.c', '.cpp', '.h', '.sh', '.bat', '.ps1', '.yaml', '.yml'].includes(e)) return 'text/plain';
+      // 这里的 MIME 类型映射应与前端和系统内部语义一致
+      if (['.txt', '.md', '.ts', '.py', '.c', '.cpp', '.h', '.sh', '.bat', '.ps1', '.yaml', '.yml'].includes(e)) return 'text/plain';
+      if (e === '.js') return 'application/javascript';
+      if (e === '.json') return 'application/json';
       if (['.jpg', '.jpeg'].includes(e)) return 'image/jpeg';
       if (e === '.png') return 'image/png';
       if (e === '.gif') return 'image/gif';
@@ -119,6 +122,7 @@ export class Workspace {
     const existingMeta = await this._readFileMeta(relativePath);
     const fileMeta = {
       ...existingMeta,
+      ...options.meta, // 保留传入的额外元数据（如图片宽高）
       path: relativePath,
       mimeType,
       deleted: false
@@ -146,6 +150,7 @@ export class Workspace {
 
     // 更新全局索引（仅保留最新高频数据）
     await this._updateGlobalMeta(relativePath, {
+      ...options.meta, // 同步保留到全局高频索引
       type: 'file',
       size: buffer.length,
       mimeType,
@@ -302,12 +307,13 @@ export class Workspace {
   async getFileInfo(relativePath) {
     if (!this._isPathSafe(relativePath)) throw new Error("path_traversal_blocked");
     const meta = await this._readGlobalMeta();
-    const info = meta.files[relativePath.replace(/\\/g, "/")];
+    const key = relativePath.replace(/\\/g, "/");
+    const info = meta.files[key];
     if (!info) return null;
     
     return {
-      path: relativePath,
-      filename: path.basename(relativePath),
+      path: key,
+      filename: path.basename(key),
       ...info,
       isBinary: !info.mimeType.startsWith('text/') && 
                 info.mimeType !== 'application/json' && 
@@ -320,7 +326,7 @@ export class Workspace {
    */
   async listFiles(subDir = ".") {
     const globalMeta = await this._readGlobalMeta();
-    const normalizedSubDir = subDir === "." ? "" : (subDir.endsWith("/") ? subDir : subDir + "/");
+    const normalizedSubDir = subDir === "." ? "" : (subDir.replace(/\\/g, "/").endsWith("/") ? subDir.replace(/\\/g, "/") : subDir.replace(/\\/g, "/") + "/");
     
     return Object.entries(globalMeta.files)
       .filter(([path]) => path.startsWith(normalizedSubDir) && !path.slice(normalizedSubDir.length).includes("/"))
@@ -445,7 +451,14 @@ export class Workspace {
   async _readGlobalMeta() {
     try {
       const content = await readFile(this.globalMetaFile, "utf8");
-      return JSON.parse(content);
+      const meta = JSON.parse(content);
+      // 如果文件列表为空，但目录确实存在，触发一次同步补偿
+      if (Object.keys(meta.files).length === 0) {
+        if (existsSync(this.rootPath)) {
+          return await this.sync();
+        }
+      }
+      return meta;
     } catch (e) {
       // 仅在文件不存在（初始化）时触发一次同步，之后完全依赖增量更新
       return await this.sync();
