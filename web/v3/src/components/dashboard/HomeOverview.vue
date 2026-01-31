@@ -2,7 +2,7 @@
 import { useOrgStore } from '../../stores/org';
 import { useAppStore } from '../../stores/app';
 import { useChatStore } from '../../stores/chat';
-import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
@@ -16,24 +16,12 @@ const chatStore = useChatStore();
 const newGoal = ref('');
 const isCreating = ref(false);
 const showChat = ref(false);
-const chatScrollRef = ref<HTMLElement | null>(null);
 
 // 获取除了首页之外的所有组织
 const organizations = computed(() => orgStore.orgs.filter(o => o.id !== 'home'));
 
 // 获取 root 的当前会话消息
 const rootMessages = computed(() => chatStore.getSessionMessages('root'));
-
-// 自动滚动到底部
-watch(rootMessages, () => {
-  if (showChat.value) {
-    setTimeout(() => {
-      if (chatScrollRef.value) {
-        chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight;
-      }
-    }, 100);
-  }
-}, { deep: true });
 
 let pollTimer: any = null;
 const startPolling = () => {
@@ -126,7 +114,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
                 class="chat-expand-animation border border-[var(--border)] rounded-xl bg-[var(--surface-2)] overflow-hidden mb-4"
               >
                 <div 
-                  ref="chatScrollRef"
                   class="p-4 overflow-y-auto"
                   style="max-height: 50vh; min-height: 100px;"
                 >

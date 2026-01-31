@@ -139,12 +139,14 @@ const stopPolling = () => {
   }
 };
 
-onMounted(() => {
-  loadMessages();
+onMounted(async () => {
+  await loadMessages();
   startPolling();
   if (messageContainer.value) {
     messageContainer.value.addEventListener('scroll', handleScroll);
   }
+  // 初始加载完成后强制滚动到底部
+  scrollToBottom(true);
 });
 
 onUnmounted(() => {
@@ -155,8 +157,8 @@ onUnmounted(() => {
 });
 
 // 监听 activeAgentId 的变化，重新加载消息
-watch(activeAgentId, () => {
-  loadMessages();
+watch(activeAgentId, async () => {
+  await loadMessages();
   startPolling();
   // 只有在没有待滚动消息时，才默认滚动到底部
   if (!chatStore.pendingScrollMessageId) {
@@ -165,8 +167,8 @@ watch(activeAgentId, () => {
 });
 
 // 监听 orgId 变化
-watch(() => props.orgId, () => {
-  loadMessages();
+watch(() => props.orgId, async () => {
+  await loadMessages();
   startPolling();
   if (!chatStore.pendingScrollMessageId) {
     scrollToBottom(true);
@@ -180,9 +182,12 @@ watch(() => chatStore.pendingScrollMessageId, (newId) => {
   }
 });
 
-// 自动滚动到底部（仅在靠近底部时）
-watch(() => chatStore.chatMessages[activeAgentId.value]?.length, () => {
-  scrollToBottom(false);
+// 自动滚动到底部（仅在靠近底部且消息增加时）
+watch(() => chatStore.chatMessages[activeAgentId.value]?.length, (newLen, oldLen) => {
+  // 只有当消息数量真正增加时（比如收到新消息或发送消息），才触发自动滚动
+  if (newLen !== undefined && (oldLen === undefined || newLen > oldLen)) {
+    scrollToBottom(false);
+  }
 }, { deep: true });
 
 const sendMessage = async () => {
