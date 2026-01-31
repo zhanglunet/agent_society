@@ -6,7 +6,6 @@
 ## 文件列表
 - agent.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“智能体实例：封装岗位信息与消息处理入口。”，导出符号：Agent。
 - agents.md: 功能：本目录说明文档。责任：描述目录综述、文件列表与子目录列表。内部结构：包含“综述 / 文件列表 / 子目录列表”三部分。
-- behaviors.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“创建“协调岗”的行为：接收任务→自组织创建写作岗→委派→汇总回传。 @returns {(ctx:any, message:any)=>Promise<void>}”，导出符号：createCoordinatorBehavior、createWriterBehavior。
 
 ## 子目录列表
 - （无）
