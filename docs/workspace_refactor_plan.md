@@ -16,12 +16,13 @@
 - **空间管理**：分配、创建、销毁工作区目录。
 - **文件操作**：提供安全的文件读写、删除、重命名、列举功能。
 - **元数据与历史追踪 (Metadata & History Tracking)**：
-  - 在每个工作区根目录维护 `.workspace.json`。
-  - **文件当前状态**：记录每个文件的 MIME 类型、创建信息、最后修改信息及关联的消息 ID。
-  - **操作历史记录 (Audit Log)**：
-    - 记录所有 `create`, `update`, `delete` 操作。
-    - 包含：操作时间 (`timestamp`)、操作类型 (`operation`)、操作者 (`operator`: agentId/userId)、关联消息 (`messageId`)、文件路径 (`path`)。
-    - **注意**：仅记录操作行为和元数据，不保留历史版本的文件内容。
+  - **位置与结构**：在每个工作区根目录下创建 `.meta` 隐藏文件夹。
+    - **全局元数据 (`.meta/.meta`)**：存储工作区的全局状态、最后同步时间。**关键：存储所有文件和目录的基本信息（高频数据）**，包括路径、类型、大小、修改时间、MIME 类型。只要读取此文件，即可推断出完整的目录结构。
+    - **文件级元数据 (`.meta/{path}`)**：存储单个文件的详细、低频数据。例如：详细修改历史、关联的消息 ID 列表、复杂的状态数据。
+  - **加载策略**：UI 导航和目录树构建仅读取 `.meta/.meta`；具体查看文件属性或操作审计日志时才读取文件级元数据。
+  - **同步要求**：文件操作成功后，必须同步更新对应的文件级元数据，并增量或全量更新全局元数据。
+- **并发处理**：
+  - **无锁设计**：由于 Node.js 的单线程特性，且文件操作多为异步非阻塞，不引入复杂的锁机制。异步竞争导致的文件状态微小偏差可通过元数据同步和审计日志回溯，不视为系统故障。
 - **路径安全**：强制执行路径安全检查，防止路径遍历攻击。
 - **分层访问模型 (关键设计原则)**：
   - **智能体层 (Agent Tier)**: 智能体在处理任务时，其工作区是天然隔离且隐式的。智能体调用的工具（如 `read_file`, `write_file`）**不需要提供 `workspaceId`**，只需要提供相对路径。系统负责从智能体的执行上下文中自动提取并注入 `workspaceId`。
@@ -58,15 +59,21 @@ class Workspace {
     return path.join(this.workspacesDir, this.id);
   }
 
-  // 文件操作 (自动维护 .workspace.json 中的历史记录)
+  // 元数据目录
+  get metaDir() {
+    return path.join(this.rootPath, ".meta");
+  }
+
+  // 文件操作 (维护 .meta/ 下的对应元数据文件)
   async writeFile(relativePath, content, options = { operator, messageId }) {}
   async readFile(relativePath) {}
-  async listFiles(subDir) {}
+  async listFiles(subDir) {} // 获取指定目录下的文件列表（包含基本信息）
   async deleteFile(relativePath, options = { operator, messageId }) {}
   async getMetadata(relativePath) {}
-  async getHistory() {} // 获取该工作区的操作审计日志
-  async getTree() {} // 从元数据推断并返回完整的树状目录结构
-  async sync() {} // 重新扫描物理磁盘，同步新增/删除的文件到元数据，记录 operator: 'user'
+  async getHistory(limit = 100) {} // 从 .meta/.meta 读取全局日志
+  async getFileHistory(relativePath) {} // 从 .meta/{path} 读取该文件的详细历史
+  async getTree() {} // 从 .meta/.meta 中推断并返回纯目录树结构（不含文件节点）
+  async sync() {} // 同步外部变更并更新 .meta/ 结构
 }
 ```
 
@@ -80,6 +87,9 @@ class Workspace {
 ### 第二阶段：调用点迁移 (Call Sites Migration)
 
 #### 2.1 HTTP Server 迁移
+- **彻底移除 ArtifactId**: 
+  - 删除 `ArtifactIdCodec` 在 HTTP 路由中的所有应用。
+  - 所有接口统一返回 `path` (相对路径)，前端通过 `workspaceId + path` 进行文件定位和预览。
 - **文件上传接口** (`/api/upload`):
   - 修改 `_handleUpload` 逻辑。
   - 从请求中获取目标 `workspaceId`。
@@ -88,10 +98,10 @@ class Workspace {
     - 检查目标路径是否存在同名文件。
     - 若存在，则采用 `文件名 (n).后缀` 的格式进行自动更名（例如 `data.csv` -> `data (1).csv`），确保不覆盖原有文件且文件名不重复。
   - 通过 `workspaceManager.getWorkspace(workspaceId)` 获取对象，并调用 `ws.writeFile(path, buffer, { operator: 'user', messageId: req.body.messageId })`。
-  - 返回格式提供新的 `fileRef` 结构（例如 `workspace:upload/data (1).csv`）。
+  - 返回格式提供新的 `fileRef` 结构（例如 `workspace:upload/data (1).csv`），不再包含 `artifactId`。
 - **工作区服务接口** (`/api/workspace/:workspaceId/*`):
-  - `GET /api/workspace/:workspaceId/list`: 获取文件列表。
-  - `GET /api/workspace/:workspaceId/tree`: **新增：获取完整树状目录结构**。
+  - `GET /api/workspace/:workspaceId/list?path=xxx`: 获取指定目录下的**所有文件和子文件夹**的基本信息。
+  - `GET /api/workspace/:workspaceId/tree`: **获取完整的纯目录树结构（仅文件夹）**。用于 UI 侧边栏导航。
   - `GET /api/workspace/:workspaceId/read/:path`: 读取文件内容。
   - `GET /api/workspace/:workspaceId/history`: **新增：获取操作审计日志**。
   - `POST /api/workspace/:workspaceId/sync`: **新增：手动触发文件系统同步**。
@@ -99,13 +109,15 @@ class Workspace {
   - 内部逻辑均先获取 `Workspace` 对象再操作。
 
 #### 2.2 工具执行器迁移 (Tool Executor)
+- **清理废弃工具**:
+  - 从 `ToolExecutor` 的 `executeToolCall` 开关语句中物理删除 `put_artifact`, `get_artifact`, `show_artifacts` 的执行分支。
 - **上下文绑定**:
   - `ToolExecutor` 在分发工具调用时，必须从 `ctx` (上下文) 中识别当前所属的任务 ID (`taskId`)。
   - 执行器先通过 `workspaceManager.getWorkspace(ctx.taskId)` 获取工作区对象。
   - 智能体定义的 `read_file`, `write_file` 等工具参数中**不再包含 `workspaceId`**。
 - **write_file (原 put_artifact)**:
-  - 接口：`write_file(path, content)`
-  - 逻辑：获取 `Workspace` 对象后调用 `ws.writeFile(path, content, { operator: ctx.agentId, messageId: ctx.messageId })`。
+  - 接口：`write_file(path, content, mimeType)`
+  - 逻辑：获取 `Workspace` 对象后调用 `ws.writeFile(path, content, { operator: ctx.agentId, messageId: ctx.messageId, mimeType })`。
 - **read_file (原 get_artifact)**:
   - 接口：`read_file(path)`
   - 逻辑：获取 `Workspace` 对象后调用 `ws.readFile(path)`。
@@ -118,8 +130,11 @@ class Workspace {
   - **注意**：仅返回文件列表数据，不触发 UI 展示。
 - **show_files (原 show_artifacts 的 UI 职责)**:
   - 接口：`show_files(paths)`
-  - 逻辑：接受一个或多个文件相对路径，向前端返回特定的 UI 指令/数据结构，使这些文件在聊天界面或工件面板中高亮展示，引起用户注意。
+  - 逻辑：接受一个或多个文件相对路径，向前端返回特定的 UI 指令/数据结构，使这些文件在聊天界面或文件浏览器面板中高亮展示。
   - **返回值**：返回包含文件元数据和 UI 展示指令的对象。
+- **get_workspace_info**:
+  - 接口：`get_workspace_info()`
+  - 逻辑：返回工作区的统计信息（文件数、总大小、最后修改时间等）。
 
 #### 2.3 扩展模块迁移 (Modules Migration)
 - **SSH 模块** (`modules/ssh/file_transfer.js`):
