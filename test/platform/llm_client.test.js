@@ -1,6 +1,6 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("LlmClient", () => {
   let client;
@@ -25,20 +25,20 @@ describe("LlmClient", () => {
     });
   });
 
-  describe("æž„é€ å‡½æ•°", () => {
-    it("åº”åˆå§‹åŒ– _activeRequests Map", () => {
+  describe("¹¹Ôìº¯Êý", () => {
+    it("Ó¦³õÊ¼»¯ _activeRequests Map", () => {
       expect(client._activeRequests).toBeInstanceOf(Map);
       expect(client._activeRequests.size).toBe(0);
     });
   });
 
   describe("abort()", () => {
-    it("å½“æ²¡æœ‰æ´»è·ƒè¯·æ±‚æ—¶åº”è¿”å›ž false", () => {
+    it("µ±Ã»ÓÐ»îÔ¾ÇëÇóÊ±Ó¦·µ»Ø false", () => {
       const result = client.abort("non-existent-agent");
       expect(result).toBe(false);
     });
 
-    it("å½“æœ‰æ´»è·ƒè¯·æ±‚æ—¶åº”è¿”å›ž true å¹¶è°ƒç”¨ abort", () => {
+    it("µ±ÓÐ»îÔ¾ÇëÇóÊ±Ó¦·µ»Ø true ²¢µ÷ÓÃ abort", () => {
       const mockController = {
         abort: vi.fn(),
         signal: { aborted: false }
@@ -52,7 +52,7 @@ describe("LlmClient", () => {
       expect(client._activeRequests.has("test-agent")).toBe(false);
     });
 
-    it("ä¸­æ–­åŽåº”ä»Ž _activeRequests ä¸­ç§»é™¤", () => {
+    it("ÖÐ¶ÏºóÓ¦´Ó _activeRequests ÖÐÒÆ³ý", () => {
       const mockController = {
         abort: vi.fn(),
         signal: { aborted: false }
@@ -68,16 +68,16 @@ describe("LlmClient", () => {
   });
 
   describe("hasActiveRequest()", () => {
-    it("å½“æ²¡æœ‰æ´»è·ƒè¯·æ±‚æ—¶åº”è¿”å›ž false", () => {
+    it("µ±Ã»ÓÐ»îÔ¾ÇëÇóÊ±Ó¦·µ»Ø false", () => {
       expect(client.hasActiveRequest("any-agent")).toBe(false);
     });
 
-    it("å½“æœ‰æ´»è·ƒè¯·æ±‚æ—¶åº”è¿”å›ž true", () => {
+    it("µ±ÓÐ»îÔ¾ÇëÇóÊ±Ó¦·µ»Ø true", () => {
       client._activeRequests.set("test-agent", { abort: vi.fn() });
       expect(client.hasActiveRequest("test-agent")).toBe(true);
     });
 
-    it("åº”åŒºåˆ†ä¸åŒçš„ agentId", () => {
+    it("Ó¦Çø·Ö²»Í¬µÄ agentId", () => {
       client._activeRequests.set("agent-1", { abort: vi.fn() });
       
       expect(client.hasActiveRequest("agent-1")).toBe(true);
@@ -85,16 +85,16 @@ describe("LlmClient", () => {
     });
   });
 
-  describe("AbortController ç”Ÿå‘½å‘¨æœŸ", () => {
-    it("chat() åº”åœ¨è¯·æ±‚å‰å°† AbortController æ·»åŠ åˆ° _activeRequests", async () => {
-      // æ¨¡æ‹Ÿ OpenAI å®¢æˆ·ç«¯
+  describe("AbortController ÉúÃüÖÜÆÚ", () => {
+    it("chat() Ó¦ÔÚÇëÇóÇ°½« AbortController Ìí¼Óµ½ _activeRequests", async () => {
+      // Ä£Äâ OpenAI ¿Í»§¶Ë
       let capturedSignal = null;
       client._client = {
         chat: {
           completions: {
             create: vi.fn().mockImplementation(async (payload, options) => {
               capturedSignal = options?.signal;
-              // éªŒè¯åœ¨è¯·æ±‚æ—¶ AbortController å·²è¢«æ·»åŠ 
+              // ÑéÖ¤ÔÚÇëÇóÊ± AbortController ÒÑ±»Ìí¼Ó
               expect(client._activeRequests.has("test-agent")).toBe(true);
               return {
                 choices: [{ message: { content: "test response" } }],
@@ -114,7 +114,7 @@ describe("LlmClient", () => {
       expect(capturedSignal).toBeInstanceOf(AbortSignal);
     });
 
-    it("chat() åº”åœ¨è¯·æ±‚å®ŒæˆåŽä»Ž _activeRequests ä¸­ç§»é™¤", async () => {
+    it("chat() Ó¦ÔÚÇëÇóÍê³Éºó´Ó _activeRequests ÖÐÒÆ³ý", async () => {
       client._client = {
         chat: {
           completions: {
@@ -134,7 +134,7 @@ describe("LlmClient", () => {
       expect(client._activeRequests.has("test-agent")).toBe(false);
     });
 
-    it("chat() åº”åœ¨è¯·æ±‚å¤±è´¥åŽä»Ž _activeRequests ä¸­ç§»é™¤", async () => {
+    it("chat() Ó¦ÔÚÇëÇóÊ§°Üºó´Ó _activeRequests ÖÐÒÆ³ý", async () => {
       client._client = {
         chat: {
           completions: {
@@ -151,7 +151,7 @@ describe("LlmClient", () => {
       expect(client._activeRequests.has("test-agent")).toBe(false);
     });
 
-    it("chat() åº”åœ¨è¯·æ±‚è¢«ä¸­æ–­åŽä»Ž _activeRequests ä¸­ç§»é™¤", async () => {
+    it("chat() Ó¦ÔÚÇëÇó±»ÖÐ¶Ïºó´Ó _activeRequests ÖÐÒÆ³ý", async () => {
       const abortError = new Error("Request aborted");
       abortError.name = "AbortError";
       
@@ -171,7 +171,7 @@ describe("LlmClient", () => {
       expect(client._activeRequests.has("test-agent")).toBe(false);
     });
 
-    it("æ²¡æœ‰ agentId æ—¶ä¸åº”æ·»åŠ åˆ° _activeRequests", async () => {
+    it("Ã»ÓÐ agentId Ê±²»Ó¦Ìí¼Óµ½ _activeRequests", async () => {
       client._client = {
         chat: {
           completions: {
@@ -185,15 +185,15 @@ describe("LlmClient", () => {
 
       await client.chat({
         messages: [{ role: "user", content: "test" }],
-        meta: {} // æ²¡æœ‰ agentId
+        meta: {} // Ã»ÓÐ agentId
       });
 
       expect(client._activeRequests.size).toBe(0);
     });
   });
 
-  describe("ä¸­æ–­é”™è¯¯å¤„ç†", () => {
-    it("åº”æ­£ç¡®å¤„ç† AbortError å¹¶ä¸é‡è¯•", async () => {
+  describe("ÖÐ¶Ï´íÎó´¦Àí", () => {
+    it("Ó¦ÕýÈ·´¦Àí AbortError ²¢²»ÖØÊÔ", async () => {
       const abortError = new Error("Request aborted");
       abortError.name = "AbortError";
       
@@ -208,14 +208,14 @@ describe("LlmClient", () => {
       await expect(client.chat({
         messages: [{ role: "user", content: "test" }],
         meta: { agentId: "test-agent" }
-      })).rejects.toThrow("LLM è¯·æ±‚å·²è¢«ä¸­æ–­");
+      })).rejects.toThrow("LLM ÇëÇóÒÑ±»ÖÐ¶Ï");
 
-      // åº”è¯¥åªè°ƒç”¨ä¸€æ¬¡ï¼Œä¸é‡è¯•
+      // Ó¦¸ÃÖ»µ÷ÓÃÒ»´Î£¬²»ÖØÊÔ
       expect(client._client.chat.completions.create).toHaveBeenCalledTimes(1);
     });
 
-    it("å½“ signal å·²è¢«ä¸­æ–­æ—¶åº”ç«‹å³æŠ›å‡ºé”™è¯¯", async () => {
-      // é¢„å…ˆè®¾ç½®ä¸€ä¸ªå·²ä¸­æ–­çš„ AbortController
+    it("µ± signal ÒÑ±»ÖÐ¶ÏÊ±Ó¦Á¢¼´Å×³ö´íÎó", async () => {
+      // Ô¤ÏÈÉèÖÃÒ»¸öÒÑÖÐ¶ÏµÄ AbortController
       const controller = new AbortController();
       controller.abort();
       client._activeRequests.set("test-agent", controller);
@@ -230,12 +230,12 @@ describe("LlmClient", () => {
         }
       };
 
-      // ç›´æŽ¥è°ƒç”¨ _chatWithRetry å¹¶ä¼ å…¥å·²ä¸­æ–­çš„ signal
+      // Ö±½Óµ÷ÓÃ _chatWithRetry ²¢´«ÈëÒÑÖÐ¶ÏµÄ signal
       await expect(client._chatWithRetry(
         { messages: [{ role: "user", content: "test" }], meta: { agentId: "test-agent" } },
         3,
         controller.signal
-      )).rejects.toThrow("LLM è¯·æ±‚å·²è¢«ä¸­æ–­");
+      )).rejects.toThrow("LLM ÇëÇóÒÑ±»ÖÐ¶Ï");
     });
   });
 });

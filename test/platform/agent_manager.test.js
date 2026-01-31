@@ -3,9 +3,9 @@
  * 
  * 测试 AgentManager 的核心功能：
  * - 创建和注册智能体
- * - 智能体生命周期管理
- * - 智能体状态查询
- * - 智能体终止
+ * - 智能体生命周期管�?
+ * - 智能体状态查�?
+ * - 智能体终�?
  * - 从组织状态恢复智能体
  */
 
@@ -49,7 +49,7 @@ describe("AgentManager", () => {
       rolePrompt: "Test role prompt"
     });
 
-    // 创建智能体
+    // 创建智能�?
     const agent = await runtime._agentManager.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
@@ -65,7 +65,7 @@ describe("AgentManager", () => {
     expect(runtime._agents.has(agent.id)).toBe(true);
     expect(runtime._agentMetaById.has(agent.id)).toBe(true);
 
-    // 验证元数据
+    // 验证元数�?
     const meta = runtime._agentMetaById.get(agent.id);
     expect(meta.parentAgentId).toBe("root");
     expect(meta.roleId).toBe(role.id);
@@ -102,7 +102,7 @@ describe("AgentManager", () => {
       })
     ).rejects.toThrow("parentAgentId_required");
 
-    // 测试 parentAgentId 为 null
+    // 测试 parentAgentId �?null
     await expect(
       runtime._agentManager.spawnAgent({
         roleId: role.id,
@@ -122,7 +122,7 @@ describe("AgentManager", () => {
       parentAgentId: "root"
     });
 
-    // 创建子岗位
+    // 创建子岗�?
     const childRole = await runtime.org.createRole({
       name: "child-role",
       rolePrompt: "Child role",
@@ -155,7 +155,7 @@ describe("AgentManager", () => {
   });
 
   test("listAgentInstances returns all registered agents", async () => {
-    // 创建多个智能体
+    // 创建多个智能�?
     const role1 = await runtime.org.createRole({ name: "role1", rolePrompt: "p1" });
     const role2 = await runtime.org.createRole({ name: "role2", rolePrompt: "p2" });
 
@@ -164,7 +164,7 @@ describe("AgentManager", () => {
 
     const agents = runtime._agentManager.listAgentInstances();
 
-    // 应该包含至少两个新创建的智能体
+    // 应该包含至少两个新创建的智能�?
     expect(agents.length).toBeGreaterThanOrEqual(2);
     expect(agents.some(a => a.roleName === "role1")).toBe(true);
     expect(agents.some(a => a.roleName === "role2")).toBe(true);
@@ -231,7 +231,7 @@ describe("AgentManager", () => {
       parentAgentId: child.id
     });
 
-    // 构建上下文 - 使用 root 作为调用者
+    // 构建上下�?- 使用 root 作为调用�?
     const rootAgent = runtime._agents.get("root");
     const ctx = { agent: rootAgent };
 
@@ -245,7 +245,7 @@ describe("AgentManager", () => {
     expect(result).toBeTruthy();
     expect(result.ok || result.error).toBeTruthy();
     
-    // 如果成功，验证智能体被移除
+    // 如果成功，验证智能体被移�?
     if (result.ok) {
       expect(result.terminatedAgentId).toBe(parent.id);
       expect(runtime._agents.has(parent.id)).toBe(false);
@@ -268,7 +268,7 @@ describe("AgentManager", () => {
       parentAgentId: "root"
     });
 
-    // 尝试让 agent1 终止 agent2（不是子智能体）
+    // 尝试�?agent1 终止 agent2（不是子智能体）
     const ctx = { agent: agent1 };
     const result = await runtime._executeTerminateAgent(ctx, {
       agentId: agent2.id
@@ -334,7 +334,7 @@ describe("AgentManager", () => {
       parentAgentId: "root"
     });
 
-    // 等待一段时间
+    // 等待一段时�?
     await new Promise(r => setTimeout(r, 50));
 
     const idleTime = runtime._agentManager.getAgentIdleTime(agent.id);
@@ -355,13 +355,13 @@ describe("AgentManager", () => {
       parentAgentId: agent1.id
     });
 
-    // agent1 是 root 的直接子智能体，应该有工作空间
+    // agent1 �?root 的直接子智能体，应该有工作空�?
     const workspaceId = runtime._agentManager.findWorkspaceIdForAgent(agent2.id);
     expect(workspaceId).toBe(agent1.id);
   });
 
   test("restoreAgentsFromOrg restores agents from organization state", async () => {
-    // 创建智能体
+    // 创建智能�?
     const role = await runtime.org.createRole({ name: "test-role", rolePrompt: "p" });
     const agent = await runtime._agentManager.spawnAgent({
       roleId: role.id,
@@ -370,11 +370,11 @@ describe("AgentManager", () => {
 
     const agentId = agent.id;
 
-    // 从运行时移除智能体（模拟重启）
+    // 从运行时移除智能体（模拟重启�?
     runtime._agents.delete(agentId);
     runtime._agentMetaById.delete(agentId);
 
-    // 恢复智能体
+    // 恢复智能�?
     await runtime._agentManager.restoreAgentsFromOrg();
 
     // 验证智能体被恢复

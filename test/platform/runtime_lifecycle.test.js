@@ -1,19 +1,19 @@
-﻿/**
+/**
  * RuntimeLifecycle 单元测试
  * 
- * 测试 RuntimeLifecycle 类的生命周期管理功能，包括：
+ * 测试 RuntimeLifecycle 模块生命周期管理功能，包括：
  * - 智能体创建
  * - 智能体恢复
- * - 智能体注册
- * - 智能体查询
- * - 智能体中断
- * - 工作空间查找
+ * - 行为注册
+ * - 实例查询
+ * - 任务中断
+ * - 工作空间分配
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { RuntimeLifecycle } from "../../src/platform/runtime/runtime_lifecycle.js";
 import { Config } from "../../src/platform/utils/config/config.js";
 
@@ -24,7 +24,7 @@ describe("RuntimeLifecycle", () => {
   
   beforeEach(async () => {
     tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_lifecycle_test_" + Date.now());
-    const artifactsDir = path.resolve(tmpDir, "artifacts");
+    const workspacesDir = path.resolve(tmpDir, "workspaces");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
@@ -33,14 +33,14 @@ describe("RuntimeLifecycle", () => {
       configPath,
       JSON.stringify({
         promptsDir: "config/prompts",
-        artifactsDir,
+        workspacesDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
       "utf8"
     );
 
-    // 创建 Config 服务
+    // 使用 Config 对象
     const configService = new Config(tmpDir);
     
     runtime = new Runtime({ configService });
@@ -66,7 +66,7 @@ describe("RuntimeLifecycle", () => {
       expect(agent.roleName).toBe("test_role");
     });
 
-    test("创建智能体时缺少 parentAgentId 应抛出错误", async () => {
+    test("创建智能体时缺少 parentAgentId 应该抛出错误", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test prompt"
@@ -77,7 +77,7 @@ describe("RuntimeLifecycle", () => {
       })).rejects.toThrow();
     });
 
-    test("以调用者身份创建子智能体", async () => {
+    test("以特定身份创建子智能体", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test prompt"
@@ -90,13 +90,13 @@ describe("RuntimeLifecycle", () => {
       expect(agent).toBeTruthy();
       expect(agent.id).toBeTruthy();
       
-      // 验证父智能体ID被正确设置
+      // 验证父智能体ID是否正确记录
       const meta = runtime._agentMetaById.get(agent.id);
       expect(meta.parentAgentId).toBe("root");
     });
   });
 
-  describe("智能体注册", () => {
+  describe("行为注册", () => {
     test("注册岗位行为", () => {
       const behaviorFactory = (ctx) => async (ctx, msg) => {};
       
@@ -119,7 +119,7 @@ describe("RuntimeLifecycle", () => {
     });
   });
 
-  describe("智能体查询", () => {
+  describe("实例查询", () => {
     test("列出已注册的智能体实例", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
@@ -181,15 +181,15 @@ describe("RuntimeLifecycle", () => {
     });
   });
 
-  describe("智能体中断", () => {
-    test("中止不存在的智能体返回失败", () => {
+  describe("任务中断", () => {
+    test("终止不存在的智能体返回失败", () => {
       const result = lifecycle.abortAgentLlmCall("nonexistent");
       
       expect(result.ok).toBe(false);
       expect(result.aborted).toBe(false);
     });
 
-    test("中止未在等待 LLM 的智能体返回成功但未中止", async () => {
+    test("终止未在等待 LLM 的智能体返回成功但未终止", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test prompt"
@@ -209,7 +209,7 @@ describe("RuntimeLifecycle", () => {
   });
 
   describe("级联停止", () => {
-    test("级联停止所有子智能体", async () => {
+    test("级联停止及其后代智能体", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test prompt"
@@ -250,7 +250,7 @@ describe("RuntimeLifecycle", () => {
         parentAgentId: parent.id
       });
       
-      // 先手动停止子智能体
+      // 手动停止子智能体
       runtime._state.setAgentComputeStatus(child.id, "stopped");
       
       // 级联停止
@@ -261,8 +261,8 @@ describe("RuntimeLifecycle", () => {
     });
   });
 
-  describe("工作空间查找", () => {
-    test("查找智能体的工作空间", async () => {
+  describe("工作空间分配", () => {
+    test("自动分配智能体的工作空间", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test prompt"
@@ -277,11 +277,11 @@ describe("RuntimeLifecycle", () => {
       const workspaceId = lifecycle.findWorkspaceIdForAgent(agent.id);
       
       // 工作空间可能存在也可能不存在，取决于实现
-      // 这里只验证方法不抛出异常
+      // 这里只验证不抛出异常
       expect(typeof workspaceId === "string" || workspaceId === null).toBe(true);
     });
 
-    test("查找不存在的智能体返回 null", () => {
+    test("找不到不存在的智能体返回 null", () => {
       const workspaceId = lifecycle.findWorkspaceIdForAgent("nonexistent");
       
       expect(workspaceId).toBeNull();
@@ -289,7 +289,7 @@ describe("RuntimeLifecycle", () => {
   });
 
   describe("智能体恢复", () => {
-    test("从组织状态恢复智能体", async () => {
+    test("从组织状态恢复智能体实例", async () => {
       // 创建一个智能体
       const role = await runtime.org.createRole({
         name: "test_role",
@@ -307,7 +307,7 @@ describe("RuntimeLifecycle", () => {
       // 恢复智能体
       await lifecycle.restoreAgentsFromOrg();
       
-      // 验证智能体被恢复
+      // 验证实例已恢复
       const instances = lifecycle.listAgentInstances();
       expect(instances.some(i => i.roleName === "test_role")).toBe(true);
     });

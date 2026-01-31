@@ -39,7 +39,7 @@ Bun 支持以下覆盖率报告格式：
 | 模块类别 | 目标覆盖率 | 说明 |
 |---------|-----------|------|
 | 核心模块 (core/) | ≥ 90% | AgentSociety, Runtime, MessageBus, OrgPrimitives |
-| 服务模块 (services/) | ≥ 85% | ArtifactStore, LlmClient, ConversationManager 等 |
+| 服务模块 (services/) | ≥ 85% | WorkspaceManager, LlmClient, ConversationManager 等 |
 | Runtime 子模块 (runtime/) | ≥ 85% | AgentManager, MessageProcessor, ToolExecutor 等 |
 | 工具模块 (utils/) | ≥ 80% | 消息工具、内容工具、配置工具等 |
 | 扩展模块 (extensions/) | ≥ 75% | ModuleLoader, ToolGroupManager |

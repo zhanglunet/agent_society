@@ -1,6 +1,6 @@
 {
   "promptsDir": "config/prompts",
-  "artifactsDir": "data/runtime/artifacts",
+  "workspacesDir": "data/workspaces",
   "runtimeDir": "data/runtime/state",
   "loggingConfigPath": "config/logging.json",
   "maxSteps": 200,

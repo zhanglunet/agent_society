@@ -69,9 +69,6 @@ export class RuntimeTools {
       list_org_template_infos: "org_management",
       get_org_template_org: "org_management",
       localllm_chat: "localllm",
-      put_artifact: "artifact",
-      get_artifact: "artifact",
-      show_artifacts: "artifact",
       read_file: "workspace",
       write_file: "workspace",
       list_files: "workspace",
@@ -86,7 +83,6 @@ export class RuntimeTools {
     const toolsByGroup = {
       org_management: [],
       localllm: [],
-      artifact: [],
       workspace: [],
       command: [],
       network: [],

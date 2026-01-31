@@ -1,9 +1,9 @@
 /**
  * RuntimeState 单元测试
  * 
- * 测试 RuntimeState 类的状态管理功能，包括：
+ * 测试 RuntimeState 类的状态管理功能，包括�?
  * - 智能体注册表管理
- * - 运算状态管理
+ * - 运算状态管�?
  * - 插话队列管理
  * - 对话历史管理
  * - 任务工作空间映射
@@ -34,7 +34,7 @@ describe("RuntimeState", () => {
       expect(state.getAgentCount()).toBe(1);
     });
 
-    test("获取不存在的智能体返回 undefined", () => {
+    test("获取不存在的智能体返�?undefined", () => {
       expect(state.getAgent("nonexistent")).toBeUndefined();
       expect(state.hasAgent("nonexistent")).toBe(false);
     });
@@ -62,7 +62,7 @@ describe("RuntimeState", () => {
       expect(agents.length).toBe(2);
     });
 
-    test("设置和获取智能体元数据", () => {
+    test("设置和获取智能体元数�?, () => {
       const meta = { roleId: "role1", parentAgentId: "root" };
       
       state.setAgentMeta("agent1", meta);
@@ -70,13 +70,13 @@ describe("RuntimeState", () => {
       expect(state.getAgentMeta("agent1")).toEqual(meta);
     });
 
-    test("获取不存在的元数据返回 undefined", () => {
+    test("获取不存在的元数据返�?undefined", () => {
       expect(state.getAgentMeta("nonexistent")).toBeUndefined();
     });
   });
 
-  describe("运算状态管理", () => {
-    test("设置和获取智能体运算状态", () => {
+  describe("运算状态管�?, () => {
+    test("设置和获取智能体运算状�?, () => {
       state.setAgentComputeStatus("agent1", "waiting_llm");
       
       expect(state.getAgentComputeStatus("agent1")).toBe("waiting_llm");
@@ -86,7 +86,7 @@ describe("RuntimeState", () => {
       expect(state.getAgentComputeStatus("agent1")).toBe("idle");
     });
 
-    test("获取所有智能体运算状态", () => {
+    test("获取所有智能体运算状�?, () => {
       state.setAgentComputeStatus("agent1", "waiting_llm");
       state.setAgentComputeStatus("agent2", "processing");
       
@@ -96,7 +96,7 @@ describe("RuntimeState", () => {
       expect(allStatus.agent2).toBe("processing");
     });
 
-    test("状态变更触发回调", () => {
+    test("状态变更触发回�?, () => {
       let callbackCalled = false;
       let callbackAgentId = null;
       let callbackStatus = null;
@@ -129,7 +129,7 @@ describe("RuntimeState", () => {
       expect(state.getActiveProcessingCount()).toBe(0);
     });
 
-    test("获取所有活跃处理的智能体", () => {
+    test("获取所有活跃处理的智能�?, () => {
       state.markAgentAsActivelyProcessing("agent1");
       state.markAgentAsActivelyProcessing("agent2");
       
@@ -151,7 +151,7 @@ describe("RuntimeState", () => {
       expect(state.getInterruptionCount("agent1")).toBe(1);
     });
 
-    test("获取并清空插话队列", () => {
+    test("获取并清空插话队�?, () => {
       const msg1 = { id: "msg1", from: "agent2" };
       const msg2 = { id: "msg2", from: "agent3" };
       
@@ -163,7 +163,7 @@ describe("RuntimeState", () => {
       expect(interruptions.length).toBe(2);
       expect(interruptions[0]).toEqual(msg1);
       expect(interruptions[1]).toEqual(msg2);
-      // 清空后应该没有中断
+      // 清空后应该没有中�?
       expect(state.hasInterruptions("agent1")).toBeFalsy();
     });
 
@@ -173,8 +173,8 @@ describe("RuntimeState", () => {
       expect(interruptions).toEqual([]);
     });
 
-    test("检查不存在的队列返回 false", () => {
-      // hasInterruptions 对于不存在的队列返回 undefined（falsy）
+    test("检查不存在的队列返�?false", () => {
+      // hasInterruptions 对于不存在的队列返回 undefined（falsy�?
       expect(state.hasInterruptions("nonexistent")).toBeFalsy();
       expect(state.getInterruptionCount("nonexistent")).toBe(0);
     });
@@ -200,7 +200,7 @@ describe("RuntimeState", () => {
   });
 
   describe("任务工作空间映射", () => {
-    test("设置和获取任务工作空间", () => {
+    test("设置和获取任务工作空�?, () => {
       state.setTaskWorkspace("task1", "/path/to/workspace");
       
       expect(state.getTaskWorkspace("task1")).toBe("/path/to/workspace");
@@ -210,7 +210,7 @@ describe("RuntimeState", () => {
       expect(state.getTaskWorkspace("nonexistent")).toBeUndefined();
     });
 
-    test("设置和获取智能体任务委托书", () => {
+    test("设置和获取智能体任务委托�?, () => {
       const taskBrief = { taskId: "task1", description: "test task" };
       
       state.setAgentTaskBrief("agent1", taskBrief);
@@ -218,7 +218,7 @@ describe("RuntimeState", () => {
       expect(state.getAgentTaskBrief("agent1")).toEqual(taskBrief);
     });
 
-    test("获取不存在的任务委托书返回 undefined", () => {
+    test("获取不存在的任务委托书返�?undefined", () => {
       expect(state.getAgentTaskBrief("nonexistent")).toBeUndefined();
     });
   });
@@ -235,7 +235,7 @@ describe("RuntimeState", () => {
     test("状态锁保证串行执行", async () => {
       const executionOrder = [];
       
-      // 第一个操作
+      // 第一个操�?
       const op1 = (async () => {
         const release = await state.acquireLock("agent1");
         executionOrder.push("op1-start");
@@ -257,7 +257,7 @@ describe("RuntimeState", () => {
       expect(executionOrder).toEqual(["op1-start", "op1-end", "op2-start", "op2-end"]);
     });
 
-    test("不同智能体的锁互不影响", async () => {
+    test("不同智能体的锁互不影�?, async () => {
       const executionOrder = [];
       
       const op1 = (async () => {
@@ -277,7 +277,7 @@ describe("RuntimeState", () => {
       
       await Promise.all([op1, op2]);
       
-      // agent2 应该在 agent1 完成前就开始执行
+      // agent2 应该�?agent1 完成前就开始执�?
       const agent2StartIndex = executionOrder.indexOf("agent2-start");
       const agent1EndIndex = executionOrder.indexOf("agent1-end");
       expect(agent2StartIndex).toBeLessThan(agent1EndIndex);

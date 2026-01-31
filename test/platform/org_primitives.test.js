@@ -46,17 +46,13 @@ describe("OrgPrimitives", () => {
   });
 
   /**
-   * Property 13: 组织状态持久化一致性
-   * 对于任意创建的岗位或智能体，创建操作完成后立即读取持久化文件应能获取到该记录；
-   * 加载时应验证数据结构的完整性。
-   * 
-   * **验证: 需求 7.1, 7.2**
+   * Property 13: 组织状态持久化一致�?   * 对于任意创建的岗位或智能体，创建操作完成后立即读取持久化文件应能获取到该记录�?   * 加载时应验证数据结构的完整性�?   * 
+   * **验证: 需�?7.1, 7.2**
    */
-  test("Property 13: 组织状态持久化一致性 - 创建岗位后立即可读取", async () => {
+  test("Property 13: 组织状态持久化一致�?- 创建岗位后立即可读取", async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成有效的岗位名称和提示词
-        fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+        // 生成有效的岗位名称和提示�?        fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
         fc.string({ minLength: 0, maxLength: 200 }),
         async (name, rolePrompt) => {
           const runtimeDir = path.resolve(process.cwd(), `test/.tmp/pbt_org_role_${Date.now()}_${Math.random().toString(36).slice(2)}`);
@@ -68,13 +64,11 @@ describe("OrgPrimitives", () => {
             // 创建岗位
             const role = await org.createRole({ name, rolePrompt, createdBy: "root" });
             
-            // 立即读取持久化文件
-            const filePath = path.resolve(runtimeDir, "org.json");
+            // 立即读取持久化文�?            const filePath = path.resolve(runtimeDir, "org.json");
             const raw = await readFile(filePath, "utf8");
             const data = JSON.parse(raw);
             
-            // 验证岗位存在于持久化文件中
-            const persistedRole = data.roles.find(r => r.id === role.id);
+            // 验证岗位存在于持久化文件�?            const persistedRole = data.roles.find(r => r.id === role.id);
             expect(persistedRole).toBeDefined();
             expect(persistedRole.name).toBe(name);
             expect(persistedRole.rolePrompt).toBe(rolePrompt);
@@ -89,13 +83,11 @@ describe("OrgPrimitives", () => {
     );
   });
 
-  test("Property 13: 组织状态持久化一致性 - 创建智能体后立即可读取", async () => {
+  test("Property 13: 组织状态持久化一致�?- 创建智能体后立即可读�?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成有效的岗位名称
-        fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
-        // 生成有效的父智能体ID（非空、非"null"、非"undefined"）
-        fc.string({ minLength: 1, maxLength: 50 }).filter(s => 
+        // 生成有效的岗位名�?        fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
+        // 生成有效的父智能体ID（非空、非"null"、非"undefined"�?        fc.string({ minLength: 1, maxLength: 50 }).filter(s => 
           s.trim().length > 0 && s !== "null" && s !== "undefined"
         ),
         async (roleName, parentAgentId) => {
@@ -105,14 +97,11 @@ describe("OrgPrimitives", () => {
           try {
             const org = new OrgPrimitives({ runtimeDir });
             
-            // 先创建岗位
-            const role = await org.createRole({ name: roleName, rolePrompt: "test prompt" });
+            // 先创建岗�?            const role = await org.createRole({ name: roleName, rolePrompt: "test prompt" });
             
-            // 创建智能体
-            const agent = await org.createAgent({ roleId: role.id, parentAgentId });
+            // 创建智能�?            const agent = await org.createAgent({ roleId: role.id, parentAgentId });
             
-            // 立即读取持久化文件
-            const filePath = path.resolve(runtimeDir, "org.json");
+            // 立即读取持久化文�?            const filePath = path.resolve(runtimeDir, "org.json");
             const raw = await readFile(filePath, "utf8");
             const data = JSON.parse(raw);
             
@@ -131,13 +120,11 @@ describe("OrgPrimitives", () => {
     );
   });
 
-  test("Property 13: 组织状态持久化一致性 - 加载时验证数据结构完整性", async () => {
+  test("Property 13: 组织状态持久化一致�?- 加载时验证数据结构完整�?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成可能损坏的数据
-        fc.oneof(
-          // 完全有效的数据
-          fc.record({
+        // 生成可能损坏的数�?        fc.oneof(
+          // 完全有效的数�?          fc.record({
             roles: fc.array(fc.record({
               id: fc.uuid(),
               name: fc.string({ minLength: 1, maxLength: 50 }),
@@ -158,8 +145,7 @@ describe("OrgPrimitives", () => {
               reason: fc.option(fc.string({ minLength: 0, maxLength: 100 }), { nil: null })
             }), { minLength: 0, maxLength: 3 })
           }),
-          // 部分损坏的数据（缺少必要字段）
-          fc.record({
+          // 部分损坏的数据（缺少必要字段�?          fc.record({
             roles: fc.array(fc.oneof(
               fc.record({ id: fc.uuid(), name: fc.string({ minLength: 1 }), rolePrompt: fc.string() }),
               fc.record({ id: fc.uuid() }), // 缺少name和rolePrompt
@@ -186,15 +172,12 @@ describe("OrgPrimitives", () => {
             const filePath = path.resolve(runtimeDir, "org.json");
             await writeFile(filePath, JSON.stringify(testData, null, 2), "utf8");
             
-            // 加载并验证
-            const org = new OrgPrimitives({ runtimeDir });
+            // 加载并验�?            const org = new OrgPrimitives({ runtimeDir });
             const result = await org.loadIfExists();
             
-            // 应该成功加载（即使有验证错误）
-            expect(result.loaded).toBe(true);
+            // 应该成功加载（即使有验证错误�?            expect(result.loaded).toBe(true);
             
-            // 验证只有有效数据被加载
-            const roles = org.listRoles();
+            // 验证只有有效数据被加�?            const roles = org.listRoles();
             const agents = org.listAgents();
             
             // 所有加载的岗位应该有有效的id、name和rolePrompt
@@ -227,13 +210,10 @@ describe("OrgPrimitives", () => {
 
 
   /**
-   * Feature: llm-service-selector, Property 7: 岗位 llmServiceId 持久化往返
-   * *For any* 创建的岗位（包含或不包含 llmServiceId），持久化后重新加载应得到相同的 llmServiceId 值
-   * （包括 null/undefined 情况）。
-   * **Validates: Requirements 5.1, 5.2, 5.3**
+   * Feature: llm-service-selector, Property 7: 岗位 llmServiceId 持久化往�?   * *For any* 创建的岗位（包含或不包含 llmServiceId），持久化后重新加载应得到相同的 llmServiceId �?   * （包�?null/undefined 情况）�?   * **Validates: Requirements 5.1, 5.2, 5.3**
    */
-  describe("Property 7: 岗位 llmServiceId 持久化往返", () => {
-    test("创建带 llmServiceId 的岗位，持久化后重新加载应保持一致", async () => {
+  describe("Property 7: 岗位 llmServiceId 持久化往�?, () => {
+    test("创建�?llmServiceId 的岗位，持久化后重新加载应保持一�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
@@ -256,15 +236,13 @@ describe("OrgPrimitives", () => {
               // 验证创建时的 llmServiceId
               expect(role.llmServiceId).toBe(llmServiceId);
               
-              // 创建新的 OrgPrimitives 实例并加载
-              const org2 = new OrgPrimitives({ runtimeDir });
+              // 创建新的 OrgPrimitives 实例并加�?              const org2 = new OrgPrimitives({ runtimeDir });
               await org2.loadIfExists();
               
               // 获取加载后的岗位
               const loadedRole = org2.getRole(role.id);
               
-              // 验证 llmServiceId 保持一致
-              expect(loadedRole).not.toBeNull();
+              // 验证 llmServiceId 保持一�?              expect(loadedRole).not.toBeNull();
               expect(loadedRole.llmServiceId).toBe(llmServiceId);
             } finally {
               await rm(runtimeDir, { recursive: true, force: true });
@@ -275,7 +253,7 @@ describe("OrgPrimitives", () => {
       );
     });
 
-    test("不指定 llmServiceId 时默认为 null", async () => {
+    test("不指�?llmServiceId 时默认为 null", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),

@@ -6,7 +6,7 @@ function sleep(ms) {
 }
 
 describe("UiCommandBroker", () => {
-  it("waitForNextCommand: 队列为空时可等待，enqueue 后立即返回命令", async () => {
+  it("waitForNextCommand: 队列为空时可等待，enqueue 后立即返回命�?, async () => {
     const broker = new UiCommandBroker({ activeMaxAgeMs: 1000, logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } });
     const p = broker.waitForNextCommand("c1", 500);
     await sleep(10);
@@ -18,7 +18,7 @@ describe("UiCommandBroker", () => {
     expect(cmd.payload).toEqual({ a: 1 });
   });
 
-  it("waitForNextCommand: 超时后返回 null", async () => {
+  it("waitForNextCommand: 超时后返�?null", async () => {
     const broker = new UiCommandBroker({ activeMaxAgeMs: 1000, logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } });
     const started = Date.now();
     const cmd = await broker.waitForNextCommand("c1", 30);
@@ -36,7 +36,7 @@ describe("UiCommandBroker", () => {
     expect(r).toEqual({ ok: true, result: { x: 1 } });
   });
 
-  it("waitForResult: 超时会抛出 ui_timeout", async () => {
+  it("waitForResult: 超时会抛�?ui_timeout", async () => {
     const broker = new UiCommandBroker({ activeMaxAgeMs: 1000, logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } });
     let thrown = null;
     try {

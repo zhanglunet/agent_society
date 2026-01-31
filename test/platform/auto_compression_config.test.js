@@ -1,7 +1,7 @@
 /**
  * 自动压缩配置测试
  * 
- * 测试自动压缩配置的定义、验证、合并和可用性检查功能。
+ * 测试自动压缩配置的定义、验证、合并和可用性检查功能�?
  */
 
 import { describe, test, expect } from '@jest/globals';
@@ -33,7 +33,7 @@ describe('AutoCompressionConfig', () => {
   });
 
   describe('validateAutoCompressionConfig', () => {
-    test('应该验证有效的配置', () => {
+    test('应该验证有效的配�?, () => {
       const validConfig = {
         enabled: true,
         threshold: 0.8,
@@ -48,53 +48,53 @@ describe('AutoCompressionConfig', () => {
       expect(result.errors).toEqual([]);
     });
 
-    test('应该拒绝非对象配置', () => {
+    test('应该拒绝非对象配�?, () => {
       const result = validateAutoCompressionConfig(null);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('配置必须是一个对象');
+      expect(result.errors).toContain('配置必须是一个对�?);
     });
 
     test('应该验证 enabled 字段', () => {
       const config = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, enabled: 'true' };
       const result = validateAutoCompressionConfig(config);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('enabled 必须是布尔值');
+      expect(result.errors).toContain('enabled 必须是布尔�?);
     });
 
     test('应该验证 threshold 字段范围', () => {
       const config1 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, threshold: -0.1 };
       const result1 = validateAutoCompressionConfig(config1);
       expect(result1.valid).toBe(false);
-      expect(result1.errors).toContain('threshold 必须是 0-1 之间的数字');
+      expect(result1.errors).toContain('threshold 必须�?0-1 之间的数�?);
 
       const config2 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, threshold: 1.1 };
       const result2 = validateAutoCompressionConfig(config2);
       expect(result2.valid).toBe(false);
-      expect(result2.errors).toContain('threshold 必须是 0-1 之间的数字');
+      expect(result2.errors).toContain('threshold 必须�?0-1 之间的数�?);
     });
 
     test('应该验证 keepRecentCount 字段', () => {
       const config1 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, keepRecentCount: 0 };
       const result1 = validateAutoCompressionConfig(config1);
       expect(result1.valid).toBe(false);
-      expect(result1.errors).toContain('keepRecentCount 必须是大于0的整数');
+      expect(result1.errors).toContain('keepRecentCount 必须是大�?的整�?);
 
       const config2 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, keepRecentCount: 5.5 };
       const result2 = validateAutoCompressionConfig(config2);
       expect(result2.valid).toBe(false);
-      expect(result2.errors).toContain('keepRecentCount 必须是大于0的整数');
+      expect(result2.errors).toContain('keepRecentCount 必须是大�?的整�?);
     });
 
     test('应该验证 summaryMaxTokens 字段', () => {
       const config1 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, summaryMaxTokens: 50 };
       const result1 = validateAutoCompressionConfig(config1);
       expect(result1.valid).toBe(false);
-      expect(result1.errors).toContain('summaryMaxTokens 必须是大于等于100的整数');
+      expect(result1.errors).toContain('summaryMaxTokens 必须是大于等�?00的整�?);
 
       const config2 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, summaryMaxTokens: 500.5 };
       const result2 = validateAutoCompressionConfig(config2);
       expect(result2.valid).toBe(false);
-      expect(result2.errors).toContain('summaryMaxTokens 必须是大于等于100的整数');
+      expect(result2.errors).toContain('summaryMaxTokens 必须是大于等�?00的整�?);
     });
 
     test('应该验证 summaryModel 字段', () => {
@@ -116,12 +116,12 @@ describe('AutoCompressionConfig', () => {
       const config1 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, summaryTimeout: 500 };
       const result1 = validateAutoCompressionConfig(config1);
       expect(result1.valid).toBe(false);
-      expect(result1.errors).toContain('summaryTimeout 必须是大于等于1000的整数（毫秒）');
+      expect(result1.errors).toContain('summaryTimeout 必须是大于等�?000的整数（毫秒�?);
 
       const config2 = { ...DEFAULT_AUTO_COMPRESSION_CONFIG, summaryTimeout: 5000.5 };
       const result2 = validateAutoCompressionConfig(config2);
       expect(result2.valid).toBe(false);
-      expect(result2.errors).toContain('summaryTimeout 必须是大于等于1000的整数（毫秒）');
+      expect(result2.errors).toContain('summaryTimeout 必须是大于等�?000的整数（毫秒�?);
     });
 
     test('应该收集多个验证错误', () => {
@@ -141,12 +141,12 @@ describe('AutoCompressionConfig', () => {
   });
 
   describe('mergeAutoCompressionConfig', () => {
-    test('应该使用默认配置当用户配置为空', () => {
+    test('应该使用默认配置当用户配置为�?, () => {
       const result = mergeAutoCompressionConfig();
       expect(result).toEqual(DEFAULT_AUTO_COMPRESSION_CONFIG);
     });
 
-    test('应该合并用户配置和默认配置', () => {
+    test('应该合并用户配置和默认配�?, () => {
       const userConfig = {
         enabled: false,
         threshold: 0.7,
@@ -162,7 +162,7 @@ describe('AutoCompressionConfig', () => {
       });
     });
 
-    test('应该覆盖默认配置中的对应项', () => {
+    test('应该覆盖默认配置中的对应�?, () => {
       const userConfig = {
         keepRecentCount: 15,
         summaryTimeout: 45000
@@ -198,7 +198,7 @@ describe('AutoCompressionConfig', () => {
       expect(result.reason).toContain('配置无效');
     });
 
-    test('应该返回不可用当功能被禁用', () => {
+    test('应该返回不可用当功能被禁�?, () => {
       const config = {
         ...DEFAULT_AUTO_COMPRESSION_CONFIG,
         enabled: false,
@@ -207,10 +207,10 @@ describe('AutoCompressionConfig', () => {
 
       const result = isAutoCompressionAvailable(config);
       expect(result.available).toBe(false);
-      expect(result.reason).toBe('自动压缩功能已禁用');
+      expect(result.reason).toBe('自动压缩功能已禁�?);
     });
 
-    test('应该返回不可用当未配置摘要模型', () => {
+    test('应该返回不可用当未配置摘要模�?, () => {
       const config = {
         ...DEFAULT_AUTO_COMPRESSION_CONFIG,
         summaryModel: null
@@ -218,10 +218,10 @@ describe('AutoCompressionConfig', () => {
 
       const result = isAutoCompressionAvailable(config);
       expect(result.available).toBe(false);
-      expect(result.reason).toBe('未配置摘要生成模型 (summaryModel)');
+      expect(result.reason).toBe('未配置摘要生成模�?(summaryModel)');
     });
 
-    test('应该返回不可用当摘要模型为空字符串', () => {
+    test('应该返回不可用当摘要模型为空字符�?, () => {
       const config = {
         ...DEFAULT_AUTO_COMPRESSION_CONFIG,
         summaryModel: ''
@@ -229,12 +229,12 @@ describe('AutoCompressionConfig', () => {
 
       const result = isAutoCompressionAvailable(config);
       expect(result.available).toBe(false);
-      expect(result.reason).toBe('未配置摘要生成模型 (summaryModel)');
+      expect(result.reason).toBe('未配置摘要生成模�?(summaryModel)');
     });
   });
 
   describe('边界条件测试', () => {
-    test('应该接受边界值', () => {
+    test('应该接受边界�?, () => {
       const config = {
         enabled: true,
         threshold: 0.0,
@@ -248,7 +248,7 @@ describe('AutoCompressionConfig', () => {
       expect(result.valid).toBe(true);
     });
 
-    test('应该接受最大边界值', () => {
+    test('应该接受最大边界�?, () => {
       const config = {
         enabled: true,
         threshold: 1.0,

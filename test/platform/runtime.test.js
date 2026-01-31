@@ -53,7 +53,7 @@ describe("Runtime", () => {
     expect(received.payload?.kind).toBe("result");
     expect(String(received.payload?.artifactRef ?? "")).toMatch(/^artifact:/);
     const artifact = await runtime.artifacts.getArtifact(received.payload.artifactRef);
-    expect(artifact.content).toContain("平台只提供能力");
+    expect(artifact.content).toContain("平台只提供能�?);
   });
 
   test("writes logs to both console and file when enabled", async () => {
@@ -118,13 +118,13 @@ describe("Runtime", () => {
     const agentContent = await readFile(agentPath, "utf8");
     expect(agentContent).toContain("AGENT_LOG_LINE");
 
-    expect(content).toContain("发送消息");
+    expect(content).toContain("发送消�?);
     expect(content).toContain("接收消息");
     expect(content).toContain("hello-bus");
 
     const senderPath = path.resolve(runDir, "agent-sender-1.log");
     const senderContent = await readFile(senderPath, "utf8");
-    expect(senderContent).toContain("发送消息");
+    expect(senderContent).toContain("发送消�?);
     expect(senderContent).toContain("hello-bus");
 
     const receiverPath = path.resolve(runDir, "agent-receiver-1.log");
@@ -202,10 +202,9 @@ describe("Runtime", () => {
     ]);
     runtime.org = { getRole: (roleId) => roles.get(String(roleId)) ?? null };
 
-    // 初始化 root 的联系人注册表
-    runtime.contactManager.initRegistry("root", null, []);
+    // 初始�?root 的联系人注册�?    runtime.contactManager.initRegistry("root", null, []);
 
-    // 有效的 TaskBrief
+    // 有效�?TaskBrief
     const validTaskBrief = {
       objective: "测试目标",
       constraints: ["约束1"],
@@ -214,7 +213,7 @@ describe("Runtime", () => {
       completion_criteria: "完成标准"
     };
 
-    // 有效的 initialMessage
+    // 有效�?initialMessage
     const validInitialMessage = {
       message_type: "task",
       task: "执行测试任务",
@@ -252,8 +251,7 @@ describe("Runtime", () => {
     expect(lastSpawnInput.parentAgentId).toBe("root");
     expect(result1.id).toBe("agent-1");
 
-    // 测试 2: 再次创建智能体
-    const result2 = await runtime.executeToolCall(ctxRoot, "spawn_agent_with_task", { 
+    // 测试 2: 再次创建智能�?    const result2 = await runtime.executeToolCall(ctxRoot, "spawn_agent_with_task", { 
       roleId: "r2", 
       taskBrief: validTaskBrief, 
       initialMessage: validInitialMessage 
@@ -262,13 +260,11 @@ describe("Runtime", () => {
     expect(spawnCalls).toBe(2);
     expect(result2.id).toBe("agent-2");
 
-    // 初始化 agent-1 的联系人注册表
-    runtime.contactManager.initRegistry("agent-1", "root", []);
+    // 初始�?agent-1 的联系人注册�?    runtime.contactManager.initRegistry("agent-1", "root", []);
 
     let childCreatorId = null;
     
-    // 重新模拟 spawnAgentAs 以捕获子智能体创建
-    runtime.spawnAgentAs = async (creatorId, input) => {
+    // 重新模拟 spawnAgentAs 以捕获子智能体创�?    runtime.spawnAgentAs = async (creatorId, input) => {
       spawnCalls += 1;
       childCreatorId = creatorId;
       lastSpawnInput = { ...input, parentAgentId: creatorId };
@@ -280,7 +276,7 @@ describe("Runtime", () => {
       currentMessage: { taskId: "t2" }
     };
     
-    // 测试 3: 子智能体创建，验证 parentAgentId 正确设置
+    // 测试 3: 子智能体创建，验�?parentAgentId 正确设置
     await runtime.executeToolCall(ctxAgent, "spawn_agent_with_task", { 
       roleId: "r3", 
       taskBrief: validTaskBrief, 
@@ -358,9 +354,8 @@ describe("Runtime", () => {
         if (llmCalled > 1) throw new Error("LLM should not be called again after no tool_calls response");
         return {
           role: "assistant",
-          content: "任务已完成，等待下一条消息。",
-          tool_calls: [] // 没有 tool_calls，应该自然结束
-        };
+          content: "任务已完成，等待下一条消息�?,
+          tool_calls: [] // 没有 tool_calls，应该自然结�?        };
       }
     };
 
@@ -498,18 +493,13 @@ describe("Runtime", () => {
 
 
 /**
- * Property 6: 智能体终止完整性
- * 对于任意被终止的智能体，终止后应满足：
- * (1) 不在活跃智能体注册表中
- * (2) 会话上下文已被清理
- * (3) 终止事件已持久化到组织状态
- * 
- * **验证: 需求 3.1, 3.2, 3.3**
+ * Property 6: 智能体终止完整�? * 对于任意被终止的智能体，终止后应满足�? * (1) 不在活跃智能体注册表�? * (2) 会话上下文已被清�? * (3) 终止事件已持久化到组织状�? * 
+ * **验证: 需�?3.1, 3.2, 3.3**
  */
 import fc from "fast-check";
 
 describe("Runtime - Agent Termination", () => {
-  test("Property 6: 智能体终止完整性 - 终止后智能体从注册表移除且上下文清理", async () => {
+  test("Property 6: 智能体终止完整�?- 终止后智能体从注册表移除且上下文清理", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/terminate_test_prop6`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -524,8 +514,7 @@ describe("Runtime - Agent Termination", () => {
     const runtime = new Runtime({ configPath });
     await runtime.init();
 
-    // 创建一个根智能体
-    const root = new Agent({
+    // 创建一个根智能�?    const root = new Agent({
       id: "root",
       roleId: "root",
       roleName: "root",
@@ -561,8 +550,7 @@ describe("Runtime - Agent Termination", () => {
           expect(result.ok).toBe(true);
           expect(result.terminatedAgentId).toBe(childId);
 
-          // 验证智能体从注册表移除
-          expect(runtime._agents.has(childId)).toBe(false);
+          // 验证智能体从注册表移�?          expect(runtime._agents.has(childId)).toBe(false);
 
           // 验证会话上下文已清理
           expect(runtime._conversations.has(childId)).toBe(false);
@@ -588,13 +576,11 @@ describe("Runtime - Agent Termination", () => {
 
 
 /**
- * Property 7: 智能体终止权限验证
- * 对于任意terminate_agent调用，只有当调用者是目标智能体的父智能体时才应成功；否则应返回错误。
- * 
- * **验证: 需求 3.4**
+ * Property 7: 智能体终止权限验�? * 对于任意terminate_agent调用，只有当调用者是目标智能体的父智能体时才应成功；否则应返回错误�? * 
+ * **验证: 需�?3.4**
  */
 describe("Runtime - Agent Termination Permission", () => {
-  test("Property 7: 智能体终止权限验证 - 只有父智能体可以终止子智能体", async () => {
+  test("Property 7: 智能体终止权限验�?- 只有父智能体可以终止子智能体", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/terminate_perm_test_prop7`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -626,28 +612,24 @@ describe("Runtime - Agent Termination Permission", () => {
           // 创建岗位
           const role = await runtime.org.createRole({ name: `role_perm_${roleName}_${Date.now()}`, rolePrompt: "test", createdBy: "root" });
 
-          // 创建子智能体（由root创建）
-          const child = await runtime.spawnAgent({ roleId: role.id, parentAgentId: "root" });
+          // 创建子智能体（由root创建�?          const child = await runtime.spawnAgent({ roleId: role.id, parentAgentId: "root" });
           const childId = child.id;
 
           // 创建另一个非父智能体
           const otherRole = await runtime.org.createRole({ name: `other_${roleName}_${Date.now()}`, rolePrompt: "test", createdBy: "root" });
           const other = await runtime.spawnAgent({ roleId: otherRole.id, parentAgentId: "root" });
 
-          // 测试1: 非父智能体尝试终止 - 应该失败
+          // 测试1: 非父智能体尝试终�?- 应该失败
           const ctxOther = { agent: other };
           const resultOther = await runtime._executeTerminateAgent(ctxOther, { agentId: childId });
           expect(resultOther.error).toBe("not_child_agent");
-          expect(runtime._agents.has(childId)).toBe(true); // 智能体仍然存在
-
+          expect(runtime._agents.has(childId)).toBe(true); // 智能体仍然存�?
           // 测试2: 父智能体终止 - 应该成功
           const ctxRoot = { agent: root };
           const resultRoot = await runtime._executeTerminateAgent(ctxRoot, { agentId: childId });
           expect(resultRoot.ok).toBe(true);
-          expect(runtime._agents.has(childId)).toBe(false); // 智能体已被移除
-
-          // 清理other智能体
-          await runtime._executeTerminateAgent(ctxRoot, { agentId: other.id });
+          expect(runtime._agents.has(childId)).toBe(false); // 智能体已被移�?
+          // 清理other智能�?          await runtime._executeTerminateAgent(ctxRoot, { agentId: other.id });
         }
       ),
       { numRuns: 50 }  // 减少迭代次数以避免超时，同时仍保持足够的测试覆盖
@@ -657,7 +639,7 @@ describe("Runtime - Agent Termination Permission", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 7: 智能体终止权限验证 - 终止不存在的智能体应返回错误", async () => {
+  test("Property 7: 智能体终止权限验�?- 终止不存在的智能体应返回错误", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/terminate_notfound_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -700,16 +682,13 @@ describe("Runtime - Agent Termination Permission", () => {
 
 
 /**
- * Property 9: 上下文压缩保留性
- * 对于任意compress_context调用，压缩后的上下文应保留：
- * (1) 原始系统提示词
- * (2) 指定数量的最近消息
- * (3) 调用者提供的摘要内容
+ * Property 9: 上下文压缩保留�? * 对于任意compress_context调用，压缩后的上下文应保留：
+ * (1) 原始系统提示�? * (2) 指定数量的最近消�? * (3) 调用者提供的摘要内容
  * 
- * **验证: 需求 4.2**
+ * **验证: 需�?4.2**
  */
 describe("Runtime - Context Compression", () => {
-  test("Property 9: 上下文压缩保留性 - 压缩后保留系统提示词、最近消息和摘要", async () => {
+  test("Property 9: 上下文压缩保留�?- 压缩后保留系统提示词、最近消息和摘要", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/compress_context_test_prop9`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -736,12 +715,9 @@ describe("Runtime - Context Compression", () => {
 
     await fc.assert(
       fc.asyncProperty(
-        // 生成系统提示词
-        fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim() !== ""),
-        // 生成消息数量（足够多以便压缩）
-        fc.integer({ min: 15, max: 50 }),
-        // 生成保留的最近消息数量
-        fc.integer({ min: 1, max: 10 }),
+        // 生成系统提示�?        fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim() !== ""),
+        // 生成消息数量（足够多以便压缩�?        fc.integer({ min: 15, max: 50 }),
+        // 生成保留的最近消息数�?        fc.integer({ min: 1, max: 10 }),
         // 生成摘要内容
         fc.string({ minLength: 1, maxLength: 200 }).filter(s => s.trim() !== ""),
         async (systemPrompt, messageCount, keepRecentCount, summary) => {
@@ -750,8 +726,7 @@ describe("Runtime - Context Compression", () => {
           // 初始化会话上下文
           const conv = runtime._conversationManager.ensureConversation(agentId, systemPrompt);
           
-          // 添加消息到会话
-          for (let i = 0; i < messageCount; i++) {
+          // 添加消息到会�?          for (let i = 0; i < messageCount; i++) {
             conv.push({ role: i % 2 === 0 ? "user" : "assistant", content: `message_${i}` });
           }
 
@@ -782,15 +757,13 @@ describe("Runtime - Context Compression", () => {
           const recentMessages = compressedConv.slice(2);
           expect(recentMessages.length).toBe(keepRecentCount);
 
-          // 验证最近消息是原始会话的最后 keepRecentCount 条
-          const originalRecentMessages = conv.slice(-keepRecentCount);
+          // 验证最近消息是原始会话的最�?keepRecentCount �?          const originalRecentMessages = conv.slice(-keepRecentCount);
           for (let i = 0; i < keepRecentCount; i++) {
             expect(recentMessages[i].content).toBe(originalRecentMessages[i].content);
             expect(recentMessages[i].role).toBe(originalRecentMessages[i].role);
           }
 
-          // 验证压缩后的总长度
-          expect(compressedConv.length).toBe(keepRecentCount + 2); // system + summary + recent messages
+          // 验证压缩后的总长�?          expect(compressedConv.length).toBe(keepRecentCount + 2); // system + summary + recent messages
 
           // 清理
           runtime._conversationManager.deleteConversation(agentId);
@@ -803,7 +776,7 @@ describe("Runtime - Context Compression", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 9: 上下文压缩保留性 - 消息数量不足时不压缩", async () => {
+  test("Property 9: 上下文压缩保留�?- 消息数量不足时不压缩", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/compress_context_no_compress_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -826,11 +799,10 @@ describe("Runtime - Context Compression", () => {
         async (systemPrompt, keepRecentCount, summary) => {
           const agentId = `agent_no_compress_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           
-          // 初始化会话上下文，消息数量少于 keepRecentCount + 1
+          // 初始化会话上下文，消息数量少�?keepRecentCount + 1
           const conv = runtime._conversationManager.ensureConversation(agentId, systemPrompt);
           
-          // 添加少量消息（少于 keepRecentCount）
-          const messageCount = Math.max(0, keepRecentCount - 2);
+          // 添加少量消息（少�?keepRecentCount�?          const messageCount = Math.max(0, keepRecentCount - 2);
           for (let i = 0; i < messageCount; i++) {
             conv.push({ role: "user", content: `message_${i}` });
           }
@@ -840,14 +812,12 @@ describe("Runtime - Context Compression", () => {
           // 执行压缩
           const result = runtime._conversationManager.compress(agentId, summary, keepRecentCount);
 
-          // 验证不需要压缩
-          expect(result.ok).toBe(true);
+          // 验证不需要压�?          expect(result.ok).toBe(true);
           expect(result.compressed).toBe(false);
           expect(result.originalCount).toBe(originalCount);
           expect(result.newCount).toBe(originalCount);
 
-          // 验证会话内容未改变
-          const currentConv = runtime._conversationManager.getConversation(agentId);
+          // 验证会话内容未改�?          const currentConv = runtime._conversationManager.getConversation(agentId);
           expect(currentConv.length).toBe(originalCount);
 
           // 清理
@@ -861,7 +831,7 @@ describe("Runtime - Context Compression", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 9: 上下文压缩保留性 - 通过工具调用执行压缩", async () => {
+  test("Property 9: 上下文压缩保留�?- 通过工具调用执行压缩", async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/compress_context_tool_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -876,8 +846,7 @@ describe("Runtime - Context Compression", () => {
     const runtime = new Runtime({ configPath });
     await runtime.init();
 
-    // 创建测试智能体
-    const testAgent = new Agent({
+    // 创建测试智能�?    const testAgent = new Agent({
       id: "tool-test-agent",
       roleId: "test-role",
       roleName: "test",
@@ -895,8 +864,7 @@ describe("Runtime - Context Compression", () => {
         async (systemPrompt, messageCount, keepRecentCount, summary) => {
           const agentId = `tool_agent_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           
-          // 创建临时智能体
-          const agent = new Agent({
+          // 创建临时智能�?          const agent = new Agent({
             id: agentId,
             roleId: "temp-role",
             roleName: "temp",
@@ -925,14 +893,12 @@ describe("Runtime - Context Compression", () => {
           // 验证压缩后的会话
           const compressedConv = runtime._conversationManager.getConversation(agentId);
           
-          // 验证系统提示词保留
-          expect(compressedConv[0].content).toBe(systemPrompt);
+          // 验证系统提示词保�?          expect(compressedConv[0].content).toBe(systemPrompt);
           
           // 验证摘要保留
           expect(compressedConv[1].content).toContain(summary);
           
-          // 验证最近消息数量
-          expect(compressedConv.length).toBe(keepRecentCount + 2);
+          // 验证最近消息数�?          expect(compressedConv.length).toBe(keepRecentCount + 2);
 
           // 清理
           runtime._agents.delete(agentId);
@@ -950,16 +916,15 @@ describe("Runtime - Context Compression", () => {
 
 /**
  * Property 11: LLM调用重试行为
- * 对于任意失败的LLM调用，Runtime应按指数退避策略重试，重试次数不超过3次，
- * 每次重试的延迟应为2^n秒（n为重试次数）。
- * 
- * **验证: 需求 5.1**
+ * 对于任意失败的LLM调用，Runtime应按指数退避策略重试，重试次数不超�?次，
+ * 每次重试的延迟应�?^n秒（n为重试次数）�? * 
+ * **验证: 需�?5.1**
  */
 describe("LlmClient - Retry Behavior", () => {
-  test("Property 11: LLM调用重试行为 - 失败时按指数退避策略重试", async () => {
+  test("Property 11: LLM调用重试行为 - 失败时按指数退避策略重�?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成失败次数（0-2次失败后成功，或3次全部失败）
+        // 生成失败次数�?-2次失败后成功，或3次全部失败）
         fc.integer({ min: 0, max: 3 }),
         async (failCount) => {
           const loggerRoot = new Logger(normalizeLoggingConfig(null));
@@ -975,16 +940,13 @@ describe("LlmClient - Retry Behavior", () => {
           const delays = [];
           let lastCallTime = Date.now();
 
-          // 模拟 _sleep 方法来记录延迟
-          const originalSleep = llm._sleep.bind(llm);
+          // 模拟 _sleep 方法来记录延�?          const originalSleep = llm._sleep.bind(llm);
           llm._sleep = async (ms) => {
             delays.push(ms);
-            // 使用很短的延迟来加速测试
-            await new Promise(r => setTimeout(r, 1));
+            // 使用很短的延迟来加速测�?            await new Promise(r => setTimeout(r, 1));
           };
 
-          // 模拟 LLM 客户端
-          llm._client = {
+          // 模拟 LLM 客户�?          llm._client = {
             chat: {
               completions: {
                 create: async () => {
@@ -1013,13 +975,12 @@ describe("LlmClient - Retry Behavior", () => {
             // 验证重试次数
             expect(delays.length).toBe(failCount);
             
-            // 验证指数退避延迟：2^n 秒
-            for (let i = 0; i < delays.length; i++) {
+            // 验证指数退避延迟：2^n �?            for (let i = 0; i < delays.length; i++) {
               const expectedDelay = Math.pow(2, i) * 1000;
               expect(delays[i]).toBe(expectedDelay);
             }
           } else {
-            // 应该失败（3次全部失败）
+            // 应该失败�?次全部失败）
             let thrownError = null;
             try {
               await llm.chat({
@@ -1032,17 +993,15 @@ describe("LlmClient - Retry Behavior", () => {
             expect(thrownError).toBeDefined();
             expect(callCount).toBe(3);
             
-            // 验证重试了2次（第一次失败后重试2次）
+            // 验证重试�?次（第一次失败后重试2次）
             expect(delays.length).toBe(2);
             
-            // 验证指数退避延迟
-            expect(delays[0]).toBe(1000);  // 2^0 * 1000 = 1000ms
+            // 验证指数退避延�?            expect(delays[0]).toBe(1000);  // 2^0 * 1000 = 1000ms
             expect(delays[1]).toBe(2000);  // 2^1 * 1000 = 2000ms
           }
         }
       ),
-      { numRuns: 10 }  // 减少迭代次数因为每次测试都涉及延迟
-    );
+      { numRuns: 10 }  // 减少迭代次数因为每次测试都涉及延�?    );
   });
 
   test("Property 11: LLM调用重试行为 - 首次成功时不重试", async () => {
@@ -1083,8 +1042,7 @@ describe("LlmClient - Retry Behavior", () => {
             messages: [{ role: "user", content: "test" }]
           });
 
-          // 验证只调用了一次
-          expect(callCount).toBe(1);
+          // 验证只调用了一�?          expect(callCount).toBe(1);
           
           // 验证没有延迟（没有重试）
           expect(delays.length).toBe(0);
@@ -1097,7 +1055,7 @@ describe("LlmClient - Retry Behavior", () => {
     );
   });
 
-  test("Property 11: LLM调用重试行为 - 可配置最大重试次数", async () => {
+  test("Property 11: LLM调用重试行为 - 可配置最大重试次�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.integer({ min: 1, max: 5 }),
@@ -1114,8 +1072,7 @@ describe("LlmClient - Retry Behavior", () => {
           let callCount = 0;
 
           llm._sleep = async () => {
-            // 快速跳过延迟
-          };
+            // 快速跳过延�?          };
 
           // 模拟永远失败
           llm._client = {
@@ -1150,14 +1107,11 @@ describe("LlmClient - Retry Behavior", () => {
 
 
 /**
- * Property 12: 智能体错误隔离
- * 对于任意智能体消息处理器抛出的异常，不应影响其他智能体的消息处理；
- * Runtime应继续处理其他智能体的消息。
- * 
- * **验证: 需求 5.2**
+ * Property 12: 智能体错误隔�? * 对于任意智能体消息处理器抛出的异常，不应影响其他智能体的消息处理�? * Runtime应继续处理其他智能体的消息�? * 
+ * **验证: 需�?5.2**
  */
 describe("Runtime - Agent Error Isolation", () => {
-  test("Property 12: 智能体错误隔离 - 单个智能体异常不影响其他智能体", async () => {
+  test("Property 12: 智能体错误隔�?- 单个智能体异常不影响其他智能�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/error_isolation_test_prop12`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1185,8 +1139,7 @@ describe("Runtime - Agent Error Isolation", () => {
           const processedAgents = [];
           const agents = [];
 
-          // 创建多个智能体
-          for (let i = 0; i < agentCount; i++) {
+          // 创建多个智能�?          for (let i = 0; i < agentCount; i++) {
             const shouldFail = i === actualFailingIndex;
             const agentId = `agent_${i}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
             
@@ -1207,8 +1160,7 @@ describe("Runtime - Agent Error Isolation", () => {
             agents.push(agent);
           }
 
-          // 向所有智能体发送消息
-          for (const agent of agents) {
+          // 向所有智能体发送消�?          for (const agent of agents) {
             runtime.bus.send({
               to: agent.id,
               from: "test",
@@ -1241,7 +1193,7 @@ describe("Runtime - Agent Error Isolation", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 12: 智能体错误隔离 - 多个智能体同时失败不影响正常智能体", async () => {
+  test("Property 12: 智能体错误隔�?- 多个智能体同时失败不影响正常智能�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/multi_error_isolation_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1271,7 +1223,7 @@ describe("Runtime - Agent Error Isolation", () => {
           const agents = [];
           const failingAgentIds = new Set();
 
-          // 创建智能体，前 actualFailCount 个会失败
+          // 创建智能体，�?actualFailCount 个会失败
           for (let i = 0; i < agentCount; i++) {
             const shouldFail = i < actualFailCount;
             const agentId = `multi_agent_${i}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -1297,8 +1249,7 @@ describe("Runtime - Agent Error Isolation", () => {
             agents.push(agent);
           }
 
-          // 向所有智能体发送消息
-          for (const agent of agents) {
+          // 向所有智能体发送消�?          for (const agent of agents) {
             runtime.bus.send({
               to: agent.id,
               from: "test",
@@ -1331,7 +1282,7 @@ describe("Runtime - Agent Error Isolation", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 12: 智能体错误隔离 - 运行时不因单个智能体异常而停止", async () => {
+  test("Property 12: 智能体错误隔�?- 运行时不因单个智能体异常而停�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/runtime_continue_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1365,8 +1316,7 @@ describe("Runtime - Agent Error Isolation", () => {
             }
           });
 
-          // 创建一个正常的智能体
-          const normalAgent = new Agent({
+          // 创建一个正常的智能�?          const normalAgent = new Agent({
             id: `normal_${Date.now()}`,
             roleId: "normal_role",
             roleName: "normal",
@@ -1379,8 +1329,7 @@ describe("Runtime - Agent Error Isolation", () => {
           runtime.registerAgentInstance(failingAgent);
           runtime.registerAgentInstance(normalAgent);
 
-          // 向两个智能体交替发送消息
-          for (let i = 0; i < messageCount; i++) {
+          // 向两个智能体交替发送消�?          for (let i = 0; i < messageCount; i++) {
             runtime.bus.send({
               to: failingAgent.id,
               from: "test",
@@ -1398,14 +1347,12 @@ describe("Runtime - Agent Error Isolation", () => {
           // 运行消息循环
           await runtime.run();
 
-          // 验证：正常智能体处理了所有消息
-          expect(successfulProcessCount).toBe(messageCount);
+          // 验证：正常智能体处理了所有消�?          expect(successfulProcessCount).toBe(messageCount);
 
           // 验证：失败的智能体也尝试处理了所有消息（但都失败了）
           expect(failedProcessCount).toBe(messageCount);
 
-          // 验证：运行时没有停止（_stopRequested 仍为 false）
-          expect(runtime._stopRequested).toBe(false);
+          // 验证：运行时没有停止（_stopRequested 仍为 false�?          expect(runtime._stopRequested).toBe(false);
 
           // 清理
           runtime._agents.delete(failingAgent.id);
@@ -1422,17 +1369,14 @@ describe("Runtime - Agent Error Isolation", () => {
 
 
 /**
- * Property 14: 优雅关闭完整性
- * 对于任意关闭信号（SIGINT/SIGTERM），Runtime应：
- * (1) 停止接收新消息
- * (2) 等待当前处理完成（最多30秒）
- * (3) 持久化状态
- * (4) 记录关闭摘要
+ * Property 14: 优雅关闭完整�? * 对于任意关闭信号（SIGINT/SIGTERM），Runtime应：
+ * (1) 停止接收新消�? * (2) 等待当前处理完成（最�?0秒）
+ * (3) 持久化状�? * (4) 记录关闭摘要
  * 
- * **验证: 需求 8.1, 8.2, 8.3, 8.4**
+ * **验证: 需�?8.1, 8.2, 8.3, 8.4**
  */
 describe("Runtime - Graceful Shutdown", () => {
-  test("Property 14: 优雅关闭完整性 - 关闭时停止接收新消息并持久化状态", async () => {
+  test("Property 14: 优雅关闭完整�?- 关闭时停止接收新消息并持久化状�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/graceful_shutdown_test_prop14`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1459,13 +1403,10 @@ describe("Runtime - Graceful Shutdown", () => {
 
     await fc.assert(
       fc.asyncProperty(
-        // 生成智能体数量
-        fc.integer({ min: 1, max: 5 }),
-        // 生成待处理消息数量
-        fc.integer({ min: 0, max: 10 }),
+        // 生成智能体数�?        fc.integer({ min: 1, max: 5 }),
+        // 生成待处理消息数�?        fc.integer({ min: 0, max: 10 }),
         async (agentCount, pendingMessageCount) => {
-          // 创建测试智能体
-          const agents = [];
+          // 创建测试智能�?          const agents = [];
           for (let i = 0; i < agentCount; i++) {
             const role = await runtime.org.createRole({ 
               name: `shutdown_role_${i}_${Date.now()}`, 
@@ -1476,8 +1417,7 @@ describe("Runtime - Graceful Shutdown", () => {
             agents.push(agent);
           }
 
-          // 添加待处理消息
-          for (let i = 0; i < pendingMessageCount; i++) {
+          // 添加待处理消�?          for (let i = 0; i < pendingMessageCount; i++) {
             const targetAgent = agents[i % agents.length];
             runtime.bus.send({
               to: targetAgent.id,
@@ -1487,15 +1427,13 @@ describe("Runtime - Graceful Shutdown", () => {
             });
           }
 
-          // 记录关闭前的状态
-          const pendingBefore = runtime.bus.getPendingCount();
+          // 记录关闭前的状�?          const pendingBefore = runtime.bus.getPendingCount();
           const agentsBefore = runtime._agents.size;
 
           // 执行关闭
           const result = await runtime.shutdown({ signal: "TEST" });
 
-          // 验证 (1): 停止接收新消息
-          expect(runtime._stopRequested).toBe(true);
+          // 验证 (1): 停止接收新消�?          expect(runtime._stopRequested).toBe(true);
           expect(runtime.isShuttingDown()).toBe(true);
 
           // 验证 (2): 关闭结果包含正确信息
@@ -1515,13 +1453,11 @@ describe("Runtime - Graceful Shutdown", () => {
           expect(typeof result.pendingMessages).toBe("number");
           expect(typeof result.activeAgents).toBe("number");
 
-          // 重置运行时状态以便下一次迭代
-          runtime._stopRequested = false;
+          // 重置运行时状态以便下一次迭�?          runtime._stopRequested = false;
           runtime._isShuttingDown = false;
           runtime._shutdownStartTime = null;
 
-          // 清理智能体
-          for (const agent of agents) {
+          // 清理智能�?          for (const agent of agents) {
             runtime._agents.delete(agent.id);
             runtime._agentMetaById.delete(agent.id);
           }
@@ -1534,7 +1470,7 @@ describe("Runtime - Graceful Shutdown", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 14: 优雅关闭完整性 - 重复关闭请求被忽略", async () => {
+  test("Property 14: 优雅关闭完整�?- 重复关闭请求被忽�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/graceful_shutdown_duplicate_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1553,8 +1489,7 @@ describe("Runtime - Graceful Shutdown", () => {
       fc.asyncProperty(
         fc.integer({ min: 2, max: 5 }),
         async (shutdownAttempts) => {
-          // 第一次关闭应该成功
-          const firstResult = await runtime.shutdown({ signal: "FIRST" });
+          // 第一次关闭应该成�?          const firstResult = await runtime.shutdown({ signal: "FIRST" });
           expect(firstResult.ok).toBe(true);
 
           // 后续关闭尝试应该返回 ok: false（因为已经在关闭中）
@@ -1563,8 +1498,7 @@ describe("Runtime - Graceful Shutdown", () => {
             expect(result.ok).toBe(false);
           }
 
-          // 重置状态以便下一次迭代
-          runtime._stopRequested = false;
+          // 重置状态以便下一次迭�?          runtime._stopRequested = false;
           runtime._isShuttingDown = false;
           runtime._shutdownStartTime = null;
         }
@@ -1576,7 +1510,7 @@ describe("Runtime - Graceful Shutdown", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 14: 优雅关闭完整性 - 关闭状态查询正确", async () => {
+  test("Property 14: 优雅关闭完整�?- 关闭状态查询正�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/graceful_shutdown_status_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1598,8 +1532,7 @@ describe("Runtime - Graceful Shutdown", () => {
           // 设置优雅关闭
           runtime.setupGracefulShutdown({ shutdownTimeoutMs });
 
-          // 关闭前状态
-          expect(runtime.isShuttingDown()).toBe(false);
+          // 关闭前状�?          expect(runtime.isShuttingDown()).toBe(false);
           const statusBefore = runtime.getShutdownStatus();
           expect(statusBefore.isShuttingDown).toBe(false);
           expect(statusBefore.shutdownStartTime).toBe(null);
@@ -1608,15 +1541,13 @@ describe("Runtime - Graceful Shutdown", () => {
           // 执行关闭
           await runtime.shutdown({ signal: "STATUS_TEST" });
 
-          // 关闭后状态
-          expect(runtime.isShuttingDown()).toBe(true);
+          // 关闭后状�?          expect(runtime.isShuttingDown()).toBe(true);
           const statusAfter = runtime.getShutdownStatus();
           expect(statusAfter.isShuttingDown).toBe(true);
           expect(typeof statusAfter.shutdownStartTime).toBe("number");
           expect(statusAfter.shutdownStartTime).toBeGreaterThan(0);
 
-          // 重置状态
-          runtime._stopRequested = false;
+          // 重置状�?          runtime._stopRequested = false;
           runtime._isShuttingDown = false;
           runtime._shutdownStartTime = null;
           runtime._gracefulShutdownSetup = false;
@@ -1629,7 +1560,7 @@ describe("Runtime - Graceful Shutdown", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 14: 优雅关闭完整性 - 消息总线待处理消息计数正确", async () => {
+  test("Property 14: 优雅关闭完整�?- 消息总线待处理消息计数正�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/graceful_shutdown_pending_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1644,8 +1575,7 @@ describe("Runtime - Graceful Shutdown", () => {
     const runtime = new Runtime({ configPath });
     await runtime.init();
 
-    // 创建测试智能体
-    const testAgent = new Agent({
+    // 创建测试智能�?    const testAgent = new Agent({
       id: "pending-test-agent",
       roleId: "test-role",
       roleName: "test",
@@ -1658,8 +1588,7 @@ describe("Runtime - Graceful Shutdown", () => {
       fc.asyncProperty(
         fc.integer({ min: 0, max: 20 }),
         async (messageCount) => {
-          // 添加消息到队列
-          for (let i = 0; i < messageCount; i++) {
+          // 添加消息到队�?          for (let i = 0; i < messageCount; i++) {
             runtime.bus.send({
               to: testAgent.id,
               from: "test",
@@ -1668,8 +1597,7 @@ describe("Runtime - Graceful Shutdown", () => {
             });
           }
 
-          // 验证待处理消息计数
-          const pendingCount = runtime.bus.getPendingCount();
+          // 验证待处理消息计�?          const pendingCount = runtime.bus.getPendingCount();
           expect(pendingCount).toBe(messageCount);
 
           // 清空队列
@@ -1688,9 +1616,7 @@ describe("Runtime - Graceful Shutdown", () => {
 
 /**
  * Property 15: 跨任务通信隔离
- * 对于任意非 root/user 智能体，只能与 root、user 和同一任务内的智能体通信；
- * 跨任务通信应被系统自动拦截。
- * 
+ * 对于任意�?root/user 智能体，只能�?root、user 和同一任务内的智能体通信�? * 跨任务通信应被系统自动拦截�? * 
  * **验证: taskId 隔离设计**
  */
 describe("Runtime - Cross Task Communication Isolation", () => {
@@ -1737,8 +1663,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       receivedMessage = msg;
     };
 
-    // 构建上下文并发送消息
-    const ctx = runtime._buildAgentContext(agent1);
+    // 构建上下文并发送消�?    const ctx = runtime._buildAgentContext(agent1);
     ctx.currentMessage = { taskId };
 
     const result = await runtime.executeToolCall(ctx, "send_message", {
@@ -1746,15 +1671,13 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       payload: { text: "hello from same task" }
     });
 
-    // 验证消息发送成功
-    expect(result.messageId).toBeDefined();
+    // 验证消息发送成�?    expect(result.messageId).toBeDefined();
     expect(result.error).toBeUndefined();
 
     // 运行消息循环
     await runtime.run();
 
-    // 验证消息被接收
-    expect(receivedMessage).toBeTruthy();
+    // 验证消息被接�?    expect(receivedMessage).toBeTruthy();
     expect(receivedMessage.payload.text).toBe("hello from same task");
 
     // 清理
@@ -1800,8 +1723,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
     const agent2 = await runtime.spawnAgent({ roleId: role2.id, parentAgentId: "root" });
     runtime._rootTaskAgentByTaskId.set(taskId2, { id: agent2.id, roleId: agent2.roleId, roleName: agent2.roleName });
 
-    // 构建上下文并尝试跨任务发送消息
-    const ctx = runtime._buildAgentContext(agent1);
+    // 构建上下文并尝试跨任务发送消�?    const ctx = runtime._buildAgentContext(agent1);
     ctx.currentMessage = { taskId: taskId1 };
 
     const result = await runtime.executeToolCall(ctx, "send_message", {
@@ -1809,8 +1731,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       payload: { text: "cross task message" }
     });
 
-    // 验证消息被拦截
-    expect(result.error).toBe("cross_task_communication_denied");
+    // 验证消息被拦�?    expect(result.error).toBe("cross_task_communication_denied");
     expect(result.from).toBe(agent1.id);
     expect(result.to).toBe(agent2.id);
 
@@ -1861,8 +1782,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       payload: { text: "message to root" }
     });
 
-    // 验证消息发送成功
-    expect(result.messageId).toBeDefined();
+    // 验证消息发送成�?    expect(result.messageId).toBeDefined();
     expect(result.error).toBeUndefined();
 
     // 运行消息循环
@@ -1901,8 +1821,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
     });
     runtime.registerAgentInstance(root);
 
-    // 创建用户智能体
-    let userReceivedMessage = null;
+    // 创建用户智能�?    let userReceivedMessage = null;
     const user = new Agent({
       id: "user",
       roleId: "user",
@@ -1929,8 +1848,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       payload: { text: "message to user" }
     });
 
-    // 验证消息发送成功
-    expect(result.messageId).toBeDefined();
+    // 验证消息发送成�?    expect(result.messageId).toBeDefined();
     expect(result.error).toBeUndefined();
 
     // 运行消息循环
@@ -1944,7 +1862,7 @@ describe("Runtime - Cross Task Communication Isolation", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("Property 15: 跨任务通信隔离 - taskId 由系统自动传递", async () => {
+  test("Property 15: 跨任务通信隔离 - taskId 由系统自动传�?, async () => {
     const tmpDir = path.resolve(process.cwd(), `test/.tmp/cross_task_auto_taskid_test`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -1986,24 +1904,22 @@ describe("Runtime - Cross Task Communication Isolation", () => {
       receivedTaskId = msg.taskId;
     };
 
-    // 构建上下文并发送消息（不传入 taskId，由系统自动传递）
+    // 构建上下文并发送消息（不传�?taskId，由系统自动传递）
     const ctx = runtime._buildAgentContext(agent1);
     ctx.currentMessage = { taskId };
 
     const result = await runtime.executeToolCall(ctx, "send_message", {
       to: agent2.id,
       payload: { text: "auto taskId test" }
-      // 注意：没有传入 taskId
+      // 注意：没有传�?taskId
     });
 
-    // 验证消息发送成功
-    expect(result.messageId).toBeDefined();
+    // 验证消息发送成�?    expect(result.messageId).toBeDefined();
 
     // 运行消息循环
     await runtime.run();
 
-    // 验证 taskId 被自动传递
-    expect(receivedTaskId).toBe(taskId);
+    // 验证 taskId 被自动传�?    expect(receivedTaskId).toBe(taskId);
 
     // 清理
     await rm(tmpDir, { recursive: true, force: true });
@@ -2066,7 +1982,7 @@ describe("Runtime.abortAgentLlmCall", () => {
     expect(result.reason).toBe("agent_not_found");
   });
 
-  test("应返回 aborted=false 当智能体不在活跃状态（idle）", async () => {
+  test("应返�?aborted=false 当智能体不在活跃状态（idle�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_test_3");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2103,7 +2019,7 @@ describe("Runtime.abortAgentLlmCall", () => {
     expect(result.reason).toBe("not_active");
   });
 
-  test("应成功中断 processing 状态的智能体", async () => {
+  test("应成功中�?processing 状态的智能�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_test_3b");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2133,16 +2049,15 @@ describe("Runtime.abortAgentLlmCall", () => {
     });
     runtime.registerAgentInstance(testAgent);
 
-    // 设置为 processing 状态（正在处理工具调用）
-    runtime.setAgentComputeStatus("test-agent", "processing");
+    // 设置�?processing 状态（正在处理工具调用�?    runtime.setAgentComputeStatus("test-agent", "processing");
     const result = await runtime.abortAgentLlmCall("test-agent");
     expect(result.ok).toBe(true);
     expect(result.aborted).toBe(true);
-    // 中断后状态应该变为 idle
+    // 中断后状态应该变�?idle
     expect(runtime.getAgentComputeStatus("test-agent")).toBe("idle");
   });
 
-  test("应成功中断 waiting_llm 状态的智能体", async () => {
+  test("应成功中�?waiting_llm 状态的智能�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_test_4");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2183,18 +2098,17 @@ describe("Runtime.abortAgentLlmCall", () => {
       signal: { aborted: false }
     });
 
-    // 设置为 waiting_llm 状态
-    runtime.setAgentComputeStatus("test-agent", "waiting_llm");
+    // 设置�?waiting_llm 状�?    runtime.setAgentComputeStatus("test-agent", "waiting_llm");
 
     const result = await runtime.abortAgentLlmCall("test-agent");
     expect(result.ok).toBe(true);
     expect(result.aborted).toBe(true);
 
-    // 验证状态已重置为 idle
+    // 验证状态已重置�?idle
     expect(runtime.getAgentComputeStatus("test-agent")).toBe("idle");
   });
 
-  test("中断后智能体应能继续接收新消息", async () => {
+  test("中断后智能体应能继续接收新消�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_test_5");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2238,7 +2152,7 @@ describe("Runtime.abortAgentLlmCall", () => {
       signal: { aborted: false }
     });
 
-    // 设置为 waiting_llm 状态并中断
+    // 设置�?waiting_llm 状态并中断
     runtime.setAgentComputeStatus("test-agent", "waiting_llm");
     await runtime.abortAgentLlmCall("test-agent");
 
@@ -2253,22 +2167,18 @@ describe("Runtime.abortAgentLlmCall", () => {
     // 运行消息循环
     await runtime.run();
 
-    // 验证智能体收到了新消息
-    expect(receivedMessages.length).toBe(1);
+    // 验证智能体收到了新消�?    expect(receivedMessages.length).toBe(1);
     expect(receivedMessages[0].payload.text).toBe("new message after abort");
   });
 });
 
 
 /**
- * Property 3: 中断后状态正确性
- * 对于任意成功的中断操作，中断后智能体的 computeStatus 应为 'idle'，
- * 且智能体应能继续接收新消息。
- * 
+ * Property 3: 中断后状态正确�? * 对于任意成功的中断操作，中断后智能体�?computeStatus 应为 'idle'�? * 且智能体应能继续接收新消息�? * 
  * **验证: Requirements 4.3, 5.1**
  */
 describe("Runtime.abortAgentLlmCall - Property Tests", () => {
-  test("Property 3: 中断后状态正确性 - 中断后 computeStatus 为 idle 且能接收新消息", async () => {
+  test("Property 3: 中断后状态正确�?- 中断�?computeStatus �?idle 且能接收新消�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_prop3");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2299,8 +2209,7 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
         async (agentIdSuffix) => {
           const agentId = `agent_${agentIdSuffix}_${Date.now()}`;
           
-          // 创建测试智能体
-          let receivedMessage = null;
+          // 创建测试智能�?          let receivedMessage = null;
           const testAgent = new Agent({
             id: agentId,
             roleId: "test",
@@ -2318,8 +2227,7 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
             signal: { aborted: false }
           });
 
-          // 设置为 waiting_llm 状态
-          runtime.setAgentComputeStatus(agentId, "waiting_llm");
+          // 设置�?waiting_llm 状�?          runtime.setAgentComputeStatus(agentId, "waiting_llm");
           expect(runtime.getAgentComputeStatus(agentId)).toBe("waiting_llm");
 
           // 执行中断
@@ -2329,11 +2237,10 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
           expect(result.ok).toBe(true);
           expect(result.aborted).toBe(true);
 
-          // 验证 (1): computeStatus 为 idle
+          // 验证 (1): computeStatus �?idle
           expect(runtime.getAgentComputeStatus(agentId)).toBe("idle");
 
-          // 验证 (2): 智能体能接收新消息
-          runtime.bus.send({
+          // 验证 (2): 智能体能接收新消�?          runtime.bus.send({
             to: agentId,
             from: "user",
             taskId: `task_${Date.now()}`,
@@ -2354,13 +2261,10 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
   });
 
   /**
-   * Property 4: 无活跃调用时的幂等性
-   * 对于任意中断请求，当智能体处于 idle 状态时，操作应返回 success 且 aborted=false，
-   * 且不应修改任何智能体状态。
-   * 
+   * Property 4: 无活跃调用时的幂等�?   * 对于任意中断请求，当智能体处�?idle 状态时，操作应返回 success �?aborted=false�?   * 且不应修改任何智能体状态�?   * 
    * **验证: Requirements 4.5**
    */
-  test("Property 4: 无活跃调用时的幂等性 - 返回 success 且 aborted=false，不修改状态", async () => {
+  test("Property 4: 无活跃调用时的幂等�?- 返回 success �?aborted=false，不修改状�?, async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_abort_prop4");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
@@ -2391,8 +2295,7 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
         async (agentIdSuffix) => {
           const agentId = `agent_idempotent_${agentIdSuffix}_${Date.now()}`;
           
-          // 创建测试智能体
-          const testAgent = new Agent({
+          // 创建测试智能�?          const testAgent = new Agent({
             id: agentId,
             roleId: "test",
             roleName: "test",
@@ -2405,10 +2308,9 @@ describe("Runtime.abortAgentLlmCall - Property Tests", () => {
           runtime.setAgentComputeStatus(agentId, "idle");
           const statusBefore = runtime.getAgentComputeStatus(agentId);
 
-          // 执行中断（没有活跃的 LLM 调用）
-          const result1 = await runtime.abortAgentLlmCall(agentId);
+          // 执行中断（没有活跃的 LLM 调用�?          const result1 = await runtime.abortAgentLlmCall(agentId);
 
-          // 验证返回 success 且 aborted=false
+          // 验证返回 success �?aborted=false
           expect(result1.ok).toBe(true);
           expect(result1.aborted).toBe(false);
           expect(result1.reason).toBe("not_active");

@@ -37,7 +37,7 @@ class MockServiceRegistry {
   }
 }
 
-// 生成有效的服务配置
+// 生成有效的服务配�?
 const validServiceConfigArb = fc.record({
   id: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0 && !s.includes('"')),
   name: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
@@ -50,7 +50,7 @@ const validServiceConfigArb = fc.record({
 
 describe("ModelSelector", () => {
   describe("基础功能测试", () => {
-    test("空服务注册表时返回 null 且不调用 LLM", async () => {
+    test("空服务注册表时返�?null 且不调用 LLM", async () => {
       const mockLlm = new MockLlmClient();
       const emptyRegistry = new MockServiceRegistry([]);
       
@@ -59,7 +59,7 @@ describe("ModelSelector", () => {
         serviceRegistry: emptyRegistry
       });
       
-      const result = await selector.selectService("测试岗位提示词");
+      const result = await selector.selectService("测试岗位提示�?);
       
       expect(result.serviceId).toBeNull();
       expect(mockLlm.callCount).toBe(0);
@@ -84,13 +84,13 @@ describe("ModelSelector", () => {
         serviceRegistry: registry
       });
       
-      const result = await selector.selectService("测试岗位提示词");
+      const result = await selector.selectService("测试岗位提示�?);
       
       expect(result.serviceId).toBe("test-service");
       expect(mockLlm.callCount).toBe(1);
     });
 
-    test("LLM 返回无效服务 ID 时返回 null", async () => {
+    test("LLM 返回无效服务 ID 时返�?null", async () => {
       const mockLlm = new MockLlmClient(() => ({
         content: '{"serviceId": "non-existent-service", "reason": "测试"}'
       }));
@@ -109,12 +109,12 @@ describe("ModelSelector", () => {
         serviceRegistry: registry
       });
       
-      const result = await selector.selectService("测试岗位提示词");
+      const result = await selector.selectService("测试岗位提示�?);
       
       expect(result.serviceId).toBeNull();
     });
 
-    test("LLM 调用异常时返回 null", async () => {
+    test("LLM 调用异常时返�?null", async () => {
       const mockLlm = new MockLlmClient(() => {
         throw new Error("模拟 LLM 调用失败");
       });
@@ -133,7 +133,7 @@ describe("ModelSelector", () => {
         serviceRegistry: registry
       });
       
-      const result = await selector.selectService("测试岗位提示词");
+      const result = await selector.selectService("测试岗位提示�?);
       
       expect(result.serviceId).toBeNull();
       expect(result.reason).toContain("异常");
@@ -142,7 +142,7 @@ describe("ModelSelector", () => {
 
   /**
    * Feature: llm-service-selector, Property 5: 空配置跳过选择
-   * *For any* 岗位创建操作，当服务注册表为空时，模型选择器应返回 null 且不调用 LLM 进行选择。
+   * *For any* 岗位创建操作，当服务注册表为空时，模型选择器应返回 null 且不调用 LLM 进行选择�?
    * **Validates: Requirements 3.2**
    */
   describe("Property 5: 空配置跳过选择", () => {
@@ -172,13 +172,13 @@ describe("ModelSelector", () => {
   });
 
   /**
-   * Feature: llm-service-selector, Property 6: 选择结果解析与验证
-   * *For any* LLM 返回的选择结果，当 serviceId 在注册表中存在时应返回该 ID；
-   * 当 serviceId 无效或不存在时应返回 null。
+   * Feature: llm-service-selector, Property 6: 选择结果解析与验�?
+   * *For any* LLM 返回的选择结果，当 serviceId 在注册表中存在时应返回该 ID�?
+   * �?serviceId 无效或不存在时应返回 null�?
    * **Validates: Requirements 3.4, 3.5**
    */
-  describe("Property 6: 选择结果解析与验证", () => {
-    test("LLM 返回有效服务 ID 时正确返回", async () => {
+  describe("Property 6: 选择结果解析与验�?, () => {
+    test("LLM 返回有效服务 ID 时正确返�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(validServiceConfigArb, { minLength: 1, maxLength: 5 }),
@@ -209,7 +209,7 @@ describe("ModelSelector", () => {
             
             const result = await selector.selectService("测试岗位");
             
-            // 有效的服务 ID 应该被正确返回
+            // 有效的服�?ID 应该被正确返�?
             expect(result.serviceId).toBe(selectedService.id);
           }
         ),
@@ -217,7 +217,7 @@ describe("ModelSelector", () => {
       );
     });
 
-    test("LLM 返回无效服务 ID 时返回 null", async () => {
+    test("LLM 返回无效服务 ID 时返�?null", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(validServiceConfigArb, { minLength: 1, maxLength: 5 }),
@@ -247,7 +247,7 @@ describe("ModelSelector", () => {
             
             const result = await selector.selectService("测试岗位");
             
-            // 无效的服务 ID 应该返回 null
+            // 无效的服�?ID 应该返回 null
             expect(result.serviceId).toBeNull();
           }
         ),
@@ -255,7 +255,7 @@ describe("ModelSelector", () => {
       );
     });
 
-    test("LLM 返回 null serviceId 时正确处理", async () => {
+    test("LLM 返回 null serviceId 时正确处�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(validServiceConfigArb, { minLength: 1, maxLength: 5 }),
@@ -281,7 +281,7 @@ describe("ModelSelector", () => {
             
             const result = await selector.selectService("测试岗位");
             
-            // null serviceId 应该被正确返回
+            // null serviceId 应该被正确返�?
             expect(result.serviceId).toBeNull();
           }
         ),

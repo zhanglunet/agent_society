@@ -1,5 +1,5 @@
-ï»¿/**
- * æ¶ˆæ¯é™„ä»¶å±æ€§æµ‹è¯•
+/**
+ * ÏûÏ¢¸½¼şÊôĞÔ²âÊÔ
  * Property 6: Message Attachment References Integrity
  * 
  * Requirements: 5.2, 5.3
@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import fc from "fast-check";
-import { HTTPServer } from "../src/platform/services/http/http_server.js";
+import { HTTPServer } from "../../src/platform/services/http/http_server.js";
 
 describe("Message Attachment Properties", () => {
   let server;
@@ -38,7 +38,7 @@ describe("Message Attachment Properties", () => {
   });
 
   /**
-   * åˆ›å»ºæ¨¡æ‹Ÿè¯·æ±‚å¯¹è±¡
+   * ´´½¨Ä£ÄâÇëÇó¶ÔÏó
    */
   function createMockRequest(body) {
     const bodyStr = JSON.stringify(body);
@@ -59,7 +59,7 @@ describe("Message Attachment Properties", () => {
           endCallback = callback;
         }
       },
-      // è§¦å‘æ•°æ®äº‹ä»¶
+      // ´¥·¢Êı¾İÊÂ¼ş
       _emit: () => {
         if (dataCallback) dataCallback(Buffer.from(bodyStr));
         if (endCallback) endCallback();
@@ -68,7 +68,7 @@ describe("Message Attachment Properties", () => {
   }
 
   /**
-   * åˆ›å»ºæ¨¡æ‹Ÿå“åº”å¯¹è±¡
+   * ´´½¨Ä£ÄâÏìÓ¦¶ÔÏó
    */
   function createMockResponse() {
     let statusCode = 200;
@@ -89,7 +89,7 @@ describe("Message Attachment Properties", () => {
     it("should preserve attachment references in message payload", async () => {
       await fc.assert(
         fc.asyncProperty(
-          // ç”Ÿæˆéšæœºé™„ä»¶æ•°ç»„
+          // Éú³ÉËæ»ú¸½¼şÊı×é
           fc.array(
             fc.record({
               type: fc.constantFrom("image", "file"),
@@ -111,24 +111,24 @@ describe("Message Attachment Properties", () => {
             const req = createMockRequest(body);
             const res = createMockResponse();
             
-            // è°ƒç”¨å¤„ç†æ–¹æ³•
+            // µ÷ÓÃ´¦Àí·½·¨
             server._handleSend(req, res);
             req._emit();
             
-            // ç­‰å¾…å¼‚æ­¥å¤„ç†
+            // µÈ´ıÒì²½´¦Àí
             await new Promise(resolve => setTimeout(resolve, 10));
             
-            // éªŒè¯æ¶ˆæ¯å·²å‘é€
+            // ÑéÖ¤ÏûÏ¢ÒÑ·¢ËÍ
             expect(sentMessages.length).toBe(1);
             
             const sentPayload = sentMessages[0].payload;
             
-            // éªŒè¯ payload åŒ…å«é™„ä»¶
+            // ÑéÖ¤ payload °üº¬¸½¼ş
             expect(sentPayload).toHaveProperty("attachments");
             expect(Array.isArray(sentPayload.attachments)).toBe(true);
             expect(sentPayload.attachments.length).toBe(attachments.length);
             
-            // éªŒè¯æ¯ä¸ªé™„ä»¶å¼•ç”¨éƒ½è¢«ä¿ç•™
+            // ÑéÖ¤Ã¿¸ö¸½¼şÒıÓÃ¶¼±»±£Áô
             for (let i = 0; i < attachments.length; i++) {
               const original = attachments[i];
               const sent = sentPayload.attachments[i];
@@ -138,7 +138,7 @@ describe("Message Attachment Properties", () => {
               expect(sent.filename).toBe(original.filename);
             }
             
-            // éªŒè¯æ–‡æœ¬å†…å®¹
+            // ÑéÖ¤ÎÄ±¾ÄÚÈİ
             expect(sentPayload.text).toBe(messageText);
           }
         ),
@@ -204,7 +204,7 @@ describe("Message Attachment Properties", () => {
       
       expect(res.getStatusCode()).toBe(200);
       expect(sentMessages.length).toBe(1);
-      // æ— é™„ä»¶æ—¶ï¼Œpayload åº”è¯¥æ˜¯çº¯æ–‡æœ¬
+      // ÎŞ¸½¼şÊ±£¬payload Ó¦¸ÃÊÇ´¿ÎÄ±¾
       expect(sentMessages[0].payload).toBe("Hello world");
     });
   });
@@ -227,7 +227,7 @@ describe("Message Attachment Properties", () => {
       
       expect(res.getStatusCode()).toBe(200);
       expect(sentMessages.length).toBe(1);
-      // ç©ºé™„ä»¶æ•°ç»„æ—¶ï¼Œpayload åº”è¯¥æ˜¯çº¯æ–‡æœ¬
+      // ¿Õ¸½¼şÊı×éÊ±£¬payload Ó¦¸ÃÊÇ´¿ÎÄ±¾
       expect(sentMessages[0].payload).toBe("Hello");
     });
 

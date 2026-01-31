@@ -5,23 +5,17 @@ export function getToolDefinitions() {
       function: {
         name: "ffmpeg_run",
         description:
-          "执行 ffmpeg 命令（异步）。需要 2 个参数：vargs 与 artifacts。vargs 是不包含程序名的完整参数字符串，会被解析为 argv 并用于调用 ffmpeg；artifacts 是按顺序替换输入占位符的工件ID数组。占位符规则：1) 输入占位符为 $FFMEPG_INPUT（或 $FFMPEG_INPUT），从左到右逐个替换为 artifacts 对应工件的真实文件路径；2) 输出占位符为 $FFMEPG_OUTPUT（或 $FFMPEG_OUTPUT），用于替代输出文件路径，该输出文件路径由函数内部预留的新工件文件路径提供，并返回 outputArtifactIds。可写为 $FFMEPG_OUTPUT.mp4 以指定输出工件扩展名。注意：在 ffmpeg_task_status 显示 completed 之前，输出工件可能不完整，不应当作为最终结果使用。若启动前参数校验失败，也会返回 taskId 且 status=failed，需通过 ffmpeg_task_status 查看失败详情。",
+          "执行 ffmpeg 命令（异步）。参数 command 是完整的 ffmpeg 参数字符串（不含程序名 ffmpeg 本身）。命令中的文件路径应为相对于工作区的相对路径。系统会自动将命令中的路径解析为工作区的真实路径。注意：在 ffmpeg_task_status 显示 completed 之前，输出文件可能不完整，不应当作为最终结果使用。",
         parameters: {
           type: "object",
           properties: {
-            vargs: {
+            command: {
               type: "string",
               description:
-                "不包含程序名的完整参数字符串（例如：-i $FFMEPG_INPUT -c copy $FFMEPG_OUTPUT.mp4）。会被解析为 argv 后调用 ffmpeg。"
-            },
-            artifacts: {
-              type: "array",
-              description:
-                "用于替换输入占位符的工件ID数组，按占位符出现顺序消耗。占位符为 $FFMEPG_INPUT（或 $FFMPEG_INPUT）。",
-              items: { type: "string" }
+                "完整的 ffmpeg 参数字符串。例如：'-i input.mp4 -c:v libx264 -preset fast output.mp4'。命令中的路径必须是相对于工作区的相对路径。"
             }
           },
-          required: ["vargs", "artifacts"]
+          required: ["command"]
         }
       }
     },
@@ -29,7 +23,7 @@ export function getToolDefinitions() {
       type: "function",
       function: {
         name: "ffmpeg_task_status",
-        description: "查询 ffmpeg 异步任务状态与进度。completed 时输出工件才可视为完整结果；failed 时会返回 failure（包含错误码与 stderrTail）以及日志工件ID。",
+        description: "查询 ffmpeg 异步任务状态与进度。completed 时输出文件才可视为完整结果；failed 时会返回 failure（包含错误码与 stderrTail）以及日志路径。",
         parameters: {
           type: "object",
           properties: {

@@ -92,7 +92,7 @@ export class Config {
 
     return {
       promptsDir: path.resolve(process.cwd(), cfg.promptsDir),
-      artifactsDir: dataDir ? path.resolve(dataDir, "artifacts") : path.resolve(process.cwd(), cfg.artifactsDir),
+      workspacesDir: dataDir ? path.resolve(dataDir, "workspaces") : (cfg.workspacesDir ? path.resolve(process.cwd(), cfg.workspacesDir) : path.resolve(process.cwd(), "data/workspaces")),
       runtimeDir: dataDir ? path.resolve(dataDir, "state") : path.resolve(process.cwd(), cfg.runtimeDir),
       maxSteps: Number.isFinite(cfg.maxSteps) ? cfg.maxSteps : 200,
       maxToolRounds: Number.isFinite(cfg.maxToolRounds) ? cfg.maxToolRounds : 20000,

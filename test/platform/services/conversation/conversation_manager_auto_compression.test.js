@@ -4,10 +4,10 @@ import { ConversationManager } from '../../../../src/platform/services/conversat
 /**
  * ConversationManager 自动压缩功能测试
  * 
- * 测试范围：
- * - 自动压缩管理器的设置和获取
- * - processAutoCompression 方法的各种场景
- * - 错误处理和日志记录
+ * 测试范围�?
+ * - 自动压缩管理器的设置和获�?
+ * - processAutoCompression 方法的各种场�?
+ * - 错误处理和日志记�?
  */
 describe('ConversationManager - Auto Compression', () => {
   let conversationManager;
@@ -34,13 +34,13 @@ describe('ConversationManager - Auto Compression', () => {
   });
 
   describe('setAutoCompressionManager', () => {
-    test('设置自动压缩管理器', () => {
+    test('设置自动压缩管理�?, () => {
       conversationManager.setAutoCompressionManager(mockAutoCompressionManager);
       
       expect(conversationManager._autoCompressionManager).toBe(mockAutoCompressionManager);
     });
 
-    test('可以设置为 null', () => {
+    test('可以设置�?null', () => {
       conversationManager.setAutoCompressionManager(mockAutoCompressionManager);
       conversationManager.setAutoCompressionManager(null);
       
@@ -48,8 +48,8 @@ describe('ConversationManager - Auto Compression', () => {
     });
   });
 
-  describe('构造函数中设置自动压缩管理器', () => {
-    test('通过构造函数参数设置', () => {
+  describe('构造函数中设置自动压缩管理�?, () => {
+    test('通过构造函数参数设�?, () => {
       const manager = new ConversationManager({
         autoCompressionManager: mockAutoCompressionManager,
         logger: mockLogger
@@ -58,7 +58,7 @@ describe('ConversationManager - Auto Compression', () => {
       expect(manager._autoCompressionManager).toBe(mockAutoCompressionManager);
     });
 
-    test('默认为 null', () => {
+    test('默认�?null', () => {
       const manager = new ConversationManager({
         logger: mockLogger
       });
@@ -75,9 +75,9 @@ describe('ConversationManager - Auto Compression', () => {
     test('正常处理自动压缩', async () => {
       const agentId = 'test-agent';
       const messages = [
-        { role: 'system', content: '你是一个助手' },
+        { role: 'system', content: '你是一个助�? },
         { role: 'user', content: '你好' },
-        { role: 'assistant', content: '你好！有什么可以帮助你的吗？' }
+        { role: 'assistant', content: '你好！有什么可以帮助你的吗�? }
       ];
 
       // 设置会话
@@ -91,7 +91,7 @@ describe('ConversationManager - Auto Compression', () => {
 
       // 验证日志记录
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        'ConversationManager.processAutoCompression: 开始自动压缩',
+        'ConversationManager.processAutoCompression: 开始自动压�?,
         { agentId, messageCount: 3 }
       );
 
@@ -101,7 +101,7 @@ describe('ConversationManager - Auto Compression', () => {
       );
     });
 
-    test('未设置压缩管理器时跳过处理', async () => {
+    test('未设置压缩管理器时跳过处�?, async () => {
       conversationManager.setAutoCompressionManager(null);
       const agentId = 'test-agent';
 
@@ -109,7 +109,7 @@ describe('ConversationManager - Auto Compression', () => {
 
       // 验证日志记录
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        'ConversationManager.processAutoCompression: 未设置压缩管理器，跳过自动压缩',
+        'ConversationManager.processAutoCompression: 未设置压缩管理器，跳过自动压�?,
         { agentId }
       );
     });
@@ -119,7 +119,7 @@ describe('ConversationManager - Auto Compression', () => {
 
       await conversationManager.processAutoCompression(agentId);
 
-      // 验证压缩管理器未被调用
+      // 验证压缩管理器未被调�?
       expect(mockAutoCompressionManager.process).not.toHaveBeenCalled();
 
       // 验证日志记录
@@ -129,18 +129,18 @@ describe('ConversationManager - Auto Compression', () => {
       );
     });
 
-    test('压缩管理器抛出异常时的处理', async () => {
+    test('压缩管理器抛出异常时的处�?, async () => {
       const agentId = 'test-agent';
       const messages = [{ role: 'user', content: 'test' }];
-      const error = new Error('压缩管理器异常');
+      const error = new Error('压缩管理器异�?);
 
       // 设置会话
       conversationManager.conversations.set(agentId, messages);
 
-      // 模拟压缩管理器抛出异常
+      // 模拟压缩管理器抛出异�?
       mockAutoCompressionManager.process.mockRejectedValue(error);
 
-      // 不应该抛出异常
+      // 不应该抛出异�?
       await expect(conversationManager.processAutoCompression(agentId)).resolves.toBeUndefined();
 
       // 验证错误日志
@@ -154,10 +154,10 @@ describe('ConversationManager - Auto Compression', () => {
       );
     });
 
-    test('传递的消息数组是引用', async () => {
+    test('传递的消息数组是引�?, async () => {
       const agentId = 'test-agent';
       const messages = [
-        { role: 'system', content: '你是一个助手' },
+        { role: 'system', content: '你是一个助�? },
         { role: 'user', content: '你好' }
       ];
 
@@ -166,12 +166,12 @@ describe('ConversationManager - Auto Compression', () => {
 
       await conversationManager.processAutoCompression(agentId);
 
-      // 验证传递给压缩管理器的是同一个数组引用
+      // 验证传递给压缩管理器的是同一个数组引�?
       expect(mockAutoCompressionManager.process).toHaveBeenCalledWith(messages);
       
       // 获取调用参数
       const calledWith = mockAutoCompressionManager.process.mock.calls[0][0];
-      expect(calledWith).toBe(messages); // 应该是同一个对象引用
+      expect(calledWith).toBe(messages); // 应该是同一个对象引�?
     });
 
     test('无日志记录器时不应该出错', async () => {
@@ -184,7 +184,7 @@ describe('ConversationManager - Auto Compression', () => {
       
       managerWithoutLogger.conversations.set(agentId, messages);
 
-      // 不应该抛出异常
+      // 不应该抛出异�?
       await expect(managerWithoutLogger.processAutoCompression(agentId)).resolves.toBeUndefined();
 
       // 验证压缩管理器被调用

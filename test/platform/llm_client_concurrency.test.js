@@ -1,7 +1,7 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("LlmClient Concurrency Features", () => {
   let client;
@@ -27,13 +27,13 @@ describe("LlmClient Concurrency Features", () => {
     });
   });
 
-  describe("åˆå§‹åŒ–", () => {
-    it("åº”æ­£ç¡®åˆå§‹åŒ–å¹¶å‘æ§åˆ¶å™¨", () => {
+  describe("³õÊ¼»¯", () => {
+    it("Ó¦ÕıÈ·³õÊ¼»¯²¢·¢¿ØÖÆÆ÷", () => {
       expect(client.concurrencyController).toBeDefined();
       expect(client.concurrencyController.maxConcurrentRequests).toBe(3);
     });
 
-    it("åº”ä½¿ç”¨é»˜è®¤çš„æœ€å¤§å¹¶å‘æ•°", () => {
+    it("Ó¦Ê¹ÓÃÄ¬ÈÏµÄ×î´ó²¢·¢Êı", () => {
       const defaultClient = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
@@ -47,7 +47,7 @@ describe("LlmClient Concurrency Features", () => {
 
   // **Feature: llm-concurrency-control, Property 4: Single Agent Serial Constraint**
   describe("Property 4: Single Agent Serial Constraint", () => {
-    it("å¯¹äºä»»ä½•å·²æœ‰æ´»è·ƒè¯·æ±‚çš„æ™ºèƒ½ä½“ï¼Œè¯¥æ™ºèƒ½ä½“çš„åç»­è¯·æ±‚åº”ç«‹å³è¢«æ‹’ç»å¹¶è¿”å›é”™è¯¯", async () => {
+    it("¶ÔÓÚÈÎºÎÒÑÓĞ»îÔ¾ÇëÇóµÄÖÇÄÜÌå£¬¸ÃÖÇÄÜÌåµÄºóĞøÇëÇóÓ¦Á¢¼´±»¾Ü¾ø²¢·µ»Ø´íÎó", async () => {
       await fc.assert(fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 10 }),
         async (agentId) => {
@@ -63,39 +63,39 @@ describe("LlmClient Concurrency Features", () => {
             }
           };
 
-          // å‘èµ·ç¬¬ä¸€ä¸ªè¯·æ±‚ï¼ˆä¸ç­‰å¾…å®Œæˆï¼‰
+          // ·¢ÆğµÚÒ»¸öÇëÇó£¨²»µÈ´ıÍê³É£©
           const firstPromise = client.chat({
             messages: [{ role: "user", content: "test1" }],
             meta: { agentId }
           });
 
-          // ç­‰å¾…ä¸€å°æ®µæ—¶é—´ç¡®ä¿ç¬¬ä¸€ä¸ªè¯·æ±‚å¼€å§‹å¤„ç†
+          // µÈ´ıÒ»Ğ¡¶ÎÊ±¼äÈ·±£µÚÒ»¸öÇëÇó¿ªÊ¼´¦Àí
           await new Promise(resolve => setTimeout(resolve, 10));
 
-          // å°è¯•å‘èµ·ç¬¬äºŒä¸ªè¯·æ±‚ï¼Œåº”è¯¥è¢«æ‹’ç»
+          // ³¢ÊÔ·¢ÆğµÚ¶ş¸öÇëÇó£¬Ó¦¸Ã±»¾Ü¾ø
           await expect(client.chat({
             messages: [{ role: "user", content: "test2" }],
             meta: { agentId }
           })).rejects.toThrow(`Agent ${agentId} already has an active request`);
 
-          // éªŒè¯ç¬¬ä¸€ä¸ªè¯·æ±‚ä»åœ¨å¤„ç†ä¸­
+          // ÑéÖ¤µÚÒ»¸öÇëÇóÈÔÔÚ´¦ÀíÖĞ
           expect(client.hasActiveRequest(agentId)).toBe(true);
           
-          // æ¸…ç†ï¼šå®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚ä»¥é¿å…å†…å­˜æ³„æ¼
+          // ÇåÀí£ºÍê³ÉµÚÒ»¸öÇëÇóÒÔ±ÜÃâÄÚ´æĞ¹Â©
           resolver({
             choices: [{ message: { content: "response" } }],
             usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
           });
           
-          await firstPromise; // ç­‰å¾…ç¬¬ä¸€ä¸ªè¯·æ±‚å®Œæˆ
+          await firstPromise; // µÈ´ıµÚÒ»¸öÇëÇóÍê³É
         }
-      ), { numRuns: 20 }); // å‡å°‘è¿è¡Œæ¬¡æ•°ä»¥é¿å…è¶…æ—¶
+      ), { numRuns: 20 }); // ¼õÉÙÔËĞĞ´ÎÊıÒÔ±ÜÃâ³¬Ê±
     });
   });
 
   // **Feature: llm-concurrency-control, Property 7: Asynchronous Non-blocking Behavior**
   describe("Property 7: Asynchronous Non-blocking Behavior", () => {
-    it("å¯¹äºä»»ä½•LLMè¯·æ±‚ï¼Œchatæ–¹æ³•åº”ç«‹å³è¿”å›Promiseè€Œä¸é˜»å¡è°ƒç”¨çº¿ç¨‹", async () => {
+    it("¶ÔÓÚÈÎºÎLLMÇëÇó£¬chat·½·¨Ó¦Á¢¼´·µ»ØPromise¶ø²»×èÈûµ÷ÓÃÏß³Ì", async () => {
       await fc.assert(fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 10 }),
         fc.string({ minLength: 1, maxLength: 20 }),
@@ -114,7 +114,7 @@ describe("LlmClient Concurrency Features", () => {
 
           const startTime = Date.now();
           
-          // è°ƒç”¨chatæ–¹æ³•
+          // µ÷ÓÃchat·½·¨
           const promise = client.chat({
             messages: [{ role: "user", content }],
             meta: { agentId }
@@ -122,25 +122,25 @@ describe("LlmClient Concurrency Features", () => {
 
           const callTime = Date.now() - startTime;
           
-          // éªŒè¯æ–¹æ³•ç«‹å³è¿”å›ï¼ˆè°ƒç”¨æ—¶é—´åº”è¯¥å¾ˆçŸ­ï¼‰
-          expect(callTime).toBeLessThan(50); // 50mså†…è¿”å›
+          // ÑéÖ¤·½·¨Á¢¼´·µ»Ø£¨µ÷ÓÃÊ±¼äÓ¦¸ÃºÜ¶Ì£©
+          expect(callTime).toBeLessThan(50); // 50msÄÚ·µ»Ø
           
-          // éªŒè¯è¿”å›çš„æ˜¯Promise
+          // ÑéÖ¤·µ»ØµÄÊÇPromise
           expect(promise).toBeInstanceOf(Promise);
           
-          // ç­‰å¾…Promiseå®Œæˆ
+          // µÈ´ıPromiseÍê³É
           const result = await promise;
           expect(result.content).toBe("response");
         }
-      ), { numRuns: 20 }); // å‡å°‘è¿è¡Œæ¬¡æ•°
+      ), { numRuns: 20 }); // ¼õÉÙÔËĞĞ´ÎÊı
     });
   });
 
   // **Feature: llm-concurrency-control, Property 10: Backward Compatibility**
   describe("Property 10: Backward Compatibility", () => {
-    it("å¯¹äºä»»ä½•ç°æœ‰ä»£ç è°ƒç”¨LLM_Clientæ–¹æ³•ï¼Œæ¥å£åº”ä¿æŒå…¼å®¹ä¸”æ‰€æœ‰ç°æœ‰åŠŸèƒ½æ­£å¸¸å·¥ä½œ", async () => {
+    it("¶ÔÓÚÈÎºÎÏÖÓĞ´úÂëµ÷ÓÃLLM_Client·½·¨£¬½Ó¿ÚÓ¦±£³Ö¼æÈİÇÒËùÓĞÏÖÓĞ¹¦ÄÜÕı³£¹¤×÷", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.option(fc.string({ minLength: 1, maxLength: 10 }), { nil: null }), // agentIdå¯èƒ½ä¸ºnullï¼ˆå‘åå…¼å®¹ï¼‰
+        fc.option(fc.string({ minLength: 1, maxLength: 10 }), { nil: null }), // agentId¿ÉÄÜÎªnull£¨Ïòºó¼æÈİ£©
         fc.string({ minLength: 1, maxLength: 20 }),
         async (agentId, content) => {
           // Mock OpenAI client
@@ -157,32 +157,32 @@ describe("LlmClient Concurrency Features", () => {
 
           const input = {
             messages: [{ role: "user", content }],
-            meta: agentId ? { agentId } : {} // å¯èƒ½æ²¡æœ‰agentId
+            meta: agentId ? { agentId } : {} // ¿ÉÄÜÃ»ÓĞagentId
           };
 
-          // è°ƒç”¨åº”è¯¥æˆåŠŸï¼Œæ— è®ºæ˜¯å¦æœ‰agentId
+          // µ÷ÓÃÓ¦¸Ã³É¹¦£¬ÎŞÂÛÊÇ·ñÓĞagentId
           const result = await client.chat(input);
           
           expect(result.content).toBe("response");
           expect(client._client.chat.completions.create).toHaveBeenCalled();
           
-          // éªŒè¯ç°æœ‰çš„abortå’ŒhasActiveRequestæ–¹æ³•ä»ç„¶å·¥ä½œ
+          // ÑéÖ¤ÏÖÓĞµÄabortºÍhasActiveRequest·½·¨ÈÔÈ»¹¤×÷
           if (agentId) {
-            // æœ‰agentIdæ—¶ï¼Œåº”è¯¥èƒ½å¤Ÿæ£€æŸ¥æ´»è·ƒè¯·æ±‚çŠ¶æ€
+            // ÓĞagentIdÊ±£¬Ó¦¸ÃÄÜ¹»¼ì²é»îÔ¾ÇëÇó×´Ì¬
             const hasActive = client.hasActiveRequest(agentId);
             expect(typeof hasActive).toBe("boolean");
             
-            // abortæ–¹æ³•åº”è¯¥èƒ½å¤Ÿè°ƒç”¨
+            // abort·½·¨Ó¦¸ÃÄÜ¹»µ÷ÓÃ
             const aborted = client.abort(agentId);
             expect(typeof aborted).toBe("boolean");
           }
         }
-      ), { numRuns: 20 }); // å‡å°‘è¿è¡Œæ¬¡æ•°
+      ), { numRuns: 20 }); // ¼õÉÙÔËĞĞ´ÎÊı
     });
   });
 
-  describe("å•å…ƒæµ‹è¯•", () => {
-    it("åº”æ­£ç¡®å¤„ç†æœ‰agentIdçš„è¯·æ±‚", async () => {
+  describe("µ¥Ôª²âÊÔ", () => {
+    it("Ó¦ÕıÈ·´¦ÀíÓĞagentIdµÄÇëÇó", async () => {
       client._client = {
         chat: {
           completions: {
@@ -203,7 +203,7 @@ describe("LlmClient Concurrency Features", () => {
       expect(client._client.chat.completions.create).toHaveBeenCalled();
     });
 
-    it("åº”æ­£ç¡®å¤„ç†æ²¡æœ‰agentIdçš„è¯·æ±‚ï¼ˆå‘åå…¼å®¹ï¼‰", async () => {
+    it("Ó¦ÕıÈ·´¦ÀíÃ»ÓĞagentIdµÄÇëÇó£¨Ïòºó¼æÈİ£©", async () => {
       client._client = {
         chat: {
           completions: {
@@ -217,14 +217,14 @@ describe("LlmClient Concurrency Features", () => {
 
       const result = await client.chat({
         messages: [{ role: "user", content: "test" }],
-        meta: {} // æ²¡æœ‰agentId
+        meta: {} // Ã»ÓĞagentId
       });
 
       expect(result.content).toBe("test response");
       expect(client._client.chat.completions.create).toHaveBeenCalled();
     });
 
-    it("åº”æ‹’ç»åŒä¸€æ™ºèƒ½ä½“çš„ç¬¬äºŒä¸ªè¯·æ±‚", async () => {
+    it("Ó¦¾Ü¾øÍ¬Ò»ÖÇÄÜÌåµÄµÚ¶ş¸öÇëÇó", async () => {
       let resolver;
       const controllablePromise = new Promise(resolve => { resolver = resolve; });
       
@@ -236,22 +236,22 @@ describe("LlmClient Concurrency Features", () => {
         }
       };
 
-      // å‘èµ·ç¬¬ä¸€ä¸ªè¯·æ±‚
+      // ·¢ÆğµÚÒ»¸öÇëÇó
       const firstPromise = client.chat({
         messages: [{ role: "user", content: "test1" }],
         meta: { agentId: "test-agent" }
       });
 
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      // å°è¯•å‘èµ·ç¬¬äºŒä¸ªè¯·æ±‚
+      // ³¢ÊÔ·¢ÆğµÚ¶ş¸öÇëÇó
       await expect(client.chat({
         messages: [{ role: "user", content: "test2" }],
         meta: { agentId: "test-agent" }
       })).rejects.toThrow("Agent test-agent already has an active request");
       
-      // æ¸…ç†ï¼šå®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚
+      // ÇåÀí£ºÍê³ÉµÚÒ»¸öÇëÇó
       resolver({
         choices: [{ message: { content: "response" } }],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
@@ -260,14 +260,14 @@ describe("LlmClient Concurrency Features", () => {
       await firstPromise;
     });
 
-    it("åº”æ­£ç¡®æ›´æ–°æœ€å¤§å¹¶å‘æ•°", async () => {
+    it("Ó¦ÕıÈ·¸üĞÂ×î´ó²¢·¢Êı", async () => {
       expect(client.concurrencyController.maxConcurrentRequests).toBe(3);
       
       await client.updateMaxConcurrentRequests(5);
       expect(client.concurrencyController.maxConcurrentRequests).toBe(5);
     });
 
-    it("åº”è¿”å›å¹¶å‘ç»Ÿè®¡ä¿¡æ¯", () => {
+    it("Ó¦·µ»Ø²¢·¢Í³¼ÆĞÅÏ¢", () => {
       const stats = client.getConcurrencyStats();
       
       expect(stats).toHaveProperty("activeCount");
@@ -277,8 +277,8 @@ describe("LlmClient Concurrency Features", () => {
       expect(stats).toHaveProperty("rejectedRequests");
     });
 
-    it("hasActiveRequeståº”æ£€æŸ¥å¹¶å‘æ§åˆ¶å™¨å’Œä¼ ç»Ÿæ˜ å°„", async () => {
-      // æµ‹è¯•å¹¶å‘æ§åˆ¶å™¨ä¸­çš„æ´»è·ƒè¯·æ±‚
+    it("hasActiveRequestÓ¦¼ì²é²¢·¢¿ØÖÆÆ÷ºÍ´«Í³Ó³Éä", async () => {
+      // ²âÊÔ²¢·¢¿ØÖÆÆ÷ÖĞµÄ»îÔ¾ÇëÇó
       let resolver;
       const controllablePromise = new Promise(resolve => { resolver = resolve; });
       
@@ -300,7 +300,7 @@ describe("LlmClient Concurrency Features", () => {
       expect(client.hasActiveRequest("test-agent")).toBe(true);
       expect(client.hasActiveRequest("other-agent")).toBe(false);
       
-      // æ¸…ç†
+      // ÇåÀí
       resolver({
         choices: [{ message: { content: "response" } }],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
@@ -309,7 +309,7 @@ describe("LlmClient Concurrency Features", () => {
       await promise;
     });
 
-    it("abortåº”å–æ¶ˆå¹¶å‘æ§åˆ¶å™¨å’Œä¼ ç»Ÿæ˜ å°„ä¸­çš„è¯·æ±‚", async () => {
+    it("abortÓ¦È¡Ïû²¢·¢¿ØÖÆÆ÷ºÍ´«Í³Ó³ÉäÖĞµÄÇëÇó", async () => {
       let resolver;
       const controllablePromise = new Promise(resolve => { resolver = resolve; });
       
@@ -334,25 +334,25 @@ describe("LlmClient Concurrency Features", () => {
       expect(aborted).toBe(true);
       expect(client.hasActiveRequest("test-agent")).toBe(false);
 
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(promise).rejects.toThrow();
     });
 
-    it("åº”æ­£ç¡®å¤„ç†é‡è¯•æœºåˆ¶", async () => {
-      const testName = "é‡è¯•æœºåˆ¶";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+    it("Ó¦ÕıÈ·´¦ÀíÖØÊÔ»úÖÆ", async () => {
+      const testName = "ÖØÊÔ»úÖÆ";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
-      // åˆ›å»ºä¸€ä¸ªæ–°çš„å®¢æˆ·ç«¯å®ä¾‹ï¼Œç¡®ä¿å¹²å‡€çš„çŠ¶æ€
+      // ´´½¨Ò»¸öĞÂµÄ¿Í»§¶ËÊµÀı£¬È·±£¸É¾»µÄ×´Ì¬
       const retryClient = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
         apiKey: "test-key",
-        maxRetries: 2, // å¢åŠ é‡è¯•æ¬¡æ•°ä»¥ç¡®ä¿æµ‹è¯•é€šè¿‡
+        maxRetries: 2, // Ôö¼ÓÖØÊÔ´ÎÊıÒÔÈ·±£²âÊÔÍ¨¹ı
         maxConcurrentRequests: 3,
         logger: mockLogger
       });
       
-      // Mock sleepæ–¹æ³•ä»¥åŠ å¿«æµ‹è¯•
+      // Mock sleep·½·¨ÒÔ¼Ó¿ì²âÊÔ
       retryClient._sleep = vi.fn().mockResolvedValue(undefined);
       
       let callCount = 0;
@@ -361,24 +361,24 @@ describe("LlmClient Concurrency Features", () => {
           completions: {
             create: vi.fn().mockImplementation(async (payload, options) => {
               callCount++;
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ #${callCount}`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ #${callCount}`);
               
-              // æ£€æŸ¥æ˜¯å¦è¢«ä¸­æ–­
+              // ¼ì²éÊÇ·ñ±»ÖĞ¶Ï
               if (options?.signal?.aborted) {
-                console.log(`[${testName}] è°ƒç”¨ #${callCount} å·²è¢«ä¸­æ–­`);
+                console.log(`[${testName}] µ÷ÓÃ #${callCount} ÒÑ±»ÖĞ¶Ï`);
                 const abortError = new Error("Request aborted");
                 abortError.name = "AbortError";
                 throw abortError;
               }
               
               if (callCount === 1) {
-                console.log(`[${testName}] ç¬¬ä¸€æ¬¡è°ƒç”¨å¤±è´¥ï¼Œå°†é‡è¯•`);
+                console.log(`[${testName}] µÚÒ»´Îµ÷ÓÃÊ§°Ü£¬½«ÖØÊÔ`);
                 const error = new Error("Network error");
                 error.name = "NetworkError";
                 throw error;
               }
               
-              console.log(`[${testName}] ç¬¬${callCount}æ¬¡è°ƒç”¨æˆåŠŸ`);
+              console.log(`[${testName}] µÚ${callCount}´Îµ÷ÓÃ³É¹¦`);
               return {
                 choices: [{ message: { content: "success" } }],
                 usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
@@ -388,7 +388,7 @@ describe("LlmClient Concurrency Features", () => {
         }
       };
 
-      console.log(`[${testName}] å‘èµ·è¯·æ±‚ï¼ŒæœŸæœ›ç¬¬ä¸€æ¬¡å¤±è´¥ï¼Œç¬¬äºŒæ¬¡æˆåŠŸ`);
+      console.log(`[${testName}] ·¢ÆğÇëÇó£¬ÆÚÍûµÚÒ»´ÎÊ§°Ü£¬µÚ¶ş´Î³É¹¦`);
 
       try {
         const result = await retryClient.chat({
@@ -396,21 +396,21 @@ describe("LlmClient Concurrency Features", () => {
           meta: { agentId: "test-agent" }
         });
 
-        console.log(`[${testName}] è¯·æ±‚å®Œæˆï¼Œç»“æœ:`, result.content);
+        console.log(`[${testName}] ÇëÇóÍê³É£¬½á¹û:`, result.content);
         expect(result.content).toBe("success");
-        expect(callCount).toBe(2); // ç¬¬ä¸€æ¬¡å¤±è´¥ï¼Œç¬¬äºŒæ¬¡æˆåŠŸ
+        expect(callCount).toBe(2); // µÚÒ»´ÎÊ§°Ü£¬µÚ¶ş´Î³É¹¦
         expect(retryClient._client.chat.completions.create).toHaveBeenCalledTimes(2);
         
-        // éªŒè¯sleepè¢«è°ƒç”¨äº†ä¸€æ¬¡ï¼ˆé‡è¯•å»¶è¿Ÿï¼‰
+        // ÑéÖ¤sleep±»µ÷ÓÃÁËÒ»´Î£¨ÖØÊÔÑÓ³Ù£©
         expect(retryClient._sleep).toHaveBeenCalledTimes(1);
         expect(retryClient._sleep).toHaveBeenCalledWith(1000); // 2^0 * 1000 = 1000ms for first retry
         
-        console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+        console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
       } catch (error) {
-        console.error(`[${testName}] æµ‹è¯•å¤±è´¥:`, error.message);
-        console.error(`[${testName}] è°ƒç”¨æ¬¡æ•°:`, callCount);
-        console.error(`[${testName}] Sleepè°ƒç”¨æ¬¡æ•°:`, retryClient._sleep.mock.calls.length);
-        console.error(`[${testName}] Sleepè°ƒç”¨å‚æ•°:`, retryClient._sleep.mock.calls);
+        console.error(`[${testName}] ²âÊÔÊ§°Ü:`, error.message);
+        console.error(`[${testName}] µ÷ÓÃ´ÎÊı:`, callCount);
+        console.error(`[${testName}] Sleepµ÷ÓÃ´ÎÊı:`, retryClient._sleep.mock.calls.length);
+        console.error(`[${testName}] Sleepµ÷ÓÃ²ÎÊı:`, retryClient._sleep.mock.calls);
         throw error;
       }
     });

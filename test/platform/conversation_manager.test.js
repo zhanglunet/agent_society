@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { rm, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { ConversationManager } from "../src/platform/services/conversation/conversation_manager.js";
+import { ConversationManager } from "../../src/platform/services/conversation/conversation_manager.js";
 
 describe("ConversationManager", () => {
   let manager;
@@ -26,7 +26,7 @@ describe("ConversationManager", () => {
   });
 
   describe("基础会话管理", () => {
-    test("ensureConversation 创建新会话", () => {
+    test("ensureConversation 创建新会�?, () => {
       const agentId = "agent-1";
       const systemPrompt = "You are a helpful assistant";
       
@@ -68,7 +68,7 @@ describe("ConversationManager", () => {
       expect(conv).toBeUndefined();
     });
 
-    test("hasConversation 检查会话是否存在", () => {
+    test("hasConversation 检查会话是否存�?, () => {
       const agentId = "agent-1";
       
       expect(manager.hasConversation(agentId)).toBe(false);
@@ -156,7 +156,7 @@ describe("ConversationManager", () => {
       expect(result.error).toBe("conversation_not_found");
     });
 
-    test("compress 返回错误对于无效的摘要", () => {
+    test("compress 返回错误对于无效的摘�?, () => {
       const agentId = "agent-1";
       manager.ensureConversation(agentId, "system prompt");
       
@@ -228,8 +228,8 @@ describe("ConversationManager", () => {
     });
   });
 
-  describe("Prompt token 估算与滑动窗口", () => {
-    test("updatePromptTokenEstimator 可基于 usage 校准 tokensPerChar", () => {
+  describe("Prompt token 估算与滑动窗�?, () => {
+    test("updatePromptTokenEstimator 可基�?usage 校准 tokensPerChar", () => {
       const agentId = "agent-1";
       const sampleMessages = [{ role: "system", content: "a".repeat(100) }];
 
@@ -241,7 +241,7 @@ describe("ConversationManager", () => {
       expect(estimated).toBe(20);
     });
 
-    test("slideWindowByEstimatedTokens 按估算 token 保留最后 70%", () => {
+    test("slideWindowByEstimatedTokens 按估�?token 保留最�?70%", () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
 
@@ -264,7 +264,7 @@ describe("ConversationManager", () => {
       }
     });
 
-    test("slideWindowByEstimatedTokens 不截断 tool_call 链路", () => {
+    test("slideWindowByEstimatedTokens 不截�?tool_call 链路", () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
 
@@ -308,8 +308,7 @@ describe("ConversationManager", () => {
       const conv = manager.ensureConversation(agentId, "system prompt");
       manager.updatePromptTokenEstimator(agentId, [{ role: "system", content: "a".repeat(100) }], 100);
 
-      conv.push({ role: "user", content: "x".repeat(200) }); // 估算为 200 tokens，超过阈值
-
+      conv.push({ role: "user", content: "x".repeat(200) }); // 估算�?200 tokens，超过阈�?
       const result = manager.slideWindowIfNeededByEstimate(agentId, { keepRatio: 0.7, maxLoops: 3 });
       expect(result.ok).toBe(true);
       expect(result.before.status).toBe("exceeded");
@@ -318,8 +317,8 @@ describe("ConversationManager", () => {
     });
   });
 
-  describe("上下文状态检查", () => {
-    test("getContextStatus 返回 normal 状态", () => {
+  describe("上下文状态检�?, () => {
+    test("getContextStatus 返回 normal 状�?, () => {
       const agentId = "agent-1";
       
       manager.updateTokenUsage(agentId, {
@@ -336,7 +335,7 @@ describe("ConversationManager", () => {
       expect(status.status).toBe("normal");
     });
 
-    test("getContextStatus 返回 warning 状态", () => {
+    test("getContextStatus 返回 warning 状�?, () => {
       const agentId = "agent-1";
       
       manager.updateTokenUsage(agentId, {
@@ -350,7 +349,7 @@ describe("ConversationManager", () => {
       expect(status.status).toBe("warning");
     });
 
-    test("getContextStatus 返回 critical 状态", () => {
+    test("getContextStatus 返回 critical 状�?, () => {
       const agentId = "agent-1";
       
       manager.updateTokenUsage(agentId, {
@@ -364,7 +363,7 @@ describe("ConversationManager", () => {
       expect(status.status).toBe("critical");
     });
 
-    test("getContextStatus 返回 exceeded 状态", () => {
+    test("getContextStatus 返回 exceeded 状�?, () => {
       const agentId = "agent-1";
       
       manager.updateTokenUsage(agentId, {
@@ -378,7 +377,7 @@ describe("ConversationManager", () => {
       expect(status.status).toBe("exceeded");
     });
 
-    test("isContextExceeded 检查是否超过硬性限制", () => {
+    test("isContextExceeded 检查是否超过硬性限�?, () => {
       const agentId = "agent-1";
       
       expect(manager.isContextExceeded(agentId)).toBe(false);
@@ -392,7 +391,7 @@ describe("ConversationManager", () => {
       expect(manager.isContextExceeded(agentId)).toBe(true);
     });
 
-    test("buildContextStatusPrompt 生成状态提示", () => {
+    test("buildContextStatusPrompt 生成状态提�?, () => {
       const agentId = "agent-1";
       
       manager.updateTokenUsage(agentId, {
@@ -425,7 +424,7 @@ describe("ConversationManager", () => {
   });
 
   describe("工具调用历史", () => {
-    test("getLastToolCall 返回最后一个工具调用", () => {
+    test("getLastToolCall 返回最后一个工具调�?, () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       
@@ -449,7 +448,7 @@ describe("ConversationManager", () => {
       expect(lastCall.function.name).toBe("get_weather");
     });
 
-    test("getLastToolCall 返回 null 对于没有工具调用的会话", () => {
+    test("getLastToolCall 返回 null 对于没有工具调用的会�?, () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       
@@ -466,7 +465,7 @@ describe("ConversationManager", () => {
       expect(lastCall).toBeNull();
     });
 
-    test("verifyHistoryConsistency 验证对话历史一致性", () => {
+    test("verifyHistoryConsistency 验证对话历史一致�?, () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       
@@ -510,8 +509,8 @@ describe("ConversationManager", () => {
     });
   });
 
-  describe("持久化", () => {
-    test("persistConversationNow 保存会话到磁盘", async () => {
+  describe("持久�?, () => {
+    test("persistConversationNow 保存会话到磁�?, async () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       conv.push({ role: "user", content: "Hello" });
@@ -521,7 +520,7 @@ describe("ConversationManager", () => {
       expect(result.ok).toBe(true);
     });
 
-    test("loadAllConversations 加载所有会话", async () => {
+    test("loadAllConversations 加载所有会�?, async () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       conv.push({ role: "user", content: "Hello" });
@@ -555,7 +554,7 @@ describe("ConversationManager", () => {
       expect(deleteResult.ok).toBe(true);
     });
 
-    test("flushAll 等待所有待保存的对话完成", async () => {
+    test("flushAll 等待所有待保存的对话完�?, async () => {
       const agentId1 = "agent-1";
       const agentId2 = "agent-2";
       
@@ -568,7 +567,7 @@ describe("ConversationManager", () => {
       
       await manager.flushAll();
       
-      // 验证文件已保存
+      // 验证文件已保�?
       const newManager = new ConversationManager({
         conversationsDir: tempDir
       });
@@ -579,13 +578,13 @@ describe("ConversationManager", () => {
   });
 
   describe("配置", () => {
-    test("setConversationsDir 设置持久化目录", () => {
+    test("setConversationsDir 设置持久化目�?, () => {
       const newDir = "/new/path";
       manager.setConversationsDir(newDir);
       expect(manager._conversationsDir).toBe(newDir);
     });
 
-    test("setPromptTemplates 设置提示词模板", () => {
+    test("setPromptTemplates 设置提示词模�?, () => {
       const templates = {
         contextStatus: "Custom status: {{USED_TOKENS}}/{{MAX_TOKENS}}"
       };
@@ -596,12 +595,12 @@ describe("ConversationManager", () => {
     });
   });
 
-  describe("上下文检查", () => {
+  describe("上下文检�?, () => {
     test("checkAndWarn 检查上下文是否超过限制", () => {
       const agentId = "agent-1";
       const conv = manager.ensureConversation(agentId, "system prompt");
       
-      // 添加超过限制的消息
+      // 添加超过限制的消�?
       for (let i = 0; i < 60; i++) {
         conv.push({ role: "user", content: `Message ${i}` });
       }

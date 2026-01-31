@@ -1,5 +1,5 @@
 /**
- * LLM 多模态消息属性测试
+ * LLM 多模态消息属性测�?
  * Property 7: LLM Request Multimodal Format
  * 
  * Requirements: 6.1, 6.2
@@ -115,9 +115,9 @@ describe("LLM Multimodal Message Properties", () => {
       
       const formatted = formatMessageForAgent(message, { role: "user" });
       
-      expect(formatted).toContain("【来自用户的消息】");
+      expect(formatted).toContain("【来自用户的消息�?);
       expect(formatted).toContain("Please analyze this image");
-      expect(formatted).toContain("【附件列表】");
+      expect(formatted).toContain("【附件列表�?);
       expect(formatted).toContain("[图片] photo.jpg");
       expect(formatted).toContain("[文件] report.pdf");
       expect(formatted).toContain("artifact:img-001");
@@ -137,7 +137,7 @@ describe("LLM Multimodal Message Properties", () => {
       
       const formatted = formatMessageForAgent(message, { role: "user" });
       
-      expect(formatted).toContain("【附件列表】");
+      expect(formatted).toContain("【附件列表�?);
       expect(formatted).toContain("[图片] photo.jpg");
     });
   });

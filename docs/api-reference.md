@@ -9,7 +9,7 @@
 - [Agent 类](#agent-类)
 - [HTTP API](#http-api)
 - [消息格式](#消息格式)
-- [工件格式](#工件格式)
+- [工作区格式](#工作区格式)
 - [Task Brief 格式](#task-brief-格式)
 
 ## AgentSociety 类
@@ -53,7 +53,7 @@ async init(): Promise<void>
 
 **说明：**
 - 加载配置（app.json, logging.json, llmservices.json 等）
-- 初始化平台能力（Runtime, MessageBus, ArtifactStore, OrgPrimitives 等）
+- 初始化平台能力（Runtime, MessageBus, WorkspaceManager, OrgPrimitives 等）
 - 加载外部模块（Modules）
 - 创建根智能体与用户端点
 - 启动消息处理循环
@@ -269,7 +269,7 @@ Agent Society 内置 HTTP 服务器提供 RESTful API。
 ### 静态资源
 
 - `/web/*`: Web 查看器界面
-- `/artifacts/*`: 访问生成的工件文件
+- `/api/workspaces/:workspaceId/*`: 访问工作区文件内容与列表
 
 ## 消息格式
 
@@ -290,16 +290,19 @@ interface Message {
 }
 ```
 
-## 工件格式
+## 工作区格式
+
+每个智能体拥有独立的工作区。
 
 ```typescript
-interface Artifact {
-  id: string;           // UUID
-  type: string;         // 类型 (如 "file", "image", "report")
-  content: any;         // 内容
+interface WorkspaceFile {
+  path: string;         // 相对路径
+  mimeType: string;     // MIME 类型
+  size: number;         // 文件大小
+  updatedAt: string;    // 最后更新时间
   meta?: {              // 元数据
     author?: string;
-    createdAt?: string;
+    messageId?: string;
     [key: string]: any;
   };
 }

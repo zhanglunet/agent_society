@@ -1,17 +1,17 @@
-ï»¿/**
- * MessageProcessor å•å…ƒæµ‹è¯•
+/**
+ * MessageProcessor µ¥Ôª²âÊÔ
  * 
- * æµ‹è¯• MessageProcessor çš„æ ¸å¿ƒåŠŸèƒ½ï¼š
- * - æ¶ˆæ¯è°ƒåº¦
- * - å¹¶å‘æ§åˆ¶
- * - æ¶ˆæ¯å¤„ç†
- * - ä¸²è¡Œçº¦æŸ
+ * ²âÊÔ MessageProcessor µÄºËĞÄ¹¦ÄÜ£º
+ * - ÏûÏ¢µ÷¶È
+ * - ²¢·¢¿ØÖÆ
+ * - ÏûÏ¢´¦Àí
+ * - ´®ĞĞÔ¼Êø
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 
 describe("MessageProcessor", () => {
@@ -45,7 +45,7 @@ describe("MessageProcessor", () => {
     let messageReceived = false;
     let receivedMessage = null;
 
-    // åˆ›å»ºæµ‹è¯•æ™ºèƒ½ä½“
+    // ´´½¨²âÊÔÖÇÄÜÌå
     const testAgent = new Agent({
       id: "test-agent",
       roleId: "test-role",
@@ -59,20 +59,20 @@ describe("MessageProcessor", () => {
 
     runtime.registerAgentInstance(testAgent);
 
-    // å‘é€æ¶ˆæ¯
+    // ·¢ËÍÏûÏ¢
     runtime.bus.send({
       to: "test-agent",
       from: "user",
       payload: { text: "test message" }
     });
 
-    // è°ƒåº¦æ¶ˆæ¯å¤„ç†
+    // µ÷¶ÈÏûÏ¢´¦Àí
     const maxConcurrent = 3;
     const scheduled = await runtime._messageProcessor.scheduleMessageProcessing(maxConcurrent);
 
     expect(scheduled).toBe(true);
 
-    // ç­‰å¾…æ¶ˆæ¯å¤„ç†å®Œæˆ
+    // µÈ´ıÏûÏ¢´¦ÀíÍê³É
     await new Promise(r => setTimeout(r, 100));
 
     expect(messageReceived).toBe(true);
@@ -83,7 +83,7 @@ describe("MessageProcessor", () => {
   test("scheduleMessageProcessing respects concurrency limit", async () => {
     const processedMessages = [];
 
-    // åˆ›å»ºå¤šä¸ªæµ‹è¯•æ™ºèƒ½ä½“
+    // ´´½¨¶à¸ö²âÊÔÖÇÄÜÌå
     for (let i = 0; i < 5; i++) {
       const agent = new Agent({
         id: `agent-${i}`,
@@ -92,14 +92,14 @@ describe("MessageProcessor", () => {
         rolePrompt: "",
         behavior: async (ctx, msg) => {
           processedMessages.push(msg.to);
-          // æ¨¡æ‹Ÿé•¿æ—¶é—´å¤„ç†
+          // Ä£Äâ³¤Ê±¼ä´¦Àí
           await new Promise(r => setTimeout(r, 100));
         }
       });
       runtime.registerAgentInstance(agent);
     }
 
-    // å‘é€æ¶ˆæ¯ç»™æ‰€æœ‰æ™ºèƒ½ä½“
+    // ·¢ËÍÏûÏ¢¸øËùÓĞÖÇÄÜÌå
     for (let i = 0; i < 5; i++) {
       runtime.bus.send({
         to: `agent-${i}`,
@@ -108,20 +108,20 @@ describe("MessageProcessor", () => {
       });
     }
 
-    // è°ƒåº¦æ¶ˆæ¯å¤„ç†ï¼ˆæœ€å¤§å¹¶å‘æ•°ä¸º 2ï¼‰
+    // µ÷¶ÈÏûÏ¢´¦Àí£¨×î´ó²¢·¢ÊıÎª 2£©
     const maxConcurrent = 2;
     
-    // ç¬¬ä¸€æ¬¡è°ƒåº¦
+    // µÚÒ»´Îµ÷¶È
     const scheduled1 = await runtime._messageProcessor.scheduleMessageProcessing(maxConcurrent);
     expect(scheduled1).toBe(true);
     expect(runtime._activeProcessingAgents.size).toBe(1);
 
-    // ç¬¬äºŒæ¬¡è°ƒåº¦
+    // µÚ¶ş´Îµ÷¶È
     const scheduled2 = await runtime._messageProcessor.scheduleMessageProcessing(maxConcurrent);
     expect(scheduled2).toBe(true);
     expect(runtime._activeProcessingAgents.size).toBe(2);
 
-    // ç¬¬ä¸‰æ¬¡è°ƒåº¦åº”è¯¥å¤±è´¥ï¼ˆè¾¾åˆ°å¹¶å‘é™åˆ¶ï¼‰
+    // µÚÈı´Îµ÷¶ÈÓ¦¸ÃÊ§°Ü£¨´ïµ½²¢·¢ÏŞÖÆ£©
     const scheduled3 = await runtime._messageProcessor.scheduleMessageProcessing(maxConcurrent);
     expect(scheduled3).toBe(false);
     expect(runtime._activeProcessingAgents.size).toBe(2);
@@ -143,27 +143,27 @@ describe("MessageProcessor", () => {
 
     runtime.registerAgentInstance(agent);
 
-    // å‘é€ä¸¤æ¡æ¶ˆæ¯
+    // ·¢ËÍÁ½ÌõÏûÏ¢
     runtime.bus.send({ to: "test-agent", from: "user", payload: { text: "msg1" } });
     runtime.bus.send({ to: "test-agent", from: "user", payload: { text: "msg2" } });
 
-    // ç¬¬ä¸€æ¬¡è°ƒåº¦
+    // µÚÒ»´Îµ÷¶È
     const scheduled1 = await runtime._messageProcessor.scheduleMessageProcessing(3);
     expect(scheduled1).toBe(true);
     expect(runtime._activeProcessingAgents.has("test-agent")).toBe(true);
 
-    // ç¬¬äºŒæ¬¡è°ƒåº¦åº”è¯¥è·³è¿‡ï¼ˆæ™ºèƒ½ä½“æ­£åœ¨å¤„ç†ï¼‰
+    // µÚ¶ş´Îµ÷¶ÈÓ¦¸ÃÌø¹ı£¨ÖÇÄÜÌåÕıÔÚ´¦Àí£©
     const scheduled2 = await runtime._messageProcessor.scheduleMessageProcessing(3);
     expect(scheduled2).toBe(false);
 
-    // ç­‰å¾…ç¬¬ä¸€æ¡æ¶ˆæ¯å¤„ç†å®Œæˆ
+    // µÈ´ıµÚÒ»ÌõÏûÏ¢´¦ÀíÍê³É
     await new Promise(r => setTimeout(r, 150));
 
-    // ç°åœ¨åº”è¯¥å¯ä»¥è°ƒåº¦ç¬¬äºŒæ¡æ¶ˆæ¯
+    // ÏÖÔÚÓ¦¸Ã¿ÉÒÔµ÷¶ÈµÚ¶şÌõÏûÏ¢
     const scheduled3 = await runtime._messageProcessor.scheduleMessageProcessing(3);
     expect(scheduled3).toBe(true);
 
-    // ç­‰å¾…ç¬¬äºŒæ¡æ¶ˆæ¯å¤„ç†å®Œæˆ
+    // µÈ´ıµÚ¶şÌõÏûÏ¢´¦ÀíÍê³É
     await new Promise(r => setTimeout(r, 150));
 
     expect(processCount).toBe(2);
@@ -204,7 +204,7 @@ describe("MessageProcessor", () => {
       payload: { text: "test" }
     };
 
-    // ä¸åº”è¯¥æŠ›å‡ºé”™è¯¯
+    // ²»Ó¦¸ÃÅ×³ö´íÎó
     await runtime._messageProcessor.processAgentMessage("non-existent", message);
   });
 
@@ -228,17 +228,17 @@ describe("MessageProcessor", () => {
       payload: { text: "test" }
     };
 
-    // ä¸åº”è¯¥æŠ›å‡ºé”™è¯¯ï¼ˆé”™è¯¯è¢«éš”ç¦»ï¼‰
+    // ²»Ó¦¸ÃÅ×³ö´íÎó£¨´íÎó±»¸ôÀë£©
     await runtime._messageProcessor.processAgentMessage("test-agent", message);
 
-    // æ™ºèƒ½ä½“åº”è¯¥ä»ç„¶å­˜åœ¨
+    // ÖÇÄÜÌåÓ¦¸ÃÈÔÈ»´æÔÚ
     expect(runtime._agents.has("test-agent")).toBe(true);
   });
 
   test("deliverOneRound processes multiple messages concurrently", async () => {
     const processedAgents = [];
 
-    // åˆ›å»ºå¤šä¸ªæ™ºèƒ½ä½“
+    // ´´½¨¶à¸öÖÇÄÜÌå
     for (let i = 0; i < 3; i++) {
       const agent = new Agent({
         id: `agent-${i}`,
@@ -253,7 +253,7 @@ describe("MessageProcessor", () => {
       runtime.registerAgentInstance(agent);
     }
 
-    // å‘é€æ¶ˆæ¯
+    // ·¢ËÍÏûÏ¢
     for (let i = 0; i < 3; i++) {
       runtime.bus.send({
         to: `agent-${i}`,
@@ -262,11 +262,11 @@ describe("MessageProcessor", () => {
       });
     }
 
-    // æ‰§è¡Œä¸€è½®æŠ•é€’
+    // Ö´ĞĞÒ»ÂÖÍ¶µİ
     const delivered = await runtime._messageProcessor.deliverOneRound();
     expect(delivered).toBe(true);
 
-    // ç­‰å¾…æ‰€æœ‰æ¶ˆæ¯å¤„ç†å®Œæˆ
+    // µÈ´ıËùÓĞÏûÏ¢´¦ÀíÍê³É
     await new Promise(r => setTimeout(r, 100));
 
     expect(processedAgents.length).toBe(3);
@@ -292,7 +292,7 @@ describe("MessageProcessor", () => {
 
     runtime.registerAgentInstance(agent);
 
-    // å‘é€å¤šæ¡æ¶ˆæ¯
+    // ·¢ËÍ¶àÌõÏûÏ¢
     for (let i = 0; i < 5; i++) {
       runtime.bus.send({
         to: "test-agent",
@@ -301,7 +301,7 @@ describe("MessageProcessor", () => {
       });
     }
 
-    // æ¸…ç©ºé˜Ÿåˆ—
+    // Çå¿Õ¶ÓÁĞ
     await runtime._messageProcessor.drainAgentQueue("test-agent");
 
     expect(processedMessages.length).toBe(5);
@@ -310,7 +310,7 @@ describe("MessageProcessor", () => {
   });
 
   test("drainAgentQueue handles agent not found", async () => {
-    // ä¸åº”è¯¥æŠ›å‡ºé”™è¯¯
+    // ²»Ó¦¸ÃÅ×³ö´íÎó
     await runtime._messageProcessor.drainAgentQueue("non-existent");
   });
 
@@ -329,7 +329,7 @@ describe("MessageProcessor", () => {
 
     runtime.registerAgentInstance(agent);
 
-    // å‘é€è¶…è¿‡é™åˆ¶çš„æ¶ˆæ¯æ•°é‡ï¼ˆmaxDrainMessages = 100ï¼‰
+    // ·¢ËÍ³¬¹ıÏŞÖÆµÄÏûÏ¢ÊıÁ¿£¨maxDrainMessages = 100£©
     for (let i = 0; i < 150; i++) {
       runtime.bus.send({
         to: "test-agent",
@@ -338,10 +338,10 @@ describe("MessageProcessor", () => {
       });
     }
 
-    // æ¸…ç©ºé˜Ÿåˆ—
+    // Çå¿Õ¶ÓÁĞ
     await runtime._messageProcessor.drainAgentQueue("test-agent");
 
-    // åº”è¯¥åªå¤„ç† 100 æ¡æ¶ˆæ¯
+    // Ó¦¸ÃÖ»´¦Àí 100 ÌõÏûÏ¢
     expect(processedMessages.length).toBe(100);
   });
 });

@@ -27,14 +27,14 @@ describe("Config Concurrency Support", () => {
 
   // **Feature: llm-concurrency-control, Property 1: Configuration Loading and Validation**
   describe("Property 1: Configuration Loading and Validation", () => {
-    it("对于任何app.json配置文件，系统应正确读取maxConcurrentLlmRequests值，未指定时使用默认值3，无效值时使用默认值3并警告", async () => {
+    it("对于任何app.json配置文件，系统应正确读取maxConcurrentLlmRequests值，未指定时使用默认�?，无效值时使用默认�?并警�?, async () => {
       await fc.assert(fc.asyncProperty(
         fc.oneof(
-          fc.constant(undefined), // 未配置
-          fc.constant(null), // null值
-          fc.integer({ min: 1, max: 10 }), // 有效值
+          fc.constant(undefined), // 未配�?
+          fc.constant(null), // null�?
+          fc.integer({ min: 1, max: 10 }), // 有效�?
           fc.integer({ min: -10, max: 0 }), // 无效值（非正数）
-          fc.float(), // 无效值（小数）
+          fc.float(), // 无效值（小数�?
           fc.string(), // 无效值（字符串）
           fc.boolean() // 无效值（布尔值）
         ),
@@ -71,15 +71,15 @@ describe("Config Concurrency Support", () => {
           expect(loadedConfig.llm.maxConcurrentRequests).toBeTypeOf("number");
           
           if (maxConcurrentRequests === undefined || maxConcurrentRequests === null) {
-            // 未配置或null时应使用默认值3
+            // 未配置或null时应使用默认�?
             expect(loadedConfig.llm.maxConcurrentRequests).toBe(3);
             expect(console.warn).not.toHaveBeenCalled();
           } else if (Number.isInteger(maxConcurrentRequests) && maxConcurrentRequests > 0) {
-            // 有效值时应使用配置值
+            // 有效值时应使用配置�?
             expect(loadedConfig.llm.maxConcurrentRequests).toBe(maxConcurrentRequests);
             expect(console.warn).not.toHaveBeenCalled();
           } else {
-            // 无效值时应使用默认值3并记录警告
+            // 无效值时应使用默认�?并记录警�?
             expect(loadedConfig.llm.maxConcurrentRequests).toBe(3);
             expect(console.warn).toHaveBeenCalledWith(
               expect.stringContaining(`Invalid maxConcurrentRequests value: ${maxConcurrentRequests}`)
@@ -93,7 +93,7 @@ describe("Config Concurrency Support", () => {
   // **Feature: llm-concurrency-control, Property 2: Dynamic Configuration Updates**
   describe("Property 2: Dynamic Configuration Updates", () => {
     it("对于任何运行时配置更改，并发控制器应动态调整并发请求限制而不中断活跃请求", async () => {
-      // 注意：这个属性测试主要验证配置加载的正确性
+      // 注意：这个属性测试主要验证配置加载的正确�?
       // 动态更新的测试将在ConcurrencyController的测试中进行
       await fc.assert(fc.asyncProperty(
         fc.integer({ min: 1, max: 10 }),
@@ -163,7 +163,7 @@ describe("Config Concurrency Support", () => {
       expect(loadedConfig.llm.maxConcurrentRequests).toBe(5);
     });
 
-    it("应在缺少maxConcurrentRequests时使用默认值", async () => {
+    it("应在缺少maxConcurrentRequests时使用默认�?, async () => {
       const config = {
         promptsDir: "config/prompts",
         artifactsDir: "data/runtime/artifacts",
@@ -188,11 +188,11 @@ describe("Config Concurrency Support", () => {
 
     it("应在无效值时使用默认值并记录警告", async () => {
       const testCases = [
-        { value: 0, description: "零值" },
+        { value: 0, description: "零�? },
         { value: -1, description: "负数" },
         { value: 1.5, description: "小数" },
-        { value: "invalid", description: "字符串" },
-        { value: true, description: "布尔值" },
+        { value: "invalid", description: "字符�? },
+        { value: true, description: "布尔�? },
         { value: [], description: "数组" },
         { value: {}, description: "对象" }
       ];
@@ -225,7 +225,7 @@ describe("Config Concurrency Support", () => {
       }
     });
 
-    it("应正确处理null值", async () => {
+    it("应正确处理null�?, async () => {
       const config = {
         promptsDir: "config/prompts",
         artifactsDir: "data/runtime/artifacts",
@@ -248,7 +248,7 @@ describe("Config Concurrency Support", () => {
       expect(console.warn).not.toHaveBeenCalled();
     });
 
-    it("应正确处理边界值", async () => {
+    it("应正确处理边界�?, async () => {
       const testCases = [1, 100, 1000];
 
       for (const value of testCases) {

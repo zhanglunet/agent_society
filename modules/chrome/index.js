@@ -59,7 +59,7 @@ export default {
     
     browserManager = new BrowserManager({ log, config: moduleConfig });
     tabManager = new TabManager({ log, browserManager });
-    pageActions = new PageActions({ log, tabManager });
+    pageActions = new PageActions({ log, tabManager, runtime });
     
     log.info?.("Chrome 模块初始化完成", { config: moduleConfig });
   },
@@ -120,7 +120,7 @@ export default {
         case "chrome_get_resources":
           return await pageActions.getResources(args.tabId, args);
         case "chrome_save_resource":
-          return await pageActions.saveResource(args.tabId, args.resourceUrls, { ...args, ctx });
+          return await pageActions.saveResource(args.tabId, args.resources, { ...args, ctx });
         
         // 页面交互
         case "chrome_click":

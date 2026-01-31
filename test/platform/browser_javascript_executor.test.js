@@ -1,7 +1,7 @@
 /**
  * BrowserJavaScriptExecutor 测试
  * 
- * 测试浏览器 JavaScript 执行器的功能和正确性属性
+ * 测试浏览�?JavaScript 执行器的功能和正确性属�?
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
@@ -36,7 +36,7 @@ function createMockRuntime() {
         await writeFile(metaPath, JSON.stringify(metadata, null, 2));
       }
     },
-    _jsExecutor: null // 降级执行器
+    _jsExecutor: null // 降级执行�?
   };
 }
 
@@ -72,7 +72,7 @@ describe("BrowserJavaScriptExecutor", () => {
       expect(result).toBe(3);
     });
 
-    test("应该能访问 input 参数", async () => {
+    test("应该能访�?input 参数", async () => {
       const result = await executor.execute({
         code: "return input.a + input.b;",
         input: { a: 10, b: 20 }
@@ -80,14 +80,14 @@ describe("BrowserJavaScriptExecutor", () => {
       expect(result).toBe(30);
     });
 
-    test("应该能执行异步代码", async () => {
+    test("应该能执行异步代�?, async () => {
       const result = await executor.execute({
         code: "return new Promise(resolve => setTimeout(() => resolve('async done'), 100));"
       });
       expect(result).toBe("async done");
     });
 
-    test("应该能使用 await 关键字", async () => {
+    test("应该能使�?await 关键�?, async () => {
       const result = await executor.execute({
         code: `
           const delay = ms => new Promise(r => setTimeout(r, ms));
@@ -106,7 +106,7 @@ describe("BrowserJavaScriptExecutor", () => {
       expect(result.message).toContain("test error");
     });
 
-    test("应该拒绝无效的代码参数", async () => {
+    test("应该拒绝无效的代码参�?, async () => {
       const result = await executor.execute({ code: 123 });
       expect(result.error).toBe("invalid_args");
     });
@@ -114,7 +114,7 @@ describe("BrowserJavaScriptExecutor", () => {
 
 
   describe("Canvas 功能测试", () => {
-    test("应该能创建 Canvas 并绘图", async () => {
+    test("应该能创�?Canvas 并绘�?, async () => {
       const result = await executor.execute({
         code: `
           const canvas = getCanvas(200, 100);
@@ -131,11 +131,11 @@ describe("BrowserJavaScriptExecutor", () => {
       expect(result.artifactIds[0]).toMatch(/^[0-9a-f-]+$/); // UUID格式
     });
 
-    test("Canvas 应该是单例", async () => {
+    test("Canvas 应该是单�?, async () => {
       const result = await executor.execute({
         code: `
           const canvas1 = getCanvas(300, 200);
-          const canvas2 = getCanvas(100, 50); // 尺寸应该被忽略
+          const canvas2 = getCanvas(100, 50); // 尺寸应该被忽�?
           return {
             same: canvas1 === canvas2,
             width: canvas1.width,
@@ -149,7 +149,7 @@ describe("BrowserJavaScriptExecutor", () => {
       expect(result.result.height).toBe(200);
     });
 
-    test("Canvas 图像应该保存到 artifacts 目录", async () => {
+    test("Canvas 图像应该保存�?artifacts 目录", async () => {
       const result = await executor.execute({
         code: `
           const canvas = getCanvas(50, 50);
@@ -165,7 +165,7 @@ describe("BrowserJavaScriptExecutor", () => {
       const imagePath = path.join(ARTIFACTS_DIR, `${artifactId}.png`);
       expect(existsSync(imagePath)).toBe(true);
       
-      // 验证元数据文件
+      // 验证元数据文�?
       const metaPath = path.join(ARTIFACTS_DIR, `${artifactId}.meta.json`);
       expect(existsSync(metaPath)).toBe(true);
       
@@ -202,7 +202,7 @@ describe("BrowserJavaScriptExecutor", () => {
         `
       });
       
-      // 第二次执行：检查元素是否存在
+      // 第二次执行：检查元素是否存�?
       const result = await executor.execute({
         code: "return document.getElementById('test-element');"
       });
@@ -300,7 +300,7 @@ describe("BrowserJavaScriptExecutor", () => {
       );
     });
 
-    test("嵌套 Promise 应该被正确解析", async () => {
+    test("嵌套 Promise 应该被正确解�?, async () => {
       const result = await executor.execute({
         code: `
           return Promise.resolve(1)
@@ -344,17 +344,17 @@ describe("BrowserJavaScriptExecutor", () => {
    * Validates: Requirements 2.5
    */
   describe("Property 3: Timeout enforcement", () => {
-    test("超时的代码应该返回超时错误", async () => {
-      // 注意：这个测试需要较长时间，因为要等待超时
+    test("超时的代码应该返回超时错�?, async () => {
+      // 注意：这个测试需要较长时间，因为要等待超�?
       const startTime = Date.now();
       const result = await executor.execute({
         code: "while(true) {}", // 无限循环
-        timeout: 1000 // 1秒超时
+        timeout: 1000 // 1秒超�?
       });
       const elapsed = Date.now() - startTime;
       
-      // 应该在超时时间附近返回
-      expect(elapsed).toBeLessThan(3000); // 给一些余量
+      // 应该在超时时间附近返�?
+      expect(elapsed).toBeLessThan(3000); // 给一些余�?
       expect(result.error).toBeDefined();
     }, 10000);
   });
@@ -368,14 +368,14 @@ describe("BrowserJavaScriptExecutor", () => {
    * Validates: Requirements 2.6
    */
   describe("Property 4: Error capture completeness", () => {
-    test("各种错误类型应该被正确捕获", async () => {
+    test("各种错误类型应该被正确捕�?, async () => {
       const errorCases = [
         { code: "throw new Error('test');", expectedContains: "test" },
         { code: "throw new TypeError('type error');", expectedContains: "type error" },
         { code: "throw new RangeError('range error');", expectedContains: "range error" },
         { code: "throw 'string error';", expectedContains: "string error" },
         { code: "undefinedVariable;", expectedContains: "undefinedVariable" },
-        { code: "null.property;", expectedContains: "" } // 任何错误消息都可以
+        { code: "null.property;", expectedContains: "" } // 任何错误消息都可�?
       ];
 
       for (const { code, expectedContains } of errorCases) {
@@ -388,7 +388,7 @@ describe("BrowserJavaScriptExecutor", () => {
       }
     });
 
-    test("随机错误消息应该被正确捕获", async () => {
+    test("随机错误消息应该被正确捕�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 50 }).filter(s => !s.includes("'") && !s.includes("\\")),
@@ -415,7 +415,7 @@ describe("BrowserJavaScriptExecutor", () => {
    * Validates: Requirements 3.1
    */
   describe("Property 5: Canvas creation with dimensions", () => {
-    test("Canvas 应该具有指定的尺寸", async () => {
+    test("Canvas 应该具有指定的尺�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 1, max: 2000 }),
@@ -435,7 +435,7 @@ describe("BrowserJavaScriptExecutor", () => {
       );
     });
 
-    test("默认尺寸应该是 800x600", async () => {
+    test("默认尺寸应该�?800x600", async () => {
       const result = await executor.execute({
         code: `
           const canvas = getCanvas();
@@ -478,7 +478,7 @@ describe("BrowserJavaScriptExecutor", () => {
       );
     });
 
-    test("第一次调用的尺寸应该被保留", async () => {
+    test("第一次调用的尺寸应该被保�?, async () => {
       const result = await executor.execute({
         code: `
           const canvas1 = getCanvas(123, 456);
@@ -522,7 +522,7 @@ describe("BrowserJavaScriptExecutor", () => {
             expect(result.artifactIds).toBeDefined();
             expect(result.artifactIds.length).toBe(1);
             
-            // 验证元数据
+            // 验证元数�?
             const artifactId = result.artifactIds[0];
             const metaPath = path.join(ARTIFACTS_DIR, `${artifactId}.meta.json`);
             const metadata = JSON.parse(await readFile(metaPath, 'utf-8'));
@@ -559,7 +559,7 @@ describe("BrowserJavaScriptExecutor", () => {
               code: `window.${varName} = ${value};`
             });
             
-            // 第二次执行：检查变量是否存在
+            // 第二次执行：检查变量是否存�?
             const result = await executor.execute({
               code: `return typeof window.${varName};`
             });
@@ -581,8 +581,8 @@ describe("BrowserJavaScriptExecutor", () => {
    * Validates: Requirements 7.1, 7.2
    */
   describe("Property 10: Browser instance reuse", () => {
-    test("多次执行应该复用同一浏览器实例", async () => {
-      // 获取初始浏览器状态
+    test("多次执行应该复用同一浏览器实�?, async () => {
+      // 获取初始浏览器状�?
       const initialAvailable = executor.isBrowserAvailable();
       expect(initialAvailable).toBe(true);
       
@@ -598,7 +598,7 @@ describe("BrowserJavaScriptExecutor", () => {
       }
     });
 
-    test("浏览器实例应该在多次执行间保持稳定", async () => {
+    test("浏览器实例应该在多次执行间保持稳�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 1, max: 100 }),

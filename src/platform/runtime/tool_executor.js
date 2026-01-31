@@ -15,21 +15,16 @@
  * 3. 处理特殊工具（spawn_agent_with_task、compress_context 等）
  * 
  * 【工具分类】
- * - 岗位管理：find_role_by_name、create_role
- * - 智能体管理：spawn_agent_with_task、terminate_agent
+ * - 文件操作：write_file、read_file、list_files、delete_file
+ * - 智能体生命周期：spawn_agent_with_task
+ * - 组织原语：create_role
  * - 消息通信：send_message
- * - 工件操作：put_artifact、get_artifact
- * - 代码执行：run_javascript
- * - 上下文管理：compress_context、get_context_status
- * - HTTP 请求：http_request
- * - 文件操作：read_file、write_file、list_files
- * - 工作空间：get_workspace_info
  * 
  * 【与其他模块的关系】
  * - 被 LlmHandler 调用来执行工具
  * - 使用 JavaScriptExecutor 执行 run_javascript
  * - 使用 AgentManager 处理智能体相关工具
- * - 使用 Runtime 的各种服务（org、bus、artifacts 等）
+ * - 使用 Runtime 的各种服务（org、bus、workspaceManager 等）
  * 
  * @module runtime/tool_executor
  */
@@ -210,57 +205,6 @@ export class ToolExecutor {
           }
         }
       },
-      // 工件操作
-      // {
-      //   type: "function",
-      //   function: {
-      //     name: "put_artifact",
-      //     description: "写入工件并返回 artifactRef。",
-      //     parameters: {
-      //       type: "object",
-      //       properties: {
-      //         type: { 
-      //           type: "string", 
-      //           description: "工件的MIME类型，如 'application/json', 'text/plain', 'text/html', 'image/png' 等。必须使用标准MIME类型，不要使用文件扩展名。" 
-      //         },
-      //         content: {},
-      //         name: { type: "string", description: "工件名称，用于在工件管理器中显示" },
-      //         meta: { type: "object" }
-      //       },
-      //       required: ["type", "content", "name"]
-      //     }
-      //   }
-      // },
-      // {
-      //   type: "function",
-      //   function: {
-      //     name: "get_artifact",
-      //     description: "读取工件引用并返回工件内容。",
-      //     parameters: {
-      //       type: "object",
-      //       properties: { ref: { type: "string" } },
-      //       required: ["ref"]
-      //     }
-      //   }
-      // },
-      // {
-      //   type: "function",
-      //   function: {
-      //     name: "show_artifacts",
-      //     description: "在聊天界面展示已存在的工件。接收工件ID数组，将这些工件在聊天消息中展示出来，就像新创建的工件一样。不会创建新工件，只是引用和展示现有工件。",
-      //     parameters: {
-      //       type: "object",
-      //       properties: {
-      //         artifactIds: {
-      //           type: "array",
-      //           items: { type: "string" },
-      //           description: "要展示的工件ID列表"
-      //         }
-      //       },
-      //       required: ["artifactIds"]
-      //     }
-      //   }
-      // },
       // 终止智能体
       {
         type: "function",
@@ -369,10 +313,14 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "read_file",
-          description: "读取工作空间内的文件内容。",
+          description: "读取工作空间内的文件内容。支持分段读取大文件。",
           parameters: {
             type: "object",
-            properties: { path: { type: "string", description: "文件的相对路径" } },
+            properties: {
+              path: { type: "string", description: "文件的相对路径" },
+              offset: { type: "number", description: "读取起始位置（字节/字符），默认为 0" },
+              length: { type: "number", description: "读取长度，默认为 5000。文本文件受字符数限制，二进制受字节数限制。" }
+            },
             required: ["path"]
           }
         }
@@ -386,13 +334,13 @@ export class ToolExecutor {
             type: "object",
             properties: {
               path: { type: "string", description: "文件的相对路径" },
-              content: { type: "string", description: "文件内容" },
+              content: { type: "string", description: "文件内容。如果是二进制数据，请提供 Base64 编码字符串。" },
               mimeType: { 
                 type: "string", 
-                description: "文件的MIME类型，如 'text/javascript', 'application/json', 'text/html' 等。必须使用标准MIME类型。" 
+                description: "文件的 MIME 类型，如 'text/javascript', 'application/json' 等。" 
               }
             },
-            required: ["path", "content", "mimeType"]
+            required: ["path", "content","mimeType"]
           }
         }
       },
@@ -400,10 +348,10 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "list_files",
-          description: "列出工作空间内指定目录的文件和子目录。",
+          description: "列出工作空间内指定目录的文件和子目录信息。",
           parameters: {
             type: "object",
-            properties: { path: { type: "string", description: "目录的相对路径" } }
+            properties: { path: { type: "string", description: "目录的相对路径，默认为根目录 '.'" } }
           }
         }
       },
@@ -412,7 +360,7 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "get_workspace_info",
-          description: "获取当前工作空间的状态信息。",
+          description: "获取当前工作空间的磁盘占用和文件统计信息。",
           parameters: { type: "object", properties: {} }
         }
       },
@@ -462,12 +410,6 @@ export class ToolExecutor {
           return await this._executeSpawnAgentWithTask(ctx, args);
         case "send_message":
           return this._executeSendMessage(ctx, args);
-        case "put_artifact":
-          return await this._executePutArtifact(ctx, args);
-        case "get_artifact":
-          return await this._executeGetArtifact(ctx, args);
-        case "show_artifacts":
-          return await this._executeShowArtifacts(ctx, args);
         case "terminate_agent":
           return await this._executeTerminateAgent(ctx, args);
         case "run_javascript":
@@ -887,163 +829,6 @@ export class ToolExecutor {
     return { valid: true, quickReplies };
   }
 
-  async _executePutArtifact(ctx, args) {
-    const messageId = ctx.currentMessage?.id ?? null;
-    
-    // 验证必需参数
-    if (!args.name || typeof args.name !== 'string' || args.name.trim() === '') {
-      throw new Error('工件名称是必需参数，且不能为空');
-    }
-    
-    const id = await ctx.tools.putArtifact({ 
-      type: args.type, 
-      content: args.content, 
-      name: args.name,
-      meta: args.meta, 
-      messageId 
-    });
-    // 统一返回 artifactIds 数组格式
-    return { artifactIds: [id] };
-  }
-
-  async _executeGetArtifact(ctx, args) {
-    const runtime = this.runtime;
-    
-    // 1. Read artifact
-    const artifact = await ctx.tools.getArtifact(args.ref);
-    if (!artifact) {
-      return { error: "artifact_not_found", ref: args.ref };
-    }
-    
-    // 2. Get current agent's LLM service ID
-    const serviceId = runtime.getLlmServiceIdForAgent?.(ctx.agent?.id ?? null) ?? null;
-    
-    // 3. If text content, return directly
-    if (!artifact.isBinary) {
-      return {
-        contentType: "text",
-        routing: "text",
-        content: artifact.content,
-        metadata: {
-          id: artifact.id,
-          type: artifact.type,
-          createdAt: artifact.createdAt
-        }
-      };
-    }
-    
-    // 4. Use ArtifactContentRouter to route binary content
-    if (!runtime.artifactContentRouter) {
-      // Fallback: return artifact as-is if router not initialized
-      void runtime.log?.warn?.("ArtifactContentRouter not initialized, returning artifact as-is");
-      return {
-        contentType: "binary",
-        routing: "text",
-        content: `[Binary content - Router not initialized] ${artifact.meta?.filename || artifact.id}`,
-        metadata: {
-          id: artifact.id,
-          type: artifact.type,
-          mimeType: artifact.mimeType || artifact.meta?.mimeType,
-          createdAt: artifact.createdAt
-        }
-      };
-    }
-    
-    try {
-      const routeResult = await runtime.contentRouter.routeContent(artifact, serviceId);
-      return routeResult;
-    } catch (error) {
-      void runtime.log?.error?.("Error routing artifact content", {
-        artifactId: artifact.id,
-        error: error?.message
-      });
-      
-      // Fallback to text description
-      return {
-        contentType: "binary",
-        routing: "text",
-        content: `[Error reading artifact: ${artifact.meta?.filename || artifact.id}]`,
-        metadata: {
-          id: artifact.id,
-          type: artifact.type,
-          error: error?.message
-        }
-      };
-    }
-  }
-
-  /**
-   * 执行 show_artifacts 工具调用
-   * 在聊天界面展示已存在的工件，不创建新工件
-   * 
-   * @param {object} ctx - 智能体上下文
-   * @param {object} args - 工具参数
-   * @param {string[]} args.artifactIds - 要展示的工件ID列表
-   * @returns {Promise<{artifactIds: string[]} | {error: string, message: string}>}
-   */
-  async _executeShowArtifacts(ctx, args) {
-    const runtime = this.runtime;
-    
-    // 验证参数
-    if (!args.artifactIds || !Array.isArray(args.artifactIds)) {
-      return { error: "invalid_parameter", message: "artifactIds 必须是数组" };
-    }
-    
-    if (args.artifactIds.length === 0) {
-      return { error: "empty_array", message: "artifactIds 数组不能为空" };
-    }
-    
-    // 验证所有工件ID是否存在
-    const validIds = [];
-    const invalidIds = [];
-    
-    for (const id of args.artifactIds) {
-      if (typeof id !== 'string' || id.trim() === '') {
-        invalidIds.push(id);
-        continue;
-      }
-      
-      try {
-        const artifact = await ctx.tools.getArtifact(id);
-        if (artifact) {
-          validIds.push(id);
-        } else {
-          invalidIds.push(id);
-        }
-      } catch (err) {
-        void runtime.log?.warn?.("验证工件ID失败", { id, error: err.message });
-        invalidIds.push(id);
-      }
-    }
-    
-    // 如果有无效ID，记录警告
-    if (invalidIds.length > 0) {
-      void runtime.log?.warn?.("show_artifacts 包含无效的工件ID", {
-        invalidIds,
-        validCount: validIds.length,
-        invalidCount: invalidIds.length
-      });
-    }
-    
-    // 如果没有有效的工件ID，返回错误
-    if (validIds.length === 0) {
-      return { 
-        error: "no_valid_artifacts", 
-        message: "没有找到有效的工件",
-        invalidIds 
-      };
-    }
-    
-    void runtime.log?.debug?.("工具调用完成", { 
-      toolName: "show_artifacts", 
-      validCount: validIds.length,
-      invalidCount: invalidIds.length
-    });
-    
-    // 返回有效的工件ID数组，聊天界面会自动展示这些工件
-    return { artifactIds: validIds };
-  }
-
   async _executeTerminateAgent(ctx, args) {
     const result = await this.runtime._executeTerminateAgent(ctx, args);
     void this.runtime.log?.debug?.("工具调用完成", { toolName: "terminate_agent", ok: !result.error });
@@ -1176,7 +961,8 @@ export class ToolExecutor {
     if (!workspaceId) {
       return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
     }
-    return await runtime.workspaceManager.readFile(workspaceId, args.path);
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    return await ws.readFile(args.path, { offset: args.offset, length: args.length });
   }
 
   async _executeWriteFile(ctx, args) {
@@ -1186,33 +972,19 @@ export class ToolExecutor {
       return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
     }
     
-    // 验证mimeType参数
-    if (!args.mimeType || typeof args.mimeType !== 'string') {
-      return { error: "missing_mime_type", message: "必须提供mimeType参数" };
-    }
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    const result = await ws.writeFile(args.path, args.content, { 
+      mimeType: args.mimeType,
+      agentId: ctx.agent?.id,
+      messageId: ctx.currentMessage?.id
+    });
     
-    // 调用WorkspaceManager写入文件，传递mimeType和agentId
-    const result = await runtime.workspaceManager.writeFile(
-      workspaceId, 
-      args.path, 
-      args.content,
-      { 
-        mimeType: args.mimeType,
-        agentId: ctx.agent?.id,
-        messageId: ctx.currentMessage?.id
-      }
-    );
-    
-    // 返回结果包含工件ID
-    if (result.ok && result.artifactId) {
-      return { 
-        ok: true, 
-        artifactId: result.artifactId,
-        path: args.path 
-      };
-    }
-    
-    return result;
+    return { 
+      ok: true, 
+      path: args.path,
+      size: result.size,
+      mimeType: result.mimeType
+    };
   }
 
   async _executeListFiles(ctx, args) {
@@ -1221,7 +993,8 @@ export class ToolExecutor {
     if (!workspaceId) {
       return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
     }
-    return await runtime.workspaceManager.listFiles(workspaceId, args.path ?? ".");
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    return await ws.listFiles(args.path ?? ".");
   }
 
   async _executeGetWorkspaceInfo(ctx, args) {
@@ -1230,6 +1003,7 @@ export class ToolExecutor {
     if (!workspaceId) {
       return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
     }
-    return await runtime.workspaceManager.getWorkspaceInfo(workspaceId);
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    return await ws.getDiskUsage();
   }
 }

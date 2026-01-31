@@ -1,5 +1,5 @@
 /**
- * 上传 API 属性测试
+ * 上传 API 属性测�?
  * 功能: chat-file-upload
  * 
  * Property 4: File Size Validation
@@ -31,7 +31,7 @@ const UploadApiLogic = {
         valid: false, 
         error: 'file_too_large', 
         statusCode: 413,
-        message: `文件大小超过限制（最大 ${this.MAX_FILE_SIZE / 1024 / 1024}MB）`
+        message: `文件大小超过限制（最�?${this.MAX_FILE_SIZE / 1024 / 1024}MB）`
       };
     }
     return { valid: true };
@@ -46,22 +46,22 @@ const UploadApiLogic = {
     const errors = [];
     
     if (typeof response !== 'object' || response === null) {
-      return { valid: false, errors: ['响应必须是对象'] };
+      return { valid: false, errors: ['响应必须是对�?] };
     }
 
-    // 检查 ok 字段
+    // 检�?ok 字段
     if (response.ok !== true) {
       errors.push('响应必须包含 ok: true');
     }
 
-    // 检查 artifactRef 字段
+    // 检�?artifactRef 字段
     if (!response.artifactRef || typeof response.artifactRef !== 'string') {
-      errors.push('响应必须包含 artifactRef 字符串');
+      errors.push('响应必须包含 artifactRef 字符�?);
     } else if (!response.artifactRef.startsWith('artifact:')) {
-      errors.push('artifactRef 必须以 "artifact:" 开头');
+      errors.push('artifactRef 必须�?"artifact:" 开�?);
     }
 
-    // 检查 metadata 字段
+    // 检�?metadata 字段
     if (!response.metadata || typeof response.metadata !== 'object') {
       errors.push('响应必须包含 metadata 对象');
     } else {
@@ -69,22 +69,22 @@ const UploadApiLogic = {
       
       // 检查必需的元数据字段
       if (!meta.id || typeof meta.id !== 'string') {
-        errors.push('metadata 必须包含 id 字符串');
+        errors.push('metadata 必须包含 id 字符�?);
       }
       if (!meta.type || typeof meta.type !== 'string') {
-        errors.push('metadata 必须包含 type 字符串');
+        errors.push('metadata 必须包含 type 字符�?);
       }
       if (!meta.filename || typeof meta.filename !== 'string') {
-        errors.push('metadata 必须包含 filename 字符串');
+        errors.push('metadata 必须包含 filename 字符�?);
       }
       if (typeof meta.size !== 'number' || meta.size < 0) {
-        errors.push('metadata 必须包含有效的 size 数字');
+        errors.push('metadata 必须包含有效�?size 数字');
       }
       if (!meta.mimeType || typeof meta.mimeType !== 'string') {
-        errors.push('metadata 必须包含 mimeType 字符串');
+        errors.push('metadata 必须包含 mimeType 字符�?);
       }
       if (!meta.createdAt || typeof meta.createdAt !== 'string') {
-        errors.push('metadata 必须包含 createdAt 字符串');
+        errors.push('metadata 必须包含 createdAt 字符�?);
       }
     }
 
@@ -92,7 +92,7 @@ const UploadApiLogic = {
   },
 
   /**
-   * 生成模拟的成功响应
+   * 生成模拟的成功响�?
    * @param {object} params - 参数
    * @returns {object} 响应对象
    */
@@ -114,7 +114,7 @@ const UploadApiLogic = {
   },
 
   /**
-   * 获取文件扩展名
+   * 获取文件扩展�?
    * @param {string} mimeType
    * @param {string} filename
    * @returns {string}
@@ -177,12 +177,12 @@ describe('功能: chat-file-upload, Property 4: File Size Validation', () => {
     expect(result.statusCode).toBe(400);
   });
 
-  test('边界值 - 恰好等于最大限制应通过', () => {
+  test('边界�?- 恰好等于最大限制应通过', () => {
     const result = UploadApiLogic.validateFileSize(UploadApiLogic.MAX_FILE_SIZE);
     expect(result.valid).toBe(true);
   });
 
-  test('边界值 - 超过最大限制1字节应被拒绝', () => {
+  test('边界�?- 超过最大限�?字节应被拒绝', () => {
     const result = UploadApiLogic.validateFileSize(UploadApiLogic.MAX_FILE_SIZE + 1);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('file_too_large');
@@ -219,7 +219,7 @@ describe('功能: chat-file-upload, Property 5: Upload Success Response Format',
     );
   });
 
-  test('artifactRef 应以 "artifact:" 开头', () => {
+  test('artifactRef 应以 "artifact:" 开�?, () => {
     fc.assert(
       fc.property(
         fc.uuid(),
@@ -304,7 +304,7 @@ describe('功能: chat-file-upload, Property 5: Upload Success Response Format',
     
     const validation = UploadApiLogic.validateUploadResponse(response);
     expect(validation.valid).toBe(false);
-    expect(validation.errors).toContain('响应必须包含 artifactRef 字符串');
+    expect(validation.errors).toContain('响应必须包含 artifactRef 字符�?);
   });
 
   test('缺少 metadata 字段的响应应验证失败', () => {

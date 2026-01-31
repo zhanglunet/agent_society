@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import fc from "fast-check";
 import { ContentAdapter, formatFileSize, CONTENT_TYPE_TO_CAPABILITY, CONTENT_TYPE_LABELS } from "../../src/platform/utils/content/content_adapter.js";
 
-// 生成有效的附件信息
+// 生成有效的附件信�?
 const validAttachmentArb = fc.record({
   type: fc.constantFrom("image", "audio", "file"),
   artifactRef: fc.string({ minLength: 1, maxLength: 100 }).map(s => `artifact:${s}`),
@@ -13,12 +13,12 @@ const validAttachmentArb = fc.record({
 
 describe("ContentAdapter", () => {
   describe("基础功能测试", () => {
-    test("创建实例不抛出异常", () => {
+    test("创建实例不抛出异�?, () => {
       const adapter = new ContentAdapter();
       expect(adapter).toBeDefined();
     });
 
-    test("adaptToText 返回正确的结构", () => {
+    test("adaptToText 返回正确的结�?, () => {
       const adapter = new ContentAdapter();
       const result = adapter.adaptToText({
         type: "image",
@@ -50,13 +50,13 @@ describe("ContentAdapter", () => {
       });
     });
 
-    test("adaptMultiple 处理空数组", () => {
+    test("adaptMultiple 处理空数�?, () => {
       const adapter = new ContentAdapter();
       const results = adapter.adaptMultiple([]);
       expect(results).toEqual([]);
     });
 
-    test("adaptMultiple 处理非数组输入", () => {
+    test("adaptMultiple 处理非数组输�?, () => {
       const adapter = new ContentAdapter();
       expect(adapter.adaptMultiple(null)).toEqual([]);
       expect(adapter.adaptMultiple(undefined)).toEqual([]);
@@ -64,24 +64,24 @@ describe("ContentAdapter", () => {
   });
 
   describe("formatFileSize 辅助函数", () => {
-    test("格式化字节", () => {
+    test("格式化字�?, () => {
       expect(formatFileSize(0)).toBe("0 B");
       expect(formatFileSize(100)).toBe("100 B");
       expect(formatFileSize(1023)).toBe("1023 B");
     });
 
-    test("格式化 KB", () => {
+    test("格式�?KB", () => {
       expect(formatFileSize(1024)).toBe("1.0 KB");
       expect(formatFileSize(1536)).toBe("1.5 KB");
       expect(formatFileSize(1024 * 100)).toBe("100.0 KB");
     });
 
-    test("格式化 MB", () => {
+    test("格式�?MB", () => {
       expect(formatFileSize(1024 * 1024)).toBe("1.0 MB");
       expect(formatFileSize(1024 * 1024 * 1.5)).toBe("1.5 MB");
     });
 
-    test("格式化 GB", () => {
+    test("格式�?GB", () => {
       expect(formatFileSize(1024 * 1024 * 1024)).toBe("1.0 GB");
       expect(formatFileSize(1024 * 1024 * 1024 * 2.5)).toBe("2.5 GB");
     });
@@ -112,7 +112,7 @@ describe("ContentAdapter", () => {
             const adapter = new ContentAdapter();
             const result = adapter.adaptToText(attachment);
             
-            // 文本中应该包含 artifactRef
+            // 文本中应该包�?artifactRef
             expect(result.text).toContain(attachment.artifactRef);
             // structuredInfo 中也应该包含
             expect(result.structuredInfo.artifactRef).toBe(attachment.artifactRef);
@@ -130,10 +130,10 @@ describe("ContentAdapter", () => {
             const adapter = new ContentAdapter();
             const result = adapter.adaptToText(attachment);
             
-            // 文本中应该包含类型标签
+            // 文本中应该包含类型标�?
             const typeLabel = CONTENT_TYPE_LABELS[attachment.type] || "文件";
             expect(result.text).toContain(typeLabel);
-            // structuredInfo 中应该包含原始类型
+            // structuredInfo 中应该包含原始类�?
             expect(result.structuredInfo.contentType).toBe(attachment.type);
           }
         ),
@@ -141,7 +141,7 @@ describe("ContentAdapter", () => {
       );
     });
 
-    test("输出文本包含文件名（如果提供）", () => {
+    test("输出文本包含文件名（如果提供�?, () => {
       fc.assert(
         fc.property(
           validAttachmentArb,
@@ -193,7 +193,7 @@ describe("ContentAdapter", () => {
             const adapter = new ContentAdapter();
             const result = adapter.adaptToText(attachment);
             
-            // 文本中应该包含转发建议
+            // 文本中应该包含转发建�?
             expect(result.text).toContain("当前模型不支持直接处理此类型内容");
             expect(result.text).toContain("send_message");
           }
@@ -246,13 +246,13 @@ describe("ContentAdapter", () => {
             // artifactRef 应该是字符串
             expect(typeof info.artifactRef).toBe("string");
             
-            // filename 应该是字符串或 null
+            // filename 应该是字符串�?null
             expect(info.filename === null || typeof info.filename === "string").toBe(true);
             
             // size 应该是数字或 null
             expect(info.size === null || typeof info.size === "number").toBe(true);
             
-            // mimeType 应该是字符串或 null
+            // mimeType 应该是字符串�?null
             expect(info.mimeType === null || typeof info.mimeType === "string").toBe(true);
             
             // suggestedAgents 应该是数组或 null
@@ -263,7 +263,7 @@ describe("ContentAdapter", () => {
       );
     });
 
-    test("structuredInfo 可以被 JSON 序列化和反序列化", () => {
+    test("structuredInfo 可以�?JSON 序列化和反序列化", () => {
       fc.assert(
         fc.property(
           validAttachmentArb,

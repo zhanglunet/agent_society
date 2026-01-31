@@ -1,6 +1,6 @@
-ï»¿import { describe, it, expect, beforeEach } from "vitest";
-import { HttpClient, createHttpClient } from "../src/platform/services/http/http_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { HttpClient, createHttpClient } from "../../src/platform/services/http/http_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("HttpClient", () => {
   let client;
@@ -9,8 +9,8 @@ describe("HttpClient", () => {
     client = new HttpClient({ logger: createNoopModuleLogger() });
   });
 
-  describe("URL éªŒè¯", () => {
-    it("åº”æ‹’ç» HTTP URL", async () => {
+  describe("URL ÑéÖ¤", () => {
+    it("Ó¦¾Ü¾ø HTTP URL", async () => {
       const result = await client.request("agent-1", {
         url: "http://example.com"
       });
@@ -19,7 +19,7 @@ describe("HttpClient", () => {
       expect(result.requestLog.agentId).toBe("agent-1");
     });
 
-    it("åº”æ‹’ç»æ— æ•ˆ URL", async () => {
+    it("Ó¦¾Ü¾øÎÞÐ§ URL", async () => {
       const result = await client.request("agent-1", {
         url: "not-a-valid-url"
       });
@@ -27,20 +27,20 @@ describe("HttpClient", () => {
       expect(result.requestLog.success).toBe(false);
     });
 
-    it("åº”æŽ¥å— HTTPS URL", async () => {
-      // ä½¿ç”¨ä¸€ä¸ªå¯é çš„å…¬å…± API
+    it("Ó¦½ÓÊÜ HTTPS URL", async () => {
+      // Ê¹ÓÃÒ»¸ö¿É¿¿µÄ¹«¹² API
       const result = await client.request("agent-1", {
         url: "https://httpbin.org/get",
         timeoutMs: 10000
       });
-      // å¯èƒ½æˆåŠŸä¹Ÿå¯èƒ½å› ç½‘ç»œé—®é¢˜å¤±è´¥ï¼Œä½†ä¸åº”è¯¥æ˜¯ URL éªŒè¯é”™è¯¯
+      // ¿ÉÄÜ³É¹¦Ò²¿ÉÄÜÒòÍøÂçÎÊÌâÊ§°Ü£¬µ«²»Ó¦¸ÃÊÇ URL ÑéÖ¤´íÎó
       expect(result.error).not.toBe("only_https_allowed");
       expect(result.error).not.toBe("invalid_url");
     });
   });
 
-  describe("HTTP æ–¹æ³•éªŒè¯", () => {
-    it("åº”æ‹’ç»æ— æ•ˆçš„ HTTP æ–¹æ³•", async () => {
+  describe("HTTP ·½·¨ÑéÖ¤", () => {
+    it("Ó¦¾Ü¾øÎÞÐ§µÄ HTTP ·½·¨", async () => {
       const result = await client.request("agent-1", {
         url: "https://example.com",
         method: "INVALID"
@@ -48,7 +48,7 @@ describe("HttpClient", () => {
       expect(result.error).toContain("invalid_method");
     });
 
-    it("åº”æŽ¥å—æœ‰æ•ˆçš„ HTTP æ–¹æ³•", async () => {
+    it("Ó¦½ÓÊÜÓÐÐ§µÄ HTTP ·½·¨", async () => {
       const methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
       for (const method of methods) {
         const result = await client.request("agent-1", {
@@ -56,7 +56,7 @@ describe("HttpClient", () => {
           method,
           timeoutMs: 5000
         });
-        // error å¯èƒ½æ˜¯ undefinedï¼ˆæˆåŠŸï¼‰æˆ–å…¶ä»–é”™è¯¯ï¼ˆå¦‚ç½‘ç»œé—®é¢˜ï¼‰ï¼Œä½†ä¸åº”è¯¥æ˜¯æ–¹æ³•éªŒè¯é”™è¯¯
+        // error ¿ÉÄÜÊÇ undefined£¨³É¹¦£©»òÆäËû´íÎó£¨ÈçÍøÂçÎÊÌâ£©£¬µ«²»Ó¦¸ÃÊÇ·½·¨ÑéÖ¤´íÎó
         if (result.error) {
           expect(result.error).not.toContain("invalid_method");
         }
@@ -64,8 +64,8 @@ describe("HttpClient", () => {
     });
   });
 
-  describe("è¯·æ±‚æ—¥å¿—", () => {
-    it("åº”è®°å½•è¯·æ±‚ ID", async () => {
+  describe("ÇëÇóÈÕÖ¾", () => {
+    it("Ó¦¼ÇÂ¼ÇëÇó ID", async () => {
       const result = await client.request("agent-1", {
         url: "https://example.com",
         timeoutMs: 5000
@@ -73,7 +73,7 @@ describe("HttpClient", () => {
       expect(result.requestLog.requestId).toMatch(/^req_/);
     });
 
-    it("åº”è®°å½•æ™ºèƒ½ä½“ ID", async () => {
+    it("Ó¦¼ÇÂ¼ÖÇÄÜÌå ID", async () => {
       const result = await client.request("test-agent-123", {
         url: "https://example.com",
         timeoutMs: 5000
@@ -81,7 +81,7 @@ describe("HttpClient", () => {
       expect(result.requestLog.agentId).toBe("test-agent-123");
     });
 
-    it("åº”è®°å½•è¯·æ±‚æ–¹æ³•å’Œ URL", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇó·½·¨ºÍ URL", async () => {
       const result = await client.request("agent-1", {
         url: "https://example.com/test",
         method: "POST",
@@ -91,7 +91,7 @@ describe("HttpClient", () => {
       expect(result.requestLog.url).toBe("https://example.com/test");
     });
 
-    it("åº”è®°å½•è¯·æ±‚å¤´", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇóÍ·", async () => {
       const result = await client.request("agent-1", {
         url: "https://example.com",
         headers: { "X-Custom-Header": "test-value" },
@@ -100,7 +100,7 @@ describe("HttpClient", () => {
       expect(result.requestLog.requestHeaders["X-Custom-Header"]).toBe("test-value");
     });
 
-    it("åº”è®°å½•è¯·æ±‚ä½“", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇóÌå", async () => {
       const body = { key: "value" };
       const result = await client.request("agent-1", {
         url: "https://example.com",
@@ -112,8 +112,8 @@ describe("HttpClient", () => {
     });
   });
 
-  describe("createHttpClient å·¥åŽ‚å‡½æ•°", () => {
-    it("åº”åˆ›å»º HttpClient å®žä¾‹", () => {
+  describe("createHttpClient ¹¤³§º¯Êý", () => {
+    it("Ó¦´´½¨ HttpClient ÊµÀý", () => {
       const client = createHttpClient();
       expect(client).toBeInstanceOf(HttpClient);
     });

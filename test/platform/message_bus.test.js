@@ -1,6 +1,6 @@
-ï»¿import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import * as fc from "fast-check";
-import { MessageBus } from "../src/platform/core/message_bus.js";
+import { MessageBus } from "../../src/platform/core/message_bus.js";
 
 describe("MessageBus", () => {
   test("delivers FIFO per recipient", () => {
@@ -13,22 +13,22 @@ describe("MessageBus", () => {
     expect(m2.payload).toBe(2);
   });
 
-  // ========== å»¶è¿Ÿæ¶ˆæ¯åŠŸèƒ½æµ‹è¯• ==========
+  // ========== ÑÓ³ÙÏûÏ¢¹¦ÄÜ²âÊÔ ==========
 
   describe("Delayed Message Delivery", () => {
     
-    // å•å…ƒæµ‹è¯•ï¼šå»¶è¿Ÿæ¶ˆæ¯è¿›å…¥å»¶è¿Ÿé˜Ÿåˆ—
+    // µ¥Ôª²âÊÔ£ºÑÓ³ÙÏûÏ¢½øÈëÑÓ³Ù¶ÓÁĞ
     test("delayed message goes to delayed queue, not immediate queue", () => {
       const bus = new MessageBus();
       const result = bus.send({ to: "a", from: "x", payload: "delayed", delayMs: 1000 });
       
       expect(result.messageId).toBeDefined();
       expect(result.scheduledDeliveryTime).toBeDefined();
-      expect(bus.getQueueDepth("a")).toBe(0);  // ä¸åœ¨ç«‹å³é˜Ÿåˆ—
-      expect(bus.getDelayedCount("a")).toBe(1);  // åœ¨å»¶è¿Ÿé˜Ÿåˆ—
+      expect(bus.getQueueDepth("a")).toBe(0);  // ²»ÔÚÁ¢¼´¶ÓÁĞ
+      expect(bus.getDelayedCount("a")).toBe(1);  // ÔÚÑÓ³Ù¶ÓÁĞ
     });
 
-    // å•å…ƒæµ‹è¯•ï¼šç«‹å³æ¶ˆæ¯ä¸è¿”å› scheduledDeliveryTime
+    // µ¥Ôª²âÊÔ£ºÁ¢¼´ÏûÏ¢²»·µ»Ø scheduledDeliveryTime
     test("immediate message does not return scheduledDeliveryTime", () => {
       const bus = new MessageBus();
       const result = bus.send({ to: "a", from: "x", payload: "immediate" });
@@ -39,31 +39,31 @@ describe("MessageBus", () => {
       expect(bus.getDelayedCount("a")).toBe(0);
     });
 
-    // å•å…ƒæµ‹è¯•ï¼šå­—ç¬¦ä¸²å½¢å¼çš„ delayMs åº”è¯¥è¢«æ­£ç¡®è§£æ
+    // µ¥Ôª²âÊÔ£º×Ö·û´®ĞÎÊ½µÄ delayMs Ó¦¸Ã±»ÕıÈ·½âÎö
     test("string delayMs should be parsed correctly", () => {
       const bus = new MessageBus();
       const result = bus.send({ to: "a", from: "x", payload: "delayed", delayMs: "1000" });
       
       expect(result.messageId).toBeDefined();
       expect(result.scheduledDeliveryTime).toBeDefined();
-      expect(bus.getQueueDepth("a")).toBe(0);  // ä¸åœ¨ç«‹å³é˜Ÿåˆ—
-      expect(bus.getDelayedCount("a")).toBe(1);  // åœ¨å»¶è¿Ÿé˜Ÿåˆ—
+      expect(bus.getQueueDepth("a")).toBe(0);  // ²»ÔÚÁ¢¼´¶ÓÁĞ
+      expect(bus.getDelayedCount("a")).toBe(1);  // ÔÚÑÓ³Ù¶ÓÁĞ
     });
 
-    // å•å…ƒæµ‹è¯•ï¼šæ— æ•ˆå­—ç¬¦ä¸² delayMs åº”è¯¥è¢«è§†ä¸º 0
+    // µ¥Ôª²âÊÔ£ºÎŞĞ§×Ö·û´® delayMs Ó¦¸Ã±»ÊÓÎª 0
     test("invalid string delayMs should be treated as 0", () => {
       const bus = new MessageBus();
       const result = bus.send({ to: "a", from: "x", payload: "immediate", delayMs: "invalid" });
       
       expect(result.messageId).toBeDefined();
       expect(result.scheduledDeliveryTime).toBeUndefined();
-      expect(bus.getQueueDepth("a")).toBe(1);  // ç«‹å³æŠ•é€’
+      expect(bus.getQueueDepth("a")).toBe(1);  // Á¢¼´Í¶µİ
       expect(bus.getDelayedCount("a")).toBe(0);
     });
 
     /**
-     * Property 3: é›¶å»¶è¿Ÿç­‰ä»·äºç«‹å³æŠ•é€’
-     * Feature: delayed-message-delivery, Property 3: é›¶å»¶è¿Ÿç­‰ä»·äºç«‹å³æŠ•é€’
+     * Property 3: ÁãÑÓ³ÙµÈ¼ÛÓÚÁ¢¼´Í¶µİ
+     * Feature: delayed-message-delivery, Property 3: ÁãÑÓ³ÙµÈ¼ÛÓÚÁ¢¼´Í¶µİ
      * Validates: Requirements 1.2
      */
     test("Property 3: zero delay is equivalent to immediate delivery", () => {
@@ -76,12 +76,12 @@ describe("MessageBus", () => {
             const bus1 = new MessageBus();
             const bus2 = new MessageBus();
             
-            // å‘é€é›¶å»¶è¿Ÿæ¶ˆæ¯
+            // ·¢ËÍÁãÑÓ³ÙÏûÏ¢
             const result1 = bus1.send({ to, from, payload, delayMs: 0 });
-            // å‘é€æ— å»¶è¿Ÿå‚æ•°æ¶ˆæ¯
+            // ·¢ËÍÎŞÑÓ³Ù²ÎÊıÏûÏ¢
             const result2 = bus2.send({ to, from, payload });
             
-            // ä¸¤è€…è¡Œä¸ºåº”è¯¥ä¸€è‡´
+            // Á½ÕßĞĞÎªÓ¦¸ÃÒ»ÖÂ
             expect(result1.scheduledDeliveryTime).toBeUndefined();
             expect(result2.scheduledDeliveryTime).toBeUndefined();
             expect(bus1.getQueueDepth(to)).toBe(bus2.getQueueDepth(to));
@@ -93,8 +93,8 @@ describe("MessageBus", () => {
     });
 
     /**
-     * Property 4: è´Ÿå»¶è¿Ÿè¢«è§„èŒƒåŒ–ä¸ºé›¶
-     * Feature: delayed-message-delivery, Property 4: è´Ÿå»¶è¿Ÿè¢«è§„èŒƒåŒ–ä¸ºé›¶
+     * Property 4: ¸ºÑÓ³Ù±»¹æ·¶»¯ÎªÁã
+     * Feature: delayed-message-delivery, Property 4: ¸ºÑÓ³Ù±»¹æ·¶»¯ÎªÁã
      * Validates: Requirements 1.3
      */
     test("Property 4: negative delay is normalized to zero (immediate delivery)", () => {
@@ -108,12 +108,12 @@ describe("MessageBus", () => {
             const bus1 = new MessageBus();
             const bus2 = new MessageBus();
             
-            // å‘é€è´Ÿå»¶è¿Ÿæ¶ˆæ¯
+            // ·¢ËÍ¸ºÑÓ³ÙÏûÏ¢
             const result1 = bus1.send({ to, from, payload, delayMs: negativeDelay });
-            // å‘é€é›¶å»¶è¿Ÿæ¶ˆæ¯
+            // ·¢ËÍÁãÑÓ³ÙÏûÏ¢
             const result2 = bus2.send({ to, from, payload, delayMs: 0 });
             
-            // è´Ÿå»¶è¿Ÿåº”è¯¥ç­‰ä»·äºé›¶å»¶è¿Ÿï¼ˆç«‹å³æŠ•é€’ï¼‰
+            // ¸ºÑÓ³ÙÓ¦¸ÃµÈ¼ÛÓÚÁãÑÓ³Ù£¨Á¢¼´Í¶µİ£©
             expect(result1.scheduledDeliveryTime).toBeUndefined();
             expect(result2.scheduledDeliveryTime).toBeUndefined();
             expect(bus1.getQueueDepth(to)).toBe(1);
@@ -127,8 +127,8 @@ describe("MessageBus", () => {
     });
 
     /**
-     * Property 1: å»¶è¿Ÿæ¶ˆæ¯ä¸ä¼šæå‰æŠ•é€’
-     * Feature: delayed-message-delivery, Property 1: å»¶è¿Ÿæ¶ˆæ¯ä¸ä¼šæå‰æŠ•é€’
+     * Property 1: ÑÓ³ÙÏûÏ¢²»»áÌáÇ°Í¶µİ
+     * Feature: delayed-message-delivery, Property 1: ÑÓ³ÙÏûÏ¢²»»áÌáÇ°Í¶µİ
      * Validates: Requirements 1.1, 2.1
      */
     test("Property 1: delayed messages are not delivered before their time", () => {
@@ -141,14 +141,14 @@ describe("MessageBus", () => {
           (to, from, payload, delayMs) => {
             const bus = new MessageBus();
             
-            // å‘é€å»¶è¿Ÿæ¶ˆæ¯
+            // ·¢ËÍÑÓ³ÙÏûÏ¢
             bus.send({ to, from, payload, delayMs });
             
-            // ç«‹å³æ£€æŸ¥ï¼šæ¶ˆæ¯ä¸åº”è¯¥åœ¨ç«‹å³é˜Ÿåˆ—ä¸­
+            // Á¢¼´¼ì²é£ºÏûÏ¢²»Ó¦¸ÃÔÚÁ¢¼´¶ÓÁĞÖĞ
             expect(bus.getQueueDepth(to)).toBe(0);
             expect(bus.getDelayedCount(to)).toBe(1);
             
-            // è°ƒç”¨ deliverDueMessagesï¼Œæ¶ˆæ¯ä¸åº”è¯¥è¢«æŠ•é€’ï¼ˆå› ä¸ºæ—¶é—´æœªåˆ°ï¼‰
+            // µ÷ÓÃ deliverDueMessages£¬ÏûÏ¢²»Ó¦¸Ã±»Í¶µİ£¨ÒòÎªÊ±¼äÎ´µ½£©
             const delivered = bus.deliverDueMessages();
             expect(delivered).toBe(0);
             expect(bus.getQueueDepth(to)).toBe(0);
@@ -160,8 +160,8 @@ describe("MessageBus", () => {
     });
 
     /**
-     * Property 5: å»¶è¿Ÿæ¶ˆæ¯ä¿æŒå‘é€é¡ºåº
-     * Feature: delayed-message-delivery, Property 5: å»¶è¿Ÿæ¶ˆæ¯ä¿æŒå‘é€é¡ºåº
+     * Property 5: ÑÓ³ÙÏûÏ¢±£³Ö·¢ËÍË³Ğò
+     * Feature: delayed-message-delivery, Property 5: ÑÓ³ÙÏûÏ¢±£³Ö·¢ËÍË³Ğò
      * Validates: Requirements 2.2
      */
     test("Property 5: delayed messages with same deliverAt maintain send order", () => {
@@ -173,22 +173,22 @@ describe("MessageBus", () => {
             const bus = new MessageBus();
             const payloads = [];
             
-            // å‘é€å¤šæ¡æ¶ˆæ¯ï¼Œä½¿ç”¨ç›¸åŒçš„å»¶è¿Ÿæ—¶é—´ï¼ˆå®ƒä»¬ä¼šæœ‰ç›¸åŒçš„ deliverAtï¼‰
+            // ·¢ËÍ¶àÌõÏûÏ¢£¬Ê¹ÓÃÏàÍ¬µÄÑÓ³ÙÊ±¼ä£¨ËüÃÇ»áÓĞÏàÍ¬µÄ deliverAt£©
             for (let i = 0; i < count; i++) {
               payloads.push(i);
               bus.send({ to, from: "sender", payload: i, delayMs: 1 });
             }
             
-            // ç­‰å¾…å»¶è¿Ÿæ—¶é—´è¿‡å»
+            // µÈ´ıÑÓ³ÙÊ±¼ä¹ıÈ¥
             const start = Date.now();
             while (Date.now() - start < 10) {
               // busy wait
             }
             
-            // æŠ•é€’æ‰€æœ‰åˆ°æœŸæ¶ˆæ¯
+            // Í¶µİËùÓĞµ½ÆÚÏûÏ¢
             bus.deliverDueMessages();
             
-            // éªŒè¯æ¶ˆæ¯æŒ‰å‘é€é¡ºåºæŠ•é€’
+            // ÑéÖ¤ÏûÏ¢°´·¢ËÍË³ĞòÍ¶µİ
             for (let i = 0; i < count; i++) {
               const msg = bus.receiveNext(to);
               expect(msg).not.toBeNull();
@@ -201,8 +201,8 @@ describe("MessageBus", () => {
     });
 
     /**
-     * Property 6: å…³é—­æ—¶å»¶è¿Ÿæ¶ˆæ¯è¢«å¼ºåˆ¶æŠ•é€’
-     * Feature: delayed-message-delivery, Property 6: å…³é—­æ—¶å»¶è¿Ÿæ¶ˆæ¯è¢«å¼ºåˆ¶æŠ•é€’
+     * Property 6: ¹Ø±ÕÊ±ÑÓ³ÙÏûÏ¢±»Ç¿ÖÆÍ¶µİ
+     * Feature: delayed-message-delivery, Property 6: ¹Ø±ÕÊ±ÑÓ³ÙÏûÏ¢±»Ç¿ÖÆÍ¶µİ
      * Validates: Requirements 4.1
      */
     test("Property 6: forceDeliverAllDelayed delivers all pending delayed messages", () => {
@@ -214,19 +214,19 @@ describe("MessageBus", () => {
           (to, count, delayMs) => {
             const bus = new MessageBus();
             
-            // å‘é€å¤šæ¡å»¶è¿Ÿæ¶ˆæ¯
+            // ·¢ËÍ¶àÌõÑÓ³ÙÏûÏ¢
             for (let i = 0; i < count; i++) {
               bus.send({ to, from: "sender", payload: i, delayMs });
             }
             
-            // éªŒè¯æ¶ˆæ¯åœ¨å»¶è¿Ÿé˜Ÿåˆ—ä¸­
+            // ÑéÖ¤ÏûÏ¢ÔÚÑÓ³Ù¶ÓÁĞÖĞ
             expect(bus.getDelayedCount(to)).toBe(count);
             expect(bus.getQueueDepth(to)).toBe(0);
             
-            // å¼ºåˆ¶æŠ•é€’æ‰€æœ‰å»¶è¿Ÿæ¶ˆæ¯
+            // Ç¿ÖÆÍ¶µİËùÓĞÑÓ³ÙÏûÏ¢
             const forcedCount = bus.forceDeliverAllDelayed();
             
-            // éªŒè¯æ‰€æœ‰æ¶ˆæ¯è¢«æŠ•é€’
+            // ÑéÖ¤ËùÓĞÏûÏ¢±»Í¶µİ
             expect(forcedCount).toBe(count);
             expect(bus.getDelayedCount(to)).toBe(0);
             expect(bus.getQueueDepth(to)).toBe(count);
@@ -236,32 +236,32 @@ describe("MessageBus", () => {
       );
     });
 
-    // å•å…ƒæµ‹è¯•ï¼šdeliverDueMessages åœ¨æ—¶é—´åˆ°è¾¾åæŠ•é€’æ¶ˆæ¯
+    // µ¥Ôª²âÊÔ£ºdeliverDueMessages ÔÚÊ±¼äµ½´ïºóÍ¶µİÏûÏ¢
     test("deliverDueMessages delivers messages after delay time", async () => {
       const bus = new MessageBus();
       
-      // å‘é€ä¸€æ¡çŸ­å»¶è¿Ÿæ¶ˆæ¯
+      // ·¢ËÍÒ»Ìõ¶ÌÑÓ³ÙÏûÏ¢
       bus.send({ to: "a", from: "x", payload: "test", delayMs: 5 });
       
       expect(bus.getQueueDepth("a")).toBe(0);
       expect(bus.getDelayedCount("a")).toBe(1);
       
-      // ç­‰å¾…å»¶è¿Ÿæ—¶é—´è¿‡å»
+      // µÈ´ıÑÓ³ÙÊ±¼ä¹ıÈ¥
       await new Promise(r => setTimeout(r, 20));
       
-      // æŠ•é€’åˆ°æœŸæ¶ˆæ¯
+      // Í¶µİµ½ÆÚÏûÏ¢
       const delivered = bus.deliverDueMessages();
       
       expect(delivered).toBe(1);
       expect(bus.getQueueDepth("a")).toBe(1);
       expect(bus.getDelayedCount("a")).toBe(0);
       
-      // éªŒè¯æ¶ˆæ¯å†…å®¹
+      // ÑéÖ¤ÏûÏ¢ÄÚÈİ
       const msg = bus.receiveNext("a");
       expect(msg.payload).toBe("test");
     });
 
-    // å•å…ƒæµ‹è¯•ï¼šgetDelayedCount æŒ‰æ”¶ä»¶äººè¿‡æ»¤
+    // µ¥Ôª²âÊÔ£ºgetDelayedCount °´ÊÕ¼şÈË¹ıÂË
     test("getDelayedCount filters by recipient", () => {
       const bus = new MessageBus();
       
@@ -278,18 +278,18 @@ describe("MessageBus", () => {
 });
 
 
-// ========== é›†æˆæµ‹è¯• ==========
+// ========== ¼¯³É²âÊÔ ==========
 
 describe("MessageBus Integration Tests", () => {
   /**
-   * 5.1 ç«¯åˆ°ç«¯å»¶è¿Ÿæ¶ˆæ¯æµ‹è¯•
-   * æµ‹è¯•å®Œæ•´çš„å»¶è¿Ÿæ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹
+   * 5.1 ¶Ëµ½¶ËÑÓ³ÙÏûÏ¢²âÊÔ
+   * ²âÊÔÍêÕûµÄÑÓ³ÙÏûÏ¢·¢ËÍºÍ½ÓÊÕÁ÷³Ì
    * Validates: Requirements 1.1, 2.1
    */
   test("end-to-end delayed message flow", async () => {
     const bus = new MessageBus();
     
-    // å‘é€å»¶è¿Ÿæ¶ˆæ¯
+    // ·¢ËÍÑÓ³ÙÏûÏ¢
     const result = bus.send({
       to: "agent-1",
       from: "agent-2",
@@ -297,26 +297,26 @@ describe("MessageBus Integration Tests", () => {
       delayMs: 10
     });
     
-    // éªŒè¯è¿”å›å€¼
+    // ÑéÖ¤·µ»ØÖµ
     expect(result.messageId).toBeDefined();
     expect(result.scheduledDeliveryTime).toBeDefined();
     
-    // éªŒè¯æ¶ˆæ¯åœ¨å»¶è¿Ÿé˜Ÿåˆ—ä¸­
+    // ÑéÖ¤ÏûÏ¢ÔÚÑÓ³Ù¶ÓÁĞÖĞ
     expect(bus.getDelayedCount("agent-1")).toBe(1);
     expect(bus.getQueueDepth("agent-1")).toBe(0);
     
-    // ç­‰å¾…å»¶è¿Ÿæ—¶é—´
+    // µÈ´ıÑÓ³ÙÊ±¼ä
     await new Promise(r => setTimeout(r, 20));
     
-    // æŠ•é€’åˆ°æœŸæ¶ˆæ¯
+    // Í¶µİµ½ÆÚÏûÏ¢
     const delivered = bus.deliverDueMessages();
     expect(delivered).toBe(1);
     
-    // éªŒè¯æ¶ˆæ¯å·²ç§»å…¥ç«‹å³é˜Ÿåˆ—
+    // ÑéÖ¤ÏûÏ¢ÒÑÒÆÈëÁ¢¼´¶ÓÁĞ
     expect(bus.getDelayedCount("agent-1")).toBe(0);
     expect(bus.getQueueDepth("agent-1")).toBe(1);
     
-    // æ¥æ”¶æ¶ˆæ¯
+    // ½ÓÊÕÏûÏ¢
     const msg = bus.receiveNext("agent-1");
     expect(msg).not.toBeNull();
     expect(msg.payload.task).toBe("delayed task");
@@ -324,33 +324,33 @@ describe("MessageBus Integration Tests", () => {
   });
 
   /**
-   * 5.2 ç³»ç»Ÿå…³é—­æ—¶å»¶è¿Ÿæ¶ˆæ¯å¤„ç†æµ‹è¯•
-   * æµ‹è¯•ä¼˜é›…å…³é—­åœºæ™¯
+   * 5.2 ÏµÍ³¹Ø±ÕÊ±ÑÓ³ÙÏûÏ¢´¦Àí²âÊÔ
+   * ²âÊÔÓÅÑÅ¹Ø±Õ³¡¾°
    * Validates: Requirements 4.1
    */
   test("graceful shutdown delivers all delayed messages", () => {
     const bus = new MessageBus();
     
-    // å‘é€å¤šæ¡å»¶è¿Ÿæ¶ˆæ¯åˆ°ä¸åŒæ”¶ä»¶äºº
+    // ·¢ËÍ¶àÌõÑÓ³ÙÏûÏ¢µ½²»Í¬ÊÕ¼şÈË
     bus.send({ to: "agent-1", from: "sender", payload: { id: 1 }, delayMs: 10000 });
     bus.send({ to: "agent-1", from: "sender", payload: { id: 2 }, delayMs: 20000 });
     bus.send({ to: "agent-2", from: "sender", payload: { id: 3 }, delayMs: 30000 });
     
-    // éªŒè¯å»¶è¿Ÿé˜Ÿåˆ—çŠ¶æ€
+    // ÑéÖ¤ÑÓ³Ù¶ÓÁĞ×´Ì¬
     expect(bus.getDelayedCount()).toBe(3);
     expect(bus.getDelayedCount("agent-1")).toBe(2);
     expect(bus.getDelayedCount("agent-2")).toBe(1);
     
-    // æ¨¡æ‹Ÿä¼˜é›…å…³é—­ï¼šå¼ºåˆ¶æŠ•é€’æ‰€æœ‰å»¶è¿Ÿæ¶ˆæ¯
+    // Ä£ÄâÓÅÑÅ¹Ø±Õ£ºÇ¿ÖÆÍ¶µİËùÓĞÑÓ³ÙÏûÏ¢
     const forcedCount = bus.forceDeliverAllDelayed();
     
-    // éªŒè¯æ‰€æœ‰æ¶ˆæ¯è¢«æŠ•é€’
+    // ÑéÖ¤ËùÓĞÏûÏ¢±»Í¶µİ
     expect(forcedCount).toBe(3);
     expect(bus.getDelayedCount()).toBe(0);
     expect(bus.getQueueDepth("agent-1")).toBe(2);
     expect(bus.getQueueDepth("agent-2")).toBe(1);
     
-    // éªŒè¯æ¶ˆæ¯å†…å®¹å’Œé¡ºåº
+    // ÑéÖ¤ÏûÏ¢ÄÚÈİºÍË³Ğò
     const msg1 = bus.receiveNext("agent-1");
     const msg2 = bus.receiveNext("agent-1");
     const msg3 = bus.receiveNext("agent-2");
@@ -361,31 +361,31 @@ describe("MessageBus Integration Tests", () => {
   });
 
   /**
-   * æ··åˆæ¶ˆæ¯æµ‹è¯•ï¼šç«‹å³æ¶ˆæ¯å’Œå»¶è¿Ÿæ¶ˆæ¯å…±å­˜
+   * »ìºÏÏûÏ¢²âÊÔ£ºÁ¢¼´ÏûÏ¢ºÍÑÓ³ÙÏûÏ¢¹²´æ
    */
   test("immediate and delayed messages coexist correctly", async () => {
     const bus = new MessageBus();
     
-    // å‘é€æ··åˆæ¶ˆæ¯
+    // ·¢ËÍ»ìºÏÏûÏ¢
     bus.send({ to: "agent-1", from: "sender", payload: { type: "immediate", id: 1 } });
     bus.send({ to: "agent-1", from: "sender", payload: { type: "delayed", id: 2 }, delayMs: 10 });
     bus.send({ to: "agent-1", from: "sender", payload: { type: "immediate", id: 3 } });
     
-    // éªŒè¯é˜Ÿåˆ—çŠ¶æ€
-    expect(bus.getQueueDepth("agent-1")).toBe(2);  // 2 æ¡ç«‹å³æ¶ˆæ¯
-    expect(bus.getDelayedCount("agent-1")).toBe(1);  // 1 æ¡å»¶è¿Ÿæ¶ˆæ¯
+    // ÑéÖ¤¶ÓÁĞ×´Ì¬
+    expect(bus.getQueueDepth("agent-1")).toBe(2);  // 2 ÌõÁ¢¼´ÏûÏ¢
+    expect(bus.getDelayedCount("agent-1")).toBe(1);  // 1 ÌõÑÓ³ÙÏûÏ¢
     
-    // æ¥æ”¶ç«‹å³æ¶ˆæ¯
+    // ½ÓÊÕÁ¢¼´ÏûÏ¢
     const msg1 = bus.receiveNext("agent-1");
     const msg3 = bus.receiveNext("agent-1");
     expect(msg1.payload.id).toBe(1);
     expect(msg3.payload.id).toBe(3);
     
-    // ç­‰å¾…å»¶è¿Ÿæ¶ˆæ¯åˆ°æœŸ
+    // µÈ´ıÑÓ³ÙÏûÏ¢µ½ÆÚ
     await new Promise(r => setTimeout(r, 20));
     bus.deliverDueMessages();
     
-    // æ¥æ”¶å»¶è¿Ÿæ¶ˆæ¯
+    // ½ÓÊÕÑÓ³ÙÏûÏ¢
     const msg2 = bus.receiveNext("agent-1");
     expect(msg2.payload.id).toBe(2);
     expect(msg2.payload.type).toBe("delayed");

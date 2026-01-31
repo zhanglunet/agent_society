@@ -1,10 +1,10 @@
 /**
  * AutoCompressionManager 单元测试
  * 
- * 测试自动压缩管理器的核心功能：
+ * 测试自动压缩管理器的核心功能�?
  * - token 使用情况计算
  * - 压缩判断逻辑
- * - 对话历史完整性验证
+ * - 对话历史完整性验�?
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -51,7 +51,7 @@ describe('AutoCompressionManager', () => {
   });
 
   describe('_shouldCompress', () => {
-    it('达到阈值且消息足够时返回 true', () => {
+    it('达到阈值且消息足够时返�?true', () => {
       const messages = Array.from({ length: 15 }, (_, i) => ({
         role: i === 0 ? 'system' : i % 2 === 0 ? 'user' : 'assistant',
         content: `Message ${i}`,
@@ -86,7 +86,7 @@ describe('AutoCompressionManager', () => {
       expect(result).toBe(false);
     });
 
-    it('消息数量不足时返回 false', () => {
+    it('消息数量不足时返�?false', () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'Hello', promptTokens: 5 }
@@ -104,8 +104,8 @@ describe('AutoCompressionManager', () => {
     });
   });
 
-  describe('对话历史完整性验证', () => {
-    it('未达到阈值时保留完整的对话历史', async () => {
+  describe('对话历史完整性验�?, () => {
+    it('未达到阈值时保留完整的对话历�?, async () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'What is 2+2?', promptTokens: 5 },
@@ -123,7 +123,7 @@ describe('AutoCompressionManager', () => {
       expect(messages.map(m => m.content)).toEqual(originalContent);
     });
 
-    it('验证对话历史中的关键信息不丢失', async () => {
+    it('验证对话历史中的关键信息不丢�?, async () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'Task: Implement feature X', promptTokens: 5 },
@@ -143,7 +143,7 @@ describe('AutoCompressionManager', () => {
       expect(approachMessage.role).toBe('user');
     });
 
-    it('验证对话历史在多轮对话中保持一致', async () => {
+    it('验证对话历史在多轮对话中保持一�?, async () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'Round 1: Question 1', promptTokens: 5 },
@@ -166,7 +166,7 @@ describe('AutoCompressionManager', () => {
       }
     });
 
-    it('验证对话历史中的上下文信息完整', async () => {
+    it('验证对话历史中的上下文信息完�?, async () => {
       const messages = [
         { role: 'system', content: 'You are a code review assistant.', promptTokens: 10 },
         { role: 'user', content: 'Review this code: function add(a, b) { return a + b; }', promptTokens: 15 },
@@ -187,7 +187,7 @@ describe('AutoCompressionManager', () => {
       expect(messages[4].content).toContain('improved code');
     });
 
-    it('验证消息数组未被修改时保留所有消息', async () => {
+    it('验证消息数组未被修改时保留所有消�?, async () => {
       const messages = [
         { role: 'system', content: 'System prompt', promptTokens: 10 },
         { role: 'user', content: 'User message 1', promptTokens: 5 },
@@ -203,7 +203,7 @@ describe('AutoCompressionManager', () => {
   });
 
   describe('token 使用情况计算', () => {
-    it('正确计算 token 使用率', () => {
+    it('正确计算 token 使用�?, () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'Hello', promptTokens: 5 },
@@ -244,7 +244,7 @@ describe('AutoCompressionManager', () => {
       expect(result.promptTokens).toBe(20);
     });
 
-    it('忽略无效的 token 统计', () => {
+    it('忽略无效�?token 统计', () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.', promptTokens: 10 },
         { role: 'user', content: 'Hello', promptTokens: 0 },
@@ -269,8 +269,8 @@ describe('AutoCompressionManager', () => {
       const config = manager._loadConfig();
       const result = manager._extractMessagesToCompress(messages, config);
 
-      // 应该提取除了系统提示词和最近 10 条消息之外的所有消息
-      // 总共 15 条，系统提示词 1 条，最近 10 条，所以应该提取 4 条
+      // 应该提取除了系统提示词和最�?10 条消息之外的所有消�?
+      // 总共 15 条，系统提示�?1 条，最�?10 条，所以应该提�?4 �?
       expect(result.length).toBe(4);
       expect(result[0].content).toBe('Message 1');
       expect(result[result.length - 1].content).toBe('Message 4');
@@ -288,7 +288,7 @@ describe('AutoCompressionManager', () => {
       expect(result.length).toBe(0);
     });
 
-    it('保留系统提示词和最近消息', () => {
+    it('保留系统提示词和最近消�?, () => {
       const messages = Array.from({ length: 20 }, (_, i) => ({
         role: i === 0 ? 'system' : i % 2 === 0 ? 'user' : 'assistant',
         content: `Message ${i}`,
@@ -298,10 +298,10 @@ describe('AutoCompressionManager', () => {
       const config = manager._loadConfig();
       const result = manager._extractMessagesToCompress(messages, config);
 
-      // 验证系统提示词不在提取的消息中
+      // 验证系统提示词不在提取的消息�?
       expect(result.every(m => m.content !== 'Message 0')).toBe(true);
       
-      // 验证最近 10 条消息不在提取的消息中
+      // 验证最�?10 条消息不在提取的消息�?
       const recentMessages = messages.slice(-10);
       expect(result.every(m => !recentMessages.includes(m))).toBe(true);
     });
@@ -324,7 +324,7 @@ describe('AutoCompressionManager', () => {
       expect(prompt).toContain('摘要应该');
     });
 
-    it('摘要生成失败时返回 null', async () => {
+    it('摘要生成失败时返�?null', async () => {
       const messages = [
         { role: 'user', content: 'Test' }
       ];
@@ -343,7 +343,7 @@ describe('AutoCompressionManager', () => {
         { role: 'user', content: 'Test' }
       ];
 
-      // 模拟配置中没有摘要模型
+      // 模拟配置中没有摘要模�?
       mockConfigService.get = vi.fn((key) => {
         if (key === 'conversation.autoCompression') {
           return {
@@ -351,7 +351,7 @@ describe('AutoCompressionManager', () => {
             threshold: 0.8,
             keepRecentCount: 10,
             summaryMaxTokens: 1000,
-            summaryModel: null,  // 未配置
+            summaryModel: null,  // 未配�?
             summaryTimeout: 30000,
             contextLimit: { maxTokens: 128000 }
           };
@@ -375,7 +375,7 @@ describe('AutoCompressionManager', () => {
       }));
 
       const config = manager._loadConfig();
-      const summary = '这是一个压缩摘要';
+      const summary = '这是一个压缩摘�?;
 
       const beforeCount = messages.length;
       manager._performCompression(messages, summary, config);
@@ -384,22 +384,22 @@ describe('AutoCompressionManager', () => {
       // 验证消息数量减少
       expect(afterCount).toBeLessThan(beforeCount);
 
-      // 验证系统提示词保留
+      // 验证系统提示词保�?
       expect(messages[0].role).toBe('system');
       expect(messages[0].content).toBe('Message 0');
 
-      // 验证摘要消息被添加
+      // 验证摘要消息被添�?
       const summaryMessage = messages.find(m => m.isCompressed);
       expect(summaryMessage).toBeDefined();
       expect(summaryMessage.content).toContain('压缩摘要');
       expect(summaryMessage.content).toContain(summary);
 
-      // 验证最近的消息被保留
+      // 验证最近的消息被保�?
       const recentMessages = messages.slice(-config.keepRecentCount);
       expect(recentMessages.length).toBeLessThanOrEqual(config.keepRecentCount);
     });
 
-    it('压缩后消息数组结构正确', () => {
+    it('压缩后消息数组结构正�?, () => {
       const messages = Array.from({ length: 20 }, (_, i) => ({
         role: i === 0 ? 'system' : i % 2 === 0 ? 'user' : 'assistant',
         content: `Message ${i}`,
@@ -412,7 +412,7 @@ describe('AutoCompressionManager', () => {
       manager._performCompression(messages, summary, config);
 
       // 验证消息数组结构
-      // [系统提示词, 摘要消息, ...最近的消息]
+      // [系统提示�? 摘要消息, ...最近的消息]
       expect(messages[0].role).toBe('system');
       expect(messages[1].isCompressed).toBe(true);
       expect(messages.length).toBeLessThanOrEqual(2 + config.keepRecentCount);
@@ -432,7 +432,7 @@ describe('AutoCompressionManager', () => {
 
       manager._performCompression(messages, summary, config);
 
-      // 验证最近的消息被保留
+      // 验证最近的消息被保�?
       const compressedMessages = messages.map(m => m.content);
       for (const msg of lastMessages) {
         expect(compressedMessages).toContain(msg);

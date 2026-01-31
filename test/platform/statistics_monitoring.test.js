@@ -1,7 +1,7 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
 import { ConcurrencyController, ConcurrencyStats } from "../../src/platform/concurrency_controller.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("Statistics and Monitoring", () => {
   let controller;
@@ -21,15 +21,15 @@ describe("Statistics and Monitoring", () => {
 
   // **Feature: llm-concurrency-control, Property 9: Statistics and Monitoring**
   describe("Property 9: Statistics and Monitoring", () => {
-    it("å¯¹äºŽä»»ä½•è¯·æ±‚ç”Ÿå‘½å‘¨æœŸäº‹ä»¶ï¼ˆå¼€å§‹ã€å®Œæˆã€é˜Ÿåˆ—ã€è¾¾åˆ°é™åˆ¶ï¼‰ï¼Œç³»ç»Ÿåº”å‡†ç¡®æ›´æ–°å’Œè®°å½•ç›¸åº”çš„ç»Ÿè®¡ä¿¡æ¯", async () => {
+    it("¶ÔÓÚÈÎºÎÇëÇóÉúÃüÖÜÆÚÊÂ¼þ£¨¿ªÊ¼¡¢Íê³É¡¢¶ÓÁÐ¡¢´ïµ½ÏÞÖÆ£©£¬ÏµÍ³Ó¦×¼È·¸üÐÂºÍ¼ÇÂ¼ÏàÓ¦µÄÍ³¼ÆÐÅÏ¢", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.array(fc.string({ minLength: 1, maxLength: 5 }), { minLength: 2, maxLength: 5 }).map(arr => [...new Set(arr)]), // ç¡®ä¿å”¯ä¸€çš„agentId
+        fc.array(fc.string({ minLength: 1, maxLength: 5 }), { minLength: 2, maxLength: 5 }).map(arr => [...new Set(arr)]), // È·±£Î¨Ò»µÄagentId
         async (agentIds) => {
-          const controller = new ConcurrencyController(2, mockLogger); // è¾ƒå°çš„å¹¶å‘é™åˆ¶ä»¥æµ‹è¯•é˜Ÿåˆ—
+          const controller = new ConcurrencyController(2, mockLogger); // ½ÏÐ¡µÄ²¢·¢ÏÞÖÆÒÔ²âÊÔ¶ÓÁÐ
           const requestFns = [];
           const promises = [];
           
-          // åˆ›å»ºè¯·æ±‚å‡½æ•°
+          // ´´½¨ÇëÇóº¯Êý
           agentIds.forEach((_, index) => {
             const requestFn = vi.fn().mockResolvedValue(`result-${index}`);
             requestFns.push(requestFn);
@@ -37,10 +37,10 @@ describe("Statistics and Monitoring", () => {
             promises.push(promise);
           });
 
-          // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+          // µÈ´ýËùÓÐÇëÇóÍê³É
           await Promise.all(promises);
 
-          // éªŒè¯ç»Ÿè®¡ä¿¡æ¯
+          // ÑéÖ¤Í³¼ÆÐÅÏ¢
           const stats = controller.getStats();
           expect(stats.totalRequests).toBe(agentIds.length);
           expect(stats.completedRequests).toBe(agentIds.length);
@@ -48,13 +48,13 @@ describe("Statistics and Monitoring", () => {
           expect(stats.queueLength).toBe(0);
           expect(stats.rejectedRequests).toBe(0);
 
-          // éªŒè¯æ—¥å¿—è®°å½•
+          // ÑéÖ¤ÈÕÖ¾¼ÇÂ¼
           expect(mockLogger.info).toHaveBeenCalled();
           
-          // å¦‚æžœæœ‰é˜Ÿåˆ—æƒ…å†µï¼Œåº”è¯¥æœ‰è­¦å‘Šæ—¥å¿—
+          // Èç¹ûÓÐ¶ÓÁÐÇé¿ö£¬Ó¦¸ÃÓÐ¾¯¸æÈÕÖ¾
           if (agentIds.length > 2) {
             expect(mockLogger.warn).toHaveBeenCalledWith(
-              "å·²è¾¾åˆ°æœ€å¤§å¹¶å‘é™åˆ¶",
+              "ÒÑ´ïµ½×î´ó²¢·¢ÏÞÖÆ",
               expect.objectContaining({
                 maxConcurrentRequests: 2,
                 activeCount: expect.any(Number),
@@ -68,7 +68,7 @@ describe("Statistics and Monitoring", () => {
   });
 
   describe("ConcurrencyStats", () => {
-    it("åº”æ­£ç¡®åˆå§‹åŒ–æ‰€æœ‰ç»Ÿè®¡å­—æ®µ", () => {
+    it("Ó¦ÕýÈ·³õÊ¼»¯ËùÓÐÍ³¼Æ×Ö¶Î", () => {
       const stats = new ConcurrencyStats();
       
       expect(stats.activeCount).toBe(0);
@@ -78,20 +78,20 @@ describe("Statistics and Monitoring", () => {
       expect(stats.rejectedRequests).toBe(0);
     });
 
-    it("reset()åº”é‡ç½®æ‰€æœ‰ç»Ÿè®¡ä¿¡æ¯", () => {
+    it("reset()Ó¦ÖØÖÃËùÓÐÍ³¼ÆÐÅÏ¢", () => {
       const stats = new ConcurrencyStats();
       
-      // ä¿®æ”¹ç»Ÿè®¡ä¿¡æ¯
+      // ÐÞ¸ÄÍ³¼ÆÐÅÏ¢
       stats.activeCount = 5;
       stats.queueLength = 3;
       stats.totalRequests = 10;
       stats.completedRequests = 7;
       stats.rejectedRequests = 2;
       
-      // é‡ç½®
+      // ÖØÖÃ
       stats.reset();
       
-      // éªŒè¯æ‰€æœ‰å­—æ®µéƒ½è¢«é‡ç½®
+      // ÑéÖ¤ËùÓÐ×Ö¶Î¶¼±»ÖØÖÃ
       expect(stats.activeCount).toBe(0);
       expect(stats.queueLength).toBe(0);
       expect(stats.totalRequests).toBe(0);
@@ -99,7 +99,7 @@ describe("Statistics and Monitoring", () => {
       expect(stats.rejectedRequests).toBe(0);
     });
 
-    it("getSnapshot()åº”è¿”å›žç»Ÿè®¡ä¿¡æ¯çš„å‰¯æœ¬", () => {
+    it("getSnapshot()Ó¦·µ»ØÍ³¼ÆÐÅÏ¢µÄ¸±±¾", () => {
       const stats = new ConcurrencyStats();
       stats.activeCount = 2;
       stats.queueLength = 1;
@@ -107,19 +107,19 @@ describe("Statistics and Monitoring", () => {
       
       const snapshot = stats.getSnapshot();
       
-      // éªŒè¯å¿«ç…§å†…å®¹æ­£ç¡®
+      // ÑéÖ¤¿ìÕÕÄÚÈÝÕýÈ·
       expect(snapshot.activeCount).toBe(2);
       expect(snapshot.queueLength).toBe(1);
       expect(snapshot.totalRequests).toBe(5);
       
-      // ä¿®æ”¹åŽŸå§‹å¯¹è±¡ä¸åº”å½±å“å¿«ç…§
+      // ÐÞ¸ÄÔ­Ê¼¶ÔÏó²»Ó¦Ó°Ïì¿ìÕÕ
       stats.activeCount = 10;
       expect(snapshot.activeCount).toBe(2);
     });
   });
 
-  describe("ç»Ÿè®¡ä¿¡æ¯æ›´æ–°", () => {
-    it("åº”æ­£ç¡®è·Ÿè¸ªæ€»è¯·æ±‚æ•°", async () => {
+  describe("Í³¼ÆÐÅÏ¢¸üÐÂ", () => {
+    it("Ó¦ÕýÈ·¸ú×Ù×ÜÇëÇóÊý", async () => {
       expect(controller.getStats().totalRequests).toBe(0);
       
       const requestFn1 = vi.fn().mockResolvedValue("result1");
@@ -132,7 +132,7 @@ describe("Statistics and Monitoring", () => {
       expect(controller.getStats().totalRequests).toBe(2);
     });
 
-    it("åº”æ­£ç¡®è·Ÿè¸ªå®Œæˆè¯·æ±‚æ•°", async () => {
+    it("Ó¦ÕýÈ·¸ú×ÙÍê³ÉÇëÇóÊý", async () => {
       expect(controller.getStats().completedRequests).toBe(0);
       
       const requestFn = vi.fn().mockResolvedValue("result");
@@ -141,15 +141,15 @@ describe("Statistics and Monitoring", () => {
       expect(controller.getStats().completedRequests).toBe(1);
     });
 
-    it("åº”æ­£ç¡®è·Ÿè¸ªæ‹’ç»è¯·æ±‚æ•°", async () => {
+    it("Ó¦ÕýÈ·¸ú×Ù¾Ü¾øÇëÇóÊý", async () => {
       expect(controller.getStats().rejectedRequests).toBe(0);
       
-      // å°è¯•å‘é€æ²¡æœ‰agentIdçš„è¯·æ±‚
+      // ³¢ÊÔ·¢ËÍÃ»ÓÐagentIdµÄÇëÇó
       await expect(controller.executeRequest(null, vi.fn())).rejects.toThrow();
       expect(controller.getStats().rejectedRequests).toBe(1);
       
-      // å°è¯•å‘é€é‡å¤çš„è¯·æ±‚
-      const requestFn = vi.fn().mockReturnValue(new Promise(() => {})); // æ°¸ä¸å®Œæˆ
+      // ³¢ÊÔ·¢ËÍÖØ¸´µÄÇëÇó
+      const requestFn = vi.fn().mockReturnValue(new Promise(() => {})); // ÓÀ²»Íê³É
       const promise1 = controller.executeRequest("agent1", requestFn);
       
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -158,7 +158,7 @@ describe("Statistics and Monitoring", () => {
       expect(controller.getStats().rejectedRequests).toBe(2);
     });
 
-    it("åº”æ­£ç¡®è·Ÿè¸ªæ´»è·ƒè¯·æ±‚æ•°", async () => {
+    it("Ó¦ÕýÈ·¸ú×Ù»îÔ¾ÇëÇóÊý", async () => {
       expect(controller.getStats().activeCount).toBe(0);
       
       let resolver;
@@ -167,22 +167,22 @@ describe("Statistics and Monitoring", () => {
       
       const promise = controller.executeRequest("agent1", requestFn);
       
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ýÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getStats().activeCount).toBe(1);
       
-      // å®Œæˆè¯·æ±‚
+      // Íê³ÉÇëÇó
       resolver("result");
       await promise;
       
       expect(controller.getStats().activeCount).toBe(0);
     });
 
-    it("åº”æ­£ç¡®è·Ÿè¸ªé˜Ÿåˆ—é•¿åº¦", async () => {
+    it("Ó¦ÕýÈ·¸ú×Ù¶ÓÁÐ³¤¶È", async () => {
       expect(controller.getStats().queueLength).toBe(0);
       
-      // å¡«æ»¡æ´»è·ƒæ§½ä½
+      // ÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -196,44 +196,44 @@ describe("Statistics and Monitoring", () => {
         activePromises.push(requestPromise);
       }
       
-      // ç­‰å¾…æ´»è·ƒè¯·æ±‚å¼€å§‹
+      // µÈ´ý»îÔ¾ÇëÇó¿ªÊ¼
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getStats().activeCount).toBe(3);
       expect(controller.getStats().queueLength).toBe(0);
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁÐÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ý¶ÓÁÐ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getStats().queueLength).toBe(1);
       
-      // å®Œæˆä¸€ä¸ªæ´»è·ƒè¯·æ±‚ï¼Œé˜Ÿåˆ—åº”è¯¥è¢«å¤„ç†
+      // Íê³ÉÒ»¸ö»îÔ¾ÇëÇó£¬¶ÓÁÐÓ¦¸Ã±»´¦Àí
       activeResolvers[0]();
       await activePromises[0];
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ý¶ÓÁÐ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getStats().queueLength).toBe(0);
       
-      // æ¸…ç†å‰©ä½™è¯·æ±‚
+      // ÇåÀíÊ£ÓàÇëÇó
       activeResolvers.slice(1).forEach(resolver => resolver());
       await Promise.all(activePromises.slice(1));
       await queuedPromise;
     });
   });
 
-  describe("æ—¥å¿—è®°å½•", () => {
-    it("åº”è®°å½•è¯·æ±‚å¼€å§‹æ—¥å¿—", async () => {
+  describe("ÈÕÖ¾¼ÇÂ¼", () => {
+    it("Ó¦¼ÇÂ¼ÇëÇó¿ªÊ¼ÈÕÖ¾", async () => {
       const requestFn = vi.fn().mockResolvedValue("result");
       await controller.executeRequest("agent1", requestFn);
       
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "å¼€å§‹å¤„ç†LLMè¯·æ±‚",
+        "¿ªÊ¼´¦ÀíLLMÇëÇó",
         expect.objectContaining({
           agentId: "agent1",
           activeCount: expect.any(Number),
@@ -242,12 +242,12 @@ describe("Statistics and Monitoring", () => {
       );
     });
 
-    it("åº”è®°å½•è¯·æ±‚å®Œæˆæ—¥å¿—", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇóÍê³ÉÈÕÖ¾", async () => {
       const requestFn = vi.fn().mockResolvedValue("result");
       await controller.executeRequest("agent1", requestFn);
       
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "LLMè¯·æ±‚å®Œæˆ",
+        "LLMÇëÇóÍê³É",
         expect.objectContaining({
           agentId: "agent1",
           activeCount: expect.any(Number)
@@ -255,14 +255,14 @@ describe("Statistics and Monitoring", () => {
       );
     });
 
-    it("åº”è®°å½•è¯·æ±‚å¤±è´¥æ—¥å¿—", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇóÊ§°ÜÈÕÖ¾", async () => {
       const error = new Error("Test error");
       const requestFn = vi.fn().mockRejectedValue(error);
       
       await expect(controller.executeRequest("agent1", requestFn)).rejects.toThrow("Test error");
       
       expect(mockLogger.error).toHaveBeenCalledWith(
-        "LLMè¯·æ±‚å¤±è´¥",
+        "LLMÇëÇóÊ§°Ü",
         expect.objectContaining({
           agentId: "agent1",
           error: "Test error",
@@ -271,8 +271,8 @@ describe("Statistics and Monitoring", () => {
       );
     });
 
-    it("åº”è®°å½•é˜Ÿåˆ—åŠ å…¥æ—¥å¿—", async () => {
-      // å¡«æ»¡æ´»è·ƒæ§½ä½
+    it("Ó¦¼ÇÂ¼¶ÓÁÐ¼ÓÈëÈÕÖ¾", async () => {
+      // ÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -286,21 +286,21 @@ describe("Statistics and Monitoring", () => {
         activePromises.push(requestPromise);
       }
       
-      // ç­‰å¾…æ´»è·ƒè¯·æ±‚å¼€å§‹
+      // µÈ´ý»îÔ¾ÇëÇó¿ªÊ¼
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // æ¸…é™¤ä¹‹å‰çš„æ—¥å¿—è°ƒç”¨
+      // Çå³ýÖ®Ç°µÄÈÕÖ¾µ÷ÓÃ
       mockLogger.info.mockClear();
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁÐÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ý¶ÓÁÐ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "è¯·æ±‚å·²åŠ å…¥é˜Ÿåˆ—",
+        "ÇëÇóÒÑ¼ÓÈë¶ÓÁÐ",
         expect.objectContaining({
           agentId: "agent3",
           queueLength: expect.any(Number),
@@ -308,14 +308,14 @@ describe("Statistics and Monitoring", () => {
         })
       );
       
-      // æ¸…ç†
+      // ÇåÀí
       activeResolvers.forEach(resolver => resolver());
       await Promise.all(activePromises);
       await queuedPromise;
     });
 
-    it("åº”åœ¨è¾¾åˆ°å¹¶å‘é™åˆ¶æ—¶è®°å½•è­¦å‘Š", async () => {
-      // å¡«æ»¡æ´»è·ƒæ§½ä½
+    it("Ó¦ÔÚ´ïµ½²¢·¢ÏÞÖÆÊ±¼ÇÂ¼¾¯¸æ", async () => {
+      // ÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -329,18 +329,18 @@ describe("Statistics and Monitoring", () => {
         activePromises.push(requestPromise);
       }
       
-      // ç­‰å¾…æ´»è·ƒè¯·æ±‚å¼€å§‹
+      // µÈ´ý»îÔ¾ÇëÇó¿ªÊ¼
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚ï¼ˆè¿™åº”è¯¥è§¦å‘è­¦å‘Šï¼‰
+      // Ìí¼Ó¶ÓÁÐÇëÇó£¨ÕâÓ¦¸Ã´¥·¢¾¯¸æ£©
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ý¶ÓÁÐ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        "å·²è¾¾åˆ°æœ€å¤§å¹¶å‘é™åˆ¶",
+        "ÒÑ´ïµ½×î´ó²¢·¢ÏÞÖÆ",
         expect.objectContaining({
           maxConcurrentRequests: 3,
           activeCount: expect.any(Number),
@@ -348,14 +348,14 @@ describe("Statistics and Monitoring", () => {
         })
       );
       
-      // æ¸…ç†
+      // ÇåÀí
       activeResolvers.forEach(resolver => resolver());
       await Promise.all(activePromises);
       await queuedPromise;
     });
 
-    it("åº”è®°å½•é˜Ÿåˆ—å¤„ç†æ—¥å¿—", async () => {
-      // å¡«æ»¡æ´»è·ƒæ§½ä½
+    it("Ó¦¼ÇÂ¼¶ÓÁÐ´¦ÀíÈÕÖ¾", async () => {
+      // ÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -369,40 +369,40 @@ describe("Statistics and Monitoring", () => {
         activePromises.push(requestPromise);
       }
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁÐÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…å¤„ç†
+      // µÈ´ý´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // æ¸…é™¤ä¹‹å‰çš„æ—¥å¿—è°ƒç”¨
+      // Çå³ýÖ®Ç°µÄÈÕÖ¾µ÷ÓÃ
       mockLogger.info.mockClear();
       
-      // å®Œæˆä¸€ä¸ªæ´»è·ƒè¯·æ±‚ï¼Œè§¦å‘é˜Ÿåˆ—å¤„ç†
+      // Íê³ÉÒ»¸ö»îÔ¾ÇëÇó£¬´¥·¢¶ÓÁÐ´¦Àí
       activeResolvers[0]();
       await activePromises[0];
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ý¶ÓÁÐ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(mockLogger.info).toHaveBeenCalledWith(
-        "ä»Žé˜Ÿåˆ—ä¸­å–å‡ºè¯·æ±‚è¿›è¡Œå¤„ç†",
+        "´Ó¶ÓÁÐÖÐÈ¡³öÇëÇó½øÐÐ´¦Àí",
         expect.objectContaining({
           agentId: "agent3",
           queueLength: expect.any(Number)
         })
       );
       
-      // æ¸…ç†
+      // ÇåÀí
       activeResolvers.slice(1).forEach(resolver => resolver());
       await Promise.all(activePromises.slice(1));
       await queuedPromise;
     });
   });
 
-  describe("ç»Ÿè®¡ä¿¡æ¯è®¿é—®", () => {
-    it("getStats()åº”è¿”å›žå½“å‰ç»Ÿè®¡ä¿¡æ¯å¿«ç…§", () => {
+  describe("Í³¼ÆÐÅÏ¢·ÃÎÊ", () => {
+    it("getStats()Ó¦·µ»Øµ±Ç°Í³¼ÆÐÅÏ¢¿ìÕÕ", () => {
       const stats = controller.getStats();
       
       expect(stats).toHaveProperty("activeCount");
@@ -418,12 +418,12 @@ describe("Statistics and Monitoring", () => {
       expect(typeof stats.rejectedRequests).toBe("number");
     });
 
-    it("getActiveCount()åº”è¿”å›žå½“å‰æ´»è·ƒè¯·æ±‚æ•°", () => {
+    it("getActiveCount()Ó¦·µ»Øµ±Ç°»îÔ¾ÇëÇóÊý", () => {
       expect(controller.getActiveCount()).toBe(0);
       expect(typeof controller.getActiveCount()).toBe("number");
     });
 
-    it("getQueueLength()åº”è¿”å›žå½“å‰é˜Ÿåˆ—é•¿åº¦", () => {
+    it("getQueueLength()Ó¦·µ»Øµ±Ç°¶ÓÁÐ³¤¶È", () => {
       expect(controller.getQueueLength()).toBe(0);
       expect(typeof controller.getQueueLength()).toBe("number");
     });

@@ -65,7 +65,7 @@ export class ContentAdapter {
 
   /**
    * 将不支持的内容转换为文本描述
-   * @param {{type: 'image' | 'audio' | 'file', artifactRef: string, filename?: string, size?: number, mimeType?: string}} attachment - 附件信息
+   * @param {{type: 'image' | 'audio' | 'file', path: string, filename?: string, size?: number, mimeType?: string}} attachment - 附件信息
    * @returns {{text: string, structuredInfo: object}}
    */
   adaptToText(attachment) {
@@ -79,7 +79,7 @@ export class ContentAdapter {
     // 构建结构化信息
     const structuredInfo = {
       contentType,
-      artifactRef: attachment.artifactRef,
+      path: attachment.path,
       filename: attachment.filename || null,
       size: attachment.size !== undefined ? attachment.size : null,
       mimeType: attachment.mimeType || null,
@@ -96,7 +96,7 @@ export class ContentAdapter {
       lines.push(`文件名: ${attachment.filename}`);
     }
     
-    lines.push(`工件ID: ${attachment.artifactRef}`);
+    lines.push(`路径: ${attachment.path}`);
     
     if (attachment.size !== undefined && attachment.size !== null) {
       lines.push(`文件大小: ${formatFileSize(attachment.size)}`);
@@ -117,7 +117,7 @@ export class ContentAdapter {
     
     void this.log.debug("内容适配完成", {
       contentType,
-      artifactRef: attachment.artifactRef,
+      path: attachment.path,
       suggestedAgentsCount: suggestedAgents.length
     });
     
@@ -126,7 +126,7 @@ export class ContentAdapter {
 
   /**
    * 批量转换多个附件
-   * @param {Array<{type: string, artifactRef: string, filename?: string, size?: number, mimeType?: string}>} attachments - 附件列表
+   * @param {Array<{type: string, path: string, filename?: string, size?: number, mimeType?: string}>} attachments - 附件列表
    * @returns {Array<{text: string, structuredInfo: object}>}
    */
   adaptMultiple(attachments) {

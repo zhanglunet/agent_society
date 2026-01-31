@@ -1,24 +1,24 @@
-ï»¿import { describe, expect, test, beforeEach, afterEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import fc from "fast-check";
-import { HTTPServer } from "../src/platform/services/http/http_server.js";
-import { AgentSociety } from "../src/platform/core/agent_society.js";
-import { MessageBus } from "../src/platform/core/message_bus.js";
+import { HTTPServer } from "../../src/platform/services/http/http_server.js";
+import { AgentSociety } from "../../src/platform/core/agent_society.js";
+import { MessageBus } from "../../src/platform/core/message_bus.js";
 import { Config } from "../../src/platform/utils/config/config.js";
 
 describe("HTTPServer", () => {
   /**
-   * Property 4: HTTP APIæ¶ˆæ¯è½¬å‘ä¸€è‡´æ€§
-   * å¯¹äºŽä»»æ„é€šè¿‡HTTP APIå‘é€çš„æ¶ˆæ¯ï¼ˆsubmitæˆ–sendï¼‰ï¼Œåº”äº§ç”Ÿä¸ŽæŽ§åˆ¶å°æ–¹å¼ç›¸åŒçš„æ¶ˆæ¯è½¬å‘è¡Œä¸ºï¼Œ
-   * ä¸”è¿”å›žçš„taskId/messageIdåº”ä¸Žå®žé™…å‘é€çš„æ¶ˆæ¯å¯¹åº”ã€‚
+   * Property 4: HTTP APIÏûÏ¢×ª·¢Ò»ÖÂÐÔ
+   * ¶ÔÓÚÈÎÒâÍ¨¹ýHTTP API·¢ËÍµÄÏûÏ¢£¨submit»òsend£©£¬Ó¦²úÉúÓë¿ØÖÆÌ¨·½Ê½ÏàÍ¬µÄÏûÏ¢×ª·¢ÐÐÎª£¬
+   * ÇÒ·µ»ØµÄtaskId/messageIdÓ¦ÓëÊµ¼Ê·¢ËÍµÄÏûÏ¢¶ÔÓ¦¡£
    * 
-   * **éªŒè¯: éœ€æ±‚ 2.2, 2.3**
+   * **ÑéÖ¤: ÐèÇó 2.2, 2.3**
    */
-  test("Property 4: HTTP APIæ¶ˆæ¯è½¬å‘ä¸€è‡´æ€§ - submitç«¯ç‚¹ä¸ŽæŽ§åˆ¶å°æ–¹å¼è¡Œä¸ºä¸€è‡´", () => {
+  test("Property 4: HTTP APIÏûÏ¢×ª·¢Ò»ÖÂÐÔ - submit¶ËµãÓë¿ØÖÆÌ¨·½Ê½ÐÐÎªÒ»ÖÂ", () => {
     fc.assert(
       fc.property(
-        fc.string({ minLength: 1, maxLength: 200 }), // éœ€æ±‚æ–‡æœ¬
+        fc.string({ minLength: 1, maxLength: 200 }), // ÐèÇóÎÄ±¾
         (text) => {
-          // åˆ›å»ºä¸¤ä¸ªç‹¬ç«‹çš„societyå®žä¾‹è¿›è¡Œå¯¹æ¯”
+          // ´´½¨Á½¸ö¶ÀÁ¢µÄsocietyÊµÀý½øÐÐ¶Ô±È
           const societyConsole = new AgentSociety({ configService: new Config("config") });
           const busConsole = new MessageBus();
           societyConsole.runtime.bus = busConsole;
@@ -27,28 +27,28 @@ describe("HTTPServer", () => {
           const busHttp = new MessageBus();
           societyHttp.runtime.bus = busHttp;
 
-          // æŽ§åˆ¶å°æ–¹å¼å‘é€
+          // ¿ØÖÆÌ¨·½Ê½·¢ËÍ
           const consoleResult = societyConsole.sendTextToAgent("root", text);
 
-          // HTTPæ–¹å¼å‘é€ï¼ˆæ¨¡æ‹ŸHTTPæœåŠ¡å™¨çš„è¡Œä¸ºï¼‰
+          // HTTP·½Ê½·¢ËÍ£¨Ä£ÄâHTTP·þÎñÆ÷µÄÐÐÎª£©
           const httpServer = new HTTPServer({ society: societyHttp });
           httpServer.setSociety(societyHttp);
           const httpResult = societyHttp.sendTextToAgent("root", text);
 
-          // ä¸¤ç§æ–¹å¼éƒ½åº”è¯¥æˆåŠŸ
+          // Á½ÖÖ·½Ê½¶¼Ó¦¸Ã³É¹¦
           expect(consoleResult).toHaveProperty("taskId");
           expect(httpResult).toHaveProperty("taskId");
           expect(consoleResult).not.toHaveProperty("error");
           expect(httpResult).not.toHaveProperty("error");
 
-          // æ¶ˆæ¯æ€»çº¿ä¸­çš„æ¶ˆæ¯ç»“æž„åº”è¯¥ä¸€è‡´
+          // ÏûÏ¢×ÜÏßÖÐµÄÏûÏ¢½á¹¹Ó¦¸ÃÒ»ÖÂ
           const consoleQueue = busConsole._queues.get("root") ?? [];
           const httpQueue = busHttp._queues.get("root") ?? [];
 
           expect(consoleQueue.length).toBe(1);
           expect(httpQueue.length).toBe(1);
 
-          // æ¶ˆæ¯å†…å®¹åº”è¯¥ä¸€è‡´ï¼ˆé™¤äº†idå’ŒcreatedAtï¼‰
+          // ÏûÏ¢ÄÚÈÝÓ¦¸ÃÒ»ÖÂ£¨³ýÁËidºÍcreatedAt£©
           expect(consoleQueue[0].from).toBe(httpQueue[0].from);
           expect(consoleQueue[0].to).toBe(httpQueue[0].to);
           expect(consoleQueue[0].payload.text).toBe(httpQueue[0].payload.text);
@@ -58,14 +58,14 @@ describe("HTTPServer", () => {
     );
   });
 
-  test("Property 4: HTTP APIæ¶ˆæ¯è½¬å‘ä¸€è‡´æ€§ - sendç«¯ç‚¹ä¸ŽæŽ§åˆ¶å°æ–¹å¼è¡Œä¸ºä¸€è‡´", () => {
+  test("Property 4: HTTP APIÏûÏ¢×ª·¢Ò»ÖÂÐÔ - send¶ËµãÓë¿ØÖÆÌ¨·½Ê½ÐÐÎªÒ»ÖÂ", () => {
     fc.assert(
       fc.property(
-        // ç”Ÿæˆéž"user"çš„æœ‰æ•ˆæ™ºèƒ½ä½“ID
+        // Éú³É·Ç"user"µÄÓÐÐ§ÖÇÄÜÌåID
         fc.string({ minLength: 1, maxLength: 50 }).filter(id => id.trim() !== "" && id.trim() !== "user"),
-        fc.string({ minLength: 1, maxLength: 200 }), // æ¶ˆæ¯æ–‡æœ¬
+        fc.string({ minLength: 1, maxLength: 200 }), // ÏûÏ¢ÎÄ±¾
         (agentId, text) => {
-          // åˆ›å»ºä¸¤ä¸ªç‹¬ç«‹çš„societyå®žä¾‹è¿›è¡Œå¯¹æ¯”
+          // ´´½¨Á½¸ö¶ÀÁ¢µÄsocietyÊµÀý½øÐÐ¶Ô±È
           const societyConsole = new AgentSociety({ configService: new Config("config") });
           const busConsole = new MessageBus();
           societyConsole.runtime.bus = busConsole;
@@ -74,20 +74,20 @@ describe("HTTPServer", () => {
           const busHttp = new MessageBus();
           societyHttp.runtime.bus = busHttp;
 
-          // æŽ§åˆ¶å°æ–¹å¼å‘é€
+          // ¿ØÖÆÌ¨·½Ê½·¢ËÍ
           const consoleResult = societyConsole.sendTextToAgent(agentId, text);
 
-          // HTTPæ–¹å¼å‘é€ï¼ˆæ¨¡æ‹ŸHTTPæœåŠ¡å™¨çš„è¡Œä¸ºï¼‰
+          // HTTP·½Ê½·¢ËÍ£¨Ä£ÄâHTTP·þÎñÆ÷µÄÐÐÎª£©
           const httpServer = new HTTPServer({ society: societyHttp });
           httpServer.setSociety(societyHttp);
           const httpResult = societyHttp.sendTextToAgent(agentId, text);
 
-          // ä¸¤ç§æ–¹å¼éƒ½åº”è¯¥æˆåŠŸ
+          // Á½ÖÖ·½Ê½¶¼Ó¦¸Ã³É¹¦
           expect(consoleResult).toHaveProperty("taskId");
           expect(httpResult).toHaveProperty("taskId");
           expect(consoleResult.to).toBe(httpResult.to);
 
-          // æ¶ˆæ¯æ€»çº¿ä¸­çš„æ¶ˆæ¯ç»“æž„åº”è¯¥ä¸€è‡´
+          // ÏûÏ¢×ÜÏßÖÐµÄÏûÏ¢½á¹¹Ó¦¸ÃÒ»ÖÂ
           const trimmedId = agentId.trim();
           const consoleQueue = busConsole._queues.get(trimmedId) ?? [];
           const httpQueue = busHttp._queues.get(trimmedId) ?? [];
@@ -95,7 +95,7 @@ describe("HTTPServer", () => {
           expect(consoleQueue.length).toBe(1);
           expect(httpQueue.length).toBe(1);
 
-          // æ¶ˆæ¯å†…å®¹åº”è¯¥ä¸€è‡´
+          // ÏûÏ¢ÄÚÈÝÓ¦¸ÃÒ»ÖÂ
           expect(consoleQueue[0].from).toBe(httpQueue[0].from);
           expect(consoleQueue[0].to).toBe(httpQueue[0].to);
           expect(consoleQueue[0].payload.text).toBe(httpQueue[0].payload.text);
@@ -105,7 +105,7 @@ describe("HTTPServer", () => {
     );
   });
 
-  test("Property 4: HTTP APIæ¶ˆæ¯è½¬å‘ä¸€è‡´æ€§ - taskIdä¸Žå®žé™…æ¶ˆæ¯å¯¹åº”", () => {
+  test("Property 4: HTTP APIÏûÏ¢×ª·¢Ò»ÖÂÐÔ - taskIdÓëÊµ¼ÊÏûÏ¢¶ÔÓ¦", () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 50 }).filter(id => id.trim() !== "" && id.trim() !== "user"),
@@ -117,9 +117,9 @@ describe("HTTPServer", () => {
 
           const result = society.sendTextToAgent(agentId, text);
 
-          if (result.error) return; // è·³è¿‡æ— æ•ˆè¾“å…¥
+          if (result.error) return; // Ìø¹ýÎÞÐ§ÊäÈë
 
-          // è¿”å›žçš„taskIdåº”è¯¥ä¸Žæ¶ˆæ¯æ€»çº¿ä¸­çš„æ¶ˆæ¯taskIdä¸€è‡´
+          // ·µ»ØµÄtaskIdÓ¦¸ÃÓëÏûÏ¢×ÜÏßÖÐµÄÏûÏ¢taskIdÒ»ÖÂ
           const trimmedId = agentId.trim();
           const queue = bus._queues.get(trimmedId) ?? [];
           
@@ -133,9 +133,9 @@ describe("HTTPServer", () => {
 
 
   /**
-   * Property 5: HTTPæ¶ˆæ¯æŸ¥è¯¢å®Œæ•´æ€§
+   * Property 5: HTTPÏûÏ¢²éÑ¯ÍêÕûÐÔ
    */
-  test("Property 5: HTTPæ¶ˆæ¯æŸ¥è¯¢å®Œæ•´æ€§ - æ¶ˆæ¯æŒ‰æŽ¥æ”¶é¡ºåºå­˜å‚¨", () => {
+  test("Property 5: HTTPÏûÏ¢²éÑ¯ÍêÕûÐÔ - ÏûÏ¢°´½ÓÊÕË³Ðò´æ´¢", () => {
     fc.assert(
       fc.property(
         fc.uuid(),
@@ -185,7 +185,7 @@ describe("HTTPServer", () => {
     );
   });
 
-  test("Property 5: HTTPæ¶ˆæ¯æŸ¥è¯¢å®Œæ•´æ€§ - ä¸å­˜åœ¨çš„taskIdè¿”å›žç©ºæ•°ç»„", () => {
+  test("Property 5: HTTPÏûÏ¢²éÑ¯ÍêÕûÐÔ - ²»´æÔÚµÄtaskId·µ»Ø¿ÕÊý×é", () => {
     fc.assert(
       fc.property(
         fc.uuid(),
@@ -201,7 +201,7 @@ describe("HTTPServer", () => {
   });
 });
 
-describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
+describe("HTTPServer - ´íÎó´¦Àí", () => {
   let server;
   let port;
 
@@ -216,7 +216,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     }
   });
 
-  test("æœåŠ¡å™¨å¯åŠ¨å’Œåœæ­¢", async () => {
+  test("·þÎñÆ÷Æô¶¯ºÍÍ£Ö¹", async () => {
     const result = await server.start();
     expect(result.ok).toBe(true);
     expect(server.isRunning()).toBe(true);
@@ -226,18 +226,18 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(server.isRunning()).toBe(false);
   });
 
-  test("é‡å¤å¯åŠ¨æœåŠ¡å™¨åº”è¿”å›žæˆåŠŸ", async () => {
+  test("ÖØ¸´Æô¶¯·þÎñÆ÷Ó¦·µ»Ø³É¹¦", async () => {
     await server.start();
     const result = await server.start();
     expect(result.ok).toBe(true);
   });
 
-  test("åœæ­¢æœªå¯åŠ¨çš„æœåŠ¡å™¨åº”è¿”å›žæˆåŠŸ", async () => {
+  test("Í£Ö¹Î´Æô¶¯µÄ·þÎñÆ÷Ó¦·µ»Ø³É¹¦", async () => {
     const result = await server.stop();
     expect(result.ok).toBe(true);
   });
 
-  test("GET /api/agents - societyæœªåˆå§‹åŒ–æ—¶è¿”å›ž500", async () => {
+  test("GET /api/agents - societyÎ´³õÊ¼»¯Ê±·µ»Ø500", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/agents`);
     expect(response.status).toBe(500);
@@ -245,7 +245,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("society_not_initialized");
   });
 
-  test("GET /api/roles - societyæœªåˆå§‹åŒ–æ—¶è¿”å›ž500", async () => {
+  test("GET /api/roles - societyÎ´³õÊ¼»¯Ê±·µ»Ø500", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/roles`);
     expect(response.status).toBe(500);
@@ -253,7 +253,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("society_not_initialized");
   });
 
-  test("GET /api/org/tree - societyæœªåˆå§‹åŒ–æ—¶è¿”å›ž500", async () => {
+  test("GET /api/org/tree - societyÎ´³õÊ¼»¯Ê±·µ»Ø500", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/org/tree`);
     expect(response.status).toBe(500);
@@ -261,7 +261,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("society_not_initialized");
   });
 
-  test("GET /api/agent-messages/:agentId - æœ‰æ•ˆagentIdè¿”å›žç©ºæ¶ˆæ¯åˆ—è¡¨", async () => {
+  test("GET /api/agent-messages/:agentId - ÓÐÐ§agentId·µ»Ø¿ÕÏûÏ¢ÁÐ±í", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/agent-messages/test-agent`);
     expect(response.status).toBe(200);
@@ -271,14 +271,14 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.count).toBe(0);
   });
 
-  test("GET /api/messages/:taskId - ç©ºtaskIdè¿”å›ž400", async () => {
+  test("GET /api/messages/:taskId - ¿ÕtaskId·µ»Ø400", async () => {
     await server.start();
-    // ç©ºè·¯å¾„ä¼šåŒ¹é…åˆ° /api/messages/ å¹¶è¿”å›ž 400
+    // ¿ÕÂ·¾¶»áÆ¥Åäµ½ /api/messages/ ²¢·µ»Ø 400
     const response = await fetch(`http://localhost:${port}/api/messages/`);
     expect(response.status).toBe(400);
   });
 
-  test("GET /api/messages/:taskId - æœ‰æ•ˆtaskIdè¿”å›žç©ºæ¶ˆæ¯åˆ—è¡¨", async () => {
+  test("GET /api/messages/:taskId - ÓÐÐ§taskId·µ»Ø¿ÕÏûÏ¢ÁÐ±í", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/messages/test-task-id`);
     expect(response.status).toBe(200);
@@ -288,7 +288,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.count).toBe(0);
   });
 
-  test("POST /api/submit - societyæœªåˆå§‹åŒ–æ—¶è¿”å›ž500", async () => {
+  test("POST /api/submit - societyÎ´³õÊ¼»¯Ê±·µ»Ø500", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/submit`, {
       method: "POST",
@@ -300,7 +300,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("society_not_initialized");
   });
 
-  test("POST /api/submit - ç¼ºå°‘textå­—æ®µè¿”å›ž400", async () => {
+  test("POST /api/submit - È±ÉÙtext×Ö¶Î·µ»Ø400", async () => {
     const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
@@ -314,7 +314,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("missing_text");
   });
 
-  test("POST /api/submit - æ— æ•ˆJSONè¿”å›ž400", async () => {
+  test("POST /api/submit - ÎÞÐ§JSON·µ»Ø400", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/submit`, {
       method: "POST",
@@ -326,7 +326,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("invalid_json");
   });
 
-  test("POST /api/send - ç¼ºå°‘agentIdè¿”å›ž400", async () => {
+  test("POST /api/send - È±ÉÙagentId·µ»Ø400", async () => {
     const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
@@ -340,7 +340,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("missing_agent_id");
   });
 
-  test("POST /api/send - ç¼ºå°‘textè¿”å›ž400", async () => {
+  test("POST /api/send - È±ÉÙtext·µ»Ø400", async () => {
     const society = new AgentSociety({ configService: new Config("config") });
     server.setSociety(society);
     await server.start();
@@ -354,7 +354,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("missing_text");
   });
 
-  test("æœªçŸ¥è·¯å¾„è¿”å›ž404", async () => {
+  test("Î´ÖªÂ·¾¶·µ»Ø404", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/unknown`);
     expect(response.status).toBe(404);
@@ -362,7 +362,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(data.error).toBe("not_found");
   });
 
-  test("OPTIONSè¯·æ±‚è¿”å›ž204ï¼ˆCORSé¢„æ£€ï¼‰", async () => {
+  test("OPTIONSÇëÇó·µ»Ø204£¨CORSÔ¤¼ì£©", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/agents`, {
       method: "OPTIONS"
@@ -370,7 +370,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
     expect(response.status).toBe(204);
   });
 
-  test("CORSå¤´æ­£ç¡®è®¾ç½®", async () => {
+  test("CORSÍ·ÕýÈ·ÉèÖÃ", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/agents`);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
@@ -378,7 +378,7 @@ describe("HTTPServer - é”™è¯¯å¤„ç†", () => {
   });
 });
 
-describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
+describe("HTTPServer - ÓëSociety¼¯³É", () => {
   let server;
   let society;
   let port;
@@ -386,7 +386,7 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
   beforeEach(async () => {
     port = 30000 + Math.floor(Math.random() * 10000);
     society = new AgentSociety({ configService: new Config("config") });
-    await society.init(); // éœ€è¦åˆå§‹åŒ– society
+    await society.init(); // ÐèÒª³õÊ¼»¯ society
     server = new HTTPServer({ port, society });
     server.setSociety(society);
   });
@@ -397,7 +397,7 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
     }
   });
 
-  test("GET /api/agents - è¿”å›žrootå’Œuseræ™ºèƒ½ä½“", async () => {
+  test("GET /api/agents - ·µ»ØrootºÍuserÖÇÄÜÌå", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/agents`);
     expect(response.status).toBe(200);
@@ -408,7 +408,7 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
     expect(agentIds).toContain("user");
   });
 
-  test("GET /api/roles - è¿”å›žrootå’Œuserå²—ä½", async () => {
+  test("GET /api/roles - ·µ»ØrootºÍuser¸ÚÎ»", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/roles`);
     expect(response.status).toBe(200);
@@ -419,7 +419,7 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
     expect(roleIds).toContain("user");
   });
 
-  test("GET /api/org/tree - è¿”å›žç»„ç»‡æ ‘", async () => {
+  test("GET /api/org/tree - ·µ»Ø×éÖ¯Ê÷", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/org/tree`);
     expect(response.status).toBe(200);
@@ -428,12 +428,12 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
     expect(data.nodeCount).toBeGreaterThanOrEqual(2);
   });
 
-  test("POST /api/submit - æˆåŠŸæäº¤éœ€æ±‚", async () => {
+  test("POST /api/submit - ³É¹¦Ìá½»ÐèÇó", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "æµ‹è¯•éœ€æ±‚" })
+      body: JSON.stringify({ text: "²âÊÔÐèÇó" })
     });
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -441,12 +441,12 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
     expect(typeof data.taskId).toBe("string");
   });
 
-  test("POST /api/send - æˆåŠŸå‘é€æ¶ˆæ¯", async () => {
+  test("POST /api/send - ³É¹¦·¢ËÍÏûÏ¢", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId: "root", text: "æµ‹è¯•æ¶ˆæ¯" })
+      body: JSON.stringify({ agentId: "root", text: "²âÊÔÏûÏ¢" })
     });
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -456,7 +456,7 @@ describe("HTTPServer - ä¸ŽSocietyé›†æˆ", () => {
   });
 });
 
-describe("HTTPServer - LLM ä¸­æ–­ API", () => {
+describe("HTTPServer - LLM ÖÐ¶Ï API", () => {
   let server;
   let port;
   let society;
@@ -475,7 +475,7 @@ describe("HTTPServer - LLM ä¸­æ–­ API", () => {
     }
   });
 
-  test("POST /api/agent/:agentId/abort - societyæœªåˆå§‹åŒ–æ—¶è¿”å›ž500", async () => {
+  test("POST /api/agent/:agentId/abort - societyÎ´³õÊ¼»¯Ê±·µ»Ø500", async () => {
     const serverNoSociety = new HTTPServer({ port: port + 1 });
     await serverNoSociety.start();
     
@@ -493,7 +493,7 @@ describe("HTTPServer - LLM ä¸­æ–­ API", () => {
     }
   });
 
-  test("POST /api/agent/:agentId/abort - æ™ºèƒ½ä½“ä¸å­˜åœ¨æ—¶è¿”å›ž404", async () => {
+  test("POST /api/agent/:agentId/abort - ÖÇÄÜÌå²»´æÔÚÊ±·µ»Ø404", async () => {
     await server.start();
     
     const response = await fetch(`http://localhost:${port}/api/agent/non-existent-agent/abort`, {
@@ -506,10 +506,10 @@ describe("HTTPServer - LLM ä¸­æ–­ API", () => {
     expect(data.error).toBe("agent_not_found");
   });
 
-  test("POST /api/agent/:agentId/abort - æ™ºèƒ½ä½“ä¸åœ¨ waiting_llm çŠ¶æ€æ—¶è¿”å›ž aborted=false", async () => {
+  test("POST /api/agent/:agentId/abort - ÖÇÄÜÌå²»ÔÚ waiting_llm ×´Ì¬Ê±·µ»Ø aborted=false", async () => {
     await server.start();
     
-    // root æ™ºèƒ½ä½“é»˜è®¤å­˜åœ¨ï¼ŒçŠ¶æ€ä¸º idle
+    // root ÖÇÄÜÌåÄ¬ÈÏ´æÔÚ£¬×´Ì¬Îª idle
     const response = await fetch(`http://localhost:${port}/api/agent/root/abort`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -522,13 +522,13 @@ describe("HTTPServer - LLM ä¸­æ–­ API", () => {
     expect(data.agentId).toBe("root");
   });
 
-  test("POST /api/agent/:agentId/abort - æˆåŠŸä¸­æ–­ waiting_llm çŠ¶æ€çš„æ™ºèƒ½ä½“", async () => {
+  test("POST /api/agent/:agentId/abort - ³É¹¦ÖÐ¶Ï waiting_llm ×´Ì¬µÄÖÇÄÜÌå", async () => {
     await server.start();
     
-    // è®¾ç½® root æ™ºèƒ½ä½“ä¸º waiting_llm çŠ¶æ€
+    // ÉèÖÃ root ÖÇÄÜÌåÎª waiting_llm ×´Ì¬
     society.runtime.setAgentComputeStatus("root", "waiting_llm");
     
-    // æ¨¡æ‹Ÿ LLM å®¢æˆ·ç«¯æœ‰æ´»è·ƒè¯·æ±‚
+    // Ä£Äâ LLM ¿Í»§¶ËÓÐ»îÔ¾ÇëÇó
     if (society.runtime.llm) {
       society.runtime.llm._activeRequests.set("root", {
         abort: () => {},
@@ -547,18 +547,18 @@ describe("HTTPServer - LLM ä¸­æ–­ API", () => {
     expect(data.aborted).toBe(true);
     expect(data.agentId).toBe("root");
     
-    // éªŒè¯çŠ¶æ€å·²é‡ç½®ä¸º idle
+    // ÑéÖ¤×´Ì¬ÒÑÖØÖÃÎª idle
     expect(society.runtime.getAgentComputeStatus("root")).toBe("idle");
   });
 
   /**
-   * Property 6: API ç«¯ç‚¹éªŒè¯
-   * å¯¹äºŽä»»æ„ä¸­æ–­ API è¯·æ±‚ï¼Œå¦‚æžœæŒ‡å®šçš„ agentId ä¸å¯¹åº”å·²å­˜åœ¨çš„æ™ºèƒ½ä½“ï¼Œ
-   * HTTP_Server åº”è¿”å›ž 404 çŠ¶æ€ç ã€‚
+   * Property 6: API ¶ËµãÑéÖ¤
+   * ¶ÔÓÚÈÎÒâÖÐ¶Ï API ÇëÇó£¬Èç¹ûÖ¸¶¨µÄ agentId ²»¶ÔÓ¦ÒÑ´æÔÚµÄÖÇÄÜÌå£¬
+   * HTTP_Server Ó¦·µ»Ø 404 ×´Ì¬Âë¡£
    * 
-   * **éªŒè¯: Requirements 3.2, 3.3**
+   * **ÑéÖ¤: Requirements 3.2, 3.3**
    */
-  test("Property 6: API ç«¯ç‚¹éªŒè¯ - ä¸å­˜åœ¨çš„ agentId è¿”å›ž 404", async () => {
+  test("Property 6: API ¶ËµãÑéÖ¤ - ²»´æÔÚµÄ agentId ·µ»Ø 404", async () => {
     await server.start();
     
     await fc.assert(
@@ -594,11 +594,11 @@ describe("HTTPServer - Config API", () => {
     const { randomUUID } = await import("node:crypto");
     const { Config } = await import("../../src/platform/utils/config/config.js");
 
-    // åˆ›å»ºå”¯ä¸€çš„æµ‹è¯•ç›®å½•
+    // ´´½¨Î¨Ò»µÄ²âÊÔÄ¿Â¼
     testDir = path.join("test/.tmp/http_server_config_test", randomUUID());
     await mkdir(testDir, { recursive: true });
     
-    // åˆ›å»º Config å®žä¾‹
+    // ´´½¨ Config ÊµÀý
     const config = new Config(testDir);
     
     port = 30000 + Math.floor(Math.random() * 10000);
@@ -613,13 +613,13 @@ describe("HTTPServer - Config API", () => {
       await server.stop();
     }
     
-    // æ¸…ç†æµ‹è¯•ç›®å½•
+    // ÇåÀí²âÊÔÄ¿Â¼
     if (testDir && existsSync(testDir)) {
       await rm(testDir, { recursive: true, force: true });
     }
   });
 
-  test("GET /api/config/status - è¿”å›žé…ç½®çŠ¶æ€", async () => {
+  test("GET /api/config/status - ·µ»ØÅäÖÃ×´Ì¬", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/config/status`);
     expect(response.status).toBe(200);
@@ -630,7 +630,7 @@ describe("HTTPServer - Config API", () => {
     expect(data.hasLocalConfig).toBe(false);
   });
 
-  test("GET /api/config/status - configService æœªåˆå§‹åŒ–æ—¶ä»è¿”å›žçŠ¶æ€", async () => {
+  test("GET /api/config/status - configService Î´³õÊ¼»¯Ê±ÈÔ·µ»Ø×´Ì¬", async () => {
     const serverNoConfig = new HTTPServer({ port: port + 1 });
     await serverNoConfig.start();
     
@@ -644,7 +644,7 @@ describe("HTTPServer - Config API", () => {
     }
   });
 
-  test("GET /api/config/llm - configService æœªåˆå§‹åŒ–æ—¶è¿”å›ž 500", async () => {
+  test("GET /api/config/llm - configService Î´³õÊ¼»¯Ê±·µ»Ø 500", async () => {
     const serverNoConfig = new HTTPServer({ port: port + 1 });
     await serverNoConfig.start();
     
@@ -658,7 +658,7 @@ describe("HTTPServer - Config API", () => {
     }
   });
 
-  test("GET /api/config/llm - é…ç½®æ–‡ä»¶ä¸å­˜åœ¨æ—¶è¿”å›ž 500", async () => {
+  test("GET /api/config/llm - ÅäÖÃÎÄ¼þ²»´æÔÚÊ±·µ»Ø 500", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/config/llm`);
     expect(response.status).toBe(500);
@@ -666,11 +666,11 @@ describe("HTTPServer - Config API", () => {
     expect(data.error).toBe("internal_error");
   });
 
-  test("GET /api/config/llm - è¿”å›žæŽ©ç åŽçš„é…ç½®", async () => {
+  test("GET /api/config/llm - ·µ»ØÑÚÂëºóµÄÅäÖÃ", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºé…ç½®æ–‡ä»¶
+    // ´´½¨ÅäÖÃÎÄ¼þ
     const config = {
       llm: {
         baseURL: "http://test.url",
@@ -687,15 +687,15 @@ describe("HTTPServer - Config API", () => {
     const data = await response.json();
     expect(data.llm.baseURL).toBe("http://test.url");
     expect(data.llm.model).toBe("test-model");
-    expect(data.llm.apiKey).toBe("****7890"); // æŽ©ç åŽçš„ API Key
+    expect(data.llm.apiKey).toBe("****7890"); // ÑÚÂëºóµÄ API Key
     expect(data.source).toBe("default");
   });
 
-  test("POST /api/config/llm - éªŒè¯å¤±è´¥è¿”å›ž 400", async () => {
+  test("POST /api/config/llm - ÑéÖ¤Ê§°Ü·µ»Ø 400", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºé…ç½®æ–‡ä»¶
+    // ´´½¨ÅäÖÃÎÄ¼þ
     await writeFile(path.join(testDir, "app.json"), JSON.stringify({ llm: {} }), "utf8");
     
     await server.start();
@@ -711,11 +711,11 @@ describe("HTTPServer - Config API", () => {
     expect(data.details).toHaveProperty("model");
   });
 
-  test("POST /api/config/llm - æˆåŠŸä¿å­˜é…ç½®", async () => {
+  test("POST /api/config/llm - ³É¹¦±£´æÅäÖÃ", async () => {
     const { writeFile, readFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºé…ç½®æ–‡ä»¶
+    // ´´½¨ÅäÖÃÎÄ¼þ
     await writeFile(path.join(testDir, "app.json"), JSON.stringify({ 
       llm: {},
       otherField: "preserved"
@@ -736,16 +736,16 @@ describe("HTTPServer - Config API", () => {
     expect(data.ok).toBe(true);
     expect(data.llm.baseURL).toBe("http://new.url");
     expect(data.llm.model).toBe("new-model");
-    expect(data.llm.apiKey).toBe("****y123"); // æŽ©ç åŽçš„ API Key
+    expect(data.llm.apiKey).toBe("****y123"); // ÑÚÂëºóµÄ API Key
     
-    // éªŒè¯æ–‡ä»¶å·²ä¿å­˜
+    // ÑéÖ¤ÎÄ¼þÒÑ±£´æ
     const savedContent = await readFile(path.join(testDir, "app.local.json"), "utf8");
     const savedConfig = JSON.parse(savedContent);
     expect(savedConfig.llm.baseURL).toBe("http://new.url");
-    expect(savedConfig.otherField).toBe("preserved"); // å…¶ä»–å­—æ®µä¿ç•™
+    expect(savedConfig.otherField).toBe("preserved"); // ÆäËû×Ö¶Î±£Áô
   });
 
-  test("GET /api/config/llm-services - è¿”å›žç©ºåˆ—è¡¨", async () => {
+  test("GET /api/config/llm-services - ·µ»Ø¿ÕÁÐ±í", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/config/llm-services`);
     expect(response.status).toBe(200);
@@ -754,11 +754,11 @@ describe("HTTPServer - Config API", () => {
     expect(data.source).toBe("none");
   });
 
-  test("GET /api/config/llm-services - è¿”å›žæœåŠ¡åˆ—è¡¨", async () => {
+  test("GET /api/config/llm-services - ·µ»Ø·þÎñÁÐ±í", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºæœåŠ¡é…ç½®æ–‡ä»¶
+    // ´´½¨·þÎñÅäÖÃÎÄ¼þ
     const services = {
       services: [
         {
@@ -778,11 +778,11 @@ describe("HTTPServer - Config API", () => {
     const data = await response.json();
     expect(data.services.length).toBe(1);
     expect(data.services[0].id).toBe("test-service");
-    expect(data.services[0].apiKey).toBe("****7890"); // æŽ©ç åŽçš„ API Key
+    expect(data.services[0].apiKey).toBe("****7890"); // ÑÚÂëºóµÄ API Key
     expect(data.source).toBe("default");
   });
 
-  test("POST /api/config/llm-services - æ·»åŠ æœåŠ¡", async () => {
+  test("POST /api/config/llm-services - Ìí¼Ó·þÎñ", async () => {
     await server.start();
     const response = await fetch(`http://localhost:${port}/api/config/llm-services`, {
       method: "POST",
@@ -799,13 +799,13 @@ describe("HTTPServer - Config API", () => {
     const data = await response.json();
     expect(data.ok).toBe(true);
     expect(data.service.id).toBe("new-service");
-    expect(data.service.apiKey).toBe("****y123"); // æŽ©ç åŽçš„ API Key
+    expect(data.service.apiKey).toBe("****y123"); // ÑÚÂëºóµÄ API Key
   });
 
-  test("POST /api/config/llm-services - é‡å¤ ID è¿”å›ž 409", async () => {
+  test("POST /api/config/llm-services - ÖØ¸´ ID ·µ»Ø 409", async () => {
     await server.start();
     
-    // å…ˆæ·»åŠ ä¸€ä¸ªæœåŠ¡
+    // ÏÈÌí¼ÓÒ»¸ö·þÎñ
     await fetch(`http://localhost:${port}/api/config/llm-services`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -817,7 +817,7 @@ describe("HTTPServer - Config API", () => {
       })
     });
     
-    // å°è¯•æ·»åŠ ç›¸åŒ ID çš„æœåŠ¡
+    // ³¢ÊÔÌí¼ÓÏàÍ¬ ID µÄ·þÎñ
     const response = await fetch(`http://localhost:${port}/api/config/llm-services`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -833,10 +833,10 @@ describe("HTTPServer - Config API", () => {
     expect(data.error).toBe("duplicate_id");
   });
 
-  test("POST /api/config/llm-services/:serviceId - æ›´æ–°æœåŠ¡", async () => {
+  test("POST /api/config/llm-services/:serviceId - ¸üÐÂ·þÎñ", async () => {
     await server.start();
     
-    // å…ˆæ·»åŠ ä¸€ä¸ªæœåŠ¡
+    // ÏÈÌí¼ÓÒ»¸ö·þÎñ
     await fetch(`http://localhost:${port}/api/config/llm-services`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -848,7 +848,7 @@ describe("HTTPServer - Config API", () => {
       })
     });
     
-    // æ›´æ–°æœåŠ¡
+    // ¸üÐÂ·þÎñ
     const response = await fetch(`http://localhost:${port}/api/config/llm-services/update-test`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -866,11 +866,11 @@ describe("HTTPServer - Config API", () => {
     expect(data.service.baseURL).toBe("http://updated.url");
   });
 
-  test("POST /api/config/llm-services/:serviceId - æœåŠ¡ä¸å­˜åœ¨è¿”å›ž 404", async () => {
+  test("POST /api/config/llm-services/:serviceId - ·þÎñ²»´æÔÚ·µ»Ø 404", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºç©ºçš„æœåŠ¡é…ç½®æ–‡ä»¶
+    // ´´½¨¿ÕµÄ·þÎñÅäÖÃÎÄ¼þ
     await writeFile(path.join(testDir, "llmservices.local.json"), JSON.stringify({ services: [] }), "utf8");
     
     await server.start();
@@ -889,10 +889,10 @@ describe("HTTPServer - Config API", () => {
     expect(data.error).toBe("not_found");
   });
 
-  test("DELETE /api/config/llm-services/:serviceId - åˆ é™¤æœåŠ¡", async () => {
+  test("DELETE /api/config/llm-services/:serviceId - É¾³ý·þÎñ", async () => {
     await server.start();
     
-    // å…ˆæ·»åŠ ä¸€ä¸ªæœåŠ¡
+    // ÏÈÌí¼ÓÒ»¸ö·þÎñ
     await fetch(`http://localhost:${port}/api/config/llm-services`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -904,7 +904,7 @@ describe("HTTPServer - Config API", () => {
       })
     });
     
-    // åˆ é™¤æœåŠ¡
+    // É¾³ý·þÎñ
     const response = await fetch(`http://localhost:${port}/api/config/llm-services/delete-test`, {
       method: "DELETE"
     });
@@ -913,17 +913,17 @@ describe("HTTPServer - Config API", () => {
     expect(data.ok).toBe(true);
     expect(data.deletedId).toBe("delete-test");
     
-    // éªŒè¯æœåŠ¡å·²åˆ é™¤
+    // ÑéÖ¤·þÎñÒÑÉ¾³ý
     const listResponse = await fetch(`http://localhost:${port}/api/config/llm-services`);
     const listData = await listResponse.json();
     expect(listData.services.find(s => s.id === "delete-test")).toBeUndefined();
   });
 
-  test("DELETE /api/config/llm-services/:serviceId - æœåŠ¡ä¸å­˜åœ¨è¿”å›ž 404", async () => {
+  test("DELETE /api/config/llm-services/:serviceId - ·þÎñ²»´æÔÚ·µ»Ø 404", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºç©ºçš„æœåŠ¡é…ç½®æ–‡ä»¶
+    // ´´½¨¿ÕµÄ·þÎñÅäÖÃÎÄ¼þ
     await writeFile(path.join(testDir, "llmservices.local.json"), JSON.stringify({ services: [] }), "utf8");
     
     await server.start();
@@ -937,13 +937,13 @@ describe("HTTPServer - Config API", () => {
 
   /**
    * Property 2: Validation Rejects Empty Required Fields
-   * å¯¹äºŽä»»æ„ç©ºæˆ–ç©ºç™½çš„ baseURL æˆ– modelï¼ŒéªŒè¯åº”å¤±è´¥ã€‚
+   * ¶ÔÓÚÈÎÒâ¿Õ»ò¿Õ°×µÄ baseURL »ò model£¬ÑéÖ¤Ó¦Ê§°Ü¡£
    */
-  test("Property 2: ç©ºæˆ–ç©ºç™½çš„å¿…å¡«å­—æ®µåº”éªŒè¯å¤±è´¥", async () => {
+  test("Property 2: ¿Õ»ò¿Õ°×µÄ±ØÌî×Ö¶ÎÓ¦ÑéÖ¤Ê§°Ü", async () => {
     const { writeFile } = await import("node:fs/promises");
     const path = await import("node:path");
     
-    // åˆ›å»ºé…ç½®æ–‡ä»¶
+    // ´´½¨ÅäÖÃÎÄ¼þ
     await writeFile(path.join(testDir, "app.json"), JSON.stringify({ llm: {} }), "utf8");
     
     await server.start();
@@ -952,7 +952,7 @@ describe("HTTPServer - Config API", () => {
       fc.asyncProperty(
         fc.constantFrom("", " ", "  ", "\t", "\n"),
         async (emptyValue) => {
-          // æµ‹è¯•ç©º baseURL
+          // ²âÊÔ¿Õ baseURL
           let response = await fetch(`http://localhost:${port}/api/config/llm`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -963,7 +963,7 @@ describe("HTTPServer - Config API", () => {
           expect(data.error).toBe("validation_error");
           expect(data.details).toHaveProperty("baseURL");
           
-          // æµ‹è¯•ç©º model
+          // ²âÊÔ¿Õ model
           response = await fetch(`http://localhost:${port}/api/config/llm`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

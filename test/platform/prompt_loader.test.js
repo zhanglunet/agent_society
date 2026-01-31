@@ -14,7 +14,7 @@ describe("PromptLoader", () => {
   test("root prompt requires concise rolePrompt and clarified task message", async () => {
     const rootPath = path.resolve(process.cwd(), "config/prompts/root.txt");
     const content = await readFile(rootPath, "utf8");
-    expect(content).toContain("rolePrompt 必须保持简洁");
+    expect(content).toContain("rolePrompt 必须保持简�?);
     expect(content).toContain("send_message");
     expect(content).toContain("澄清后的任务说明");
     expect(content).toContain("to=user");
@@ -23,7 +23,7 @@ describe("PromptLoader", () => {
   test("tool rules require stopping after delivery", async () => {
     const toolRulesPath = path.resolve(process.cwd(), "config/prompts/tool_rules.txt");
     const content = await readFile(toolRulesPath, "utf8");
-    expect(content).toContain("【防重复执行（提示词规则）】");
+    expect(content).toContain("【防重复执行（提示词规则）�?);
     expect(content).toContain("停止调用工具");
   });
 });

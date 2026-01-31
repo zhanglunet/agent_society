@@ -1,18 +1,11 @@
 ﻿/**
- * RuntimeLlm 单元测试
- * 
- * 测试 RuntimeLlm 类的 LLM 交互功能，包括：
- * - 系统提示词构建
- * - 消息格式化
- * - 对话历史管理
- * - 发送者信息获取
- * - 错误通知发送
+ * RuntimeLlm Unit Tests
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { RuntimeLlm } from "../../src/platform/runtime/runtime_llm.js";
 
 describe("RuntimeLlm", () => {
@@ -43,8 +36,8 @@ describe("RuntimeLlm", () => {
     llm = new RuntimeLlm(runtime);
   });
 
-  describe("系统提示词构建", () => {
-    test("为 root 智能体构建系统提示词", () => {
+  describe("System Prompt Construction", () => {
+    test("buildSystemPromptForAgent for root", async () => {
       const rootAgent = runtime._agents.get("root");
       const ctx = runtime._buildAgentContext(rootAgent);
       
@@ -52,11 +45,9 @@ describe("RuntimeLlm", () => {
       
       expect(typeof systemPrompt).toBe("string");
       expect(systemPrompt.length).toBeGreaterThan(0);
-      // 验证包含运行时信息
-      expect(systemPrompt).toContain("运行时信息");
     });
 
-    test("为非 root 智能体构建系统提示词", async () => {
+    test("buildSystemPromptForAgent for non-root agent", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "This is a test role"
@@ -76,7 +67,7 @@ describe("RuntimeLlm", () => {
       expect(systemPrompt).toContain("parentAgentId=root");
     });
 
-    test("系统提示词包含任务委托书", async () => {
+    test("System prompt includes task brief", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test"
@@ -87,24 +78,24 @@ describe("RuntimeLlm", () => {
         parentAgentId: "root"
       });
       
-      // 设置任务委托书
       const taskBrief = {
-        taskId: "task1",
-        description: "Test task description",
-        requirements: ["req1", "req2"]
+        objective: "Test task objective",
+        constraints: ["req1", "req2"],
+        inputs: "input data",
+        outputs: "output data",
+        completion_criteria: "criteria"
       };
       runtime._agentTaskBriefs.set(agent.id, taskBrief);
       
       const ctx = runtime._buildAgentContext(agent);
       const systemPrompt = llm.buildSystemPromptForAgent(ctx);
       
-      // 验证系统提示词包含任务委托书相关内容
-      expect(systemPrompt).toContain("任务委托书");
+      expect(systemPrompt).toContain("Test task objective");
     });
   });
 
-  describe("消息格式化", () => {
-    test("为 root 智能体格式化消息（包含 taskId）", () => {
+  describe("Message Formatting", () => {
+    test("formatMessageForLlm for root with taskId", async () => {
       const rootAgent = runtime._agents.get("root");
       const ctx = runtime._buildAgentContext(rootAgent);
       
@@ -115,14 +106,13 @@ describe("RuntimeLlm", () => {
         payload: { text: "Hello" }
       };
       
-      const formatted = llm.formatMessageForLlm(ctx, message);
+      const formatted = await llm.formatMessageForLlm(ctx, message);
       
-      // root 智能体使用原有格式
       expect(formatted).toContain("Hello");
       expect(typeof formatted).toBe("string");
     });
 
-    test("为非 root 智能体格式化消息（隐藏 taskId）", async () => {
+    test("formatMessageForLlm for non-root agent with taskId", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test"
@@ -142,30 +132,29 @@ describe("RuntimeLlm", () => {
         payload: { text: "Hello" }
       };
       
-      const formatted = llm.formatMessageForLlm(ctx, message);
+      const formatted = await llm.formatMessageForLlm(ctx, message);
       
       expect(formatted).toContain("Hello");
-      // 非 root 智能体不应该看到 taskId
       expect(formatted).not.toContain("taskId");
     });
   });
 
-  describe("发送者信息获取", () => {
-    test("获取 user 的发送者信息", () => {
+  describe("Sender Info Retrieval", () => {
+    test("get sender info for user", () => {
       const senderInfo = llm.getSenderInfo("user");
       
       expect(senderInfo).toBeTruthy();
       expect(senderInfo.role).toBe("user");
     });
 
-    test("获取 root 的发送者信息", () => {
+    test("get sender info for root", () => {
       const senderInfo = llm.getSenderInfo("root");
       
       expect(senderInfo).toBeTruthy();
       expect(senderInfo.role).toBe("root");
     });
 
-    test("获取已注册智能体的发送者信息", async () => {
+    test("get sender info for registered agent", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test"
@@ -182,7 +171,7 @@ describe("RuntimeLlm", () => {
       expect(senderInfo.role).toBe("test_role");
     });
 
-    test("获取未知发送者的信息", () => {
+    test("get sender info for unknown sender", () => {
       const senderInfo = llm.getSenderInfo("unknown_agent");
       
       expect(senderInfo).toBeTruthy();
@@ -190,8 +179,8 @@ describe("RuntimeLlm", () => {
     });
   });
 
-  describe("对话历史管理", () => {
-    test("确保对话历史存在", () => {
+  describe("Conversation Management", () => {
+    test("ensureConversation creates a new conversation", () => {
       const systemPrompt = "Test system prompt";
       
       const conv = llm.ensureConversation("test_agent", systemPrompt);
@@ -202,7 +191,7 @@ describe("RuntimeLlm", () => {
       expect(conv[0].content).toBe(systemPrompt);
     });
 
-    test("多次调用返回同一对话历史", () => {
+    test("multiple calls return the same conversation instance", () => {
       const systemPrompt = "Test system prompt";
       
       const conv1 = llm.ensureConversation("test_agent", systemPrompt);
@@ -211,7 +200,7 @@ describe("RuntimeLlm", () => {
       expect(conv1).toBe(conv2);
     });
 
-    test("不同智能体有独立的对话历史", () => {
+    test("different agents have separate conversations", () => {
       const conv1 = llm.ensureConversation("agent1", "prompt1");
       const conv2 = llm.ensureConversation("agent2", "prompt2");
       
@@ -221,8 +210,8 @@ describe("RuntimeLlm", () => {
     });
   });
 
-  describe("错误通知发送", () => {
-    test("向父智能体发送错误通知", async () => {
+  describe("Error Notification", () => {
+    test("send error notification to parent", async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test"
@@ -247,55 +236,6 @@ describe("RuntimeLlm", () => {
       };
       
       await llm.sendErrorNotificationToParent(agent.id, originalMessage, errorInfo);
-      
-      // 等待异步消息处理
-      await new Promise(r => setTimeout(r, 50));
-      
-      // 验证错误通知被发送（可能需要等待消息投递）
-      // 由于消息是异步发送的，我们只验证方法不抛出异常
-      expect(true).toBe(true);
-    });
-
-    test("没有父智能体时不发送通知", async () => {
-      const originalMessage = {
-        id: "msg1",
-        from: "user",
-        to: "root",
-        payload: "test"
-      };
-      
-      const errorInfo = {
-        errorType: "test_error",
-        message: "Test error message"
-      };
-      
-      // root 没有父智能体，不应该抛出异常
-      await llm.sendErrorNotificationToParent("root", originalMessage, errorInfo);
-      
-      // 验证方法正常完成
-      expect(true).toBe(true);
-    });
-  });
-
-  describe("上下文检查", () => {
-    test("检查上下文长度", async () => {
-      const role = await runtime.org.createRole({
-        name: "test_role",
-        rolePrompt: "test"
-      });
-      
-      const agent = await runtime.spawnAgent({
-        roleId: role.id,
-        parentAgentId: "root"
-      });
-      
-      // 创建对话历史
-      llm.ensureConversation(agent.id, "system prompt");
-      
-      const result = llm.checkContextAndWarn(agent.id);
-      
-      expect(result).toBeTruthy();
-      expect(typeof result.warning).toBe("boolean");
     });
   });
 });

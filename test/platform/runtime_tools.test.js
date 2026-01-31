@@ -3,9 +3,9 @@
  * 
  * 测试 RuntimeTools 类的工具管理功能，包括：
  * - 工具定义获取
- * - 工具权限检查
+ * - 工具权限检�?
  * - 工具执行
- * - 工具组管理
+ * - 工具组管�?
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
@@ -43,7 +43,7 @@ describe("RuntimeTools", () => {
   });
 
   describe("工具定义获取", () => {
-    test("获取所有工具定义", () => {
+    test("获取所有工具定�?, () => {
       const toolDefs = tools.getToolDefinitions();
       
       expect(Array.isArray(toolDefs)).toBe(true);
@@ -56,12 +56,12 @@ describe("RuntimeTools", () => {
       expect(firstTool.function.name).toBeTruthy();
     });
 
-    test("root 智能体只能获取 org_management 工具", () => {
+    test("root 智能体只能获�?org_management 工具", () => {
       const toolDefs = tools.getToolDefinitionsForAgent("root");
       
       expect(Array.isArray(toolDefs)).toBe(true);
       
-      // 验证只包含 org_management 工具
+      // 验证只包�?org_management 工具
       const toolNames = toolDefs.map(t => t.function?.name).filter(Boolean);
       const orgTools = [
         "find_role_by_name",
@@ -80,7 +80,7 @@ describe("RuntimeTools", () => {
       }
     });
 
-    test("非 root 智能体可以获取配置的工具组", async () => {
+    test("�?root 智能体可以获取配置的工具�?, async () => {
       // 创建岗位并指定工具组
       const role = await runtime.org.createRole({
         name: "test_role",
@@ -105,7 +105,7 @@ describe("RuntimeTools", () => {
     });
   });
 
-  describe("工具权限检查", () => {
+  describe("工具权限检�?, () => {
     test("root 只能使用 org_management 工具", () => {
       expect(tools.isToolAvailableForAgent("root", "create_role")).toBe(true);
       expect(tools.isToolAvailableForAgent("root", "spawn_agent_with_task")).toBe(true);
@@ -113,7 +113,7 @@ describe("RuntimeTools", () => {
       expect(tools.isToolAvailableForAgent("root", "read_file")).toBe(false);
     });
 
-    test("非 root 智能体根据岗位配置检查权限", async () => {
+    test("�?root 智能体根据岗位配置检查权�?, async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test",
@@ -130,11 +130,11 @@ describe("RuntimeTools", () => {
       expect(tools.isToolAvailableForAgent(agent.id, "read_file")).toBe(false);
     });
 
-    test("未配置工具组的岗位可以使用所有工具", async () => {
+    test("未配置工具组的岗位可以使用所有工�?, async () => {
       const role = await runtime.org.createRole({
         name: "test_role",
         rolePrompt: "test"
-        // 不指定 toolGroups
+        // 不指�?toolGroups
       });
       
       const agent = await runtime.spawnAgent({
@@ -148,13 +148,13 @@ describe("RuntimeTools", () => {
     });
   });
 
-  describe("工具组描述", () => {
-    test("生成工具组描述文本", () => {
+  describe("工具组描�?, () => {
+    test("生成工具组描述文�?, () => {
       const description = tools.generateToolGroupsDescription();
       
       expect(typeof description).toBe("string");
       expect(description.length).toBeGreaterThan(0);
-      expect(description).toContain("工具组");
+      expect(description).toContain("工具�?);
       expect(description).toContain("localllm");
     });
   });
@@ -203,9 +203,9 @@ describe("RuntimeTools", () => {
     });
   });
 
-  describe("内置工具组注册", () => {
-    test("注册内置工具组", () => {
-      // 这个方法在 init 时已经被调用
+  describe("内置工具组注�?, () => {
+    test("注册内置工具�?, () => {
+      // 这个方法�?init 时已经被调用
       // 验证工具组已经被注册
       const groups = runtime.toolGroupManager.listGroups();
       

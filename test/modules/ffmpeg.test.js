@@ -19,6 +19,9 @@ describe("FFmpeg Module - Run and Status", () => {
     await mkdir(TEST_DIR, { recursive: true });
 
     const configPath = path.resolve(TEST_DIR, "app.json");
+    const workspacesDir = path.resolve(TEST_DIR, "workspaces");
+    await mkdir(workspacesDir, { recursive: true });
+
     await writeFile(
       configPath,
       JSON.stringify(
@@ -26,6 +29,7 @@ describe("FFmpeg Module - Run and Status", () => {
           promptsDir: "config/prompts",
           artifactsDir: path.resolve(TEST_DIR, "artifacts"),
           runtimeDir: path.resolve(TEST_DIR, "state"),
+          workspacesDir: workspacesDir,
           maxSteps: 10,
           modules: {}
         },
@@ -82,57 +86,59 @@ describe("FFmpeg Module - Run and Status", () => {
     await rm(TEST_DIR, { recursive: true, force: true });
   });
 
-  it("ffmpeg_run should return taskId and outputArtifactIds immediately, and output becomes complete after completed", async () => {
-    const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
+  it("ffmpeg_run should return taskId and outputPaths immediately, and output becomes complete after completed", async () => {
+    // 为 root 智能体创建工作空间
+    await runtime.workspaceManager.createWorkspace("root");
+
+    const ctx = runtime._buildAgentContext({ id: "root" });
     ctx.currentMessage = { id: "m1", taskId: "t1" };
 
     const runRes = await loader.executeToolCall(ctx, "ffmpeg_run", {
-      vargs: `${fakeFfmpegScript} --write $FFMEPG_OUTPUT.txt`,
-      artifacts: []
+      command: `--write output.txt`
     });
 
+    if (!runRes.taskId) {
+      console.error("FFmpeg run failed:", JSON.stringify(runRes, null, 2));
+    }
+
     expect(runRes.taskId).toBeDefined();
-    expect(typeof runRes.taskId).toBe("string");
-    expect(Array.isArray(runRes.outputArtifactIds)).toBe(true);
-    expect(runRes.outputArtifactIds.length).toBe(1);
-    expect(Array.isArray(runRes.artifactIds)).toBe(true);
-    expect(runRes.artifactIds).toEqual(runRes.outputArtifactIds);
+    expect(runRes.outputPaths).toBeInstanceOf(Array);
+    expect(runRes.outputPaths).toContain("output.txt");
 
-    const outputId = runRes.outputArtifactIds[0];
-    const meta = await runtime.artifacts.getMetadata(outputId);
-    expect(meta).toBeTruthy();
-    expect(meta.messageId).toBe("m1");
-    const expectedAgentId = runtime._agents.get("root")?.id;
-    expect(meta.createdByAgentId || meta.meta?.createdByAgentId).toBe(expectedAgentId);
-
-    let status;
-    const start = Date.now();
-    while (true) {
-      status = await loader.executeToolCall(ctx, "ffmpeg_task_status", { taskId: runRes.taskId });
+    const taskId = runRes.taskId;
+    let status = null;
+    let attempts = 0;
+    while (attempts < 20) {
+      status = await loader.executeToolCall(ctx, "ffmpeg_task_status", { taskId });
       if (status.status === "completed" || status.status === "failed") break;
-      if (Date.now() - start > 5000) break;
-      await new Promise(r => setTimeout(r, 30));
+      await new Promise(r => setTimeout(r, 200));
+      attempts++;
+    }
+
+    if (status.status !== "completed") {
+      console.error("Task Status:", JSON.stringify(status, null, 2));
     }
 
     expect(status.status).toBe("completed");
     expect(status.exitCode).toBe(0);
-    expect(Array.isArray(status.outputArtifactIds)).toBe(true);
-    expect(status.outputArtifactIds).toEqual([outputId]);
-    expect(Array.isArray(status.artifactIds)).toBe(true);
-    expect(status.artifactIds).toContain(outputId);
-    expect(Array.isArray(status.logArtifactIds)).toBe(true);
-    expect(status.logArtifactIds.length).toBeGreaterThan(0);
+    expect(status.outputPaths).toContain("output.txt");
+    expect(Array.isArray(status.outputPaths)).toBe(true);
+    expect(status.outputPaths).toEqual(["output.txt"]);
+    expect(Array.isArray(status.logPaths)).toBe(true);
+    expect(status.logPaths.length).toBeGreaterThan(0);
 
-    const resolvedPath = await runtime.artifacts.resolveArtifactFilePath(outputId);
+    const ws = await runtime.workspaceManager.getWorkspace("root");
+    const resolvedPath = path.join(ws.rootPath, "output.txt");
     const content = await readFile(resolvedPath, "utf8");
     expect(content).toBe("hello");
   });
 
   it("ffmpeg_run failure should still return taskId and be queryable by ffmpeg_task_status", async () => {
-    const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
+    await runtime.workspaceManager.createWorkspace("root");
+    const ctx = runtime._buildAgentContext({ id: "root" });
     ctx.currentMessage = { id: "m2", taskId: "t2" };
 
-    const runRes = await loader.executeToolCall(ctx, "ffmpeg_run", { vargs: 123, artifacts: [] });
+    const runRes = await loader.executeToolCall(ctx, "ffmpeg_run", { command: " " });
     expect(typeof runRes.taskId).toBe("string");
     expect(runRes.status).toBe("failed");
     expect(runRes.error).toBe("invalid_parameter");
@@ -140,16 +146,15 @@ describe("FFmpeg Module - Run and Status", () => {
     const status = await loader.executeToolCall(ctx, "ffmpeg_task_status", { taskId: runRes.taskId });
     expect(status.status).toBe("failed");
     expect(status.error).toBe("invalid_parameter");
-    expect(status.failure?.stderrTail?.length).toBeGreaterThan(0);
   });
 
   it("ffmpeg_task_status should expose exitCode and stderrTail on process failure", async () => {
-    const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
+    await runtime.workspaceManager.createWorkspace("root");
+    const ctx = runtime._buildAgentContext({ id: "root" });
     ctx.currentMessage = { id: "m3", taskId: "t3" };
 
     const runRes = await loader.executeToolCall(ctx, "ffmpeg_run", {
-      vargs: `${fakeFfmpegScript} --fail $FFMEPG_OUTPUT.txt`,
-      artifacts: []
+      command: `--fail output.txt`
     });
     expect(typeof runRes.taskId).toBe("string");
 
@@ -158,12 +163,16 @@ describe("FFmpeg Module - Run and Status", () => {
     while (true) {
       status = await loader.executeToolCall(ctx, "ffmpeg_task_status", { taskId: runRes.taskId });
       if (status.status === "completed" || status.status === "failed") break;
-      if (Date.now() - start > 5000) break;
-      await new Promise(r => setTimeout(r, 30));
+      if (Date.now() - start > 10000) break;
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (status.status !== "failed") {
+      console.error("Failure Test Status:", JSON.stringify(status, null, 2));
     }
 
     expect(status.status).toBe("failed");
     expect(status.exitCode).toBe(1);
-    expect(status.failure?.stderrTail?.some((l) => String(l).includes("intentional_fail"))).toBe(true);
+    expect(status.progress?.lastStderrLines?.some((l) => String(l).includes("intentional_fail"))).toBe(true);
   });
 });

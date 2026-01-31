@@ -80,7 +80,25 @@ export class RuntimeLlm {
 
     // 在用户消息中注入上下文状态提示
     const contextStatusPrompt = this.runtime._conversationManager.buildContextStatusPrompt(agentId);
-    const userContent = this.formatMessageForLlm(ctx, message) + contextStatusPrompt;
+    const formattedMessage = await this.formatMessageForLlm(ctx, message);
+    
+    // 处理多模态内容（Requirements 10.6）
+    let userContent;
+    if (typeof formattedMessage === 'string') {
+      userContent = formattedMessage + contextStatusPrompt;
+    } else if (Array.isArray(formattedMessage)) {
+      // 如果是多模态内容数组，将状态提示添加到最后一个文本部分，或者新增一个文本部分
+      userContent = [...formattedMessage];
+      const lastPart = userContent[userContent.length - 1];
+      if (lastPart && lastPart.type === 'text') {
+        lastPart.text += contextStatusPrompt;
+      } else {
+        userContent.push({ type: 'text', text: contextStatusPrompt });
+      }
+    } else {
+      userContent = String(formattedMessage) + contextStatusPrompt;
+    }
+    
     conv.push({ role: "user", content: userContent });
 
     // 检查上下文长度并在超限时发出警告
@@ -619,13 +637,33 @@ export class RuntimeLlm {
   }
 
   /**
+   * 中断指定智能体的 LLM 调用。
+   * @param {string} agentId - 智能体 ID
+   * @returns {boolean} 是否成功中断
+   */
+  abort(agentId) {
+    const llmClient = this.runtime.getLlmClientForAgent(agentId);
+    if (!llmClient) {
+      return false;
+    }
+    return llmClient.abort(agentId);
+  }
+
+  /**
    * 将运行时消息格式化为 LLM 可理解的文本输入。
    * 对于非 root 智能体，隐藏 taskId 以降低心智负担。
    * @param {any} ctx - 智能体上下文
    * @param {any} message - 消息对象
    * @returns {string}
    */
-  formatMessageForLlm(ctx, message) {
+  /**
+   * 格式化消息以供 LLM 使用。
+   * 支持多模态路由（Requirements 10.6）。
+   * @param {any} ctx - 智能体上下文
+   * @param {any} message - 消息对象
+   * @returns {Promise<string|any[]>}
+   */
+  async formatMessageForLlm(ctx, message) {
     const isRoot = ctx?.agent?.id === "root";
     
     // root 智能体使用原有格式（需要看到 taskId）
@@ -638,10 +676,47 @@ export class RuntimeLlm {
       return `from=${message?.from ?? ""}\nto=${message?.to ?? ""}\ntaskId=${message?.taskId ?? ""}\npayload=${payload}`;
     }
     
-    // 非 root 智能体使用新的消息格式化器（Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6）
+    // 非 root 智能体使用新的消息格式化器
     const senderId = message?.from ?? 'unknown';
     const senderInfo = this.getSenderInfo(senderId);
-    return formatMessageForAgent(message, senderInfo);
+    const textContent = formatMessageForAgent(message, senderInfo);
+
+    // 如果没有附件，直接返回文本内容
+    const attachments = message?.payload?.attachments;
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      return textContent;
+    }
+
+    // 尝试通过内容路由器处理多模态内容
+    try {
+      const parts = [{ type: 'text', text: textContent }];
+      let hasMultimodal = false;
+      const agentId = ctx?.agent?.id;
+      
+      // 获取智能体关联的 LLM 服务 ID 和工作区 ID
+      const llmClient = agentId ? this.runtime.getLlmClientForAgent(agentId) : null;
+      const serviceId = llmClient?.serviceId || null;
+      const workspaceId = agentId ? this.runtime._agentManager.findWorkspaceIdForAgent(agentId) : null;
+
+      for (const att of attachments) {
+        if (att.path) {
+          const routed = await this.runtime.contentRouter.routeFileContent(att.path, serviceId, workspaceId);
+          if (routed.contentType === 'multimodal' && Array.isArray(routed.content)) {
+            // 提取多模态部分（如 image_url）
+            const multimodalParts = routed.content.filter(p => p.type !== 'text');
+            if (multimodalParts.length > 0) {
+              parts.push(...multimodalParts);
+              hasMultimodal = true;
+            }
+          }
+        }
+      }
+
+      return hasMultimodal ? parts : textContent;
+    } catch (error) {
+      void this.runtime.log.error("格式化多模态消息时出错", { error: error.message, messageId: message?.id });
+      return textContent;
+    }
   }
 
   /**

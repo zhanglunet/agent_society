@@ -1,8 +1,8 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
 import { ConcurrencyController } from "../../src/platform/concurrency_controller.js";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("Request Cancellation and Resource Cleanup", () => {
   let controller;
@@ -33,15 +33,15 @@ describe("Request Cancellation and Resource Cleanup", () => {
 
   // **Feature: llm-concurrency-control, Property 6: Request Cancellation and Resource Cleanup**
   describe("Property 6: Request Cancellation and Resource Cleanup", () => {
-    it("å¯¹äºä»»ä½•è¢«å–æ¶ˆçš„è¯·æ±‚ï¼ˆæ— è®ºæ˜¯é˜Ÿåˆ—ä¸­è¿˜æ˜¯æ´»è·ƒçš„ï¼‰ï¼Œç³»ç»Ÿåº”æ­£ç¡®ç§»é™¤å®ƒã€æ‹’ç»å…¶promiseã€é‡Šæ”¾èµ„æºå¹¶å¤„ç†ä¸‹ä¸€ä¸ªé˜Ÿåˆ—è¯·æ±‚", async () => {
+    it("¶ÔÓÚÈÎºÎ±»È¡ÏûµÄÇëÇó£¨ÎŞÂÛÊÇ¶ÓÁĞÖĞ»¹ÊÇ»îÔ¾µÄ£©£¬ÏµÍ³Ó¦ÕıÈ·ÒÆ³ıËü¡¢¾Ü¾øÆäpromise¡¢ÊÍ·Å×ÊÔ´²¢´¦ÀíÏÂÒ»¸ö¶ÓÁĞÇëÇó", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.array(fc.string({ minLength: 1, maxLength: 10 }), { minLength: 4, maxLength: 6 }).map(arr => [...new Set(arr)]), // ç¡®ä¿å”¯ä¸€çš„agentId
+        fc.array(fc.string({ minLength: 1, maxLength: 10 }), { minLength: 4, maxLength: 6 }).map(arr => [...new Set(arr)]), // È·±£Î¨Ò»µÄagentId
         async (agentIds) => {
-          const controller = new ConcurrencyController(2, mockLogger); // è¾ƒå°çš„å¹¶å‘é™åˆ¶
+          const controller = new ConcurrencyController(2, mockLogger); // ½ÏĞ¡µÄ²¢·¢ÏŞÖÆ
           const requestPromises = [];
           const resolvers = [];
           
-          // åˆ›å»ºå¯æ§åˆ¶çš„è¯·æ±‚å‡½æ•°
+          // ´´½¨¿É¿ØÖÆµÄÇëÇóº¯Êı
           agentIds.forEach((_, index) => {
             let resolver;
             const promise = new Promise(resolve => { resolver = resolve; });
@@ -52,57 +52,57 @@ describe("Request Cancellation and Resource Cleanup", () => {
             requestPromises.push(requestPromise);
           });
 
-          // ç­‰å¾…è¯·æ±‚å¤„ç†
+          // µÈ´ıÇëÇó´¦Àí
           await new Promise(resolve => setTimeout(resolve, 10));
 
-          // éªŒè¯åˆå§‹çŠ¶æ€ï¼šå‰2ä¸ªè¯·æ±‚æ´»è·ƒï¼Œå…¶ä½™åœ¨é˜Ÿåˆ—ä¸­
+          // ÑéÖ¤³õÊ¼×´Ì¬£ºÇ°2¸öÇëÇó»îÔ¾£¬ÆäÓàÔÚ¶ÓÁĞÖĞ
           expect(controller.getActiveCount()).toBe(2);
           expect(controller.getQueueLength()).toBe(agentIds.length - 2);
 
-          // å–æ¶ˆä¸€ä¸ªæ´»è·ƒè¯·æ±‚
+          // È¡ÏûÒ»¸ö»îÔ¾ÇëÇó
           const activeAgentId = agentIds[0];
           const cancelledActive = await controller.cancelRequest(activeAgentId);
           expect(cancelledActive).toBe(true);
 
-          // éªŒè¯æ´»è·ƒè¯·æ±‚è¢«å–æ¶ˆ
+          // ÑéÖ¤»îÔ¾ÇëÇó±»È¡Ïû
           expect(controller.hasActiveRequest(activeAgentId)).toBe(false);
           await expect(requestPromises[0]).rejects.toThrow("Request cancelled");
 
-          // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+          // µÈ´ı¶ÓÁĞ´¦Àí
           await new Promise(resolve => setTimeout(resolve, 10));
 
-          // éªŒè¯é˜Ÿåˆ—ä¸­çš„è¯·æ±‚å¼€å§‹æ‰§è¡Œï¼ˆèµ„æºè¢«é‡Šæ”¾ï¼‰
-          const expectedActiveCount = Math.min(2, agentIds.length - 1); // -1å› ä¸ºå–æ¶ˆäº†ä¸€ä¸ª
+          // ÑéÖ¤¶ÓÁĞÖĞµÄÇëÇó¿ªÊ¼Ö´ĞĞ£¨×ÊÔ´±»ÊÍ·Å£©
+          const expectedActiveCount = Math.min(2, agentIds.length - 1); // -1ÒòÎªÈ¡ÏûÁËÒ»¸ö
           expect(controller.getActiveCount()).toBe(expectedActiveCount);
 
-          // å–æ¶ˆä¸€ä¸ªé˜Ÿåˆ—ä¸­çš„è¯·æ±‚ï¼ˆå¦‚æœæœ‰çš„è¯ï¼‰
+          // È¡ÏûÒ»¸ö¶ÓÁĞÖĞµÄÇëÇó£¨Èç¹ûÓĞµÄ»°£©
           if (agentIds.length > 3) {
             const queuedAgentId = agentIds[3];
             const cancelledQueued = await controller.cancelRequest(queuedAgentId);
             expect(cancelledQueued).toBe(true);
             
-            // éªŒè¯é˜Ÿåˆ—è¯·æ±‚è¢«å–æ¶ˆ
+            // ÑéÖ¤¶ÓÁĞÇëÇó±»È¡Ïû
             await expect(requestPromises[3]).rejects.toThrow("Request cancelled");
             expect(controller.getQueueLength()).toBe(Math.max(0, agentIds.length - 4));
           }
 
-          // æ¸…ç†ï¼šå®Œæˆå‰©ä½™è¯·æ±‚
+          // ÇåÀí£ºÍê³ÉÊ£ÓàÇëÇó
           resolvers.forEach((resolver, index) => {
             if (index !== 0 && (agentIds.length <= 3 || index !== 3)) {
               resolver();
             }
           });
 
-          // ç­‰å¾…æ‰€æœ‰æœªå–æ¶ˆçš„è¯·æ±‚å®Œæˆ
+          // µÈ´ıËùÓĞÎ´È¡ÏûµÄÇëÇóÍê³É
           const results = await Promise.allSettled(requestPromises);
           
-          // éªŒè¯å–æ¶ˆçš„è¯·æ±‚è¢«æ‹’ç»ï¼Œå…¶ä»–è¯·æ±‚æˆåŠŸ
+          // ÑéÖ¤È¡ÏûµÄÇëÇó±»¾Ü¾ø£¬ÆäËûÇëÇó³É¹¦
           expect(results[0].status).toBe("rejected");
           if (agentIds.length > 3) {
             expect(results[3].status).toBe("rejected");
           }
           
-          // éªŒè¯æœ€ç»ˆçŠ¶æ€
+          // ÑéÖ¤×îÖÕ×´Ì¬
           expect(controller.getActiveCount()).toBe(0);
           expect(controller.getQueueLength()).toBe(0);
         }
@@ -110,34 +110,34 @@ describe("Request Cancellation and Resource Cleanup", () => {
     });
   });
 
-  describe("ConcurrencyControllerå–æ¶ˆåŠŸèƒ½", () => {
-    it("åº”æ­£ç¡®å–æ¶ˆæ´»è·ƒè¯·æ±‚", async () => {
+  describe("ConcurrencyControllerÈ¡Ïû¹¦ÄÜ", () => {
+    it("Ó¦ÕıÈ·È¡Ïû»îÔ¾ÇëÇó", async () => {
       let resolver;
       const controllablePromise = new Promise(resolve => { resolver = resolve; });
       const requestFn = vi.fn().mockReturnValue(controllablePromise);
       
-      // å‘èµ·è¯·æ±‚
+      // ·¢ÆğÇëÇó
       const promise = controller.executeRequest("agent1", requestFn);
       
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.hasActiveRequest("agent1")).toBe(true);
       expect(controller.getActiveCount()).toBe(1);
       
-      // å–æ¶ˆè¯·æ±‚
+      // È¡ÏûÇëÇó
       const cancelled = await controller.cancelRequest("agent1");
       
       expect(cancelled).toBe(true);
       expect(controller.hasActiveRequest("agent1")).toBe(false);
       expect(controller.getActiveCount()).toBe(0);
       
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(promise).rejects.toThrow("Request cancelled");
     });
 
-    it("åº”æ­£ç¡®å–æ¶ˆé˜Ÿåˆ—ä¸­çš„è¯·æ±‚", async () => {
-      // å…ˆå¡«æ»¡æ´»è·ƒæ§½ä½
+    it("Ó¦ÕıÈ·È¡Ïû¶ÓÁĞÖĞµÄÇëÇó", async () => {
+      // ÏÈÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -151,37 +151,37 @@ describe("Request Cancellation and Resource Cleanup", () => {
         activePromises.push(requestPromise);
       }
       
-      // ç­‰å¾…æ´»è·ƒè¯·æ±‚å¼€å§‹
+      // µÈ´ı»îÔ¾ÇëÇó¿ªÊ¼
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getActiveCount()).toBe(3);
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁĞÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ı¶ÓÁĞ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getQueueLength()).toBe(1);
       
-      // å–æ¶ˆé˜Ÿåˆ—ä¸­çš„è¯·æ±‚
+      // È¡Ïû¶ÓÁĞÖĞµÄÇëÇó
       const cancelled = await controller.cancelRequest("agent3");
       
       expect(cancelled).toBe(true);
       expect(controller.getQueueLength()).toBe(0);
       
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(queuedPromise).rejects.toThrow("Request cancelled");
       expect(queuedRequestFn).not.toHaveBeenCalled();
       
-      // æ¸…ç†æ´»è·ƒè¯·æ±‚
+      // ÇåÀí»îÔ¾ÇëÇó
       activeResolvers.forEach(resolver => resolver());
       await Promise.all(activePromises);
     });
 
-    it("å–æ¶ˆæ´»è·ƒè¯·æ±‚ååº”å¤„ç†é˜Ÿåˆ—ä¸­çš„ä¸‹ä¸€ä¸ªè¯·æ±‚", async () => {
-      // å¡«æ»¡æ´»è·ƒæ§½ä½
+    it("È¡Ïû»îÔ¾ÇëÇóºóÓ¦´¦Àí¶ÓÁĞÖĞµÄÏÂÒ»¸öÇëÇó", async () => {
+      // ÌîÂú»îÔ¾²ÛÎ»
       const activeResolvers = [];
       const activePromises = [];
       
@@ -195,45 +195,45 @@ describe("Request Cancellation and Resource Cleanup", () => {
         activePromises.push(requestPromise);
       }
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁĞÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent3", queuedRequestFn);
       
-      // ç­‰å¾…å¤„ç†
+      // µÈ´ı´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getActiveCount()).toBe(3);
       expect(controller.getQueueLength()).toBe(1);
       
-      // å–æ¶ˆä¸€ä¸ªæ´»è·ƒè¯·æ±‚
+      // È¡ÏûÒ»¸ö»îÔ¾ÇëÇó
       const cancelled = await controller.cancelRequest("agent0");
       expect(cancelled).toBe(true);
       
-      // éªŒè¯å–æ¶ˆæˆåŠŸ
+      // ÑéÖ¤È¡Ïû³É¹¦
       expect(controller.hasActiveRequest("agent0")).toBe(false);
       await expect(activePromises[0]).rejects.toThrow("Request cancelled");
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ı¶ÓÁĞ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 50));
       
-      // éªŒè¯é˜Ÿåˆ—è¢«å¤„ç†ï¼ˆé˜Ÿåˆ—é•¿åº¦åº”è¯¥å‡å°‘ï¼‰
+      // ÑéÖ¤¶ÓÁĞ±»´¦Àí£¨¶ÓÁĞ³¤¶ÈÓ¦¸Ã¼õÉÙ£©
       expect(controller.getQueueLength()).toBe(0);
       expect(queuedRequestFn).toHaveBeenCalled();
       
-      // æ¸…ç†å‰©ä½™è¯·æ±‚
+      // ÇåÀíÊ£ÓàÇëÇó
       activeResolvers.slice(1).forEach(resolver => resolver());
       await Promise.allSettled(activePromises.slice(1));
       await queuedPromise;
     });
 
-    it("åº”æ­£ç¡®å¤„ç†ä¸å­˜åœ¨çš„è¯·æ±‚å–æ¶ˆ", async () => {
+    it("Ó¦ÕıÈ·´¦Àí²»´æÔÚµÄÇëÇóÈ¡Ïû", async () => {
       const cancelled = await controller.cancelRequest("non-existent-agent");
       expect(cancelled).toBe(false);
     });
   });
 
-  describe("LlmClientå–æ¶ˆåŠŸèƒ½", () => {
-    it("åº”é€šè¿‡å¹¶å‘æ§åˆ¶å™¨å–æ¶ˆè¯·æ±‚", async () => {
+  describe("LlmClientÈ¡Ïû¹¦ÄÜ", () => {
+    it("Ó¦Í¨¹ı²¢·¢¿ØÖÆÆ÷È¡ÏûÇëÇó", async () => {
       let resolver;
       const controllablePromise = new Promise((resolve, reject) => { 
         resolver = { resolve, reject }; 
@@ -247,28 +247,28 @@ describe("Request Cancellation and Resource Cleanup", () => {
         }
       };
 
-      // å‘èµ·è¯·æ±‚
+      // ·¢ÆğÇëÇó
       const promise = client.chat({
         messages: [{ role: "user", content: "test" }],
         meta: { agentId: "test-agent" }
       });
 
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(client.hasActiveRequest("test-agent")).toBe(true);
 
-      // å–æ¶ˆè¯·æ±‚
+      // È¡ÏûÇëÇó
       const aborted = client.abort("test-agent");
       expect(aborted).toBe(true);
       expect(client.hasActiveRequest("test-agent")).toBe(false);
 
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(promise).rejects.toThrow("Request cancelled");
     });
 
-    it("åº”æ­£ç¡®å¤„ç†å‘åå…¼å®¹çš„å–æ¶ˆ", async () => {
-      // æµ‹è¯•æ²¡æœ‰agentIdçš„æƒ…å†µï¼ˆå‘åå…¼å®¹ï¼‰
+    it("Ó¦ÕıÈ·´¦ÀíÏòºó¼æÈİµÄÈ¡Ïû", async () => {
+      // ²âÊÔÃ»ÓĞagentIdµÄÇé¿ö£¨Ïòºó¼æÈİ£©
       client._client = {
         chat: {
           completions: {
@@ -277,16 +277,16 @@ describe("Request Cancellation and Resource Cleanup", () => {
         }
       };
 
-      // å‘èµ·æ²¡æœ‰agentIdçš„è¯·æ±‚
+      // ·¢ÆğÃ»ÓĞagentIdµÄÇëÇó
       const promise = client.chat({
         messages: [{ role: "user", content: "test" }],
-        meta: {} // æ²¡æœ‰agentId
+        meta: {} // Ã»ÓĞagentId
       });
 
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      // å°è¯•å–æ¶ˆä¸å­˜åœ¨çš„agentId
+      // ³¢ÊÔÈ¡Ïû²»´æÔÚµÄagentId
       const aborted = client.abort("non-existent");
       expect(aborted).toBe(false);
     });

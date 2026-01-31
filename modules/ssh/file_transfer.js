@@ -114,48 +114,45 @@ class FileTransfer {
    * 启动上传任务（异步，立即返回）
    * 
    * 设计说明：
-   * - 从工件系统读取文件内容
+   * - 从工作区读取文件内容
    * - 创建传输任务并返回任务ID
    * - 后台执行SFTP上传
    * - 返回：{taskId, fileSize, status: 'pending'}
    * 
    * @param {string} connectionId - 连接ID
-   * @param {string} artifactId - 工件ID
+   * @param {string} workspacePath - 工作区文件路径
    * @param {string} remotePath - 远程文件路径
    * @param {Object} ctx - 上下文对象
    * @returns {Promise<Object>} {taskId, fileSize, status: 'pending'} 或 {error, message}
    */
-  async upload(connectionId, artifactId, remotePath, ctx) {
+  async upload(connectionId, workspacePath, remotePath, ctx) {
     try {
       this.log.debug?.('[FileTransfer] 开始上传任务', {
         connectionId,
-        artifactId,
+        workspacePath,
         remotePath
       });
 
-      // 1. 从工件系统获取文件内容
-      let artifactContent;
-      try {
-        artifactContent = await ctx.tools.getArtifact(artifactId);
-        if (!artifactContent) {
-          return {
-            error: 'artifact_not_found',
-            message: `工件不存在：${artifactId}`
-          };
-        }
-      } catch (error) {
-        this.log.error?.('[FileTransfer] 获取工件失败', {
-          artifactId,
-          error: error.message
-        });
+      // 1. 获取工作区 ID 并获取工作区实例
+      const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+      if (!workspaceId) {
+        return { error: 'workspace_not_assigned', message: '当前智能体未分配工作空间' };
+      }
+      const ws = await this.runtime.workspaceManager.getWorkspace(workspaceId);
+
+      // 2. 读取文件（不限制长度，用于完整上传）
+      // 注意：这里由于是后台执行且需要完整上传，我们直接通过工作区读取完整内容
+      // 如果文件很大，可能需要考虑分片读取或流式处理，但根据用户要求暂不使用流
+      const fileResult = await ws.readFile(workspacePath, { offset: 0, length: -1 });
+      if (fileResult.error) {
         return {
-          error: 'artifact_not_found',
-          message: `工件不存在：${artifactId}`
+          error: fileResult.error,
+          message: `读取工作区文件失败: ${fileResult.message || fileResult.error}`
         };
       }
 
-      // 2. 计算文件大小
-      const fileSize = Buffer.byteLength(artifactContent, 'utf8');
+      const fileContent = fileResult.content;
+      const fileSize = fileResult.size;
 
       // 3. 创建传输任务
       const taskId = this._generateTaskId();
@@ -168,7 +165,7 @@ class FileTransfer {
         bytesTransferred: 0,
         totalBytes: fileSize,
         remotePath,
-        artifactId,
+        path: workspacePath,
         error: null,
         createdAt: new Date(),
         completedAt: null
@@ -183,7 +180,7 @@ class FileTransfer {
       });
 
       // 4. 后台执行上传
-      this._executeUpload(task, artifactContent).catch(error => {
+      this._executeUpload(task, fileContent).catch(error => {
         this.log.error?.('[FileTransfer] 后台上传失败', {
           taskId,
           error: error.message
@@ -200,7 +197,7 @@ class FileTransfer {
     } catch (error) {
       this.log.error?.('[FileTransfer] 创建上传任务失败', {
         connectionId,
-        artifactId,
+        workspacePath,
         remotePath,
         error: error.message,
         stack: error.stack
@@ -216,11 +213,11 @@ class FileTransfer {
   /**
    * 执行上传（后台）
    * @param {Object} task - 任务对象
-   * @param {string} artifactContent - 工件内容
+   * @param {string|Buffer} fileContent - 文件内容
    * @returns {Promise<void>}
    * @private
    */
-  async _executeUpload(task, artifactContent) {
+  async _executeUpload(task, fileContent) {
     try {
       // 更新任务状态为传输中
       task.status = 'transferring';
@@ -240,18 +237,17 @@ class FileTransfer {
       const writeStream = sftp.createWriteStream(task.remotePath);
 
       // 监听进度
-      let bytesTransferred = 0;
       writeStream.on('drain', () => {
-        bytesTransferred = writeStream.bytesWritten || 0;
-        task.bytesTransferred = bytesTransferred;
-        task.progress = Math.floor((bytesTransferred / task.totalBytes) * 100);
+        const bytesWritten = writeStream.bytesWritten || 0;
+        task.bytesTransferred = bytesWritten;
+        task.progress = Math.floor((bytesWritten / task.totalBytes) * 100);
       });
 
       // 写入数据
       await new Promise((resolve, reject) => {
         writeStream.on('finish', resolve);
         writeStream.on('error', reject);
-        writeStream.write(artifactContent);
+        writeStream.write(fileContent);
         writeStream.end();
       });
 
@@ -285,24 +281,30 @@ class FileTransfer {
    * 设计说明：
    * - 创建传输任务并返回任务ID
    * - 后台执行SFTP下载
-   * - 保存到工件系统
+   * - 保存到工作区
    * - 返回：{taskId, fileSize, status: 'pending'}
    * 
    * @param {string} connectionId - 连接ID
    * @param {string} remotePath - 远程文件路径
-   * @param {string} fileName - 文件名（用于工件命名）
+   * @param {string} workspacePath - 工作区路径
    * @param {Object} ctx - 上下文对象
    * @returns {Promise<Object>} {taskId, fileSize, status: 'pending'} 或 {error, message}
    */
-  async download(connectionId, remotePath, fileName, ctx) {
+  async download(connectionId, remotePath, workspacePath, ctx) {
     try {
       this.log.debug?.('[FileTransfer] 开始下载任务', {
         connectionId,
         remotePath,
-        fileName
+        workspacePath
       });
 
-      // 1. 获取SFTP会话
+      // 1. 获取工作区 ID
+      const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+      if (!workspaceId) {
+        return { error: 'workspace_not_assigned', message: '当前智能体未分配工作空间' };
+      }
+
+      // 2. 获取SFTP会话
       const sftpResult = await this._getSftpSession(connectionId);
       if (sftpResult.error) {
         return sftpResult;
@@ -310,7 +312,7 @@ class FileTransfer {
 
       const sftp = sftpResult.sftp;
 
-      // 2. 获取远程文件大小
+      // 3. 获取远程文件大小
       let fileSize;
       try {
         const stats = await new Promise((resolve, reject) => {
@@ -331,7 +333,7 @@ class FileTransfer {
         };
       }
 
-      // 3. 创建传输任务
+      // 4. 创建传输任务
       const taskId = this._generateTaskId();
       const task = {
         taskId,
@@ -342,12 +344,11 @@ class FileTransfer {
         bytesTransferred: 0,
         totalBytes: fileSize,
         remotePath,
-        fileName,
-        artifactId: null, // 下载完成后设置
+        path: workspacePath,
+        workspaceId,
         error: null,
         createdAt: new Date(),
-        completedAt: null,
-        ctx // 保存上下文用于后续保存工件
+        completedAt: null
       };
 
       this.tasks.set(taskId, task);
@@ -358,7 +359,7 @@ class FileTransfer {
         totalTasks: this.tasks.size
       });
 
-      // 4. 后台执行下载
+      // 5. 后台执行下载
       this._executeDownload(task).catch(error => {
         this.log.error?.('[FileTransfer] 后台下载失败', {
           taskId,
@@ -366,7 +367,7 @@ class FileTransfer {
         });
       });
 
-      // 5. 立即返回任务信息
+      // 6. 立即返回任务信息
       return {
         taskId,
         fileSize,
@@ -377,7 +378,7 @@ class FileTransfer {
       this.log.error?.('[FileTransfer] 创建下载任务失败', {
         connectionId,
         remotePath,
-        fileName,
+        workspacePath,
         error: error.message,
         stack: error.stack
       });
@@ -432,14 +433,14 @@ class FileTransfer {
       });
 
       // 合并数据
-      const fileContent = Buffer.concat(chunks).toString('utf8');
+      const fileContent = Buffer.concat(chunks);
 
-      // 保存到工件系统
-      const artifactId = await task.ctx.tools.putArtifact(task.fileName, fileContent);
+      // 保存到工作区
+      const ws = await this.runtime.workspaceManager.getWorkspace(task.workspaceId);
+      await ws.writeFile(task.path, fileContent);
 
       // 更新任务状态为完成
       task.status = 'completed';
-      task.artifactId = artifactId;
       task.bytesTransferred = task.totalBytes;
       task.progress = 100;
       task.completedAt = new Date();
@@ -447,7 +448,7 @@ class FileTransfer {
       this.log.info?.('[FileTransfer] 下载完成', {
         taskId: task.taskId,
         remotePath: task.remotePath,
-        artifactId
+        path: task.path
       });
 
     } catch (error) {
@@ -494,7 +495,7 @@ class FileTransfer {
       // 如果任务已完成，添加结果信息
       if (task.status === 'completed') {
         if (task.type === 'download') {
-          result.artifactId = task.artifactId;
+          result.path = task.path;
         }
         result.completedAt = task.completedAt.toISOString();
       }

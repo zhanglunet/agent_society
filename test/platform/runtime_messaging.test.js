@@ -1,16 +1,16 @@
-ï»¿/**
- * RuntimeMessaging å•å…ƒæµ‹è¯•
+/**
+ * RuntimeMessaging µ¥Ôª²âÊÔ
  * 
- * æµ‹è¯• RuntimeMessaging ç±»çš„æ¶ˆæ¯å¤„ç†åŠŸèƒ½ï¼ŒåŒ…æ‹¬ï¼š
- * - æ¶ˆæ¯ä¸­æ–­å¤„ç†
- * - æ¶ˆæ¯å¤„ç†å¾ªç¯
- * - æ¶ˆæ¯è°ƒåº¦
+ * ²âÊÔ RuntimeMessaging ÀàµÄÏûÏ¢´¦Àí¹¦ÄÜ£¬°üÀ¨£º
+ * - ÏûÏ¢ÖĞ¶Ï´¦Àí
+ * - ÏûÏ¢´¦ÀíÑ­»·
+ * - ÏûÏ¢µ÷¶È
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 import { RuntimeMessaging } from "../../src/platform/runtime/runtime_messaging.js";
 import { Agent } from "../../src/agents/agent.js";
 
@@ -42,9 +42,9 @@ describe("RuntimeMessaging", () => {
     messaging = new RuntimeMessaging(runtime);
   });
 
-  describe("æ¶ˆæ¯ä¸­æ–­å¤„ç†", () => {
-    test("å¤„ç†æ¶ˆæ¯ä¸­æ–­", async () => {
-      // åˆ›å»ºæµ‹è¯•æ™ºèƒ½ä½“
+  describe("ÏûÏ¢ÖĞ¶Ï´¦Àí", () => {
+    test("´¦ÀíÏûÏ¢ÖĞ¶Ï", async () => {
+      // ´´½¨²âÊÔÖÇÄÜÌå
       const agent = new Agent({
         id: "test_agent",
         roleId: "test_role",
@@ -55,10 +55,10 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // æ ‡è®°æ™ºèƒ½ä½“ä¸ºæ´»è·ƒå¤„ç†ä¸­
+      // ±ê¼ÇÖÇÄÜÌåÎª»îÔ¾´¦ÀíÖĞ
       runtime._state.markAgentAsActivelyProcessing("test_agent");
       
-      // å¤„ç†ä¸­æ–­
+      // ´¦ÀíÖĞ¶Ï
       const message = {
         id: "msg1",
         from: "user",
@@ -68,14 +68,14 @@ describe("RuntimeMessaging", () => {
       
       messaging.handleMessageInterruption("test_agent", message);
       
-      // ç­‰å¾…å¼‚æ­¥å¤„ç†å®Œæˆ
+      // µÈ´ıÒì²½´¦ÀíÍê³É
       await new Promise(r => setTimeout(r, 50));
       
-      // éªŒè¯æ¶ˆæ¯è¢«æ·»åŠ åˆ°æ’è¯é˜Ÿåˆ—
+      // ÑéÖ¤ÏûÏ¢±»Ìí¼Óµ½²å»°¶ÓÁĞ
       expect(runtime._state.hasInterruptions("test_agent")).toBe(true);
     });
 
-    test("æ™ºèƒ½ä½“æœªåœ¨æ´»è·ƒå¤„ç†æ—¶ä¸æ·»åŠ æ’è¯", async () => {
+    test("ÖÇÄÜÌåÎ´ÔÚ»îÔ¾´¦ÀíÊ±²»Ìí¼Ó²å»°", async () => {
       const agent = new Agent({
         id: "test_agent",
         roleId: "test_role",
@@ -86,7 +86,7 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // ä¸æ ‡è®°ä¸ºæ´»è·ƒå¤„ç†
+      // ²»±ê¼ÇÎª»îÔ¾´¦Àí
       
       const message = {
         id: "msg1",
@@ -97,16 +97,16 @@ describe("RuntimeMessaging", () => {
       
       messaging.handleMessageInterruption("test_agent", message);
       
-      // ç­‰å¾…å¼‚æ­¥å¤„ç†å®Œæˆ
+      // µÈ´ıÒì²½´¦ÀíÍê³É
       await new Promise(r => setTimeout(r, 50));
       
-      // éªŒè¯æ¶ˆæ¯æœªè¢«æ·»åŠ åˆ°æ’è¯é˜Ÿåˆ—ï¼ˆè¿”å› undefined æˆ– falseï¼‰
+      // ÑéÖ¤ÏûÏ¢Î´±»Ìí¼Óµ½²å»°¶ÓÁĞ£¨·µ»Ø undefined »ò false£©
       expect(runtime._state.hasInterruptions("test_agent")).toBeFalsy();
     });
   });
 
-  describe("æ¶ˆæ¯å¤„ç†å¾ªç¯", () => {
-    test("è¿è¡Œæ¶ˆæ¯å¾ªç¯ç›´åˆ°æ¶ˆæ¯è€—å°½", async () => {
+  describe("ÏûÏ¢´¦ÀíÑ­»·", () => {
+    test("ÔËĞĞÏûÏ¢Ñ­»·Ö±µ½ÏûÏ¢ºÄ¾¡", async () => {
       let messageReceived = false;
       
       const agent = new Agent({
@@ -121,20 +121,20 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // å‘é€æ¶ˆæ¯
+      // ·¢ËÍÏûÏ¢
       runtime.bus.send({
         to: "test_agent",
         from: "user",
         payload: "test message"
       });
       
-      // è¿è¡Œæ¶ˆæ¯å¾ªç¯
+      // ÔËĞĞÏûÏ¢Ñ­»·
       await messaging.run();
       
       expect(messageReceived).toBe(true);
     });
 
-    test("è¾¾åˆ°æœ€å¤§æ­¥æ•°é™åˆ¶æ—¶åœæ­¢", async () => {
+    test("´ïµ½×î´ó²½ÊıÏŞÖÆÊ±Í£Ö¹", async () => {
       let processCount = 0;
       
       const agent = new Agent({
@@ -144,7 +144,7 @@ describe("RuntimeMessaging", () => {
         rolePrompt: "test",
         behavior: async (ctx, msg) => {
           processCount++;
-          // æ¯æ¬¡å¤„ç†åå‘é€æ–°æ¶ˆæ¯ï¼Œå½¢æˆå¾ªç¯
+          // Ã¿´Î´¦Àíºó·¢ËÍĞÂÏûÏ¢£¬ĞÎ³ÉÑ­»·
           if (processCount < 20) {
             runtime.bus.send({
               to: "test_agent",
@@ -157,35 +157,35 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // å‘é€åˆå§‹æ¶ˆæ¯
+      // ·¢ËÍ³õÊ¼ÏûÏ¢
       runtime.bus.send({
         to: "test_agent",
         from: "user",
         payload: "test"
       });
       
-      // è¿è¡Œæ¶ˆæ¯å¾ªç¯ï¼ˆmaxSteps = 10ï¼‰
+      // ÔËĞĞÏûÏ¢Ñ­»·£¨maxSteps = 10£©
       await messaging.run();
       
-      // åº”è¯¥åœ¨è¾¾åˆ° maxSteps æ—¶åœæ­¢
+      // Ó¦¸ÃÔÚ´ïµ½ maxSteps Ê±Í£Ö¹
       expect(processCount).toBeLessThanOrEqual(runtime.maxSteps);
     });
 
-    test("åœæ­¢è¯·æ±‚æ—¶ç«‹å³åœæ­¢å¾ªç¯", async () => {
+    test("Í£Ö¹ÇëÇóÊ±Á¢¼´Í£Ö¹Ñ­»·", async () => {
       const agent = new Agent({
         id: "test_agent",
         roleId: "test_role",
         roleName: "test",
         rolePrompt: "test",
         behavior: async () => {
-          // åœ¨å¤„ç†ç¬¬ä¸€æ¡æ¶ˆæ¯æ—¶è¯·æ±‚åœæ­¢
+          // ÔÚ´¦ÀíµÚÒ»ÌõÏûÏ¢Ê±ÇëÇóÍ£Ö¹
           runtime._stopRequested = true;
         }
       });
       
       runtime.registerAgentInstance(agent);
       
-      // å‘é€å¤šæ¡æ¶ˆæ¯
+      // ·¢ËÍ¶àÌõÏûÏ¢
       for (let i = 0; i < 5; i++) {
         runtime.bus.send({
           to: "test_agent",
@@ -196,13 +196,13 @@ describe("RuntimeMessaging", () => {
       
       await messaging.run();
       
-      // åº”è¯¥è¿˜æœ‰æœªå¤„ç†çš„æ¶ˆæ¯
+      // Ó¦¸Ã»¹ÓĞÎ´´¦ÀíµÄÏûÏ¢
       expect(runtime.bus.hasPending()).toBe(true);
     });
   });
 
-  describe("æ¶ˆæ¯è°ƒåº¦", () => {
-    test("è·³è¿‡å·²åœæ­¢çš„æ™ºèƒ½ä½“", async () => {
+  describe("ÏûÏ¢µ÷¶È", () => {
+    test("Ìø¹ıÒÑÍ£Ö¹µÄÖÇÄÜÌå", async () => {
       let messageProcessed = false;
       
       const agent = new Agent({
@@ -217,27 +217,27 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // è®¾ç½®æ™ºèƒ½ä½“çŠ¶æ€ä¸ºå·²åœæ­¢
+      // ÉèÖÃÖÇÄÜÌå×´Ì¬ÎªÒÑÍ£Ö¹
       runtime._state.setAgentComputeStatus("test_agent", "stopped");
       
-      // å‘é€æ¶ˆæ¯
+      // ·¢ËÍÏûÏ¢
       runtime.bus.send({
         to: "test_agent",
         from: "user",
         payload: "test"
       });
       
-      // è¿è¡Œæ¶ˆæ¯å¾ªç¯
+      // ÔËĞĞÏûÏ¢Ñ­»·
       await messaging.run();
       
-      // æ¶ˆæ¯ä¸åº”è¯¥è¢«å¤„ç†
+      // ÏûÏ¢²»Ó¦¸Ã±»´¦Àí
       expect(messageProcessed).toBe(false);
     });
 
-    test("å¼‚å¸¸éš”ç¦»ï¼šå•ä¸ªæ™ºèƒ½ä½“å¼‚å¸¸ä¸å½±å“å…¶ä»–æ™ºèƒ½ä½“", async () => {
+    test("Òì³£¸ôÀë£ºµ¥¸öÖÇÄÜÌåÒì³£²»Ó°ÏìÆäËûÖÇÄÜÌå", async () => {
       const processedAgents = [];
       
-      // åˆ›å»ºä¼šæŠ›å‡ºå¼‚å¸¸çš„æ™ºèƒ½ä½“
+      // ´´½¨»áÅ×³öÒì³£µÄÖÇÄÜÌå
       const errorAgent = new Agent({
         id: "error_agent",
         roleId: "test_role",
@@ -249,7 +249,7 @@ describe("RuntimeMessaging", () => {
         }
       });
       
-      // åˆ›å»ºæ­£å¸¸çš„æ™ºèƒ½ä½“
+      // ´´½¨Õı³£µÄÖÇÄÜÌå
       const normalAgent = new Agent({
         id: "normal_agent",
         roleId: "test_role",
@@ -263,7 +263,7 @@ describe("RuntimeMessaging", () => {
       runtime.registerAgentInstance(errorAgent);
       runtime.registerAgentInstance(normalAgent);
       
-      // å‘é€æ¶ˆæ¯ç»™ä¸¤ä¸ªæ™ºèƒ½ä½“
+      // ·¢ËÍÏûÏ¢¸øÁ½¸öÖÇÄÜÌå
       runtime.bus.send({
         to: "error_agent",
         from: "user",
@@ -275,17 +275,17 @@ describe("RuntimeMessaging", () => {
         payload: "test"
       });
       
-      // è¿è¡Œæ¶ˆæ¯å¾ªç¯
+      // ÔËĞĞÏûÏ¢Ñ­»·
       await messaging.run();
       
-      // ä¸¤ä¸ªæ™ºèƒ½ä½“éƒ½åº”è¯¥è¢«å¤„ç†
+      // Á½¸öÖÇÄÜÌå¶¼Ó¦¸Ã±»´¦Àí
       expect(processedAgents).toContain("error_agent");
       expect(processedAgents).toContain("normal_agent");
     });
   });
 
-  describe("å¹¶å‘æ§åˆ¶", () => {
-    test("åŒä¸€æ™ºèƒ½ä½“ä¸²è¡Œå¤„ç†æ¶ˆæ¯", async () => {
+  describe("²¢·¢¿ØÖÆ", () => {
+    test("Í¬Ò»ÖÇÄÜÌå´®ĞĞ´¦ÀíÏûÏ¢", async () => {
       const processingOrder = [];
       let currentlyProcessing = false;
       
@@ -295,7 +295,7 @@ describe("RuntimeMessaging", () => {
         roleName: "test",
         rolePrompt: "test",
         behavior: async (ctx, msg) => {
-          // éªŒè¯æ²¡æœ‰å¹¶å‘å¤„ç†
+          // ÑéÖ¤Ã»ÓĞ²¢·¢´¦Àí
           expect(currentlyProcessing).toBe(false);
           currentlyProcessing = true;
           
@@ -308,14 +308,14 @@ describe("RuntimeMessaging", () => {
       
       runtime.registerAgentInstance(agent);
       
-      // å‘é€å¤šæ¡æ¶ˆæ¯
+      // ·¢ËÍ¶àÌõÏûÏ¢
       runtime.bus.send({ to: "test_agent", from: "user", payload: "msg1" });
       runtime.bus.send({ to: "test_agent", from: "user", payload: "msg2" });
       runtime.bus.send({ to: "test_agent", from: "user", payload: "msg3" });
       
       await messaging.run();
       
-      // éªŒè¯æ¶ˆæ¯æŒ‰é¡ºåºå¤„ç†
+      // ÑéÖ¤ÏûÏ¢°´Ë³Ğò´¦Àí
       expect(processingOrder).toEqual(["msg1", "msg2", "msg3"]);
     });
   });

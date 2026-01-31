@@ -38,7 +38,7 @@ Agent Society 遵循"最小化系统"原则：
 
 通过合理拆解需求，让每个智能体只控制必要的最小上下文：
 
-- 跨岗位/跨阶段信息优先写入工件并用引用传递
+- 跨岗位/跨阶段信息优先写入工作区并用引用传递
 - 不在对话中无限堆叠上下文
 - 一任务对象绑定一个智能体实例
 - 结构化的任务委托书 (Task Brief) 明确输入输出边界
@@ -75,7 +75,7 @@ Agent Society 遵循"最小化系统"原则：
 │  ┌────────────────────── HTTPServer ───────────────────────┐   │
 │  │              (services/http/http_server.js)             │   │
 │  │ • /api/agents, /api/messages, /api/modules              │   │
-│  │ • Static File Serving (Web UI, Artifacts)               │   │
+│  │ • Static File Serving (Web UI, Workspaces)              │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                                 │
@@ -90,10 +90,9 @@ Agent Society 遵循"最小化系统"原则：
 │  └───────────────────────────────────────────────────┘         │
 │                                                                 │
 │  ┌──────────────── 服务模块 (services/) ─────────────┐         │
-│  │ • artifact/     - 工件存储、二进制检测、内容路由   │         │
+│  │ • workspace/    - 工作区管理、文件操作、内容路由   │         │
 │  │ • llm/          - LLM客户端、服务注册、模型选择    │         │
 │  │ • conversation/ - 会话管理、上下文压缩            │         │
-│  │ • workspace/    - 工作空间文件操作                │         │
 │  │ • http/         - HTTP服务器、HTTP客户端          │         │
 │  │ • contact/      - 联系人管理                      │         │
 │  └───────────────────────────────────────────────────┘         │
@@ -168,9 +167,9 @@ src/platform/
 │   └── org_primitives.js          # 组织原语
 │
 ├── services/                      # 服务模块（独立功能）
-│   ├── artifact/
-│   │   ├── artifact_store.js      # 工件存储
-│   │   ├── binary_detector.js     # 二进制检测
+│   ├── workspace/
+│   │   ├── workspace_manager.js   # 工作区管理
+│   │   ├── workspace.js           # 工作区实例
 │   │   └── content_router.js      # 内容路由
 │   ├── llm/
 │   │   ├── llm_client.js          # LLM客户端
@@ -179,8 +178,6 @@ src/platform/
 │   │   └── concurrency_controller.js # 并发控制
 │   ├── conversation/
 │   │   └── conversation_manager.js # 会话管理
-│   ├── workspace/
-│   │   ├── workspace_manager.js   # 工作空间管理
 │   ├── http/
 │   │   ├── http_server.js         # HTTP服务器
 │   │   └── http_client.js         # HTTP客户端
@@ -286,10 +283,10 @@ src/platform/
 
 服务模块提供独立的功能服务，按功能域组织：
 
-#### 工件服务 (services/artifact/)
-- **artifact_store.js**: 工件存储和检索
-- **binary_detector.js**: 二进制文件检测
-- **content_router.js**: 内容路由（合并了原 artifact_content_router 和 capability_router）
+#### 工作区服务 (services/workspace/)
+- **workspace_manager.js**: 工作区生命周期管理
+- **workspace.js**: 工作区实例，提供文件操作、元数据管理
+- **content_router.js**: 内容路由，处理多模态内容、文件到提示词的转换
 
 #### LLM服务 (services/llm/)
 - **llm_client.js**: LLM客户端，与LLM服务通信
@@ -299,9 +296,6 @@ src/platform/
 
 #### 会话服务 (services/conversation/)
 - **conversation_manager.js**: 会话管理器，负责LLM对话历史的维护与优化
-
-#### 工作空间服务 (services/workspace/)
-- **workspace_manager.js**: 工作空间管理器，管理任务绑定的文件系统工作空间
 
 #### HTTP服务 (services/http/)
 - **http_server.js**: HTTP服务器

@@ -27,7 +27,7 @@ export default ${JSON.stringify(moduleContent, (key, value) => {
 }
 
 /**
- * 创建有效的测试模块
+ * 创建有效的测试模�?
  * @param {string} moduleName - 模块名称
  * @param {string[]} toolNames - 工具名称列表
  */
@@ -77,9 +77,9 @@ export default {
 }
 
 /**
- * 创建无效的测试模块（缺少必需字段）
+ * 创建无效的测试模块（缺少必需字段�?
  * @param {string} moduleName - 模块名称
- * @param {string[]} missingFields - 缺少的字段
+ * @param {string[]} missingFields - 缺少的字�?
  */
 async function createInvalidModule(moduleName, missingFields = ["name"]) {
   const moduleDir = path.join(TEST_MODULES_DIR, moduleName);
@@ -93,7 +93,7 @@ async function createInvalidModule(moduleName, missingFields = ["name"]) {
     shutdown: "async function shutdown() {}"
   };
   
-  // 移除指定的字段
+  // 移除指定的字�?
   for (const field of missingFields) {
     delete fields[field];
   }
@@ -157,7 +157,7 @@ describe("ModuleLoader", () => {
   });
 
   describe("Property 2: Configuration-Driven Module Loading", () => {
-    test("仅加载配置中启用的模块", async () => {
+    test("仅加载配置中启用的模�?, async () => {
       // 创建多个模块
       await createValidModule("module_a", ["tool_a"]);
       await createValidModule("module_b", ["tool_b"]);
@@ -165,7 +165,7 @@ describe("ModuleLoader", () => {
 
       const loader = new ModuleLoader({ modulesDir: TEST_MODULES_DIR });
       
-      // 只启用 module_a 和 module_c
+      // 只启�?module_a �?module_c
       const result = await loader.loadModules(["module_a", "module_c"], {});
 
       expect(result.loaded).toEqual(["module_a", "module_c"]);
@@ -175,7 +175,7 @@ describe("ModuleLoader", () => {
       const loadedModules = loader.getLoadedModules();
       expect(loadedModules.map(m => m.name).sort()).toEqual(["module_a", "module_c"]);
       
-      // 验证未启用的模块没有被加载
+      // 验证未启用的模块没有被加�?
       expect(loader.hasToolName("tool_a")).toBe(true);
       expect(loader.hasToolName("tool_b")).toBe(false);
       expect(loader.hasToolName("tool_c")).toBe(true);
@@ -188,7 +188,7 @@ describe("ModuleLoader", () => {
 
       const loader = new ModuleLoader({ modulesDir: TEST_MODULES_DIR });
       
-      // 空数组
+      // 空数�?
       const result1 = await loader.loadModules([], {});
       expect(result1.loaded).toHaveLength(0);
       expect(loader.getLoadedModules()).toHaveLength(0);
@@ -219,7 +219,7 @@ describe("ModuleLoader", () => {
   });
 
   describe("Property 3: Tool Definition Collection", () => {
-    test("收集所有已加载模块的工具定义", async () => {
+    test("收集所有已加载模块的工具定�?, async () => {
       // 使用唯一的模块名避免缓存问题
       const timestamp = Date.now();
       await createValidModule(`collect_module_a_${timestamp}`, [`collect_tool_a1_${timestamp}`, `collect_tool_a2_${timestamp}`]);
@@ -231,7 +231,7 @@ describe("ModuleLoader", () => {
       const tools = loader.getToolDefinitions();
       const toolNames = tools.map(t => t.function.name).sort();
       
-      // 验证工具数量和名称
+      // 验证工具数量和名�?
       expect(toolNames).toContain(`collect_tool_a1_${timestamp}`);
       expect(toolNames).toContain(`collect_tool_a2_${timestamp}`);
       expect(toolNames).toContain(`collect_tool_b1_${timestamp}`);
@@ -246,7 +246,7 @@ describe("ModuleLoader", () => {
       const loader = new ModuleLoader({ modulesDir: TEST_MODULES_DIR });
       await loader.loadModules([`conflict_module_${timestamp}`], {});
 
-      // 验证工具被注册
+      // 验证工具被注�?
       expect(loader.hasToolName(`conflict_tool_${timestamp}`)).toBe(true);
       
       // 执行工具调用验证路由正确
@@ -297,7 +297,7 @@ describe("ModuleLoader", () => {
       await loader.shutdown();
     });
 
-    test("工具执行错误返回结构化错误", async () => {
+    test("工具执行错误返回结构化错�?, async () => {
       await createErrorModule("exec_error_module", "execute");
 
       const loader = new ModuleLoader({ modulesDir: TEST_MODULES_DIR });
@@ -315,7 +315,7 @@ describe("ModuleLoader", () => {
   });
 
   describe("Property 5: Module Load Failure Isolation", () => {
-    test("模块加载失败不影响其他模块", async () => {
+    test("模块加载失败不影响其他模�?, async () => {
       await createValidModule("good_module", ["good_tool"]);
       await createErrorModule("bad_module", "init");
       await createValidModule("another_good", ["another_tool"]);
@@ -328,7 +328,7 @@ describe("ModuleLoader", () => {
       expect(result.errors[0].module).toBe("bad_module");
       expect(result.errors[0].error).toContain("Init error");
 
-      // 验证成功加载的模块可以正常工作
+      // 验证成功加载的模块可以正常工�?
       const ctx = { agent: { id: "test" } };
       const goodResult = await loader.executeToolCall(ctx, "good_tool", {});
       expect(goodResult.ok).toBe(true);
@@ -339,7 +339,7 @@ describe("ModuleLoader", () => {
       await loader.shutdown();
     });
 
-    test("无效模块接口被拒绝", async () => {
+    test("无效模块接口被拒�?, async () => {
       await createValidModule("valid_module", ["valid_tool"]);
       await createInvalidModule("invalid_module", ["name", "init"]);
 
@@ -349,7 +349,7 @@ describe("ModuleLoader", () => {
       expect(result.loaded).toEqual(["valid_module"]);
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].module).toBe("invalid_module");
-      expect(result.errors[0].error).toContain("模块接口不符合规范");
+      expect(result.errors[0].error).toContain("模块接口不符合规�?);
 
       await loader.shutdown();
     });
@@ -383,14 +383,14 @@ export default {
       const loader = new ModuleLoader({ modulesDir: TEST_MODULES_DIR });
       await loader.loadModules(["context_module"], mockRuntime);
 
-      // 由于模块是动态导入的，我们通过工具调用来验证
-      // 这里只验证加载成功
+      // 由于模块是动态导入的，我们通过工具调用来验�?
+      // 这里只验证加载成�?
       expect(loader.getLoadedModules()).toHaveLength(1);
 
       await loader.shutdown();
     });
 
-    test("shutdown 关闭所有模块", async () => {
+    test("shutdown 关闭所有模�?, async () => {
       await createValidModule("module_a", ["tool_a"]);
       await createValidModule("module_b", ["tool_b"]);
 
@@ -410,7 +410,7 @@ export default {
   });
 
   describe("Web Components and HTTP Handlers", () => {
-    test("收集模块的 Web 组件", async () => {
+    test("收集模块�?Web 组件", async () => {
       const moduleDir = path.join(TEST_MODULES_DIR, "web_module");
       await mkdir(moduleDir, { recursive: true });
       
@@ -444,7 +444,7 @@ export default {
       await loader.shutdown();
     });
 
-    test("获取模块的 HTTP 处理器", async () => {
+    test("获取模块�?HTTP 处理�?, async () => {
       const moduleDir = path.join(TEST_MODULES_DIR, "http_module");
       await mkdir(moduleDir, { recursive: true });
       

@@ -197,7 +197,7 @@ describe("ToolExecutor", () => {
     });
     const childCtx = runtime._buildAgentContext(childAgent);
     const childSystemPrompt = runtime._buildSystemPromptForAgent(childCtx);
-    expect(childSystemPrompt).toContain("【组织架构】");
+    expect(childSystemPrompt).toContain("【组织架构�?);
     expect(childSystemPrompt).toContain("Parent org prompt");
   });
 
@@ -214,7 +214,7 @@ describe("ToolExecutor", () => {
     const rootAgent = runtime._agents.get("root");
     const ctx = runtime._buildAgentContext(rootAgent);
     
-    // 设置当前消息以提供 taskId
+    // 设置当前消息以提�?taskId
     ctx.currentMessage = {
       id: "test-msg",
       from: "user",
@@ -253,7 +253,7 @@ describe("ToolExecutor", () => {
     expect(capturedSend).toBeTruthy();
     expect(capturedSend.to).toBe(result.id);
     expect(typeof capturedSend.payload?.text).toBe("string");
-    expect(capturedSend.payload.text).toContain("【你的姓名】张三");
+    expect(capturedSend.payload.text).toContain("【你的姓名】张�?);
     
     const storedTaskBrief = runtime._agentTaskBriefs.get(result.id);
     expect(storedTaskBrief).toBeTruthy();
@@ -263,7 +263,7 @@ describe("ToolExecutor", () => {
     const childAgent = runtime._agents.get(result.id);
     const childCtx = runtime._buildAgentContext(childAgent);
     const childSystemPrompt = runtime._buildSystemPromptForAgent(childCtx);
-    expect(childSystemPrompt).toContain("【任务委托书 Task Brief】");
+    expect(childSystemPrompt).toContain("【任务委托书 Task Brief�?);
     expect(childSystemPrompt).toContain("Test inputs");
   });
 
@@ -393,7 +393,7 @@ describe("ToolExecutor", () => {
   test("executeToolCall executes get_artifact", async () => {
     const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
     
-    // 先创建工件
+    // 先创建工�?
     const putResult = await runtime._toolExecutor.executeToolCall(ctx, "put_artifact", {
       type: "text/plain",
       content: "test content",
@@ -420,7 +420,7 @@ describe("ToolExecutor", () => {
 
 
   test("executeToolCall executes terminate_agent", async () => {
-    // 创建父子智能体
+    // 创建父子智能�?
     const parentRole = await runtime.org.createRole({
       name: "parent-role",
       rolePrompt: "Parent",
@@ -481,7 +481,7 @@ describe("ToolExecutor", () => {
     const result = await runtime._toolExecutor.executeToolCall(ctx, "get_context_status", {});
 
     expect(result).toBeTruthy();
-    // 验证返回了状态信息
+    // 验证返回了状态信�?
     expect(result.status || result.error).toBeTruthy();
   });
 
@@ -495,7 +495,7 @@ describe("ToolExecutor", () => {
   test("executeToolCall handles tool execution errors", async () => {
     const ctx = runtime._buildAgentContext(runtime._agents.get("root"));
     
-    // 传递无效参数导致错误
+    // 传递无效参数导致错�?
     const result = await runtime._toolExecutor.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: "non-existent-role",
       taskBrief: {

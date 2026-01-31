@@ -1,7 +1,7 @@
 /**
  * AutoCompressionManager 单元测试
  * 
- * 测试自动压缩管理器的核心功能，特别是 token 使用情况计算逻辑。
+ * 测试自动压缩管理器的核心功能，特别是 token 使用情况计算逻辑�?
  */
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
@@ -30,12 +30,12 @@ describe('AutoCompressionManager', () => {
       error: jest.fn()
     };
 
-    // 创建管理器实例
+    // 创建管理器实�?
     manager = new AutoCompressionManager(mockConfigService, mockLlmClient, mockLogger);
   });
 
-  describe('构造函数', () => {
-    test('应该正确初始化所有依赖', () => {
+  describe('构造函�?, () => {
+    test('应该正确初始化所有依�?, () => {
       expect(manager._configService).toBe(mockConfigService);
       expect(manager._llmClient).toBe(mockLlmClient);
       expect(manager._logger).toBe(mockLogger);
@@ -43,7 +43,7 @@ describe('AutoCompressionManager', () => {
   });
 
   describe('_loadConfig', () => {
-    test('应该从配置服务读取配置', () => {
+    test('应该从配置服务读取配�?, () => {
       const userConfig = {
         enabled: true,
         threshold: 0.7,
@@ -58,7 +58,7 @@ describe('AutoCompressionManager', () => {
       expect(config.enabled).toBe(true);
       expect(config.threshold).toBe(0.7);
       expect(config.summaryModel).toBe('gpt-4o-mini');
-      expect(config.keepRecentCount).toBe(10); // 默认值
+      expect(config.keepRecentCount).toBe(10); // 默认�?
     });
 
     test('应该使用默认配置当配置服务返回空', () => {
@@ -91,7 +91,7 @@ describe('AutoCompressionManager', () => {
 
   describe('_calculateTokenUsage', () => {
     beforeEach(() => {
-      // 设置默认配置，包含 contextLimit
+      // 设置默认配置，包�?contextLimit
       mockConfigService.get.mockReturnValue({
         enabled: true,
         threshold: 0.8,
@@ -101,7 +101,7 @@ describe('AutoCompressionManager', () => {
       });
     });
 
-    test('应该使用准确的 token 统计数据', () => {
+    test('应该使用准确�?token 统计数据', () => {
       const messages = [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: 'Hello' },
@@ -141,7 +141,7 @@ describe('AutoCompressionManager', () => {
       expect(result.usagePercent).toBeLessThanOrEqual(1.0);
     });
 
-    test('应该处理空消息数组', () => {
+    test('应该处理空消息数�?, () => {
       const result = manager._calculateTokenUsage([], null);
       
       expect(result.totalTokens).toBe(0);
@@ -176,7 +176,7 @@ describe('AutoCompressionManager', () => {
       expect(usage.promptTokens).toBe(18);
     });
 
-    test('应该处理没有 token 统计的消息', () => {
+    test('应该处理没有 token 统计的消�?, () => {
       const messages = [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi!' }
@@ -187,7 +187,7 @@ describe('AutoCompressionManager', () => {
       expect(usage.promptTokens).toBe(0);
     });
 
-    test('应该处理混合的消息（有些有统计，有些没有）', () => {
+    test('应该处理混合的消息（有些有统计，有些没有�?, () => {
       const messages = [
         { role: 'system', content: 'System', promptTokens: 10 },
         { role: 'user', content: 'Hello' },
@@ -199,7 +199,7 @@ describe('AutoCompressionManager', () => {
       expect(usage.promptTokens).toBe(15);
     });
 
-    test('应该处理空消息数组', () => {
+    test('应该处理空消息数�?, () => {
       const usage = manager._extractTokenUsageFromMessages([]);
       
       expect(usage.promptTokens).toBe(0);
@@ -219,7 +219,7 @@ describe('AutoCompressionManager', () => {
   });
 
   describe('_estimateTokensFromMessages', () => {
-    test('应该估算英文消息的 token 数量', () => {
+    test('应该估算英文消息�?token 数量', () => {
       const messages = [
         { role: 'user', content: 'Hello world! This is a test message.' }
       ];
@@ -227,12 +227,12 @@ describe('AutoCompressionManager', () => {
       const tokens = manager._estimateTokensFromMessages(messages);
       
       expect(tokens).toBeGreaterThan(0);
-      expect(tokens).toBeLessThan(100); // 合理的估算范围
+      expect(tokens).toBeLessThan(100); // 合理的估算范�?
     });
 
-    test('应该估算中文消息的 token 数量', () => {
+    test('应该估算中文消息�?token 数量', () => {
       const messages = [
-        { role: 'user', content: '你好世界！这是一个测试消息。' }
+        { role: 'user', content: '你好世界！这是一个测试消息�? }
       ];
       
       const tokens = manager._estimateTokensFromMessages(messages);
@@ -241,7 +241,7 @@ describe('AutoCompressionManager', () => {
       expect(tokens).toBeLessThan(100);
     });
 
-    test('应该估算混合语言消息的 token 数量', () => {
+    test('应该估算混合语言消息�?token 数量', () => {
       const messages = [
         { role: 'user', content: 'Hello 你好! This is 测试 message.' }
       ];
@@ -272,7 +272,7 @@ describe('AutoCompressionManager', () => {
       expect(tokensWithTools).toBeGreaterThan(tokensWithoutTools);
     });
 
-    test('应该处理空消息数组', () => {
+    test('应该处理空消息数�?, () => {
       const tokens = manager._estimateTokensFromMessages([]);
       expect(tokens).toBe(0);
     });
@@ -287,7 +287,7 @@ describe('AutoCompressionManager', () => {
       
       const tokens = manager._estimateTokensFromMessages(messages);
       
-      expect(tokens).toBeGreaterThan(0); // 只计算有效消息
+      expect(tokens).toBeGreaterThan(0); // 只计算有效消�?
     });
   });
 
@@ -316,7 +316,7 @@ describe('AutoCompressionManager', () => {
     });
 
     test('应该在消息数量不足时返回 false', () => {
-      const messages = new Array(5).fill({ role: 'user', content: 'test' }); // 少于最小要求
+      const messages = new Array(5).fill({ role: 'user', content: 'test' }); // 少于最小要�?
       const usage = { totalTokens: 8000, usagePercent: 0.85 };
       
       const result = manager._shouldCompress(messages, usage, config);
@@ -325,9 +325,9 @@ describe('AutoCompressionManager', () => {
     });
 
     test('应该在边界条件下正确判断', () => {
-      // 刚好达到阈值
-      const messages = new Array(12).fill({ role: 'user', content: 'test' }); // 刚好满足最小要求
-      const usage = { totalTokens: 8000, usagePercent: 0.8 }; // 刚好达到阈值
+      // 刚好达到阈�?
+      const messages = new Array(12).fill({ role: 'user', content: 'test' }); // 刚好满足最小要�?
+      const usage = { totalTokens: 8000, usagePercent: 0.8 }; // 刚好达到阈�?
       
       const result = manager._shouldCompress(messages, usage, config);
       
@@ -347,7 +347,7 @@ describe('AutoCompressionManager', () => {
       });
     });
 
-    test('应该在配置不可用时跳过压缩', async () => {
+    test('应该在配置不可用时跳过压�?, async () => {
       mockConfigService.get.mockReturnValue({ enabled: false });
       
       const messages = [{ role: 'user', content: 'test' }];
@@ -355,9 +355,9 @@ describe('AutoCompressionManager', () => {
       await manager.process(messages);
       
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        'AutoCompressionManager.process: 自动压缩不可用',
+        'AutoCompressionManager.process: 自动压缩不可�?,
         expect.objectContaining({
-          reason: '自动压缩功能已禁用'
+          reason: '自动压缩功能已禁�?
         })
       );
     });
@@ -375,7 +375,7 @@ describe('AutoCompressionManager', () => {
       await manager.process(messages);
       
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        'AutoCompressionManager._shouldCompress: 未达到压缩阈值',
+        'AutoCompressionManager._shouldCompress: 未达到压缩阈�?,
         expect.any(Object)
       );
     });
@@ -402,7 +402,7 @@ describe('AutoCompressionManager', () => {
       );
     });
 
-    test('应该捕获并记录异常', async () => {
+    test('应该捕获并记录异�?, async () => {
       mockConfigService.get.mockImplementation(() => {
         throw new Error('配置服务异常');
       });
@@ -411,7 +411,7 @@ describe('AutoCompressionManager', () => {
       
       await manager.process(messages);
       
-      // 配置读取异常会在 _loadConfig 中被捕获并记录
+      // 配置读取异常会在 _loadConfig 中被捕获并记�?
       expect(mockLogger.error).toHaveBeenCalledWith(
         'AutoCompressionManager._loadConfig: 配置读取失败',
         expect.objectContaining({
@@ -421,17 +421,17 @@ describe('AutoCompressionManager', () => {
     });
   });
 
-  describe('边界条件和异常处理', () => {
+  describe('边界条件和异常处�?, () => {
     test('应该处理 null 参数', async () => {
       mockConfigService.get.mockReturnValue({ enabled: false });
       
       await manager.process(null);
       
-      // 不应该抛出异常
+      // 不应该抛出异�?
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
-    test('应该处理无效的 tokenUsage', () => {
+    test('应该处理无效�?tokenUsage', () => {
       mockConfigService.get.mockReturnValue({
         enabled: true,
         contextLimit: { maxTokens: 10000 }

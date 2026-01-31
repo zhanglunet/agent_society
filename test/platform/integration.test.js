@@ -1,9 +1,9 @@
-ï»¿/**
- * é›†æˆæµ‹è¯•ï¼šAgent Society æ ¸å¿ƒæµç¨‹
+/**
+ * ¼¯³É²âÊÔ£ºAgent Society ºËĞÄÁ÷³Ì
  * 
- * æµ‹è¯•æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢ã€æ¶ˆæ¯å‘é€å’Œæ¥æ”¶ã€å·¥ä»¶å­˜å‚¨å’Œæ£€ç´¢ã€LLM è°ƒç”¨å’Œé‡è¯•ç­‰å…³é”®ä¸šåŠ¡æµç¨‹
+ * ²âÊÔÖÇÄÜÌå´´½¨ºÍÖÕÖ¹¡¢ÏûÏ¢·¢ËÍºÍ½ÓÊÕ¡¢¹¤¼ş´æ´¢ºÍ¼ìË÷¡¢LLM µ÷ÓÃºÍÖØÊÔµÈ¹Ø¼üÒµÎñÁ÷³Ì
  * 
- * éœ€æ±‚ï¼š11.2, 11.3
+ * ĞèÇó£º11.2, 11.3
  */
 
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
@@ -12,17 +12,17 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { Runtime } from "../../src/platform/core/runtime.js";
 import { Agent } from "../../src/agents/agent.js";
 
-describe("é›†æˆæµ‹è¯• - æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢æµç¨‹", () => {
+describe("¼¯³É²âÊÔ - ÖÇÄÜÌå´´½¨ºÍÖÕÖ¹Á÷³Ì", () => {
   let runtime;
   let tmpDir;
 
   beforeEach(async () => {
-    // åˆ›å»ºä¸´æ—¶æµ‹è¯•ç›®å½•
+    // ´´½¨ÁÙÊ±²âÊÔÄ¿Â¼
     tmpDir = path.resolve(process.cwd(), `test/.tmp/integration_agent_test_${Date.now()}`);
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
-    // åˆ›å»ºé…ç½®æ–‡ä»¶
+    // ´´½¨ÅäÖÃÎÄ¼ş
     const configPath = path.resolve(tmpDir, "app.json");
     await writeFile(
       configPath,
@@ -34,46 +34,46 @@ describe("é›†æˆæµ‹è¯• - æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢æµç¨‹", () => {
       "utf8"
     );
 
-    // åˆå§‹åŒ–è¿è¡Œæ—¶
+    // ³õÊ¼»¯ÔËĞĞÊ±
     runtime = new Runtime({ configPath });
     await runtime.init();
   });
 
   afterEach(async () => {
-    // æ¸…ç†æµ‹è¯•ç›®å½•
+    // ÇåÀí²âÊÔÄ¿Â¼
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("åº”æˆåŠŸåˆ›å»ºæ™ºèƒ½ä½“å¹¶æ³¨å†Œåˆ°è¿è¡Œæ—¶", async () => {
-    // åˆ›å»ºå²—ä½
+  test("Ó¦³É¹¦´´½¨ÖÇÄÜÌå²¢×¢²áµ½ÔËĞĞÊ±", async () => {
+    // ´´½¨¸ÚÎ»
     const role = await runtime.org.createRole({
       name: "test-worker",
-      rolePrompt: "æµ‹è¯•å·¥ä½œè€…",
+      rolePrompt: "²âÊÔ¹¤×÷Õß",
       createdBy: "root"
     });
 
-    // åˆ›å»ºæ™ºèƒ½ä½“
+    // ´´½¨ÖÇÄÜÌå
     const agent = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
     });
 
-    // éªŒè¯æ™ºèƒ½ä½“å·²åˆ›å»º
+    // ÑéÖ¤ÖÇÄÜÌåÒÑ´´½¨
     expect(agent).toBeTruthy();
     expect(agent.id).toBeTruthy();
     expect(agent.roleId).toBe(role.id);
 
-    // éªŒè¯æ™ºèƒ½ä½“å·²æ³¨å†Œåˆ°è¿è¡Œæ—¶
+    // ÑéÖ¤ÖÇÄÜÌåÒÑ×¢²áµ½ÔËĞĞÊ±
     expect(runtime._agents.has(agent.id)).toBe(true);
     const registeredAgent = runtime._agents.get(agent.id);
     expect(registeredAgent.id).toBe(agent.id);
   });
 
-  test("åº”æˆåŠŸç»ˆæ­¢æ™ºèƒ½ä½“å¹¶æ¸…ç†èµ„æº", async () => {
-    // åˆ›å»ºå²—ä½å’Œæ™ºèƒ½ä½“
+  test("Ó¦³É¹¦ÖÕÖ¹ÖÇÄÜÌå²¢ÇåÀí×ÊÔ´", async () => {
+    // ´´½¨¸ÚÎ»ºÍÖÇÄÜÌå
     const role = await runtime.org.createRole({
       name: "test-worker",
-      rolePrompt: "æµ‹è¯•å·¥ä½œè€…",
+      rolePrompt: "²âÊÔ¹¤×÷Õß",
       createdBy: "root"
     });
 
@@ -84,14 +84,14 @@ describe("é›†æˆæµ‹è¯• - æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢æµç¨‹", () => {
 
     const agentId = agent.id;
 
-    // åˆå§‹åŒ–ä¼šè¯ä¸Šä¸‹æ–‡
+    // ³õÊ¼»¯»á»°ÉÏÏÂÎÄ
     runtime._conversations.set(agentId, [{ role: "system", content: "test" }]);
 
-    // éªŒè¯æ™ºèƒ½ä½“å­˜åœ¨
+    // ÑéÖ¤ÖÇÄÜÌå´æÔÚ
     expect(runtime._agents.has(agentId)).toBe(true);
     expect(runtime._conversations.has(agentId)).toBe(true);
 
-    // åˆ›å»ºæ ¹æ™ºèƒ½ä½“ä¸Šä¸‹æ–‡
+    // ´´½¨¸ùÖÇÄÜÌåÉÏÏÂÎÄ
     const root = new Agent({
       id: "root",
       roleId: "root",
@@ -103,41 +103,41 @@ describe("é›†æˆæµ‹è¯• - æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢æµç¨‹", () => {
 
     const ctx = { agent: root };
 
-    // ç»ˆæ­¢æ™ºèƒ½ä½“
+    // ÖÕÖ¹ÖÇÄÜÌå
     const result = await runtime._executeTerminateAgent(ctx, {
       agentId: agentId,
-      reason: "æµ‹è¯•ç»ˆæ­¢"
+      reason: "²âÊÔÖÕÖ¹"
     });
 
-    // éªŒè¯ç»ˆæ­¢æˆåŠŸ
+    // ÑéÖ¤ÖÕÖ¹³É¹¦
     expect(result.ok).toBe(true);
     expect(result.terminatedAgentId).toBe(agentId);
 
-    // éªŒè¯æ™ºèƒ½ä½“å·²ä»æ³¨å†Œè¡¨ç§»é™¤
+    // ÑéÖ¤ÖÇÄÜÌåÒÑ´Ó×¢²á±íÒÆ³ı
     expect(runtime._agents.has(agentId)).toBe(false);
 
-    // éªŒè¯ä¼šè¯ä¸Šä¸‹æ–‡å·²æ¸…ç†
+    // ÑéÖ¤»á»°ÉÏÏÂÎÄÒÑÇåÀí
     expect(runtime._conversations.has(agentId)).toBe(false);
 
-    // éªŒè¯å…ƒæ•°æ®å·²æ¸…ç†
+    // ÑéÖ¤ÔªÊı¾İÒÑÇåÀí
     expect(runtime._agentMetaById.has(agentId)).toBe(false);
   });
 
-  test("åº”æ‹’ç»éçˆ¶æ™ºèƒ½ä½“ç»ˆæ­¢å­æ™ºèƒ½ä½“", async () => {
-    // åˆ›å»ºä¸¤ä¸ªå²—ä½
+  test("Ó¦¾Ü¾ø·Ç¸¸ÖÇÄÜÌåÖÕÖ¹×ÓÖÇÄÜÌå", async () => {
+    // ´´½¨Á½¸ö¸ÚÎ»
     const role1 = await runtime.org.createRole({
       name: "worker-1",
-      rolePrompt: "å·¥ä½œè€…1",
+      rolePrompt: "¹¤×÷Õß1",
       createdBy: "root"
     });
 
     const role2 = await runtime.org.createRole({
       name: "worker-2",
-      rolePrompt: "å·¥ä½œè€…2",
+      rolePrompt: "¹¤×÷Õß2",
       createdBy: "root"
     });
 
-    // åˆ›å»ºä¸¤ä¸ªæ™ºèƒ½ä½“
+    // ´´½¨Á½¸öÖÇÄÜÌå
     const agent1 = await runtime.spawnAgent({
       roleId: role1.id,
       parentAgentId: "root"
@@ -148,22 +148,22 @@ describe("é›†æˆæµ‹è¯• - æ™ºèƒ½ä½“åˆ›å»ºå’Œç»ˆæ­¢æµç¨‹", () => {
       parentAgentId: "root"
     });
 
-    // agent2 å°è¯•ç»ˆæ­¢ agent1ï¼ˆéçˆ¶å­å…³ç³»ï¼‰
+    // agent2 ³¢ÊÔÖÕÖ¹ agent1£¨·Ç¸¸×Ó¹ØÏµ£©
     const ctx = { agent: agent2 };
     const result = await runtime._executeTerminateAgent(ctx, {
       agentId: agent1.id,
-      reason: "éæ³•ç»ˆæ­¢"
+      reason: "·Ç·¨ÖÕÖ¹"
     });
 
-    // éªŒè¯ç»ˆæ­¢å¤±è´¥
+    // ÑéÖ¤ÖÕÖ¹Ê§°Ü
     expect(result.error).toBe("not_child_agent");
 
-    // éªŒè¯ agent1 ä»ç„¶å­˜åœ¨
+    // ÑéÖ¤ agent1 ÈÔÈ»´æÔÚ
     expect(runtime._agents.has(agent1.id)).toBe(true);
   });
 });
 
-describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
+describe("¼¯³É²âÊÔ - ÏûÏ¢·¢ËÍºÍ½ÓÊÕÁ÷³Ì", () => {
   let runtime;
   let tmpDir;
 
@@ -191,10 +191,10 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("åº”æˆåŠŸå‘é€å’Œæ¥æ”¶æ¶ˆæ¯", async () => {
+  test("Ó¦³É¹¦·¢ËÍºÍ½ÓÊÕÏûÏ¢", async () => {
     let receivedMessage = null;
 
-    // åˆ›å»ºæ¥æ”¶è€…æ™ºèƒ½ä½“
+    // ´´½¨½ÓÊÕÕßÖÇÄÜÌå
     const receiver = new Agent({
       id: "receiver",
       roleId: "test-role",
@@ -206,7 +206,7 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     });
     runtime.registerAgentInstance(receiver);
 
-    // åˆ›å»ºå‘é€è€…æ™ºèƒ½ä½“
+    // ´´½¨·¢ËÍÕßÖÇÄÜÌå
     const sender = new Agent({
       id: "sender",
       roleId: "test-role",
@@ -216,7 +216,7 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     });
     runtime.registerAgentInstance(sender);
 
-    // å‘é€æ¶ˆæ¯
+    // ·¢ËÍÏûÏ¢
     const sendResult = runtime.bus.send({
       to: "receiver",
       from: "sender",
@@ -224,14 +224,14 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
       payload: { text: "Hello, World!" }
     });
 
-    // éªŒè¯æ¶ˆæ¯å‘é€æˆåŠŸ
+    // ÑéÖ¤ÏûÏ¢·¢ËÍ³É¹¦
     expect(sendResult.messageId).toBeTruthy();
     expect(sendResult.rejected).toBeFalsy();
 
-    // æ¥æ”¶æ¶ˆæ¯
+    // ½ÓÊÕÏûÏ¢
     const message = runtime.bus.receiveNext("receiver");
 
-    // éªŒè¯æ¶ˆæ¯æ¥æ”¶æˆåŠŸ
+    // ÑéÖ¤ÏûÏ¢½ÓÊÕ³É¹¦
     expect(message).toBeTruthy();
     expect(message.to).toBe("receiver");
     expect(message.from).toBe("sender");
@@ -239,7 +239,7 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     expect(message.payload.text).toBe("Hello, World!");
   });
 
-  test("åº”æ”¯æŒå»¶è¿Ÿæ¶ˆæ¯æŠ•é€’", async () => {
+  test("Ó¦Ö§³ÖÑÓ³ÙÏûÏ¢Í¶µİ", async () => {
     const receiver = new Agent({
       id: "receiver",
       roleId: "test-role",
@@ -249,7 +249,7 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     });
     runtime.registerAgentInstance(receiver);
 
-    // å‘é€å»¶è¿Ÿæ¶ˆæ¯ï¼ˆ100msï¼‰
+    // ·¢ËÍÑÓ³ÙÏûÏ¢£¨100ms£©
     const sendResult = runtime.bus.send({
       to: "receiver",
       from: "sender",
@@ -258,27 +258,27 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
       delayMs: 100
     });
 
-    // éªŒè¯æ¶ˆæ¯å·²è°ƒåº¦
+    // ÑéÖ¤ÏûÏ¢ÒÑµ÷¶È
     expect(sendResult.messageId).toBeTruthy();
     expect(sendResult.scheduledDeliveryTime).toBeTruthy();
 
-    // ç«‹å³å°è¯•æ¥æ”¶åº”è¯¥ä¸ºç©º
+    // Á¢¼´³¢ÊÔ½ÓÊÕÓ¦¸ÃÎª¿Õ
     const immediateMessage = runtime.bus.receiveNext("receiver");
     expect(immediateMessage).toBeNull();
 
-    // ç­‰å¾…å»¶è¿Ÿæ—¶é—´
+    // µÈ´ıÑÓ³ÙÊ±¼ä
     await new Promise(resolve => setTimeout(resolve, 150));
 
-    // å¤„ç†å»¶è¿Ÿæ¶ˆæ¯
+    // ´¦ÀíÑÓ³ÙÏûÏ¢
     runtime.bus.deliverDueMessages();
 
-    // ç°åœ¨åº”è¯¥èƒ½æ¥æ”¶åˆ°æ¶ˆæ¯
+    // ÏÖÔÚÓ¦¸ÃÄÜ½ÓÊÕµ½ÏûÏ¢
     const delayedMessage = runtime.bus.receiveNext("receiver");
     expect(delayedMessage).toBeTruthy();
     expect(delayedMessage.payload.text).toBe("Delayed message");
   });
 
-  test("åº”æ‹’ç»å‘å·²åœæ­¢çš„æ™ºèƒ½ä½“å‘é€æ¶ˆæ¯", async () => {
+  test("Ó¦¾Ü¾øÏòÒÑÍ£Ö¹µÄÖÇÄÜÌå·¢ËÍÏûÏ¢", async () => {
     const receiver = new Agent({
       id: "receiver",
       roleId: "test-role",
@@ -288,10 +288,10 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
     });
     runtime.registerAgentInstance(receiver);
 
-    // è®¾ç½®æ™ºèƒ½ä½“çŠ¶æ€ä¸ºå·²åœæ­¢
+    // ÉèÖÃÖÇÄÜÌå×´Ì¬ÎªÒÑÍ£Ö¹
     runtime._agentComputeStatus.set("receiver", "stopped");
 
-    // å°è¯•å‘é€æ¶ˆæ¯
+    // ³¢ÊÔ·¢ËÍÏûÏ¢
     const sendResult = runtime.bus.send({
       to: "receiver",
       from: "sender",
@@ -299,13 +299,13 @@ describe("é›†æˆæµ‹è¯• - æ¶ˆæ¯å‘é€å’Œæ¥æ”¶æµç¨‹", () => {
       payload: { text: "Should be rejected" }
     });
 
-    // éªŒè¯æ¶ˆæ¯è¢«æ‹’ç»
+    // ÑéÖ¤ÏûÏ¢±»¾Ü¾ø
     expect(sendResult.rejected).toBe(true);
     expect(sendResult.reason).toBe("agent_stopped");
   });
 });
 
-describe("é›†æˆæµ‹è¯• - å·¥ä»¶å­˜å‚¨å’Œæ£€ç´¢æµç¨‹", () => {
+describe("¼¯³É²âÊÔ - ¹¤¼ş´æ´¢ºÍ¼ìË÷Á÷³Ì", () => {
   let runtime;
   let tmpDir;
 
@@ -333,92 +333,92 @@ describe("é›†æˆæµ‹è¯• - å·¥ä»¶å­˜å‚¨å’Œæ£€ç´¢æµç¨‹", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("åº”æˆåŠŸå­˜å‚¨å’Œæ£€ç´¢æ–‡æœ¬å·¥ä»¶", async () => {
+  test("Ó¦³É¹¦´æ´¢ºÍ¼ìË÷ÎÄ±¾¹¤¼ş", async () => {
     const textContent = "This is a test text artifact";
 
-    // å­˜å‚¨å·¥ä»¶
+    // ´æ´¢¹¤¼ş
     const artifactRef = await runtime.artifacts.putArtifact({
-      name: "æµ‹è¯•æ–‡æœ¬å·¥ä»¶",
+      name: "²âÊÔÎÄ±¾¹¤¼ş",
       type: "text",
       content: textContent,
       meta: { description: "Test artifact" }
     });
 
-    // éªŒè¯å·¥ä»¶å¼•ç”¨
+    // ÑéÖ¤¹¤¼şÒıÓÃ
     expect(artifactRef).toBeTruthy();
     expect(artifactRef).toMatch(/^artifact:/);
 
-    // æ£€ç´¢å·¥ä»¶
+    // ¼ìË÷¹¤¼ş
     const artifact = await runtime.artifacts.getArtifact(artifactRef);
 
-    // éªŒè¯å·¥ä»¶å†…å®¹
+    // ÑéÖ¤¹¤¼şÄÚÈİ
     expect(artifact).toBeTruthy();
     expect(artifact.type).toBe("text");
     expect(artifact.content).toBe(textContent);
     expect(artifact.meta.description).toBe("Test artifact");
   });
 
-  test("åº”æˆåŠŸå­˜å‚¨å’Œæ£€ç´¢JSONå·¥ä»¶", async () => {
+  test("Ó¦³É¹¦´æ´¢ºÍ¼ìË÷JSON¹¤¼ş", async () => {
     const jsonContent = {
-      name: "æµ‹è¯•å¯¹è±¡",
+      name: "²âÊÔ¶ÔÏó",
       value: 42,
       nested: {
         array: [1, 2, 3]
       }
     };
 
-    // å­˜å‚¨å·¥ä»¶
+    // ´æ´¢¹¤¼ş
     const artifactRef = await runtime.artifacts.putArtifact({
-      name: "æµ‹è¯•JSONå·¥ä»¶",
+      name: "²âÊÔJSON¹¤¼ş",
       type: "json",
       content: jsonContent
     });
 
-    // æ£€ç´¢å·¥ä»¶
+    // ¼ìË÷¹¤¼ş
     const artifact = await runtime.artifacts.getArtifact(artifactRef);
 
-    // éªŒè¯å·¥ä»¶å†…å®¹
+    // ÑéÖ¤¹¤¼şÄÚÈİ
     expect(artifact).toBeTruthy();
     expect(artifact.type).toBe("json");
     expect(artifact.content).toEqual(jsonContent);
   });
 
-  test("åº”æˆåŠŸå­˜å‚¨å’Œæ£€ç´¢äºŒè¿›åˆ¶å·¥ä»¶", async () => {
+  test("Ó¦³É¹¦´æ´¢ºÍ¼ìË÷¶ş½øÖÆ¹¤¼ş", async () => {
     const binaryData = Buffer.from("fake-binary-data");
 
-    // ä½¿ç”¨ saveUploadedFile å­˜å‚¨äºŒè¿›åˆ¶å·¥ä»¶
+    // Ê¹ÓÃ saveUploadedFile ´æ´¢¶ş½øÖÆ¹¤¼ş
     const result = await runtime.artifacts.saveUploadedFile(binaryData, {
       type: "image",
       filename: "test.jpg",
       mimeType: "image/jpeg"
     });
 
-    // éªŒè¯å­˜å‚¨ç»“æœ
+    // ÑéÖ¤´æ´¢½á¹û
     expect(result.artifactRef).toBeTruthy();
     expect(result.artifactRef).toMatch(/^artifact:/);
 
-    // æ£€ç´¢å·¥ä»¶
+    // ¼ìË÷¹¤¼ş
     const artifact = await runtime.artifacts.getArtifact(result.artifactRef);
 
-    // éªŒè¯å·¥ä»¶å†…å®¹
+    // ÑéÖ¤¹¤¼şÄÚÈİ
     expect(artifact).toBeTruthy();
     expect(artifact.type).toBe("image");
     expect(artifact.isBinary).toBe(true);
     expect(artifact.mimeType).toBe("image/jpeg");
   });
 
-  test("åº”æ­£ç¡®å¤„ç†ä¸å­˜åœ¨çš„å·¥ä»¶å¼•ç”¨", async () => {
+  test("Ó¦ÕıÈ·´¦Àí²»´æÔÚµÄ¹¤¼şÒıÓÃ", async () => {
     const invalidRef = "artifact:non-existent-id";
 
-    // å°è¯•æ£€ç´¢ä¸å­˜åœ¨çš„å·¥ä»¶
+    // ³¢ÊÔ¼ìË÷²»´æÔÚµÄ¹¤¼ş
     const artifact = await runtime.artifacts.getArtifact(invalidRef);
 
-    // éªŒè¯è¿”å› null
+    // ÑéÖ¤·µ»Ø null
     expect(artifact).toBeNull();
   });
 });
 
-describe("é›†æˆæµ‹è¯• - LLM è°ƒç”¨å’Œé‡è¯•æµç¨‹", () => {
+describe("¼¯³É²âÊÔ - LLM µ÷ÓÃºÍÖØÊÔÁ÷³Ì", () => {
   let runtime;
   let tmpDir;
 
@@ -446,78 +446,78 @@ describe("é›†æˆæµ‹è¯• - LLM è°ƒç”¨å’Œé‡è¯•æµç¨‹", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("åº”æˆåŠŸè°ƒç”¨ LLM å¹¶è¿”å›å“åº”", async () => {
+  test("Ó¦³É¹¦µ÷ÓÃ LLM ²¢·µ»ØÏìÓ¦", async () => {
     let callCount = 0;
 
-    // Mock LLM å®¢æˆ·ç«¯
+    // Mock LLM ¿Í»§¶Ë
     runtime.llm = {
       chat: async (input) => {
         callCount++;
         return {
           role: "assistant",
-          content: "è¿™æ˜¯ LLM çš„å“åº”",
+          content: "ÕâÊÇ LLM µÄÏìÓ¦",
           tool_calls: []
         };
       }
     };
 
-    // åˆ›å»ºæµ‹è¯•æ™ºèƒ½ä½“
+    // ´´½¨²âÊÔÖÇÄÜÌå
     const agent = new Agent({
       id: "test-agent",
       roleId: "test-role",
       roleName: "test",
-      rolePrompt: "æµ‹è¯•æç¤ºè¯",
+      rolePrompt: "²âÊÔÌáÊ¾´Ê",
       behavior: async (ctx, msg) => {
         await ctx.runtime._handleWithLlm(ctx, msg);
       }
     });
     runtime.registerAgentInstance(agent);
 
-    // å‘é€æ¶ˆæ¯è§¦å‘ LLM è°ƒç”¨
+    // ·¢ËÍÏûÏ¢´¥·¢ LLM µ÷ÓÃ
     runtime.bus.send({
       to: "test-agent",
       from: "user",
       taskId: "test-task",
-      payload: { text: "æµ‹è¯•æ¶ˆæ¯" }
+      payload: { text: "²âÊÔÏûÏ¢" }
     });
 
-    // è¿è¡Œæ¶ˆæ¯å¤„ç†
+    // ÔËĞĞÏûÏ¢´¦Àí
     await runtime.run();
 
-    // éªŒè¯ LLM è¢«è°ƒç”¨
+    // ÑéÖ¤ LLM ±»µ÷ÓÃ
     expect(callCount).toBe(1);
   });
 
-  test("åº”éªŒè¯ LLM å®¢æˆ·ç«¯å…·æœ‰é‡è¯•æœºåˆ¶", async () => {
-    // åœ¨æŸäº›æµ‹è¯•ç¯å¢ƒä¸­ï¼ŒLLM å®¢æˆ·ç«¯å¯èƒ½æœªåˆå§‹åŒ–
-    // è¿™ä¸ªæµ‹è¯•éªŒè¯å¦‚æœ LLM å®¢æˆ·ç«¯å­˜åœ¨ï¼Œå®ƒåº”è¯¥æœ‰é‡è¯•æœºåˆ¶
+  test("Ó¦ÑéÖ¤ LLM ¿Í»§¶Ë¾ßÓĞÖØÊÔ»úÖÆ", async () => {
+    // ÔÚÄ³Ğ©²âÊÔ»·¾³ÖĞ£¬LLM ¿Í»§¶Ë¿ÉÄÜÎ´³õÊ¼»¯
+    // Õâ¸ö²âÊÔÑéÖ¤Èç¹û LLM ¿Í»§¶Ë´æÔÚ£¬ËüÓ¦¸ÃÓĞÖØÊÔ»úÖÆ
     if (runtime.llm) {
       expect(typeof runtime.llm.maxRetries).toBe("number");
       expect(runtime.llm.maxRetries).toBeGreaterThan(0);
     } else {
-      // å¦‚æœ LLM å®¢æˆ·ç«¯æœªåˆå§‹åŒ–ï¼Œè·³è¿‡æ­¤æµ‹è¯•
+      // Èç¹û LLM ¿Í»§¶ËÎ´³õÊ¼»¯£¬Ìø¹ı´Ë²âÊÔ
       expect(true).toBe(true);
     }
   });
 
-  test("åº”éªŒè¯ LLM å®¢æˆ·ç«¯æ”¯æŒä¸­æ–­åŠŸèƒ½", async () => {
-    // åœ¨æŸäº›æµ‹è¯•ç¯å¢ƒä¸­ï¼ŒLLM å®¢æˆ·ç«¯å¯èƒ½æœªåˆå§‹åŒ–
-    // è¿™ä¸ªæµ‹è¯•éªŒè¯å¦‚æœ LLM å®¢æˆ·ç«¯å­˜åœ¨ï¼Œå®ƒåº”è¯¥æ”¯æŒä¸­æ–­
+  test("Ó¦ÑéÖ¤ LLM ¿Í»§¶ËÖ§³ÖÖĞ¶Ï¹¦ÄÜ", async () => {
+    // ÔÚÄ³Ğ©²âÊÔ»·¾³ÖĞ£¬LLM ¿Í»§¶Ë¿ÉÄÜÎ´³õÊ¼»¯
+    // Õâ¸ö²âÊÔÑéÖ¤Èç¹û LLM ¿Í»§¶Ë´æÔÚ£¬ËüÓ¦¸ÃÖ§³ÖÖĞ¶Ï
     if (runtime.llm) {
       expect(typeof runtime.llm.abort).toBe("function");
       expect(typeof runtime.llm.hasActiveRequest).toBe("function");
 
-      // æµ‹è¯• abort æ–¹æ³•çš„åŸºæœ¬åŠŸèƒ½
+      // ²âÊÔ abort ·½·¨µÄ»ù±¾¹¦ÄÜ
       const result = runtime.llm.abort("non-existent-agent");
       expect(typeof result).toBe("boolean");
     } else {
-      // å¦‚æœ LLM å®¢æˆ·ç«¯æœªåˆå§‹åŒ–ï¼Œè·³è¿‡æ­¤æµ‹è¯•
+      // Èç¹û LLM ¿Í»§¶ËÎ´³õÊ¼»¯£¬Ìø¹ı´Ë²âÊÔ
       expect(true).toBe(true);
     }
   });
 });
 
-describe("é›†æˆæµ‹è¯• - å®Œæ•´ä¸šåŠ¡æµç¨‹", () => {
+describe("¼¯³É²âÊÔ - ÍêÕûÒµÎñÁ÷³Ì", () => {
   let runtime;
   let tmpDir;
 
@@ -545,43 +545,43 @@ describe("é›†æˆæµ‹è¯• - å®Œæ•´ä¸šåŠ¡æµç¨‹", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("åº”éªŒè¯å·¥å…·è°ƒç”¨æœºåˆ¶æ­£å¸¸å·¥ä½œ", async () => {
-    // åˆ›å»ºæµ‹è¯•æ™ºèƒ½ä½“
+  test("Ó¦ÑéÖ¤¹¤¾ßµ÷ÓÃ»úÖÆÕı³£¹¤×÷", async () => {
+    // ´´½¨²âÊÔÖÇÄÜÌå
     const agent = new Agent({
       id: "tool-agent",
       roleId: "test-role",
       roleName: "test",
-      rolePrompt: "æµ‹è¯•æ™ºèƒ½ä½“",
+      rolePrompt: "²âÊÔÖÇÄÜÌå",
       behavior: async () => {}
     });
     runtime.registerAgentInstance(agent);
 
-    // ç›´æ¥æµ‹è¯• artifact store çš„ putArtifact æ–¹æ³•
+    // Ö±½Ó²âÊÔ artifact store µÄ putArtifact ·½·¨
     const artifactRef = await runtime.artifacts.putArtifact({
-      name: "æµ‹è¯•å·¥ä»¶",
+      name: "²âÊÔ¹¤¼ş",
       type: "text",
       content: "Test artifact content"
     });
 
-    // éªŒè¯å·¥ä»¶åˆ›å»ºæˆåŠŸ
+    // ÑéÖ¤¹¤¼ş´´½¨³É¹¦
     expect(artifactRef).toBeTruthy();
     expect(artifactRef).toMatch(/^artifact:/);
 
-    // éªŒè¯å·¥ä»¶å·²åˆ›å»º
+    // ÑéÖ¤¹¤¼şÒÑ´´½¨
     const artifact = await runtime.artifacts.getArtifact(artifactRef);
     expect(artifact).toBeTruthy();
     expect(artifact.content).toBe("Test artifact content");
   });
 
-  test("åº”æ”¯æŒæ™ºèƒ½ä½“åˆ›å»ºæµç¨‹", async () => {
-    // åˆ›å»ºå²—ä½
+  test("Ó¦Ö§³ÖÖÇÄÜÌå´´½¨Á÷³Ì", async () => {
+    // ´´½¨¸ÚÎ»
     const role = await runtime.org.createRole({
       name: "worker",
       rolePrompt: "Worker role",
       createdBy: "root"
     });
 
-    // åˆ›å»ºæ ¹æ™ºèƒ½ä½“
+    // ´´½¨¸ùÖÇÄÜÌå
     const root = new Agent({
       id: "root",
       roleId: "root",
@@ -591,10 +591,10 @@ describe("é›†æˆæµ‹è¯• - å®Œæ•´ä¸šåŠ¡æµç¨‹", () => {
     });
     runtime.registerAgentInstance(root);
 
-    // åˆå§‹åŒ–è”ç³»äººæ³¨å†Œè¡¨
+    // ³õÊ¼»¯ÁªÏµÈË×¢²á±í
     runtime.contactManager.initRegistry("root", null, []);
 
-    // åˆ›å»ºä¸Šä¸‹æ–‡
+    // ´´½¨ÉÏÏÂÎÄ
     const ctx = {
       agent: root,
       runtime: runtime,
@@ -606,7 +606,7 @@ describe("é›†æˆæµ‹è¯• - å®Œæ•´ä¸šåŠ¡æµç¨‹", () => {
       }
     };
 
-    // é€šè¿‡å·¥å…·è°ƒç”¨åˆ›å»ºæ™ºèƒ½ä½“
+    // Í¨¹ı¹¤¾ßµ÷ÓÃ´´½¨ÖÇÄÜÌå
     const result = await runtime.executeToolCall(ctx, "spawn_agent_with_task", {
       roleId: role.id,
       taskBrief: {
@@ -623,12 +623,12 @@ describe("é›†æˆæµ‹è¯• - å®Œæ•´ä¸šåŠ¡æµç¨‹", () => {
       }
     });
 
-    // éªŒè¯æ™ºèƒ½ä½“åˆ›å»ºæˆåŠŸ
+    // ÑéÖ¤ÖÇÄÜÌå´´½¨³É¹¦
     expect(result).toBeTruthy();
     expect(result.id).toBeTruthy();
     expect(result.roleId).toBe(role.id);
 
-    // éªŒè¯æ™ºèƒ½ä½“å·²æ³¨å†Œ
+    // ÑéÖ¤ÖÇÄÜÌåÒÑ×¢²á
     expect(runtime._agents.has(result.id)).toBe(true);
   });
 });

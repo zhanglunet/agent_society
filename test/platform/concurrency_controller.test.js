@@ -1,7 +1,7 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
 import { ConcurrencyController, RequestInfo, ConcurrencyStats } from "../../src/platform/concurrency_controller.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("ConcurrencyController", () => {
   let controller;
@@ -20,7 +20,7 @@ describe("ConcurrencyController", () => {
   });
 
   describe("RequestInfo", () => {
-    it("åº”æ­£ç¡®åˆå§‹åŒ–æ‰€æœ‰å±æ€§", () => {
+    it("Ó¦ÕıÈ·³õÊ¼»¯ËùÓĞÊôĞÔ", () => {
       const resolve = vi.fn();
       const reject = vi.fn();
       const requestFn = vi.fn();
@@ -38,7 +38,7 @@ describe("ConcurrencyController", () => {
   });
 
   describe("ConcurrencyStats", () => {
-    it("åº”æ­£ç¡®åˆå§‹åŒ–ç»Ÿè®¡ä¿¡æ¯", () => {
+    it("Ó¦ÕıÈ·³õÊ¼»¯Í³¼ÆĞÅÏ¢", () => {
       const stats = new ConcurrencyStats();
       
       expect(stats.activeCount).toBe(0);
@@ -48,7 +48,7 @@ describe("ConcurrencyController", () => {
       expect(stats.rejectedRequests).toBe(0);
     });
 
-    it("reset() åº”é‡ç½®æ‰€æœ‰ç»Ÿè®¡ä¿¡æ¯", () => {
+    it("reset() Ó¦ÖØÖÃËùÓĞÍ³¼ÆĞÅÏ¢", () => {
       const stats = new ConcurrencyStats();
       stats.activeCount = 5;
       stats.queueLength = 3;
@@ -65,7 +65,7 @@ describe("ConcurrencyController", () => {
       expect(stats.rejectedRequests).toBe(0);
     });
 
-    it("getSnapshot() åº”è¿”å›ç»Ÿè®¡ä¿¡æ¯çš„å‰¯æœ¬", () => {
+    it("getSnapshot() Ó¦·µ»ØÍ³¼ÆĞÅÏ¢µÄ¸±±¾", () => {
       const stats = new ConcurrencyStats();
       stats.activeCount = 2;
       stats.queueLength = 1;
@@ -80,21 +80,21 @@ describe("ConcurrencyController", () => {
         rejectedRequests: 0
       });
 
-      // ä¿®æ”¹åŸå§‹å¯¹è±¡ä¸åº”å½±å“å¿«ç…§
+      // ĞŞ¸ÄÔ­Ê¼¶ÔÏó²»Ó¦Ó°Ïì¿ìÕÕ
       stats.activeCount = 5;
       expect(snapshot.activeCount).toBe(2);
     });
   });
 
-  describe("åŸºæœ¬åŠŸèƒ½", () => {
-    it("åº”æ­£ç¡®åˆå§‹åŒ–", () => {
+  describe("»ù±¾¹¦ÄÜ", () => {
+    it("Ó¦ÕıÈ·³õÊ¼»¯", () => {
       expect(controller.maxConcurrentRequests).toBe(3);
       expect(controller.activeRequests).toBeInstanceOf(Map);
       expect(controller.requestQueue).toBeInstanceOf(Array);
       expect(controller.stats).toBeInstanceOf(ConcurrencyStats);
     });
 
-    it("åº”æ‹’ç»æ²¡æœ‰agentIdçš„è¯·æ±‚", async () => {
+    it("Ó¦¾Ü¾øÃ»ÓĞagentIdµÄÇëÇó", async () => {
       const requestFn = vi.fn().mockResolvedValue("result");
       
       await expect(controller.executeRequest(null, requestFn)).rejects.toThrow(
@@ -108,9 +108,9 @@ describe("ConcurrencyController", () => {
 
   // **Feature: llm-concurrency-control, Property 3: Concurrent Request Processing**
   describe("Property 3: Concurrent Request Processing", () => {
-    it("å¯¹äºä»»ä½•æ²¡æœ‰æ´»è·ƒè¯·æ±‚çš„æ™ºèƒ½ä½“é›†åˆï¼Œå½“ç³»ç»Ÿå¹¶å‘æ•°ä½äºæœ€å¤§é™åˆ¶æ—¶ï¼Œå®ƒä»¬çš„è¯·æ±‚åº”ç«‹å³ç‹¬ç«‹å¤„ç†", async () => {
+    it("¶ÔÓÚÈÎºÎÃ»ÓĞ»îÔ¾ÇëÇóµÄÖÇÄÜÌå¼¯ºÏ£¬µ±ÏµÍ³²¢·¢ÊıµÍÓÚ×î´óÏŞÖÆÊ±£¬ËüÃÇµÄÇëÇóÓ¦Á¢¼´¶ÀÁ¢´¦Àí", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 3 }).map(arr => [...new Set(arr)]), // ç¡®ä¿å”¯ä¸€çš„agentId
+        fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 3 }).map(arr => [...new Set(arr)]), // È·±£Î¨Ò»µÄagentId
         async (agentIds) => {
           const controller = new ConcurrencyController(agentIds.length, mockLogger);
           const results = [];
@@ -118,23 +118,23 @@ describe("ConcurrencyController", () => {
             vi.fn().mockResolvedValue(`result-${index}`)
           );
 
-          // åŒæ—¶å‘èµ·æ‰€æœ‰è¯·æ±‚
+          // Í¬Ê±·¢ÆğËùÓĞÇëÇó
           const promises = agentIds.map((agentId, index) => 
             controller.executeRequest(agentId, requestFns[index])
           );
 
-          // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+          // µÈ´ıËùÓĞÇëÇóÍê³É
           const actualResults = await Promise.all(promises);
 
-          // éªŒè¯æ‰€æœ‰è¯·æ±‚éƒ½ç«‹å³æ‰§è¡Œï¼ˆæ²¡æœ‰è¿›å…¥é˜Ÿåˆ—ï¼‰
+          // ÑéÖ¤ËùÓĞÇëÇó¶¼Á¢¼´Ö´ĞĞ£¨Ã»ÓĞ½øÈë¶ÓÁĞ£©
           expect(controller.getQueueLength()).toBe(0);
           expect(controller.getActiveCount()).toBe(0);
           expect(controller.stats.completedRequests).toBe(agentIds.length);
           
-          // éªŒè¯æ‰€æœ‰è¯·æ±‚å‡½æ•°éƒ½è¢«è°ƒç”¨
+          // ÑéÖ¤ËùÓĞÇëÇóº¯Êı¶¼±»µ÷ÓÃ
           requestFns.forEach(fn => expect(fn).toHaveBeenCalledTimes(1));
           
-          // éªŒè¯ç»“æœæ­£ç¡®
+          // ÑéÖ¤½á¹ûÕıÈ·
           agentIds.forEach((_, index) => {
             expect(actualResults[index]).toBe(`result-${index}`);
           });
@@ -145,17 +145,17 @@ describe("ConcurrencyController", () => {
 
   // **Feature: llm-concurrency-control, Property 5: Queue Management**
   describe("Property 5: Queue Management", () => {
-    it("å¯¹äºä»»ä½•è¯·æ±‚ï¼Œå½“ç³»ç»Ÿè¾¾åˆ°æœ€å¤§å¹¶å‘æ—¶ï¼Œè¯·æ±‚åº”è¿›å…¥é˜Ÿåˆ—å¹¶åœ¨æ§½ä½å¯ç”¨æ—¶å¤„ç†", async () => {
+    it("¶ÔÓÚÈÎºÎÇëÇó£¬µ±ÏµÍ³´ïµ½×î´ó²¢·¢Ê±£¬ÇëÇóÓ¦½øÈë¶ÓÁĞ²¢ÔÚ²ÛÎ»¿ÉÓÃÊ±´¦Àí", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.integer({ min: 1, max: 2 }), // è¾ƒå°çš„maxConcurrentRequestsä»¥ç®€åŒ–æµ‹è¯•
-        fc.integer({ min: 3, max: 5 }), // è¯·æ±‚æ•°é‡ï¼Œç¡®ä¿å¤§äºmaxConcurrentRequests
+        fc.integer({ min: 1, max: 2 }), // ½ÏĞ¡µÄmaxConcurrentRequestsÒÔ¼ò»¯²âÊÔ
+        fc.integer({ min: 3, max: 5 }), // ÇëÇóÊıÁ¿£¬È·±£´óÓÚmaxConcurrentRequests
         async (maxConcurrent, numRequests) => {
           const controller = new ConcurrencyController(maxConcurrent, mockLogger);
           const agentIds = Array.from({ length: numRequests }, (_, i) => `agent-${i}`);
           const completedResults = [];
           let completedCount = 0;
           
-          // åˆ›å»ºè¯·æ±‚å‡½æ•°ï¼Œæ¯ä¸ªéƒ½ä¼šåœ¨è°ƒç”¨æ—¶ç«‹å³å®Œæˆ
+          // ´´½¨ÇëÇóº¯Êı£¬Ã¿¸ö¶¼»áÔÚµ÷ÓÃÊ±Á¢¼´Íê³É
           const requestFns = agentIds.map((agentId, index) => 
             vi.fn().mockImplementation(async () => {
               completedCount++;
@@ -165,30 +165,30 @@ describe("ConcurrencyController", () => {
             })
           );
 
-          // å‘èµ·æ‰€æœ‰è¯·æ±‚
+          // ·¢ÆğËùÓĞÇëÇó
           const promises = agentIds.map((agentId, index) => 
             controller.executeRequest(agentId, requestFns[index])
           );
 
-          // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+          // µÈ´ıËùÓĞÇëÇóÍê³É
           const results = await Promise.all(promises);
 
-          // éªŒè¯æ‰€æœ‰è¯·æ±‚éƒ½å®Œæˆäº†
+          // ÑéÖ¤ËùÓĞÇëÇó¶¼Íê³ÉÁË
           expect(completedCount).toBe(numRequests);
           expect(results.length).toBe(numRequests);
           expect(controller.getActiveCount()).toBe(0);
           expect(controller.getQueueLength()).toBe(0);
           expect(controller.stats.completedRequests).toBe(numRequests);
           
-          // éªŒè¯æ‰€æœ‰è¯·æ±‚å‡½æ•°éƒ½è¢«è°ƒç”¨
+          // ÑéÖ¤ËùÓĞÇëÇóº¯Êı¶¼±»µ÷ÓÃ
           requestFns.forEach(fn => expect(fn).toHaveBeenCalledTimes(1));
         }
       ), { numRuns: 50 });
     });
   });
 
-  describe("å•å…ƒæµ‹è¯•", () => {
-    it("åº”ç«‹å³å¤„ç†ç¬¬ä¸€ä¸ªè¯·æ±‚", async () => {
+  describe("µ¥Ôª²âÊÔ", () => {
+    it("Ó¦Á¢¼´´¦ÀíµÚÒ»¸öÇëÇó", async () => {
       const requestFn = vi.fn().mockResolvedValue("result");
       
       const result = await controller.executeRequest("agent1", requestFn);
@@ -199,17 +199,17 @@ describe("ConcurrencyController", () => {
       expect(controller.stats.completedRequests).toBe(1);
     });
 
-    it("åº”æ‹’ç»åŒä¸€æ™ºèƒ½ä½“çš„ç¬¬äºŒä¸ªè¯·æ±‚", async () => {
-      const firstRequestFn = vi.fn().mockReturnValue(new Promise(() => {})); // æ°¸ä¸è§£å†³
+    it("Ó¦¾Ü¾øÍ¬Ò»ÖÇÄÜÌåµÄµÚ¶ş¸öÇëÇó", async () => {
+      const firstRequestFn = vi.fn().mockReturnValue(new Promise(() => {})); // ÓÀ²»½â¾ö
       const secondRequestFn = vi.fn().mockResolvedValue("result2");
       
-      // å‘èµ·ç¬¬ä¸€ä¸ªè¯·æ±‚ï¼ˆä¸ç­‰å¾…å®Œæˆï¼‰
+      // ·¢ÆğµÚÒ»¸öÇëÇó£¨²»µÈ´ıÍê³É£©
       const firstPromise = controller.executeRequest("agent1", firstRequestFn);
       
-      // ç­‰å¾…ä¸€å°æ®µæ—¶é—´ç¡®ä¿ç¬¬ä¸€ä¸ªè¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÒ»Ğ¡¶ÎÊ±¼äÈ·±£µÚÒ»¸öÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // å°è¯•å‘èµ·ç¬¬äºŒä¸ªè¯·æ±‚
+      // ³¢ÊÔ·¢ÆğµÚ¶ş¸öÇëÇó
       await expect(controller.executeRequest("agent1", secondRequestFn)).rejects.toThrow(
         "Agent agent1 already has an active request"
       );
@@ -218,62 +218,62 @@ describe("ConcurrencyController", () => {
       expect(secondRequestFn).not.toHaveBeenCalled();
     });
 
-    it("åº”åœ¨è¾¾åˆ°å¹¶å‘é™åˆ¶æ—¶å°†è¯·æ±‚åŠ å…¥é˜Ÿåˆ—", async () => {
+    it("Ó¦ÔÚ´ïµ½²¢·¢ÏŞÖÆÊ±½«ÇëÇó¼ÓÈë¶ÓÁĞ", async () => {
       const requestFns = [
-        vi.fn().mockReturnValue(new Promise(() => {})), // æ°¸ä¸è§£å†³
-        vi.fn().mockReturnValue(new Promise(() => {})), // æ°¸ä¸è§£å†³
-        vi.fn().mockReturnValue(new Promise(() => {})), // æ°¸ä¸è§£å†³
+        vi.fn().mockReturnValue(new Promise(() => {})), // ÓÀ²»½â¾ö
+        vi.fn().mockReturnValue(new Promise(() => {})), // ÓÀ²»½â¾ö
+        vi.fn().mockReturnValue(new Promise(() => {})), // ÓÀ²»½â¾ö
         vi.fn().mockResolvedValue("result4")
       ];
       
-      // å‘èµ·å‰3ä¸ªè¯·æ±‚ï¼ˆè¾¾åˆ°é™åˆ¶ï¼‰
+      // ·¢ÆğÇ°3¸öÇëÇó£¨´ïµ½ÏŞÖÆ£©
       const promises = [
         controller.executeRequest("agent1", requestFns[0]),
         controller.executeRequest("agent2", requestFns[1]),
         controller.executeRequest("agent3", requestFns[2])
       ];
       
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getActiveCount()).toBe(3);
       expect(controller.getQueueLength()).toBe(0);
       
-      // å‘èµ·ç¬¬4ä¸ªè¯·æ±‚ï¼ˆåº”è¿›å…¥é˜Ÿåˆ—ï¼‰
+      // ·¢ÆğµÚ4¸öÇëÇó£¨Ó¦½øÈë¶ÓÁĞ£©
       const fourthPromise = controller.executeRequest("agent4", requestFns[3]);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ı¶ÓÁĞ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getActiveCount()).toBe(3);
       expect(controller.getQueueLength()).toBe(1);
-      expect(requestFns[3]).not.toHaveBeenCalled(); // ç¬¬4ä¸ªè¯·æ±‚è¿˜æœªæ‰§è¡Œ
+      expect(requestFns[3]).not.toHaveBeenCalled(); // µÚ4¸öÇëÇó»¹Î´Ö´ĞĞ
     });
 
-    it("åº”æ­£ç¡®å–æ¶ˆæ´»è·ƒè¯·æ±‚", async () => {
-      const requestFn = vi.fn().mockReturnValue(new Promise(() => {})); // æ°¸ä¸è§£å†³
+    it("Ó¦ÕıÈ·È¡Ïû»îÔ¾ÇëÇó", async () => {
+      const requestFn = vi.fn().mockReturnValue(new Promise(() => {})); // ÓÀ²»½â¾ö
       
-      // å‘èµ·è¯·æ±‚
+      // ·¢ÆğÇëÇó
       const promise = controller.executeRequest("agent1", requestFn);
       
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.hasActiveRequest("agent1")).toBe(true);
       
-      // å–æ¶ˆè¯·æ±‚
+      // È¡ÏûÇëÇó
       const cancelled = await controller.cancelRequest("agent1");
       
       expect(cancelled).toBe(true);
       expect(controller.hasActiveRequest("agent1")).toBe(false);
       expect(controller.getActiveCount()).toBe(0);
       
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(promise).rejects.toThrow("Request cancelled");
     });
 
-    it("åº”æ­£ç¡®å–æ¶ˆé˜Ÿåˆ—ä¸­çš„è¯·æ±‚", async () => {
-      // å…ˆå¡«æ»¡æ´»è·ƒæ§½ä½
+    it("Ó¦ÕıÈ·È¡Ïû¶ÓÁĞÖĞµÄÇëÇó", async () => {
+      // ÏÈÌîÂú»îÔ¾²ÛÎ»
       const activeRequestFns = [
         vi.fn().mockReturnValue(new Promise(() => {})),
         vi.fn().mockReturnValue(new Promise(() => {})),
@@ -286,48 +286,48 @@ describe("ConcurrencyController", () => {
         controller.executeRequest("agent3", activeRequestFns[2])
       ];
       
-      // ç­‰å¾…æ´»è·ƒè¯·æ±‚å¼€å§‹
+      // µÈ´ı»îÔ¾ÇëÇó¿ªÊ¼
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // æ·»åŠ é˜Ÿåˆ—è¯·æ±‚
+      // Ìí¼Ó¶ÓÁĞÇëÇó
       const queuedRequestFn = vi.fn().mockResolvedValue("queued-result");
       const queuedPromise = controller.executeRequest("agent4", queuedRequestFn);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ı¶ÓÁĞ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getQueueLength()).toBe(1);
       
-      // å–æ¶ˆé˜Ÿåˆ—ä¸­çš„è¯·æ±‚
+      // È¡Ïû¶ÓÁĞÖĞµÄÇëÇó
       const cancelled = await controller.cancelRequest("agent4");
       
       expect(cancelled).toBe(true);
       expect(controller.getQueueLength()).toBe(0);
       
-      // éªŒè¯promiseè¢«æ‹’ç»
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(queuedPromise).rejects.toThrow("Request cancelled");
       expect(queuedRequestFn).not.toHaveBeenCalled();
     });
 
-    it("åº”æ­£ç¡®æ›´æ–°æœ€å¤§å¹¶å‘æ•°é…ç½®", async () => {
+    it("Ó¦ÕıÈ·¸üĞÂ×î´ó²¢·¢ÊıÅäÖÃ", async () => {
       expect(controller.maxConcurrentRequests).toBe(3);
       
       await controller.updateMaxConcurrentRequests(5);
       expect(controller.maxConcurrentRequests).toBe(5);
       
-      // æµ‹è¯•æ— æ•ˆå€¼
+      // ²âÊÔÎŞĞ§Öµ
       await controller.updateMaxConcurrentRequests(-1);
-      expect(controller.maxConcurrentRequests).toBe(5); // åº”ä¿æŒä¸å˜
+      expect(controller.maxConcurrentRequests).toBe(5); // Ó¦±£³Ö²»±ä
       
       await controller.updateMaxConcurrentRequests(0);
-      expect(controller.maxConcurrentRequests).toBe(5); // åº”ä¿æŒä¸å˜
+      expect(controller.maxConcurrentRequests).toBe(5); // Ó¦±£³Ö²»±ä
       
       await controller.updateMaxConcurrentRequests("invalid");
-      expect(controller.maxConcurrentRequests).toBe(5); // åº”ä¿æŒä¸å˜
+      expect(controller.maxConcurrentRequests).toBe(5); // Ó¦±£³Ö²»±ä
     });
 
-    it("å¢åŠ æœ€å¤§å¹¶å‘æ•°æ—¶åº”å¤„ç†é˜Ÿåˆ—ä¸­çš„è¯·æ±‚", async () => {
-      // å¡«æ»¡å½“å‰å®¹é‡
+    it("Ôö¼Ó×î´ó²¢·¢ÊıÊ±Ó¦´¦Àí¶ÓÁĞÖĞµÄÇëÇó", async () => {
+      // ÌîÂúµ±Ç°ÈİÁ¿
       const requestFns = [
         vi.fn().mockReturnValue(new Promise(() => {})),
         vi.fn().mockReturnValue(new Promise(() => {})),
@@ -342,19 +342,19 @@ describe("ConcurrencyController", () => {
         controller.executeRequest("agent4", requestFns[3])
       ];
       
-      // ç­‰å¾…å¤„ç†
+      // µÈ´ı´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(controller.getActiveCount()).toBe(3);
       expect(controller.getQueueLength()).toBe(1);
       
-      // å¢åŠ æœ€å¤§å¹¶å‘æ•°
+      // Ôö¼Ó×î´ó²¢·¢Êı
       await controller.updateMaxConcurrentRequests(4);
       
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
+      // µÈ´ı¶ÓÁĞ´¦Àí
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      expect(controller.getActiveCount()).toBe(3); // agent4çš„è¯·æ±‚å·²å®Œæˆ
+      expect(controller.getActiveCount()).toBe(3); // agent4µÄÇëÇóÒÑÍê³É
       expect(controller.getQueueLength()).toBe(0);
       expect(requestFns[3]).toHaveBeenCalled();
     });

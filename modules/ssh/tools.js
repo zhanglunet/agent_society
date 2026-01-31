@@ -164,16 +164,16 @@ export function getToolDefinitions() {
               type: 'string',
               description: '连接ID'
             },
-            artifactId: {
+            path: {
               type: 'string',
-              description: '工件ID'
+              description: '工作区文件路径'
             },
             remotePath: {
               type: 'string',
               description: '远程文件路径'
             }
           },
-          required: ['connectionId', 'artifactId', 'remotePath']
+          required: ['connectionId', 'path', 'remotePath']
         }
       }
     },
@@ -193,12 +193,12 @@ export function getToolDefinitions() {
               type: 'string',
               description: '远程文件路径'
             },
-            fileName: {
+            path: {
               type: 'string',
-              description: '文件名（用于工件命名）'
+              description: '下载到工作区的路径'
             }
           },
-          required: ['connectionId', 'remotePath', 'fileName']
+          required: ['connectionId', 'remotePath', 'path']
         }
       }
     },

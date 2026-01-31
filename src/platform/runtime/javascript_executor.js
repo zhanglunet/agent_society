@@ -27,13 +27,14 @@
  * 
  * 【与其他模块的关系】
  * - 被 ToolExecutor 调用来处理 run_javascript 工具
- * - 使用 Runtime 的 artifacts 存储 Canvas 生成的图像
+ * - 使用 WorkspaceManager 存储 Canvas 生成的图像
  * 
  * @module runtime/javascript_executor
  */
 
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { WorkspaceManager } from "../services/workspace/workspace_manager.js";
 
 /**
  * JavaScript 执行器类
@@ -44,11 +45,13 @@ export class JavaScriptExecutor {
   /**
    * 创建 JavaScript 执行器实例
    * 
-   * @param {object} runtime - Runtime 实例引用，用于访问 artifacts 等共享资源
+   * @param {object} runtime - Runtime 实例引用，用于访问工作区等共享资源
    */
   constructor(runtime) {
     /** @type {object} Runtime 实例引用 */
     this.runtime = runtime;
+    /** @type {WorkspaceManager} 工作区管理器引用 */
+    this.workspaceManager = runtime.workspaceManager;
   }
 
   /**
@@ -65,6 +68,7 @@ export class JavaScriptExecutor {
    * @param {object} args - 执行参数
    * @param {string} args.code - 要执行的 JavaScript 代码（函数体形式）
    * @param {any} [args.input] - 传入代码的输入参数
+   * @param {string|null} [workspaceId] - 关联的工作区ID
    * @param {string|null} [messageId] - 关联的消息ID（用于 Canvas 图像元数据）
    * @param {string|null} [agentId] - 关联的智能体ID（用于 Canvas 图像元数据）
    * @returns {Promise<any>} 执行结果或错误对象
@@ -92,10 +96,10 @@ export class JavaScriptExecutor {
    *     ctx.fillRect(50, 50, 100, 100);
    *     return 'done';
    *   `
-   * });
-   * // result: { result: 'done', images: ['xxx.png'] }
+   * }, 'ws-123');
+   * // result: { result: 'done', paths: ['canvas/my-chart-xxx.png'] }
    */
-  async execute(args, messageId = null, agentId = null) {
+  async execute(args, workspaceId = null, messageId = null, agentId = null) {
     const code = args?.code;
     const input = args?.input;
     
@@ -136,7 +140,7 @@ export class JavaScriptExecutor {
         throw new Error("Canvas 功能不可用，请确保 @napi-rs/canvas 包已安装");
       }
       const newCanvas = createCanvasFn(width, height);
-      newCanvas._name = name.trim(); // 存储工件名称到 canvas 对象
+      newCanvas._name = name.trim(); // 存储名称到 canvas 对象
       canvasInstances.push(newCanvas);
       return newCanvas;
     };
@@ -164,7 +168,10 @@ export class JavaScriptExecutor {
 
       // 如果使用了 Canvas，自动导出并保存所有图像
       if (canvasInstances.length > 0) {
-        return await this._saveAllCanvasImages(canvasInstances, jsonSafe.value, messageId, agentId);
+        if (!workspaceId) {
+          return { result: jsonSafe.value, error: "workspace_required", message: "使用 Canvas 功能需要提供 workspaceId" };
+        }
+        return await this._saveAllCanvasImages(workspaceId, canvasInstances, jsonSafe.value, messageId, agentId);
       }
 
       return jsonSafe.value;
@@ -179,147 +186,84 @@ export class JavaScriptExecutor {
   }
 
   /**
-   * 保存所有 Canvas 生成的图像到工件库
+   * 保存所有 Canvas 生成的图像到工作区
    * 
+   * @param {string} workspaceId - 工作区ID
    * @param {object[]} canvasInstances - Canvas 实例数组
    * @param {any} result - 代码执行结果
    * @param {string|null} messageId - 关联的消息ID
    * @param {string|null} agentId - 关联的智能体ID
-   * @returns {Promise<object>} 包含结果和图像文件名数组的对象
+   * @returns {Promise<object>} 包含结果和图像文件路径数组的对象
    * @private
    */
-  async _saveAllCanvasImages(canvasInstances, result, messageId, agentId) {
-    const imageFiles = [];
+  async _saveAllCanvasImages(workspaceId, canvasInstances, result, messageId, agentId) {
+    const imagePaths = [];
     const errors = [];
 
-    for (let i = 0; i < canvasInstances.length; i++) {
-      const canvas = canvasInstances[i];
-      
-      // 验证 name 必须存在
-      if (!canvas._name || typeof canvas._name !== 'string' || canvas._name.trim() === '') {
-        errors.push({ index: i, error: "Canvas 缺少必需的 name 属性" });
-        continue;
+    try {
+      const ws = await this.workspaceManager.getWorkspace(workspaceId);
+
+      for (let i = 0; i < canvasInstances.length; i++) {
+        const canvas = canvasInstances[i];
+        
+        // 验证 name 必须存在
+        if (!canvas._name || typeof canvas._name !== 'string' || canvas._name.trim() === '') {
+          errors.push({ index: i, error: "Canvas 缺少必需的 name 属性" });
+          continue;
+        }
+        
+        try {
+          const pngBuffer = canvas.toBuffer("image/png");
+          const safeName = canvas._name.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          const fileName = `canvas/${safeName}.png`;
+          
+          // 写入文件到工作区
+          await ws.writeFile(fileName, pngBuffer, {
+            mimeType: "image/png",
+            meta: {
+              source: "canvas",
+              messageId,
+              agentId,
+              width: canvas.width,
+              height: canvas.height,
+              canvasIndex: i
+            }
+          });
+          
+          imagePaths.push(fileName);
+          
+          void this.runtime.log?.info?.("保存 Canvas 图像到工作区", {
+            workspaceId,
+            fileName,
+            userName: canvas._name.trim(),
+            width: canvas.width,
+            height: canvas.height,
+            index: i,
+            total: canvasInstances.length
+          });
+        } catch (exportErr) {
+          const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
+          errors.push({ index: i, error: exportMessage });
+          void this.runtime.log?.error?.("保存 Canvas 图像失败", {
+            workspaceId,
+            index: i,
+            error: exportMessage
+          });
+        }
       }
-      
-      try {
-        const { randomUUID } = await import("node:crypto");
-        const { writeFile } = await import("node:fs/promises");
-        const pngBuffer = canvas.toBuffer("image/png");
-        const artifactId = randomUUID();
-        const extension = ".png";
-        const fileName = `${artifactId}${extension}`;
-        const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
-        const createdAt = new Date().toISOString();
-        
-        await this.runtime.artifacts.ensureReady();
-        await writeFile(filePath, pngBuffer);
-        
-        // 写入元信息文件
-        const metadata = {
-          id: artifactId,
-          extension,
-          type: "image/png",
-          createdAt,
-          messageId: messageId,
-          agentId: agentId,
-          name: canvas._name.trim(),
-          width: canvas.width,
-          height: canvas.height,
-          source: "canvas",
-          canvasIndex: i
-        };
-        await this.runtime.artifacts._writeMetadata(artifactId, metadata);
-        
-        imageFiles.push(fileName);
-        
-        void this.runtime.log?.info?.("保存 Canvas 图像", {
-          fileName,
-          userName: canvas._name.trim(),
-          width: canvas.width,
-          height: canvas.height,
-          index: i,
-          total: canvasInstances.length
-        });
-      } catch (exportErr) {
-        const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
-        errors.push({ index: i, error: exportMessage });
-        void this.runtime.log?.error?.("保存 Canvas 图像失败", {
-          index: i,
-          error: exportMessage
-        });
-      }
+    } catch (wsErr) {
+      return { result, error: "workspace_error", message: wsErr.message };
     }
 
-    if (imageFiles.length === 0 && errors.length > 0) {
+    if (imagePaths.length === 0 && errors.length > 0) {
       return { result, error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
     }
 
-    // 从文件名中提取工件ID（去掉扩展名）
-    const artifactIds = imageFiles.map(fileName => fileName.replace(/\.[^.]+$/, ''));
-    
-    const response = { result, artifactIds };
+    const response = { result, paths: imagePaths };
     if (errors.length > 0) {
       response.partialErrors = errors;
     }
     return response;
-  }
-
-  /**
-   * 保存 Canvas 生成的图像到工件库
-   * 
-   * @param {object} canvasInstance - Canvas 实例
-   * @param {any} result - 代码执行结果
-   * @param {string|null} messageId - 关联的消息ID
-   * @param {string|null} agentId - 关联的智能体ID
-   * @returns {Promise<object>} 包含结果和图像文件名的对象
-   * @private
-   */
-  async _saveCanvasImage(canvasInstance, result, messageId, agentId) {
-    // 验证 name 必须存在
-    if (!canvasInstance._name || typeof canvasInstance._name !== 'string' || canvasInstance._name.trim() === '') {
-      return { result, error: "canvas_export_failed", message: "Canvas 缺少必需的 name 属性" };
-    }
-    
-    try {
-      const { randomUUID } = await import("node:crypto");
-      const { writeFile } = await import("node:fs/promises");
-      const pngBuffer = canvasInstance.toBuffer("image/png");
-      const artifactId = randomUUID();
-      const extension = ".png";
-      const fileName = `${artifactId}${extension}`;
-      const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
-      const createdAt = new Date().toISOString();
-      
-      await this.runtime.artifacts.ensureReady();
-      await writeFile(filePath, pngBuffer);
-      
-      // 写入元信息文件
-      const metadata = {
-        id: artifactId,
-        extension,
-        type: "image",
-        createdAt,
-        messageId: messageId,
-        agentId: agentId,
-        name: canvasInstance._name.trim(),
-        width: canvasInstance.width,
-        height: canvasInstance.height,
-        source: "canvas"
-      };
-      await this.runtime.artifacts._writeMetadata(artifactId, metadata);
-      
-      void this.runtime.log?.info?.("保存 Canvas 图像", {
-        fileName,
-        userName: canvasInstance._name.trim(),
-        width: canvasInstance.width,
-        height: canvasInstance.height
-      });
-      
-      return { result, artifactIds: [artifactId] };
-    } catch (exportErr) {
-      const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
-      return { result, error: "canvas_export_failed", message: exportMessage };
-    }
   }
 
   /**

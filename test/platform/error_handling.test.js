@@ -1,8 +1,8 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
 import { ConcurrencyController } from "../../src/platform/concurrency_controller.js";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("Error Handling and Resource Release", () => {
   let controller;
@@ -33,87 +33,87 @@ describe("Error Handling and Resource Release", () => {
 
   // **Feature: llm-concurrency-control, Property 8: Error Handling and Resource Release**
   describe("Property 8: Error Handling and Resource Release", () => {
-    it("å¯¹äºä»»ä½•åœ¨å¤„ç†è¿‡ç¨‹ä¸­å¤±è´¥çš„è¯·æ±‚ï¼Œç³»ç»Ÿåº”é‡Šæ”¾å¹¶å‘æ§½ä½å¹¶å¤„ç†ä¸‹ä¸€ä¸ªé˜Ÿåˆ—è¯·æ±‚", async () => {
+    it("¶ÔÓÚÈÎºÎÔÚ´¦Àí¹ı³ÌÖĞÊ§°ÜµÄÇëÇó£¬ÏµÍ³Ó¦ÊÍ·Å²¢·¢²ÛÎ»²¢´¦ÀíÏÂÒ»¸ö¶ÓÁĞÇëÇó", async () => {
       await fc.assert(fc.asyncProperty(
-        fc.array(fc.string({ minLength: 1, maxLength: 5 }), { minLength: 2, maxLength: 4 }).map(arr => [...new Set(arr)]), // ç®€åŒ–ï¼šæ›´å°‘çš„agentId
+        fc.array(fc.string({ minLength: 1, maxLength: 5 }), { minLength: 2, maxLength: 4 }).map(arr => [...new Set(arr)]), // ¼ò»¯£º¸üÉÙµÄagentId
         async (agentIds) => {
-          const controller = new ConcurrencyController(1, mockLogger); // ç®€åŒ–ï¼šåªå…è®¸1ä¸ªå¹¶å‘
+          const controller = new ConcurrencyController(1, mockLogger); // ¼ò»¯£ºÖ»ÔÊĞí1¸ö²¢·¢
           const requestPromises = [];
           
-          // ç¬¬ä¸€ä¸ªè¯·æ±‚å¤±è´¥ï¼Œç¬¬äºŒä¸ªæˆåŠŸ
+          // µÚÒ»¸öÇëÇóÊ§°Ü£¬µÚ¶ş¸ö³É¹¦
           const failingRequestFn = vi.fn().mockRejectedValue(new Error("Test error"));
           const successRequestFn = vi.fn().mockResolvedValue("success");
           
           const promise1 = controller.executeRequest(agentIds[0], failingRequestFn);
           const promise2 = controller.executeRequest(agentIds[1], successRequestFn);
 
-          // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+          // µÈ´ıËùÓĞÇëÇóÍê³É
           const results = await Promise.allSettled([promise1, promise2]);
 
-          // éªŒè¯ç¬¬ä¸€ä¸ªè¯·æ±‚å¤±è´¥ï¼Œç¬¬äºŒä¸ªæˆåŠŸ
+          // ÑéÖ¤µÚÒ»¸öÇëÇóÊ§°Ü£¬µÚ¶ş¸ö³É¹¦
           expect(results[0].status).toBe("rejected");
           expect(results[1].status).toBe("fulfilled");
           expect(results[1].value).toBe("success");
 
-          // éªŒè¯æœ€ç»ˆçŠ¶æ€ï¼šæ‰€æœ‰èµ„æºéƒ½è¢«é‡Šæ”¾
+          // ÑéÖ¤×îÖÕ×´Ì¬£ºËùÓĞ×ÊÔ´¶¼±»ÊÍ·Å
           expect(controller.getActiveCount()).toBe(0);
           expect(controller.getQueueLength()).toBe(0);
         }
-      ), { numRuns: 10 }); // å‡å°‘è¿è¡Œæ¬¡æ•°
+      ), { numRuns: 10 }); // ¼õÉÙÔËĞĞ´ÎÊı
     });
   });
 
-  describe("ConcurrencyControlleré”™è¯¯å¤„ç†", () => {
-    it("åº”æ­£ç¡®å¤„ç†è¯·æ±‚æ‰§è¡Œå¤±è´¥", async () => {
+  describe("ConcurrencyController´íÎó´¦Àí", () => {
+    it("Ó¦ÕıÈ·´¦ÀíÇëÇóÖ´ĞĞÊ§°Ü", async () => {
       const errorMessage = "Network timeout";
       const requestFn = vi.fn().mockRejectedValue(new Error(errorMessage));
       
-      // æ‰§è¡Œå¤±è´¥çš„è¯·æ±‚
+      // Ö´ĞĞÊ§°ÜµÄÇëÇó
       await expect(controller.executeRequest("agent1", requestFn)).rejects.toThrow(errorMessage);
       
-      // éªŒè¯èµ„æºè¢«æ­£ç¡®é‡Šæ”¾
+      // ÑéÖ¤×ÊÔ´±»ÕıÈ·ÊÍ·Å
       expect(controller.getActiveCount()).toBe(0);
       expect(controller.hasActiveRequest("agent1")).toBe(false);
       
-      // éªŒè¯ç»Ÿè®¡ä¿¡æ¯
+      // ÑéÖ¤Í³¼ÆĞÅÏ¢
       expect(controller.stats.totalRequests).toBe(1);
       expect(controller.stats.completedRequests).toBe(0);
     });
 
-    it("å¤±è´¥çš„è¯·æ±‚åº”é‡Šæ”¾æ§½ä½å¹¶å¤„ç†é˜Ÿåˆ—ä¸­çš„ä¸‹ä¸€ä¸ªè¯·æ±‚", async () => {
-      // ç®€åŒ–æµ‹è¯•ï¼šåªæµ‹è¯•åŸºæœ¬çš„é”™è¯¯å¤„ç†å’Œé˜Ÿåˆ—å¤„ç†
-      const controller = new ConcurrencyController(1, mockLogger); // åªå…è®¸1ä¸ªå¹¶å‘
+    it("Ê§°ÜµÄÇëÇóÓ¦ÊÍ·Å²ÛÎ»²¢´¦Àí¶ÓÁĞÖĞµÄÏÂÒ»¸öÇëÇó", async () => {
+      // ¼ò»¯²âÊÔ£ºÖ»²âÊÔ»ù±¾µÄ´íÎó´¦ÀíºÍ¶ÓÁĞ´¦Àí
+      const controller = new ConcurrencyController(1, mockLogger); // Ö»ÔÊĞí1¸ö²¢·¢
       
-      // ç¬¬ä¸€ä¸ªè¯·æ±‚å¤±è´¥
+      // µÚÒ»¸öÇëÇóÊ§°Ü
       const failingRequestFn = vi.fn().mockRejectedValue(new Error("Request failed"));
       const promise1 = controller.executeRequest("agent1", failingRequestFn);
       
-      // ç¬¬äºŒä¸ªè¯·æ±‚æˆåŠŸï¼ˆä¼šè¿›å…¥é˜Ÿåˆ—ï¼‰
+      // µÚ¶ş¸öÇëÇó³É¹¦£¨»á½øÈë¶ÓÁĞ£©
       const successRequestFn = vi.fn().mockResolvedValue("success");
       const promise2 = controller.executeRequest("agent2", successRequestFn);
       
-      // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+      // µÈ´ıËùÓĞÇëÇóÍê³É
       const results = await Promise.allSettled([promise1, promise2]);
       
-      // éªŒè¯ç¬¬ä¸€ä¸ªè¯·æ±‚å¤±è´¥ï¼Œç¬¬äºŒä¸ªæˆåŠŸ
+      // ÑéÖ¤µÚÒ»¸öÇëÇóÊ§°Ü£¬µÚ¶ş¸ö³É¹¦
       expect(results[0].status).toBe("rejected");
       expect(results[1].status).toBe("fulfilled");
       expect(results[1].value).toBe("success");
       
-      // éªŒè¯æœ€ç»ˆçŠ¶æ€
+      // ÑéÖ¤×îÖÕ×´Ì¬
       expect(controller.getActiveCount()).toBe(0);
       expect(controller.getQueueLength()).toBe(0);
     });
 
-    it("åº”æ­£ç¡®è®°å½•é”™è¯¯æ—¥å¿—", async () => {
+    it("Ó¦ÕıÈ·¼ÇÂ¼´íÎóÈÕÖ¾", async () => {
       const errorMessage = "API Error";
       const requestFn = vi.fn().mockRejectedValue(new Error(errorMessage));
       
       await expect(controller.executeRequest("agent1", requestFn)).rejects.toThrow(errorMessage);
       
-      // éªŒè¯é”™è¯¯æ—¥å¿—è¢«è®°å½•
+      // ÑéÖ¤´íÎóÈÕÖ¾±»¼ÇÂ¼
       expect(mockLogger.error).toHaveBeenCalledWith(
-        "LLMè¯·æ±‚å¤±è´¥",
+        "LLMÇëÇóÊ§°Ü",
         expect.objectContaining({
           agentId: "agent1",
           error: errorMessage,
@@ -123,8 +123,8 @@ describe("Error Handling and Resource Release", () => {
     });
   });
 
-  describe("LlmClienté”™è¯¯å¤„ç†", () => {
-    it("åº”æ­£ç¡®å¤„ç†ç½‘ç»œé”™è¯¯", async () => {
+  describe("LlmClient´íÎó´¦Àí", () => {
+    it("Ó¦ÕıÈ·´¦ÀíÍøÂç´íÎó", async () => {
       const networkError = new Error("Network error");
       networkError.name = "NetworkError";
       
@@ -141,11 +141,11 @@ describe("Error Handling and Resource Release", () => {
         meta: { agentId: "test-agent" }
       })).rejects.toThrow("Network error");
 
-      // éªŒè¯èµ„æºè¢«æ¸…ç†
+      // ÑéÖ¤×ÊÔ´±»ÇåÀí
       expect(client.hasActiveRequest("test-agent")).toBe(false);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†APIé”™è¯¯", async () => {
+    it("Ó¦ÕıÈ·´¦ÀíAPI´íÎó", async () => {
       const apiError = new Error("API rate limit exceeded");
       apiError.name = "APIError";
       
@@ -162,12 +162,12 @@ describe("Error Handling and Resource Release", () => {
         meta: { agentId: "test-agent" }
       })).rejects.toThrow("API rate limit exceeded");
 
-      // éªŒè¯èµ„æºè¢«æ¸…ç†
+      // ÑéÖ¤×ÊÔ´±»ÇåÀí
       expect(client.hasActiveRequest("test-agent")).toBe(false);
     });
 
-    it("é”™è¯¯å¤„ç†åº”ä¸å¹¶å‘æ§åˆ¶æ­£ç¡®é›†æˆ", async () => {
-      // åˆ›å»ºä¸€ä¸ªä¼šå¤±è´¥çš„è¯·æ±‚å’Œä¸€ä¸ªä¼šæˆåŠŸçš„è¯·æ±‚
+    it("´íÎó´¦ÀíÓ¦Óë²¢·¢¿ØÖÆÕıÈ·¼¯³É", async () => {
+      // ´´½¨Ò»¸ö»áÊ§°ÜµÄÇëÇóºÍÒ»¸ö»á³É¹¦µÄÇëÇó
       let callCount = 0;
       client._client = {
         chat: {
@@ -186,7 +186,7 @@ describe("Error Handling and Resource Release", () => {
         }
       };
 
-      // å‘èµ·ä¸¤ä¸ªè¯·æ±‚
+      // ·¢ÆğÁ½¸öÇëÇó
       const promise1 = client.chat({
         messages: [{ role: "user", content: "test1" }],
         meta: { agentId: "agent1" }
@@ -197,25 +197,25 @@ describe("Error Handling and Resource Release", () => {
         meta: { agentId: "agent2" }
       });
 
-      // ç­‰å¾…ç»“æœ
+      // µÈ´ı½á¹û
       const results = await Promise.allSettled([promise1, promise2]);
 
-      // éªŒè¯ç¬¬ä¸€ä¸ªè¯·æ±‚å¤±è´¥ï¼Œç¬¬äºŒä¸ªæˆåŠŸ
+      // ÑéÖ¤µÚÒ»¸öÇëÇóÊ§°Ü£¬µÚ¶ş¸ö³É¹¦
       expect(results[0].status).toBe("rejected");
       expect(results[0].reason.message).toBe("First request failed");
       
       expect(results[1].status).toBe("fulfilled");
       expect(results[1].value.content).toBe("success");
 
-      // éªŒè¯èµ„æºè¢«æ­£ç¡®æ¸…ç†
+      // ÑéÖ¤×ÊÔ´±»ÕıÈ·ÇåÀí
       expect(client.hasActiveRequest("agent1")).toBe(false);
       expect(client.hasActiveRequest("agent2")).toBe(false);
       
-      // éªŒè¯å¹¶å‘æ§åˆ¶å™¨çŠ¶æ€
+      // ÑéÖ¤²¢·¢¿ØÖÆÆ÷×´Ì¬
       expect(client.getConcurrencyStats().activeCount).toBe(0);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†è¶…æ—¶é”™è¯¯", async () => {
+    it("Ó¦ÕıÈ·´¦Àí³¬Ê±´íÎó", async () => {
       const timeoutError = new Error("Request timeout");
       timeoutError.name = "TimeoutError";
       
@@ -232,12 +232,12 @@ describe("Error Handling and Resource Release", () => {
         meta: { agentId: "test-agent" }
       })).rejects.toThrow("Request timeout");
 
-      // éªŒè¯èµ„æºè¢«æ¸…ç†
+      // ÑéÖ¤×ÊÔ´±»ÇåÀí
       expect(client.hasActiveRequest("test-agent")).toBe(false);
       expect(client.getConcurrencyStats().activeCount).toBe(0);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†JSONè§£æé”™è¯¯", async () => {
+    it("Ó¦ÕıÈ·´¦ÀíJSON½âÎö´íÎó", async () => {
       const parseError = new Error("Invalid JSON response");
       parseError.name = "SyntaxError";
       
@@ -254,22 +254,22 @@ describe("Error Handling and Resource Release", () => {
         meta: { agentId: "test-agent" }
       })).rejects.toThrow("Invalid JSON response");
 
-      // éªŒè¯èµ„æºè¢«æ¸…ç†
+      // ÑéÖ¤×ÊÔ´±»ÇåÀí
       expect(client.hasActiveRequest("test-agent")).toBe(false);
     });
   });
 
-  describe("é”™è¯¯æ¢å¤", () => {
-    it("ç³»ç»Ÿåº”åœ¨é”™è¯¯åç»§ç»­æ­£å¸¸å¤„ç†æ–°è¯·æ±‚", async () => {
-      // å…ˆå‘èµ·ä¸€ä¸ªä¼šå¤±è´¥çš„è¯·æ±‚
+  describe("´íÎó»Ö¸´", () => {
+    it("ÏµÍ³Ó¦ÔÚ´íÎóºó¼ÌĞøÕı³£´¦ÀíĞÂÇëÇó", async () => {
+      // ÏÈ·¢ÆğÒ»¸ö»áÊ§°ÜµÄÇëÇó
       const failingRequestFn = vi.fn().mockRejectedValue(new Error("First request failed"));
       await expect(controller.executeRequest("agent1", failingRequestFn)).rejects.toThrow("First request failed");
       
-      // éªŒè¯ç³»ç»ŸçŠ¶æ€è¢«æ­£ç¡®é‡ç½®
+      // ÑéÖ¤ÏµÍ³×´Ì¬±»ÕıÈ·ÖØÖÃ
       expect(controller.getActiveCount()).toBe(0);
       expect(controller.hasActiveRequest("agent1")).toBe(false);
       
-      // å‘èµ·ä¸€ä¸ªæˆåŠŸçš„è¯·æ±‚
+      // ·¢ÆğÒ»¸ö³É¹¦µÄÇëÇó
       const successRequestFn = vi.fn().mockResolvedValue("success");
       const result = await controller.executeRequest("agent2", successRequestFn);
       
@@ -278,33 +278,33 @@ describe("Error Handling and Resource Release", () => {
       expect(controller.stats.completedRequests).toBe(1);
     });
 
-    it("å¤šä¸ªé”™è¯¯ä¸åº”å½±å“ç³»ç»Ÿç¨³å®šæ€§", async () => {
+    it("¶à¸ö´íÎó²»Ó¦Ó°ÏìÏµÍ³ÎÈ¶¨ĞÔ", async () => {
       const errors = ["Error 1", "Error 2", "Error 3"];
       const promises = [];
       
-      // å‘èµ·å¤šä¸ªä¼šå¤±è´¥çš„è¯·æ±‚
+      // ·¢Æğ¶à¸ö»áÊ§°ÜµÄÇëÇó
       for (let i = 0; i < errors.length; i++) {
         const requestFn = vi.fn().mockRejectedValue(new Error(errors[i]));
         const promise = controller.executeRequest(`agent${i}`, requestFn);
         promises.push(promise);
       }
       
-      // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+      // µÈ´ıËùÓĞÇëÇóÍê³É
       const results = await Promise.allSettled(promises);
       
-      // éªŒè¯æ‰€æœ‰è¯·æ±‚éƒ½å¤±è´¥äº†
+      // ÑéÖ¤ËùÓĞÇëÇó¶¼Ê§°ÜÁË
       results.forEach((result, index) => {
         expect(result.status).toBe("rejected");
         expect(result.reason.message).toBe(errors[index]);
       });
       
-      // éªŒè¯ç³»ç»ŸçŠ¶æ€æ­£ç¡®
+      // ÑéÖ¤ÏµÍ³×´Ì¬ÕıÈ·
       expect(controller.getActiveCount()).toBe(0);
       expect(controller.getQueueLength()).toBe(0);
       expect(controller.stats.totalRequests).toBe(3);
       expect(controller.stats.completedRequests).toBe(0);
       
-      // éªŒè¯ç³»ç»Ÿä»èƒ½å¤„ç†æ–°è¯·æ±‚
+      // ÑéÖ¤ÏµÍ³ÈÔÄÜ´¦ÀíĞÂÇëÇó
       const successRequestFn = vi.fn().mockResolvedValue("recovery success");
       const result = await controller.executeRequest("recovery-agent", successRequestFn);
       expect(result).toBe("recovery success");

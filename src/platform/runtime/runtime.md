@@ -6,7 +6,7 @@
 ## 文件列表
 - agent_manager.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“智能体管理器模块 本模块负责智能体的生命周期管理，是 Runtime 的子模块之一。 【设计初衷】 智能体是系统的核心执行单元，需要统一管理其创建、注册、状态跟踪和终止。 将这些功能集中到一个模块，便于维护智能体的一致性和完整性。 【主要功能】 1. 创建和注册智能体实例 2. 管理智能体的父子关系 3. 跟踪智能体的活动状态 4. 终止智能体（包括级联终止子智能体） 5. 从持久化状态恢复智能体 【智能体生命周期】 1. 创建：通过 ”，导出符号：AgentManager。
 - browser_javascript_executor.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“浏览器 JavaScript 执行器模块 本模块负责在 headless Chrome 浏览器中执行用户提供的 JavaScript 代码。 【设计初衷】 智能体在处理任务时，经常需要执行 JavaScript 代码进行计算、数据处理、Canvas 绘图等操作。 通过在真实浏览器环境中执行代码，可以获得完整的浏览器 API 支持，避免 Node.js 环境下的兼容性问题。 【主要功能】 1. 在 headless Chrome 中执行 ”，导出符号：BrowserJavaScriptExecutor。
-- context_builder.js: 功能：实现模块逻辑。责任：构建智能体执行上下文对象（runtime/org/bus/artifacts/prompts 与工具函数集合等）。内部结构：提供 buildAgentContext，导出符号：ContextBuilder。
+-9→- context_builder.js: 功能：实现模块逻辑。责任：构建智能体执行上下文对象（runtime/org/bus/workspaceManager/prompts 与工具函数集合等）。内部结构：提供 buildAgentContext，导出符号：ContextBuilder。
 - index.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“Runtime 子模块索引文件 本目录包含 Runtime 类拆分后的各个子模块： - javascript_executor.js - JavaScript 代码执行器 - context_builder.js - 上下文构建器 - agent_manager.js - 智能体管理器 - message_processor.js - 消息处理器 - tool_executor.js - 工具执行器 - runtime_llm.js -”，导出符号：（未匹配到明显的导出符号）。
 - javascript_executor.js: 功能：实现模块逻辑。责任：为上层提供可复用能力或入口。内部结构：头部说明“JavaScript 执行器模块 本模块负责安全执行用户提供的 JavaScript 代码，是 Runtime 的子模块之一。 【设计初衷】 智能体在处理任务时，经常需要进行精确计算、数据转换、日期处理等操作。 由于 LLM 在数值计算方面不够可靠，因此提供一个安全的 JavaScript 执行环境， 让智能体可以通过代码来完成这些需要精确结果的任务。 【主要功能】 1. 执行用户提供的 JavaScript 代码 2. 检测并阻止危险”，导出符号：JavaScriptExecutor。
 - runtime_llm.js: 功能：实现模块逻辑。责任：封装 Runtime 的 LLM 交互与工具调用循环。内部结构：包含 handleWithLlm/doLlmProcessing、系统提示词构建与错误通知等方法，导出符号：RuntimeLlm。

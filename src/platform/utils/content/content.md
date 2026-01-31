@@ -51,6 +51,6 @@
 
 ## 迁移说明
 
-**注意**：`capability_router.js` 已经合并到 `services/artifact/content_router.js`。
-- 如果需要能力路由功能，请使用 `ContentRouter` 类（位于 `services/artifact/content_router.js`）
-- 本目录现在只包含通用的内容工具函数
+**注意**：`ContentRouter` 已经重构以支持工作区系统。
+- 如果需要内容路由功能，请使用 `ContentRouter` 类（位于 `utils/content/content_router.js`）
+- 路由文件内容时，必须提供 `workspaceId` 以确保正确的文件读取。

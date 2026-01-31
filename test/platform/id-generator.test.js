@@ -24,10 +24,10 @@ describe("IdGenerator", () => {
     expect(parts[2][0]).toBe('4');
   });
 
-  it("生成的ID包含变体位", async () => {
+  it("生成的ID包含变体�?, async () => {
     const id = await generator.next();
     
-    // UUID的第四段第一个字符应该是8、9、a或b
+    // UUID的第四段第一个字符应该是8�?、a或b
     const parts = id.split('-');
     const variantChar = parts[3][0].toLowerCase();
     expect(['8', '9', 'a', 'b']).toContain(variantChar);
@@ -43,22 +43,22 @@ describe("IdGenerator", () => {
     expect(id1).not.toBe(id3);
   });
 
-  it("基于时间生成，后生成的ID时间戳更大", async () => {
+  it("基于时间生成，后生成的ID时间戳更�?, async () => {
     const id1 = await generator.next();
     
-    // 等待1毫秒确保时间戳不同
+    // 等待1毫秒确保时间戳不�?
     await new Promise(resolve => setTimeout(resolve, 2));
     
     const id2 = await generator.next();
     
-    // 提取时间戳部分（前12个十六进制字符，去掉连字符）
+    // 提取时间戳部分（�?2个十六进制字符，去掉连字符）
     const timestamp1 = parseInt(id1.replace(/-/g, '').substring(0, 12), 16);
     const timestamp2 = parseInt(id2.replace(/-/g, '').substring(0, 12), 16);
     
     expect(timestamp2).toBeGreaterThanOrEqual(timestamp1);
   });
 
-  it("并发生成ID不重复", async () => {
+  it("并发生成ID不重�?, async () => {
     const promises = [];
     for (let i = 0; i < 100; i++) {
       promises.push(generator.next());
@@ -90,7 +90,7 @@ describe("IdGenerator", () => {
     expect(current2).toMatch(uuidRegex);
   });
 
-  it("init()可以安全地多次调用", async () => {
+  it("init()可以安全地多次调�?, async () => {
     await generator.init();
     await generator.init();
     await generator.init();

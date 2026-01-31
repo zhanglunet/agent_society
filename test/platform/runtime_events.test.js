@@ -5,7 +5,7 @@
  * - 工具调用事件
  * - 错误事件
  * - LLM 重试事件
- * - 运算状态变更事件
+ * - 运算状态变更事�?
  */
 
 import { describe, expect, test, beforeEach } from "bun:test";
@@ -21,7 +21,7 @@ describe("RuntimeEvents", () => {
   });
 
   describe("工具调用事件", () => {
-    test("注册和触发工具调用事件", () => {
+    test("注册和触发工具调用事�?, () => {
       let eventReceived = null;
       
       events.onToolCall((event) => {
@@ -41,7 +41,7 @@ describe("RuntimeEvents", () => {
       expect(eventReceived).toEqual(testEvent);
     });
 
-    test("多个监听器都会收到事件", () => {
+    test("多个监听器都会收到事�?, () => {
       const receivedEvents = [];
       
       events.onToolCall((event) => receivedEvents.push({ listener: 1, event }));
@@ -68,7 +68,7 @@ describe("RuntimeEvents", () => {
       expect(callCount).toBe(1); // 没有增加
     });
 
-    test("监听器抛出异常不影响其他监听器", () => {
+    test("监听器抛出异常不影响其他监听�?, () => {
       const receivedEvents = [];
       
       events.onToolCall(() => {
@@ -85,7 +85,7 @@ describe("RuntimeEvents", () => {
   });
 
   describe("错误事件", () => {
-    test("注册和触发错误事件", () => {
+    test("注册和触发错误事�?, () => {
       let eventReceived = null;
       
       events.onError((event) => {
@@ -104,7 +104,7 @@ describe("RuntimeEvents", () => {
       expect(eventReceived).toEqual(testEvent);
     });
 
-    test("移除错误事件监听器", () => {
+    test("移除错误事件监听�?, () => {
       let callCount = 0;
       const listener = () => { callCount++; };
       
@@ -119,7 +119,7 @@ describe("RuntimeEvents", () => {
   });
 
   describe("LLM 重试事件", () => {
-    test("注册和触发 LLM 重试事件", () => {
+    test("注册和触�?LLM 重试事件", () => {
       let eventReceived = null;
       
       events.onLlmRetry((event) => {
@@ -140,7 +140,7 @@ describe("RuntimeEvents", () => {
       expect(eventReceived).toEqual(testEvent);
     });
 
-    test("移除 LLM 重试事件监听器", () => {
+    test("移除 LLM 重试事件监听�?, () => {
       let callCount = 0;
       const listener = () => { callCount++; };
       
@@ -154,8 +154,8 @@ describe("RuntimeEvents", () => {
     });
   });
 
-  describe("运算状态变更事件", () => {
-    test("注册和触发运算状态变更事件", () => {
+  describe("运算状态变更事�?, () => {
+    test("注册和触发运算状态变更事�?, () => {
       let eventReceived = null;
       
       events.onComputeStatusChange((event) => {
@@ -185,7 +185,7 @@ describe("RuntimeEvents", () => {
   });
 
   describe("工具方法", () => {
-    test("获取监听器数量", () => {
+    test("获取监听器数�?, () => {
       events.onToolCall(() => {});
       events.onToolCall(() => {});
       events.onError(() => {});
@@ -217,7 +217,7 @@ describe("RuntimeEvents", () => {
   });
 
   describe("边界情况", () => {
-    test("注册非函数类型的监听器应被忽略", () => {
+    test("注册非函数类型的监听器应被忽�?, () => {
       events.onToolCall("not a function");
       events.onToolCall(null);
       events.onToolCall(undefined);
@@ -235,7 +235,7 @@ describe("RuntimeEvents", () => {
       }).not.toThrow();
     });
 
-    test("移除不存在的监听器不会报错", () => {
+    test("移除不存在的监听器不会报�?, () => {
       const listener = () => {};
       
       expect(() => {

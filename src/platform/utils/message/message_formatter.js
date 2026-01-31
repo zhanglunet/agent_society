@@ -84,8 +84,8 @@ export function formatMessageForAgent(message, senderInfo) {
  * 用于 LLM 调用时包含图片
  * 
  * @param {string} textContent - 文本内容
- * @param {Array<{type: string, artifactRef: string, filename: string}>} attachments - 附件列表
- * @param {function} getImageBase64 - 获取图片 base64 数据的函数 (artifactRef) => Promise<{data: string, mimeType: string}>
+ * @param {Array<{type: string, path: string, filename: string}>} attachments - 附件列表
+ * @param {function} getImageBase64 - 获取图片 base64 数据的函数 (path) => Promise<{data: string, mimeType: string}>
  * @returns {Promise<string|Array>} 纯文本或多模态内容数组
  */
 export async function formatMultimodalContent(textContent, attachments, getImageBase64) {
@@ -113,7 +113,7 @@ export async function formatMultimodalContent(textContent, attachments, getImage
   // 添加图片部分
   for (const att of imageAttachments) {
     try {
-      const imageData = await getImageBase64(att.artifactRef);
+      const imageData = await getImageBase64(att.path);
       if (imageData && imageData.data) {
         content.push({
           type: 'image_url',
@@ -161,7 +161,7 @@ export function hasImageAttachments(message) {
 /**
  * 获取消息中的图片附件
  * @param {Object} message - 消息对象
- * @returns {Array<{type: string, artifactRef: string, filename: string}>}
+ * @returns {Array<{type: string, path: string, filename: string}>}
  */
 export function getImageAttachments(message) {
   const payload = message?.payload;
@@ -174,7 +174,13 @@ export function getImageAttachments(message) {
     return [];
   }
   
-  return attachments.filter(att => att.type === 'image');
+  return attachments
+    .filter(att => att.type === 'image')
+    .map(att => ({
+      type: att.type,
+      path: att.path,
+      filename: att.filename
+    }));
 }
 
 /**
@@ -199,7 +205,7 @@ export function hasFileAttachments(message) {
 /**
  * 获取消息中的非图片附件（文件）
  * @param {Object} message - 消息对象
- * @returns {Array<{type: string, artifactRef: string, filename: string}>}
+ * @returns {Array<{type: string, path: string, filename: string}>}
  */
 export function getFileAttachments(message) {
   const payload = message?.payload;
@@ -212,7 +218,13 @@ export function getFileAttachments(message) {
     return [];
   }
   
-  return attachments.filter(att => att.type !== 'image');
+  return attachments
+    .filter(att => att.type !== 'image')
+    .map(att => ({
+      type: att.type,
+      path: att.path,
+      filename: att.filename
+    }));
 }
 
 /**
@@ -295,8 +307,8 @@ export function isTextFile(filename) {
  * 格式化文件附件内容，将文件内容添加到消息中
  * 
  * @param {string} textContent - 原始文本内容
- * @param {Array<{type: string, artifactRef: string, filename: string}>} attachments - 附件列表
- * @param {function} getFileContent - 获取文件内容的函数 (artifactRef) => Promise<{content: string, metadata: object}|null>
+ * @param {Array<{type: string, path: string, filename: string}>} attachments - 附件列表
+ * @param {function} getFileContent - 获取文件内容的函数 (path) => Promise<{content: string, metadata: object}|null>
  * @returns {Promise<string>} 包含文件内容的文本
  */
 export async function formatFileAttachmentContent(textContent, attachments, getFileContent) {
@@ -313,15 +325,16 @@ export async function formatFileAttachmentContent(textContent, attachments, getF
   
   for (const att of fileAttachments) {
     const filename = att.filename || 'unknown';
+    const path = att.path;
     
     // 检查是否为文本文件
     if (!isTextFile(filename)) {
-      fileContents.push(`\n\n【附件: ${filename}(${att.artifactRef})】\n[二进制文件，需要建立专门读取该类型文件的智能体帮助解读]`);
+      fileContents.push(`\n\n【附件: ${filename}(${path})】\n[二进制文件，需要建立专门读取该类型文件的智能体帮助解读]`);
       continue;
     }
     
     try {
-      const fileData = await getFileContent(att.artifactRef);
+      const fileData = await getFileContent(path);
       if (fileData && fileData.content) {
         // 限制文件内容长度，避免超出上下文限制
         const maxLength = 50000; // 约 50KB 文本

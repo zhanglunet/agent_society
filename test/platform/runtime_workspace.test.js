@@ -1,8 +1,8 @@
-ï»¿import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import fc from "fast-check";
 import path from "node:path";
 import { rm, mkdir, readdir } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 
 describe("Runtime Workspace", () => {
   let runtime;
@@ -19,10 +19,10 @@ describe("Runtime Workspace", () => {
     });
     await runtime.init();
     
-    // åˆ›å»ºæµ‹è¯•ç”¨å²—ä½
+    // ´´½¨²âÊÔÓÃ¸ÚÎ»
     await runtime.org.createRole({
       name: "test-worker",
-      rolePrompt: "æµ‹è¯•å·¥ä½œè€…"
+      rolePrompt: "²âÊÔ¹¤×÷Õß"
     });
   });
 
@@ -34,57 +34,57 @@ describe("Runtime Workspace", () => {
   });
 
   /**
-   * Property 7: å·¥ä½œç©ºé—´ç»§æ‰¿ï¼ˆé€šè¿‡ç¥–å…ˆé“¾æŸ¥æ‰¾ï¼‰
-   * *For any* æ™ºèƒ½ä½“ï¼Œè°ƒç”¨å·¥ä½œç©ºé—´ç›¸å…³ API æ—¶ï¼Œåº”é€šè¿‡ç¥–å…ˆé“¾å‘ä¸ŠæŸ¥æ‰¾ï¼Œ
-   * ä½¿ç”¨ç¬¬ä¸€ä¸ªå…·æœ‰å·¥ä½œç©ºé—´çš„ç¥–å…ˆçš„å·¥ä½œç©ºé—´ã€‚
+   * Property 7: ¹¤×÷¿Õ¼ä¼Ì³Ğ£¨Í¨¹ı×æÏÈÁ´²éÕÒ£©
+   * *For any* ÖÇÄÜÌå£¬µ÷ÓÃ¹¤×÷¿Õ¼äÏà¹Ø API Ê±£¬Ó¦Í¨¹ı×æÏÈÁ´ÏòÉÏ²éÕÒ£¬
+   * Ê¹ÓÃµÚÒ»¸ö¾ßÓĞ¹¤×÷¿Õ¼äµÄ×æÏÈµÄ¹¤×÷¿Õ¼ä¡£
    * 
    * **Validates: Requirements 1.4, 5.2, 7.1, 7.2**
    */
-  test("Property 7: å·¥ä½œç©ºé—´ç»§æ‰¿ï¼ˆé€šè¿‡ç¥–å…ˆé“¾æŸ¥æ‰¾ï¼‰", async () => {
-    // è·å–æµ‹è¯•å²—ä½
+  test("Property 7: ¹¤×÷¿Õ¼ä¼Ì³Ğ£¨Í¨¹ı×æÏÈÁ´²éÕÒ£©", async () => {
+    // »ñÈ¡²âÊÔ¸ÚÎ»
     const role = runtime.org.findRoleByName("test-worker");
     expect(role).toBeDefined();
 
-    // åˆ›å»º root çš„ç›´æ¥å­æ™ºèƒ½ä½“ï¼ˆåº”è¯¥è·å¾—æ–°å·¥ä½œç©ºé—´ï¼‰
+    // ´´½¨ root µÄÖ±½Ó×ÓÖÇÄÜÌå£¨Ó¦¸Ã»ñµÃĞÂ¹¤×÷¿Õ¼ä£©
     const agent1 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
     });
     
-    // éªŒè¯ agent1 æœ‰å·¥ä½œç©ºé—´
+    // ÑéÖ¤ agent1 ÓĞ¹¤×÷¿Õ¼ä
     expect(runtime.workspaceManager.hasWorkspace(agent1.id)).toBe(true);
     
-    // åˆ›å»º agent1 çš„å­æ™ºèƒ½ä½“
+    // ´´½¨ agent1 µÄ×ÓÖÇÄÜÌå
     const agent2 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: agent1.id
     });
     
-    // éªŒè¯ agent2 æ²¡æœ‰è‡ªå·±çš„å·¥ä½œç©ºé—´
+    // ÑéÖ¤ agent2 Ã»ÓĞ×Ô¼ºµÄ¹¤×÷¿Õ¼ä
     expect(runtime.workspaceManager.hasWorkspace(agent2.id)).toBe(false);
     
-    // éªŒè¯ agent2 é€šè¿‡ç¥–å…ˆé“¾æŸ¥æ‰¾å¯ä»¥æ‰¾åˆ° agent1 çš„å·¥ä½œç©ºé—´
+    // ÑéÖ¤ agent2 Í¨¹ı×æÏÈÁ´²éÕÒ¿ÉÒÔÕÒµ½ agent1 µÄ¹¤×÷¿Õ¼ä
     const workspaceId = runtime.findWorkspaceIdForAgent(agent2.id);
     expect(workspaceId).toBe(agent1.id);
     
-    // åˆ›å»º agent2 çš„å­æ™ºèƒ½ä½“ï¼ˆå­™æ™ºèƒ½ä½“ï¼‰
+    // ´´½¨ agent2 µÄ×ÓÖÇÄÜÌå£¨ËïÖÇÄÜÌå£©
     const agent3 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: agent2.id
     });
     
-    // éªŒè¯ agent3 ä¹Ÿèƒ½é€šè¿‡ç¥–å…ˆé“¾æ‰¾åˆ° agent1 çš„å·¥ä½œç©ºé—´
+    // ÑéÖ¤ agent3 Ò²ÄÜÍ¨¹ı×æÏÈÁ´ÕÒµ½ agent1 µÄ¹¤×÷¿Õ¼ä
     const workspaceId3 = runtime.findWorkspaceIdForAgent(agent3.id);
     expect(workspaceId3).toBe(agent1.id);
   });
 
   /**
-   * Property 8: æ–°å·¥ä½œç©ºé—´åˆ†é…
-   * *For any* ç”± root ç›´æ¥åˆ›å»ºçš„æ™ºèƒ½ä½“ï¼Œå…¶ workspaceId åº”ç­‰äºè‡ªå·±çš„ agentIdã€‚
+   * Property 8: ĞÂ¹¤×÷¿Õ¼ä·ÖÅä
+   * *For any* ÓÉ root Ö±½Ó´´½¨µÄÖÇÄÜÌå£¬Æä workspaceId Ó¦µÈÓÚ×Ô¼ºµÄ agentId¡£
    * 
    * **Validates: Requirements 7.3**
    */
-  test("Property 8: æ–°å·¥ä½œç©ºé—´åˆ†é…", async () => {
+  test("Property 8: ĞÂ¹¤×÷¿Õ¼ä·ÖÅä", async () => {
     const role = runtime.org.findRoleByName("test-worker");
     expect(role).toBeDefined();
 
@@ -94,7 +94,7 @@ describe("Runtime Workspace", () => {
         async (count) => {
           const agents = [];
           
-          // åˆ›å»ºå¤šä¸ª root çš„ç›´æ¥å­æ™ºèƒ½ä½“
+          // ´´½¨¶à¸ö root µÄÖ±½Ó×ÓÖÇÄÜÌå
           for (let i = 0; i < count; i++) {
             const agent = await runtime.spawnAgent({
               roleId: role.id,
@@ -103,14 +103,14 @@ describe("Runtime Workspace", () => {
             agents.push(agent);
           }
           
-          // éªŒè¯æ¯ä¸ªæ™ºèƒ½ä½“éƒ½æœ‰è‡ªå·±çš„å·¥ä½œç©ºé—´ï¼Œä¸” workspaceId ç­‰äº agentId
+          // ÑéÖ¤Ã¿¸öÖÇÄÜÌå¶¼ÓĞ×Ô¼ºµÄ¹¤×÷¿Õ¼ä£¬ÇÒ workspaceId µÈÓÚ agentId
           for (const agent of agents) {
             expect(runtime.workspaceManager.hasWorkspace(agent.id)).toBe(true);
             const workspaceId = runtime.findWorkspaceIdForAgent(agent.id);
             expect(workspaceId).toBe(agent.id);
           }
           
-          // éªŒè¯æ‰€æœ‰å·¥ä½œç©ºé—´è·¯å¾„éƒ½ä¸åŒ
+          // ÑéÖ¤ËùÓĞ¹¤×÷¿Õ¼äÂ·¾¶¶¼²»Í¬
           const workspacePaths = agents.map(a => 
             runtime.workspaceManager.getWorkspacePath(a.id)
           );
@@ -123,16 +123,16 @@ describe("Runtime Workspace", () => {
   });
 
   /**
-   * Property 9: å·¥ä½œç©ºé—´éš”ç¦»
-   * *For any* ä¸¤ä¸ªç”± root ç›´æ¥åˆ›å»ºçš„ä¸åŒæ™ºèƒ½ä½“ï¼Œå®ƒä»¬çš„å·¥ä½œç©ºé—´è·¯å¾„åº”è¯¥ä¸åŒã€‚
+   * Property 9: ¹¤×÷¿Õ¼ä¸ôÀë
+   * *For any* Á½¸öÓÉ root Ö±½Ó´´½¨µÄ²»Í¬ÖÇÄÜÌå£¬ËüÃÇµÄ¹¤×÷¿Õ¼äÂ·¾¶Ó¦¸Ã²»Í¬¡£
    * 
    * **Validates: Requirements 5.1**
    */
-  test("Property 9: å·¥ä½œç©ºé—´éš”ç¦»", async () => {
+  test("Property 9: ¹¤×÷¿Õ¼ä¸ôÀë", async () => {
     const role = runtime.org.findRoleByName("test-worker");
     expect(role).toBeDefined();
 
-    // åˆ›å»ºä¸¤ä¸ª root çš„ç›´æ¥å­æ™ºèƒ½ä½“
+    // ´´½¨Á½¸ö root µÄÖ±½Ó×ÓÖÇÄÜÌå
     const agent1 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
@@ -143,7 +143,7 @@ describe("Runtime Workspace", () => {
       parentAgentId: "root"
     });
     
-    // éªŒè¯ä¸¤ä¸ªæ™ºèƒ½ä½“çš„å·¥ä½œç©ºé—´è·¯å¾„ä¸åŒ
+    // ÑéÖ¤Á½¸öÖÇÄÜÌåµÄ¹¤×÷¿Õ¼äÂ·¾¶²»Í¬
     const path1 = runtime.workspaceManager.getWorkspacePath(agent1.id);
     const path2 = runtime.workspaceManager.getWorkspacePath(agent2.id);
     
@@ -153,19 +153,19 @@ describe("Runtime Workspace", () => {
   });
 
   /**
-   * æµ‹è¯• findWorkspaceIdForAgent å¯¹äºæ²¡æœ‰å·¥ä½œç©ºé—´çš„æ™ºèƒ½ä½“è¿”å› null
+   * ²âÊÔ findWorkspaceIdForAgent ¶ÔÓÚÃ»ÓĞ¹¤×÷¿Õ¼äµÄÖÇÄÜÌå·µ»Ø null
    */
   test("findWorkspaceIdForAgent returns null for agents without workspace", () => {
-    // root å’Œ user æ²¡æœ‰å·¥ä½œç©ºé—´
+    // root ºÍ user Ã»ÓĞ¹¤×÷¿Õ¼ä
     expect(runtime.findWorkspaceIdForAgent("root")).toBe(null);
     expect(runtime.findWorkspaceIdForAgent("user")).toBe(null);
     
-    // ä¸å­˜åœ¨çš„æ™ºèƒ½ä½“ä¹Ÿè¿”å› null
+    // ²»´æÔÚµÄÖÇÄÜÌåÒ²·µ»Ø null
     expect(runtime.findWorkspaceIdForAgent("nonexistent")).toBe(null);
   });
 
   /**
-   * æµ‹è¯•å·¥ä½œç©ºé—´æ‡’åŠ è½½ï¼šåˆ†é…åæ–‡ä»¶å¤¹ä¸å­˜åœ¨
+   * ²âÊÔ¹¤×÷¿Õ¼äÀÁ¼ÓÔØ£º·ÖÅäºóÎÄ¼ş¼Ğ²»´æÔÚ
    */
   test("workspace folder not created on assignment", async () => {
     const role = runtime.org.findRoleByName("test-worker");
@@ -176,7 +176,7 @@ describe("Runtime Workspace", () => {
     
     const workspacePath = runtime.workspaceManager.getWorkspacePath(agent.id);
     
-    // éªŒè¯å·¥ä½œç©ºé—´æ–‡ä»¶å¤¹ä¸å­˜åœ¨ï¼ˆæ‡’åŠ è½½ï¼‰
+    // ÑéÖ¤¹¤×÷¿Õ¼äÎÄ¼ş¼Ğ²»´æÔÚ£¨ÀÁ¼ÓÔØ£©
     let folderExists = false;
     try {
       await readdir(workspacePath);
@@ -204,10 +204,10 @@ describe("Runtime Workspace Integration", () => {
     });
     await runtime.init();
     
-    // åˆ›å»ºæµ‹è¯•ç”¨å²—ä½
+    // ´´½¨²âÊÔÓÃ¸ÚÎ»
     await runtime.org.createRole({
       name: "test-worker",
-      rolePrompt: "æµ‹è¯•å·¥ä½œè€…"
+      rolePrompt: "²âÊÔ¹¤×÷Õß"
     });
   });
 
@@ -219,32 +219,32 @@ describe("Runtime Workspace Integration", () => {
   });
 
   /**
-   * ç«¯åˆ°ç«¯é›†æˆæµ‹è¯•ï¼šroot åˆ›å»ºå­æ™ºèƒ½ä½“ â†’ å­æ™ºèƒ½ä½“å†™å…¥æ–‡ä»¶ â†’ å­™æ™ºèƒ½ä½“è¯»å–æ–‡ä»¶
+   * ¶Ëµ½¶Ë¼¯³É²âÊÔ£ºroot ´´½¨×ÓÖÇÄÜÌå ¡ú ×ÓÖÇÄÜÌåĞ´ÈëÎÄ¼ş ¡ú ËïÖÇÄÜÌå¶ÁÈ¡ÎÄ¼ş
    * 
    * **Validates: Requirements 1.4, 5.3, 7.1**
    */
   test("E2E: workspace file operations across agent hierarchy", async () => {
     const role = runtime.org.findRoleByName("test-worker");
     
-    // åˆ›å»º root çš„ç›´æ¥å­æ™ºèƒ½ä½“ï¼ˆè·å¾—æ–°å·¥ä½œç©ºé—´ï¼‰
+    // ´´½¨ root µÄÖ±½Ó×ÓÖÇÄÜÌå£¨»ñµÃĞÂ¹¤×÷¿Õ¼ä£©
     const agent1 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
     });
     
-    // åˆ›å»º agent1 çš„å­æ™ºèƒ½ä½“ï¼ˆç»§æ‰¿å·¥ä½œç©ºé—´ï¼‰
+    // ´´½¨ agent1 µÄ×ÓÖÇÄÜÌå£¨¼Ì³Ğ¹¤×÷¿Õ¼ä£©
     const agent2 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: agent1.id
     });
     
-    // åˆ›å»º agent2 çš„å­æ™ºèƒ½ä½“ï¼ˆå­™æ™ºèƒ½ä½“ï¼Œä¹Ÿç»§æ‰¿å·¥ä½œç©ºé—´ï¼‰
+    // ´´½¨ agent2 µÄ×ÓÖÇÄÜÌå£¨ËïÖÇÄÜÌå£¬Ò²¼Ì³Ğ¹¤×÷¿Õ¼ä£©
     const agent3 = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: agent2.id
     });
     
-    // éªŒè¯æ‰€æœ‰æ™ºèƒ½ä½“ä½¿ç”¨åŒä¸€ä¸ªå·¥ä½œç©ºé—´
+    // ÑéÖ¤ËùÓĞÖÇÄÜÌåÊ¹ÓÃÍ¬Ò»¸ö¹¤×÷¿Õ¼ä
     const ws1 = runtime.findWorkspaceIdForAgent(agent1.id);
     const ws2 = runtime.findWorkspaceIdForAgent(agent2.id);
     const ws3 = runtime.findWorkspaceIdForAgent(agent3.id);
@@ -253,36 +253,36 @@ describe("Runtime Workspace Integration", () => {
     expect(ws2).toBe(agent1.id);
     expect(ws3).toBe(agent1.id);
     
-    // agent1 å†™å…¥æ–‡ä»¶
+    // agent1 Ğ´ÈëÎÄ¼ş
     const writeResult = await runtime.workspaceManager.writeFile(ws1, "test.txt", "hello from agent1");
     expect(writeResult.ok).toBe(true);
     
-    // agent2 è¯»å–æ–‡ä»¶ï¼ˆé€šè¿‡ç»§æ‰¿çš„å·¥ä½œç©ºé—´ï¼‰
+    // agent2 ¶ÁÈ¡ÎÄ¼ş£¨Í¨¹ı¼Ì³ĞµÄ¹¤×÷¿Õ¼ä£©
     const readResult2 = await runtime.workspaceManager.readFile(ws2, "test.txt");
     expect(readResult2.content).toBe("hello from agent1");
     
-    // agent3 è¯»å–æ–‡ä»¶ï¼ˆé€šè¿‡ç»§æ‰¿çš„å·¥ä½œç©ºé—´ï¼‰
+    // agent3 ¶ÁÈ¡ÎÄ¼ş£¨Í¨¹ı¼Ì³ĞµÄ¹¤×÷¿Õ¼ä£©
     const readResult3 = await runtime.workspaceManager.readFile(ws3, "test.txt");
     expect(readResult3.content).toBe("hello from agent1");
     
-    // agent3 å†™å…¥æ–°æ–‡ä»¶
+    // agent3 Ğ´ÈëĞÂÎÄ¼ş
     const writeResult3 = await runtime.workspaceManager.writeFile(ws3, "from_agent3.txt", "hello from agent3");
     expect(writeResult3.ok).toBe(true);
     
-    // agent1 å¯ä»¥è¯»å– agent3 å†™å…¥çš„æ–‡ä»¶
+    // agent1 ¿ÉÒÔ¶ÁÈ¡ agent3 Ğ´ÈëµÄÎÄ¼ş
     const readResult1 = await runtime.workspaceManager.readFile(ws1, "from_agent3.txt");
     expect(readResult1.content).toBe("hello from agent3");
   });
 
   /**
-   * æµ‹è¯•ä¸åŒä»»åŠ¡çš„å·¥ä½œç©ºé—´éš”ç¦»
+   * ²âÊÔ²»Í¬ÈÎÎñµÄ¹¤×÷¿Õ¼ä¸ôÀë
    * 
    * **Validates: Requirements 5.1, 5.3**
    */
   test("workspace isolation between different tasks", async () => {
     const role = runtime.org.findRoleByName("test-worker");
     
-    // åˆ›å»ºä¸¤ä¸ªä¸åŒçš„ä»»åŠ¡ï¼ˆroot çš„ç›´æ¥å­æ™ºèƒ½ä½“ï¼‰
+    // ´´½¨Á½¸ö²»Í¬µÄÈÎÎñ£¨root µÄÖ±½Ó×ÓÖÇÄÜÌå£©
     const task1Agent = await runtime.spawnAgent({
       roleId: role.id,
       parentAgentId: "root"
@@ -293,19 +293,19 @@ describe("Runtime Workspace Integration", () => {
       parentAgentId: "root"
     });
     
-    // éªŒè¯ä¸¤ä¸ªä»»åŠ¡æœ‰ä¸åŒçš„å·¥ä½œç©ºé—´
+    // ÑéÖ¤Á½¸öÈÎÎñÓĞ²»Í¬µÄ¹¤×÷¿Õ¼ä
     const ws1 = runtime.findWorkspaceIdForAgent(task1Agent.id);
     const ws2 = runtime.findWorkspaceIdForAgent(task2Agent.id);
     
     expect(ws1).not.toBe(ws2);
     
-    // task1 å†™å…¥æ–‡ä»¶
+    // task1 Ğ´ÈëÎÄ¼ş
     await runtime.workspaceManager.writeFile(ws1, "task1.txt", "task1 content");
     
-    // task2 å†™å…¥åŒåæ–‡ä»¶
+    // task2 Ğ´ÈëÍ¬ÃûÎÄ¼ş
     await runtime.workspaceManager.writeFile(ws2, "task1.txt", "task2 content");
     
-    // éªŒè¯ä¸¤ä¸ªæ–‡ä»¶å†…å®¹ä¸åŒï¼ˆéš”ç¦»ï¼‰
+    // ÑéÖ¤Á½¸öÎÄ¼şÄÚÈİ²»Í¬£¨¸ôÀë£©
     const read1 = await runtime.workspaceManager.readFile(ws1, "task1.txt");
     const read2 = await runtime.workspaceManager.readFile(ws2, "task1.txt");
     

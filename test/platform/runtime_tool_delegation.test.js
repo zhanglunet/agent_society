@@ -1,12 +1,12 @@
-﻿import { describe, expect, test, mock } from "bun:test";
+import { describe, expect, test, mock } from "bun:test";
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 
 describe("Runtime Tool Delegation", () => {
   test("executeToolCall delegates to ToolExecutor", async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_tool_delegation_test");
-    const artifactsDir = path.resolve(tmpDir, "artifacts");
+    const workspacesDir = path.resolve(tmpDir, "workspaces");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
@@ -15,7 +15,7 @@ describe("Runtime Tool Delegation", () => {
       configPath,
       JSON.stringify({
         promptsDir: "config/prompts",
-        artifactsDir,
+        workspacesDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
@@ -37,8 +37,17 @@ describe("Runtime Tool Delegation", () => {
     };
 
     // Create a proper context
-    const agent = { id: "test-agent" };
+    const agent = { id: "test-agent", roleId: "test-role" };
+    runtime._agentMetaById.set(agent.id, { id: agent.id, roleId: agent.roleId, parentAgentId: "root" });
+    await runtime.workspaceManager.createWorkspace(agent.id);
     const ctx = runtime._buildAgentContext(agent);
+
+    // Perform the call
+    const result = await runtime.executeToolCall(ctx, "write_file", { 
+      path: "delegation_test.txt", 
+      content: "test", 
+      mimeType: "text/plain" 
+    });
 
     // Verify delegation occurred
     expect(delegationCalled).toBe(true);
@@ -52,7 +61,7 @@ describe("Runtime Tool Delegation", () => {
 
   test("executeToolCall handles errors from ToolExecutor", async () => {
     const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_tool_error_test");
-    const artifactsDir = path.resolve(tmpDir, "artifacts");
+    const workspacesDir = path.resolve(tmpDir, "workspaces");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
@@ -61,7 +70,7 @@ describe("Runtime Tool Delegation", () => {
       configPath,
       JSON.stringify({
         promptsDir: "config/prompts",
-        artifactsDir,
+        workspacesDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
@@ -90,9 +99,9 @@ describe("Runtime Tool Delegation", () => {
     expect(result.message).toBe("Test error");
   });
 
-  test("executeToolCall works with get_artifact tool", async () => {
-    const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_get_artifact_test");
-    const artifactsDir = path.resolve(tmpDir, "artifacts");
+  test("executeToolCall works with read_file tool", async () => {
+    const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_read_file_test");
+    const workspacesDir = path.resolve(tmpDir, "workspaces");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
@@ -101,7 +110,7 @@ describe("Runtime Tool Delegation", () => {
       configPath,
       JSON.stringify({
         promptsDir: "config/prompts",
-        artifactsDir,
+        workspacesDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
@@ -112,33 +121,35 @@ describe("Runtime Tool Delegation", () => {
     await runtime.init();
 
     // Create a proper context with tools
-    const agent = { id: "test-agent" };
+    const agent = { id: "test-agent", roleId: "test-role" };
+    runtime._agentMetaById.set(agent.id, { id: agent.id, roleId: agent.roleId, parentAgentId: "root" });
+    await runtime.workspaceManager.createWorkspace(agent.id);
     const ctx = runtime._buildAgentContext(agent);
 
-    // First, create an artifact using put_artifact
-    const putResult = await runtime.executeToolCall(ctx, "put_artifact", {
-      type: "text",
-      content: "Test artifact content",
-      meta: { mimeType: "text/plain" }
+    // First, create a file using write_file
+    const writeResult = await runtime.executeToolCall(ctx, "write_file", {
+      path: "test.txt",
+      content: "Test file content",
+      mimeType: "text/plain"
     });
 
-    expect(putResult).toBeTruthy();
-    expect(putResult.error).toBeUndefined();
-    expect(putResult.artifactRef).toBeTruthy();
+    expect(writeResult).toBeTruthy();
+    expect(writeResult.error).toBeUndefined();
+    expect(writeResult.ok).toBe(true);
 
-    // Now retrieve it using get_artifact
-    const getResult = await runtime.executeToolCall(ctx, "get_artifact", {
-      ref: putResult.artifactRef
+    // Now retrieve it using read_file
+    const readResult = await runtime.executeToolCall(ctx, "read_file", {
+      path: "test.txt"
     });
 
-    expect(getResult).toBeTruthy();
-    expect(getResult.error).toBeUndefined();
-    expect(getResult.content).toBe("Test artifact content");
+    expect(readResult).toBeTruthy();
+    expect(readResult.error).toBeUndefined();
+    expect(readResult.content).toBe("Test file content");
   });
 
-  test("executeToolCall works with put_artifact tool", async () => {
-    const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_put_artifact_test");
-    const artifactsDir = path.resolve(tmpDir, "artifacts");
+  test("executeToolCall works with write_file tool", async () => {
+    const tmpDir = path.resolve(process.cwd(), "test/.tmp/runtime_write_file_test");
+    const workspacesDir = path.resolve(tmpDir, "workspaces");
     await rm(tmpDir, { recursive: true, force: true });
     await mkdir(tmpDir, { recursive: true });
 
@@ -147,7 +158,7 @@ describe("Runtime Tool Delegation", () => {
       configPath,
       JSON.stringify({
         promptsDir: "config/prompts",
-        artifactsDir,
+        workspacesDir,
         runtimeDir: tmpDir,
         maxSteps: 50
       }, null, 2),
@@ -158,24 +169,24 @@ describe("Runtime Tool Delegation", () => {
     await runtime.init();
 
     // Create a proper context with tools
-    const agent = { id: "test-agent" };
+    const agent = { id: "test-agent", roleId: "test-role" };
+    runtime._agentMetaById.set(agent.id, { id: agent.id, roleId: agent.roleId, parentAgentId: "root" });
+    await runtime.workspaceManager.createWorkspace(agent.id);
     const ctx = runtime._buildAgentContext(agent);
 
-    // Test put_artifact
-    const result = await runtime.executeToolCall(ctx, "put_artifact", {
-      type: "text",
+    // Test write_file
+    const result = await runtime.executeToolCall(ctx, "write_file", {
+      path: "hello.txt",
       content: "Hello, World!",
-      meta: { mimeType: "text/plain", filename: "test.txt" }
+      mimeType: "text/plain"
     });
 
     expect(result).toBeTruthy();
     expect(result.error).toBeUndefined();
-    expect(result.artifactRef).toBeTruthy();
-    expect(result.artifactRef).toMatch(/^artifact:/);
+    expect(result.ok).toBe(true);
     
-    // Verify the artifact was actually stored
-    const artifact = await runtime.artifacts.getArtifact(result.artifactRef);
-    expect(artifact).toBeTruthy();
-    expect(artifact.content).toBe("Hello, World!");
+    // Verify the file was actually stored
+    const result_read = await runtime.workspaceManager.readFile(agent.id, "hello.txt");
+    expect(result_read.content).toBe("Hello, World!");
   });
 });

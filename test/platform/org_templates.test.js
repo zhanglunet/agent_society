@@ -62,7 +62,7 @@ function createMockJsonRequest(url, method, body) {
 }
 
 describe("OrgTemplateRepository", () => {
-  test("listTemplateInfos 只读取 info.md 且跳过缺失文件的模板", async () => {
+  test("listTemplateInfos 只读�?info.md 且跳过缺失文件的模板", async () => {
     const baseDir = path.resolve(process.cwd(), `test/.tmp/org_templates_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     await rm(baseDir, { recursive: true, force: true });
     await mkdir(baseDir, { recursive: true });

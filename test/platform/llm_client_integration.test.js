@@ -1,7 +1,7 @@
-ï»¿import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import fc from "fast-check";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 describe("LLM Client Integration Tests", () => {
   let mockLogger;
@@ -17,7 +17,7 @@ describe("LLM Client Integration Tests", () => {
     };
   });
 
-  // è¾…åŠ©å‡½æ•°ï¼šæ‰“å°è¯¦ç»†çš„æµ‹è¯•çŠ¶æ€
+  // ¸¨Öúº¯Êı£º´òÓ¡ÏêÏ¸µÄ²âÊÔ×´Ì¬
   function logTestState(testName, client, step) {
     const stats = client.getConcurrencyStats();
     console.log(`[${testName}] ${step}:`, {
@@ -30,25 +30,25 @@ describe("LLM Client Integration Tests", () => {
     });
   }
 
-  // è¾…åŠ©å‡½æ•°ï¼šç­‰å¾…å¹¶éªŒè¯çŠ¶æ€
+  // ¸¨Öúº¯Êı£ºµÈ´ı²¢ÑéÖ¤×´Ì¬
   async function waitAndVerifyState(client, expectedActive, expectedQueue, testName, step) {
-    await new Promise(resolve => setTimeout(resolve, 100)); // å¢åŠ ç­‰å¾…æ—¶é—´
+    await new Promise(resolve => setTimeout(resolve, 100)); // Ôö¼ÓµÈ´ıÊ±¼ä
     const stats = client.getConcurrencyStats();
-    console.log(`[${testName}] ${step} - æœŸæœ›: active=${expectedActive}, queue=${expectedQueue}, å®é™…: active=${stats.activeCount}, queue=${stats.queueLength}`);
+    console.log(`[${testName}] ${step} - ÆÚÍû: active=${expectedActive}, queue=${expectedQueue}, Êµ¼Ê: active=${stats.activeCount}, queue=${stats.queueLength}`);
     
     if (stats.activeCount !== expectedActive || stats.queueLength !== expectedQueue) {
-      console.error(`[${testName}] çŠ¶æ€ä¸åŒ¹é…ï¼æœŸæœ› active=${expectedActive}, queue=${expectedQueue}, å®é™… active=${stats.activeCount}, queue=${stats.queueLength}`);
-      logTestState(testName, client, "è¯¦ç»†çŠ¶æ€");
+      console.error(`[${testName}] ×´Ì¬²»Æ¥Åä£¡ÆÚÍû active=${expectedActive}, queue=${expectedQueue}, Êµ¼Ê active=${stats.activeCount}, queue=${stats.queueLength}`);
+      logTestState(testName, client, "ÏêÏ¸×´Ì¬");
     }
     
     expect(stats.activeCount).toBe(expectedActive);
     expect(stats.queueLength).toBe(expectedQueue);
   }
 
-  describe("å¤šæ™ºèƒ½ä½“å¹¶å‘åœºæ™¯", () => {
-    it("åº”æ”¯æŒå¤šä¸ªæ™ºèƒ½ä½“åŒæ—¶å‘é€è¯·æ±‚", async () => {
-      const testName = "å¤šæ™ºèƒ½ä½“å¹¶å‘";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+  describe("¶àÖÇÄÜÌå²¢·¢³¡¾°", () => {
+    it("Ó¦Ö§³Ö¶à¸öÖÇÄÜÌåÍ¬Ê±·¢ËÍÇëÇó", async () => {
+      const testName = "¶àÖÇÄÜÌå²¢·¢";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
@@ -58,7 +58,7 @@ describe("LLM Client Integration Tests", () => {
         logger: mockLogger
       });
 
-      logTestState(testName, client, "åˆå§‹åŒ–å");
+      logTestState(testName, client, "³õÊ¼»¯ºó");
 
       // Mock OpenAI client with controllable promises
       const resolvers = [];
@@ -68,92 +68,92 @@ describe("LLM Client Integration Tests", () => {
           completions: {
             create: vi.fn().mockImplementation(() => {
               const currentCall = ++callCount;
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ #${currentCall}`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ #${currentCall}`);
               return new Promise(resolve => {
                 resolvers.push({ resolve, callId: currentCall });
-                console.log(`[${testName}] Promise #${currentCall} å·²åˆ›å»ºï¼Œç­‰å¾…è§£æ`);
+                console.log(`[${testName}] Promise #${currentCall} ÒÑ´´½¨£¬µÈ´ı½âÎö`);
               });
             })
           }
         }
       };
 
-      console.log(`[${testName}] å¼€å§‹å‘èµ·3ä¸ªå¹¶å‘è¯·æ±‚`);
+      console.log(`[${testName}] ¿ªÊ¼·¢Æğ3¸ö²¢·¢ÇëÇó`);
 
-      // å‘èµ·3ä¸ªä¸åŒæ™ºèƒ½ä½“çš„è¯·æ±‚
+      // ·¢Æğ3¸ö²»Í¬ÖÇÄÜÌåµÄÇëÇó
       const promises = [
         client.chat({
           messages: [{ role: "user", content: "test1" }],
           meta: { agentId: "agent1" }
         }).then(result => {
-          console.log(`[${testName}] agent1 è¯·æ±‚å®Œæˆ:`, result.content);
+          console.log(`[${testName}] agent1 ÇëÇóÍê³É:`, result.content);
           return result;
         }).catch(error => {
-          console.error(`[${testName}] agent1 è¯·æ±‚å¤±è´¥:`, error.message);
+          console.error(`[${testName}] agent1 ÇëÇóÊ§°Ü:`, error.message);
           throw error;
         }),
         client.chat({
           messages: [{ role: "user", content: "test2" }],
           meta: { agentId: "agent2" }
         }).then(result => {
-          console.log(`[${testName}] agent2 è¯·æ±‚å®Œæˆ:`, result.content);
+          console.log(`[${testName}] agent2 ÇëÇóÍê³É:`, result.content);
           return result;
         }).catch(error => {
-          console.error(`[${testName}] agent2 è¯·æ±‚å¤±è´¥:`, error.message);
+          console.error(`[${testName}] agent2 ÇëÇóÊ§°Ü:`, error.message);
           throw error;
         }),
         client.chat({
           messages: [{ role: "user", content: "test3" }],
           meta: { agentId: "agent3" }
         }).then(result => {
-          console.log(`[${testName}] agent3 è¯·æ±‚å®Œæˆ:`, result.content);
+          console.log(`[${testName}] agent3 ÇëÇóÍê³É:`, result.content);
           return result;
         }).catch(error => {
-          console.error(`[${testName}] agent3 è¯·æ±‚å¤±è´¥:`, error.message);
+          console.error(`[${testName}] agent3 ÇëÇóÊ§°Ü:`, error.message);
           throw error;
         })
       ];
 
-      console.log(`[${testName}] 3ä¸ªè¯·æ±‚å·²å‘èµ·ï¼Œç­‰å¾…çŠ¶æ€ç¨³å®š`);
+      console.log(`[${testName}] 3¸öÇëÇóÒÑ·¢Æğ£¬µÈ´ı×´Ì¬ÎÈ¶¨`);
 
-      // ç­‰å¾…è¯·æ±‚å¼€å§‹å¤„ç†
-      await waitAndVerifyState(client, 3, 0, testName, "è¯·æ±‚å‘èµ·å");
+      // µÈ´ıÇëÇó¿ªÊ¼´¦Àí
+      await waitAndVerifyState(client, 3, 0, testName, "ÇëÇó·¢Æğºó");
 
-      console.log(`[${testName}] å¼€å§‹è§£ææ‰€æœ‰Promiseï¼Œresolversæ•°é‡: ${resolvers.length}`);
+      console.log(`[${testName}] ¿ªÊ¼½âÎöËùÓĞPromise£¬resolversÊıÁ¿: ${resolvers.length}`);
 
-      // å®Œæˆæ‰€æœ‰è¯·æ±‚
+      // Íê³ÉËùÓĞÇëÇó
       const mockResponse = {
         choices: [{ message: { content: "response" } }],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
       };
 
       resolvers.forEach(({ resolve, callId }) => {
-        console.log(`[${testName}] è§£æPromise #${callId}`);
+        console.log(`[${testName}] ½âÎöPromise #${callId}`);
         resolve(mockResponse);
       });
 
-      console.log(`[${testName}] ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ`);
+      console.log(`[${testName}] µÈ´ıËùÓĞÇëÇóÍê³É`);
       const results = await Promise.all(promises);
       
-      console.log(`[${testName}] æ‰€æœ‰è¯·æ±‚å·²å®Œæˆï¼Œç»“æœæ•°é‡: ${results.length}`);
+      console.log(`[${testName}] ËùÓĞÇëÇóÒÑÍê³É£¬½á¹ûÊıÁ¿: ${results.length}`);
 
-      // éªŒè¯æ‰€æœ‰è¯·æ±‚éƒ½æˆåŠŸå®Œæˆ
+      // ÑéÖ¤ËùÓĞÇëÇó¶¼³É¹¦Íê³É
       results.forEach((result, index) => {
-        console.log(`[${testName}] éªŒè¯ç»“æœ ${index + 1}:`, result.content);
+        console.log(`[${testName}] ÑéÖ¤½á¹û ${index + 1}:`, result.content);
         expect(result.content).toBe("response");
       });
 
-      // éªŒè¯ç»Ÿè®¡ä¿¡æ¯
-      logTestState(testName, client, "æµ‹è¯•å®Œæˆå");
+      // ÑéÖ¤Í³¼ÆĞÅÏ¢
+      logTestState(testName, client, "²âÊÔÍê³Éºó");
       expect(client.getConcurrencyStats().activeCount).toBe(0);
       expect(client.getConcurrencyStats().completedRequests).toBe(3);
       
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
 
-    it("åº”åœ¨è¾¾åˆ°å¹¶å‘é™åˆ¶æ—¶å°†è¯·æ±‚åŠ å…¥é˜Ÿåˆ—", async () => {
-      const testName = "å¹¶å‘é™åˆ¶é˜Ÿåˆ—";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+    it("Ó¦ÔÚ´ïµ½²¢·¢ÏŞÖÆÊ±½«ÇëÇó¼ÓÈë¶ÓÁĞ", async () => {
+      const testName = "²¢·¢ÏŞÖÆ¶ÓÁĞ";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
@@ -163,7 +163,7 @@ describe("LLM Client Integration Tests", () => {
         logger: mockLogger
       });
 
-      logTestState(testName, client, "åˆå§‹åŒ–å");
+      logTestState(testName, client, "³õÊ¼»¯ºó");
 
       const resolvers = [];
       let callCount = 0;
@@ -172,86 +172,86 @@ describe("LLM Client Integration Tests", () => {
           completions: {
             create: vi.fn().mockImplementation(() => {
               const currentCall = ++callCount;
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ #${currentCall}`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ #${currentCall}`);
               return new Promise(resolve => {
                 resolvers.push({ resolve, callId: currentCall });
-                console.log(`[${testName}] Promise #${currentCall} å·²åˆ›å»º`);
+                console.log(`[${testName}] Promise #${currentCall} ÒÑ´´½¨`);
               });
             })
           }
         }
       };
 
-      console.log(`[${testName}] å‘èµ·3ä¸ªè¯·æ±‚ï¼ŒæœŸæœ›å‰2ä¸ªå¤„ç†ï¼Œç¬¬3ä¸ªæ’é˜Ÿ`);
+      console.log(`[${testName}] ·¢Æğ3¸öÇëÇó£¬ÆÚÍûÇ°2¸ö´¦Àí£¬µÚ3¸öÅÅ¶Ó`);
 
-      // å‘èµ·3ä¸ªè¯·æ±‚ï¼Œç¬¬3ä¸ªåº”è¯¥è¿›å…¥é˜Ÿåˆ—
+      // ·¢Æğ3¸öÇëÇó£¬µÚ3¸öÓ¦¸Ã½øÈë¶ÓÁĞ
       const promises = [
         client.chat({
           messages: [{ role: "user", content: "test1" }],
           meta: { agentId: "agent1" }
         }).then(result => {
-          console.log(`[${testName}] agent1 å®Œæˆ`);
+          console.log(`[${testName}] agent1 Íê³É`);
           return result;
         }),
         client.chat({
           messages: [{ role: "user", content: "test2" }],
           meta: { agentId: "agent2" }
         }).then(result => {
-          console.log(`[${testName}] agent2 å®Œæˆ`);
+          console.log(`[${testName}] agent2 Íê³É`);
           return result;
         }),
         client.chat({
           messages: [{ role: "user", content: "test3" }],
           meta: { agentId: "agent3" }
         }).then(result => {
-          console.log(`[${testName}] agent3 å®Œæˆ`);
+          console.log(`[${testName}] agent3 Íê³É`);
           return result;
         })
       ];
 
-      // éªŒè¯å‰2ä¸ªè¯·æ±‚åœ¨å¤„ç†ï¼Œç¬¬3ä¸ªåœ¨é˜Ÿåˆ—ä¸­
-      await waitAndVerifyState(client, 2, 1, testName, "3ä¸ªè¯·æ±‚å‘èµ·å");
+      // ÑéÖ¤Ç°2¸öÇëÇóÔÚ´¦Àí£¬µÚ3¸öÔÚ¶ÓÁĞÖĞ
+      await waitAndVerifyState(client, 2, 1, testName, "3¸öÇëÇó·¢Æğºó");
 
-      console.log(`[${testName}] å®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚ï¼Œresolversæ•°é‡: ${resolvers.length}`);
+      console.log(`[${testName}] Íê³ÉµÚÒ»¸öÇëÇó£¬resolversÊıÁ¿: ${resolvers.length}`);
 
-      // å®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚
+      // Íê³ÉµÚÒ»¸öÇëÇó
       const mockResponse = {
         choices: [{ message: { content: "response" } }],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
       };
 
       if (resolvers.length > 0) {
-        console.log(`[${testName}] è§£æç¬¬ä¸€ä¸ªPromise #${resolvers[0].callId}`);
+        console.log(`[${testName}] ½âÎöµÚÒ»¸öPromise #${resolvers[0].callId}`);
         resolvers[0].resolve(mockResponse);
         await promises[0];
-        console.log(`[${testName}] ç¬¬ä¸€ä¸ªè¯·æ±‚å·²å®Œæˆ`);
+        console.log(`[${testName}] µÚÒ»¸öÇëÇóÒÑÍê³É`);
       } else {
-        console.error(`[${testName}] é”™è¯¯ï¼šæ²¡æœ‰å¯è§£æçš„resolver`);
+        console.error(`[${testName}] ´íÎó£ºÃ»ÓĞ¿É½âÎöµÄresolver`);
       }
 
-      // ç­‰å¾…é˜Ÿåˆ—å¤„ç†
-      await waitAndVerifyState(client, 2, 0, testName, "ç¬¬ä¸€ä¸ªè¯·æ±‚å®Œæˆå");
+      // µÈ´ı¶ÓÁĞ´¦Àí
+      await waitAndVerifyState(client, 2, 0, testName, "µÚÒ»¸öÇëÇóÍê³Éºó");
 
-      console.log(`[${testName}] å®Œæˆå‰©ä½™è¯·æ±‚`);
+      console.log(`[${testName}] Íê³ÉÊ£ÓàÇëÇó`);
 
-      // å®Œæˆå‰©ä½™è¯·æ±‚
+      // Íê³ÉÊ£ÓàÇëÇó
       for (let i = 1; i < resolvers.length; i++) {
-        console.log(`[${testName}] è§£æPromise #${resolvers[i].callId}`);
+        console.log(`[${testName}] ½âÎöPromise #${resolvers[i].callId}`);
         resolvers[i].resolve(mockResponse);
       }
 
       const results = await Promise.all(promises);
-      console.log(`[${testName}] æ‰€æœ‰è¯·æ±‚å®Œæˆï¼Œç»“æœæ•°é‡: ${results.length}`);
+      console.log(`[${testName}] ËùÓĞÇëÇóÍê³É£¬½á¹ûÊıÁ¿: ${results.length}`);
 
-      logTestState(testName, client, "æµ‹è¯•å®Œæˆå");
+      logTestState(testName, client, "²âÊÔÍê³Éºó");
       expect(client.getConcurrencyStats().completedRequests).toBe(3);
       
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†è¯·æ±‚å–æ¶ˆ", async () => {
-      const testName = "è¯·æ±‚å–æ¶ˆ";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+    it("Ó¦ÕıÈ·´¦ÀíÇëÇóÈ¡Ïû", async () => {
+      const testName = "ÇëÇóÈ¡Ïû";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
@@ -261,7 +261,7 @@ describe("LLM Client Integration Tests", () => {
         logger: mockLogger
       });
 
-      logTestState(testName, client, "åˆå§‹åŒ–å");
+      logTestState(testName, client, "³õÊ¼»¯ºó");
 
       const resolvers = [];
       let callCount = 0;
@@ -270,7 +270,7 @@ describe("LLM Client Integration Tests", () => {
           completions: {
             create: vi.fn().mockImplementation(() => {
               const currentCall = ++callCount;
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ #${currentCall}`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ #${currentCall}`);
               return new Promise(resolve => {
                 resolvers.push({ resolve, callId: currentCall });
               });
@@ -279,17 +279,17 @@ describe("LLM Client Integration Tests", () => {
         }
       };
 
-      console.log(`[${testName}] å‘èµ·2ä¸ªè¯·æ±‚ï¼Œç¬¬2ä¸ªåº”è¿›å…¥é˜Ÿåˆ—`);
+      console.log(`[${testName}] ·¢Æğ2¸öÇëÇó£¬µÚ2¸öÓ¦½øÈë¶ÓÁĞ`);
 
-      // å‘èµ·2ä¸ªè¯·æ±‚ï¼Œç¬¬2ä¸ªè¿›å…¥é˜Ÿåˆ—
+      // ·¢Æğ2¸öÇëÇó£¬µÚ2¸ö½øÈë¶ÓÁĞ
       const promise1 = client.chat({
         messages: [{ role: "user", content: "test1" }],
         meta: { agentId: "agent1" }
       }).then(result => {
-        console.log(`[${testName}] agent1 å®Œæˆ`);
+        console.log(`[${testName}] agent1 Íê³É`);
         return result;
       }).catch(error => {
-        console.log(`[${testName}] agent1 è¢«å–æ¶ˆæˆ–å¤±è´¥:`, error.message);
+        console.log(`[${testName}] agent1 ±»È¡Ïû»òÊ§°Ü:`, error.message);
         throw error;
       });
 
@@ -297,36 +297,36 @@ describe("LLM Client Integration Tests", () => {
         messages: [{ role: "user", content: "test2" }],
         meta: { agentId: "agent2" }
       }).then(result => {
-        console.log(`[${testName}] agent2 å®Œæˆ`);
+        console.log(`[${testName}] agent2 Íê³É`);
         return result;
       }).catch(error => {
-        console.log(`[${testName}] agent2 è¢«å–æ¶ˆ:`, error.message);
+        console.log(`[${testName}] agent2 ±»È¡Ïû:`, error.message);
         throw error;
       });
 
-      await waitAndVerifyState(client, 1, 1, testName, "2ä¸ªè¯·æ±‚å‘èµ·å");
+      await waitAndVerifyState(client, 1, 1, testName, "2¸öÇëÇó·¢Æğºó");
 
-      console.log(`[${testName}] å–æ¶ˆé˜Ÿåˆ—ä¸­çš„agent2è¯·æ±‚`);
+      console.log(`[${testName}] È¡Ïû¶ÓÁĞÖĞµÄagent2ÇëÇó`);
 
-      // å–æ¶ˆé˜Ÿåˆ—ä¸­çš„è¯·æ±‚
+      // È¡Ïû¶ÓÁĞÖĞµÄÇëÇó
       const cancelled = client.abort("agent2");
-      console.log(`[${testName}] å–æ¶ˆç»“æœ: ${cancelled}`);
+      console.log(`[${testName}] È¡Ïû½á¹û: ${cancelled}`);
       expect(cancelled).toBe(true);
 
-      // éªŒè¯é˜Ÿåˆ—é•¿åº¦å‡å°‘
-      await waitAndVerifyState(client, 1, 0, testName, "å–æ¶ˆagent2å");
+      // ÑéÖ¤¶ÓÁĞ³¤¶È¼õÉÙ
+      await waitAndVerifyState(client, 1, 0, testName, "È¡Ïûagent2ºó");
 
-      console.log(`[${testName}] éªŒè¯agent2è¯·æ±‚è¢«æ‹’ç»`);
+      console.log(`[${testName}] ÑéÖ¤agent2ÇëÇó±»¾Ü¾ø`);
 
-      // éªŒè¯è¢«å–æ¶ˆçš„è¯·æ±‚è¢«æ‹’ç»
+      // ÑéÖ¤±»È¡ÏûµÄÇëÇó±»¾Ü¾ø
       const result2 = await promise2.catch(error => ({ error: error.message }));
-      console.log(`[${testName}] agent2 ç»“æœ:`, result2);
+      console.log(`[${testName}] agent2 ½á¹û:`, result2);
       expect(result2.error).toBeDefined();
       expect(result2.error).toContain("cancelled");
 
-      console.log(`[${testName}] å®Œæˆagent1è¯·æ±‚`);
+      console.log(`[${testName}] Íê³Éagent1ÇëÇó`);
 
-      // å®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚
+      // Íê³ÉµÚÒ»¸öÇëÇó
       if (resolvers.length > 0) {
         resolvers[0].resolve({
           choices: [{ message: { content: "response" } }],
@@ -335,20 +335,20 @@ describe("LLM Client Integration Tests", () => {
       }
 
       const result1 = await promise1;
-      console.log(`[${testName}] agent1 ç»“æœ:`, result1.content);
+      console.log(`[${testName}] agent1 ½á¹û:`, result1.content);
 
-      logTestState(testName, client, "æµ‹è¯•å®Œæˆå");
+      logTestState(testName, client, "²âÊÔÍê³Éºó");
       expect(client.getConcurrencyStats().completedRequests).toBe(1);
       expect(client.getConcurrencyStats().rejectedRequests).toBe(1);
       
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
   });
 
-  describe("ç°æœ‰åŠŸèƒ½å…¼å®¹æ€§éªŒè¯", () => {
-    it("åº”ä¿æŒå‘åå…¼å®¹çš„æ¥å£", async () => {
-      const testName = "å‘åå…¼å®¹";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+  describe("ÏÖÓĞ¹¦ÄÜ¼æÈİĞÔÑéÖ¤", () => {
+    it("Ó¦±£³ÖÏòºó¼æÈİµÄ½Ó¿Ú", async () => {
+      const testName = "Ïòºó¼æÈİ";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
@@ -357,13 +357,13 @@ describe("LLM Client Integration Tests", () => {
         logger: mockLogger
       });
 
-      logTestState(testName, client, "åˆå§‹åŒ–å");
+      logTestState(testName, client, "³õÊ¼»¯ºó");
 
       client._client = {
         chat: {
           completions: {
             create: vi.fn().mockImplementation(() => {
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ï¼ˆæ— agentIdï¼‰`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ£¨ÎŞagentId£©`);
               return Promise.resolve({
                 choices: [{ message: { content: "response" } }],
                 usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
@@ -373,25 +373,25 @@ describe("LLM Client Integration Tests", () => {
         }
       };
 
-      console.log(`[${testName}] æµ‹è¯•ä¸å¸¦agentIdçš„è°ƒç”¨`);
+      console.log(`[${testName}] ²âÊÔ²»´øagentIdµÄµ÷ÓÃ`);
 
-      // æµ‹è¯•ä¸å¸¦agentIdçš„è°ƒç”¨ï¼ˆå‘åå…¼å®¹ï¼‰
+      // ²âÊÔ²»´øagentIdµÄµ÷ÓÃ£¨Ïòºó¼æÈİ£©
       const result = await client.chat({
         messages: [{ role: "user", content: "test" }],
         meta: {}
       });
 
-      console.log(`[${testName}] ç»“æœ:`, result.content);
+      console.log(`[${testName}] ½á¹û:`, result.content);
       expect(result.content).toBe("response");
       expect(client._client.chat.completions.create).toHaveBeenCalled();
       
-      logTestState(testName, client, "æµ‹è¯•å®Œæˆå");
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      logTestState(testName, client, "²âÊÔÍê³Éºó");
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†ç°æœ‰çš„abortåŠŸèƒ½", async () => {
-      const testName = "AbortåŠŸèƒ½";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+    it("Ó¦ÕıÈ·´¦ÀíÏÖÓĞµÄabort¹¦ÄÜ", async () => {
+      const testName = "Abort¹¦ÄÜ";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
@@ -403,58 +403,58 @@ describe("LLM Client Integration Tests", () => {
       let resolver;
       const controllablePromise = new Promise(resolve => { 
         resolver = resolve;
-        console.log(`[${testName}] åˆ›å»ºå¯æ§åˆ¶çš„Promise`);
+        console.log(`[${testName}] ´´½¨¿É¿ØÖÆµÄPromise`);
       });
       
       client._client = {
         chat: {
           completions: {
             create: vi.fn().mockImplementation(() => {
-              console.log(`[${testName}] OpenAI API è°ƒç”¨`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ`);
               return controllablePromise;
             })
           }
         }
       };
 
-      console.log(`[${testName}] å‘èµ·è¯·æ±‚`);
+      console.log(`[${testName}] ·¢ÆğÇëÇó`);
 
-      // å‘èµ·è¯·æ±‚
+      // ·¢ÆğÇëÇó
       const promise = client.chat({
         messages: [{ role: "user", content: "test" }],
         meta: { agentId: "test-agent" }
       }).catch(error => {
-        console.log(`[${testName}] è¯·æ±‚è¢«ä¸­æ–­:`, error.message);
+        console.log(`[${testName}] ÇëÇó±»ÖĞ¶Ï:`, error.message);
         throw error;
       });
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      console.log(`[${testName}] éªŒè¯hasActiveRequest`);
-      // éªŒè¯hasActiveRequestå·¥ä½œæ­£å¸¸
+      console.log(`[${testName}] ÑéÖ¤hasActiveRequest`);
+      // ÑéÖ¤hasActiveRequest¹¤×÷Õı³£
       const hasActive = client.hasActiveRequest("test-agent");
-      console.log(`[${testName}] hasActiveRequestç»“æœ: ${hasActive}`);
+      console.log(`[${testName}] hasActiveRequest½á¹û: ${hasActive}`);
       expect(hasActive).toBe(true);
 
-      console.log(`[${testName}] æ‰§è¡Œabort`);
-      // éªŒè¯abortåŠŸèƒ½å·¥ä½œæ­£å¸¸
+      console.log(`[${testName}] Ö´ĞĞabort`);
+      // ÑéÖ¤abort¹¦ÄÜ¹¤×÷Õı³£
       const aborted = client.abort("test-agent");
-      console.log(`[${testName}] abortç»“æœ: ${aborted}`);
+      console.log(`[${testName}] abort½á¹û: ${aborted}`);
       expect(aborted).toBe(true);
       
       const hasActiveAfterAbort = client.hasActiveRequest("test-agent");
-      console.log(`[${testName}] abortåhasActiveRequest: ${hasActiveAfterAbort}`);
+      console.log(`[${testName}] abortºóhasActiveRequest: ${hasActiveAfterAbort}`);
       expect(hasActiveAfterAbort).toBe(false);
 
-      console.log(`[${testName}] éªŒè¯promiseè¢«æ‹’ç»`);
-      // éªŒè¯promiseè¢«æ‹’ç»
+      console.log(`[${testName}] ÑéÖ¤promise±»¾Ü¾ø`);
+      // ÑéÖ¤promise±»¾Ü¾ø
       await expect(promise).rejects.toThrow();
       
-      logTestState(testName, client, "æµ‹è¯•å®Œæˆå");
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      logTestState(testName, client, "²âÊÔÍê³Éºó");
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†é…ç½®åŠ¨æ€æ›´æ–°", async () => {
+    it("Ó¦ÕıÈ·´¦ÀíÅäÖÃ¶¯Ì¬¸üĞÂ", async () => {
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
@@ -465,18 +465,18 @@ describe("LLM Client Integration Tests", () => {
 
       expect(client.concurrencyController.maxConcurrentRequests).toBe(2);
 
-      // åŠ¨æ€æ›´æ–°é…ç½®
+      // ¶¯Ì¬¸üĞÂÅäÖÃ
       await client.updateMaxConcurrentRequests(5);
       expect(client.concurrencyController.maxConcurrentRequests).toBe(5);
 
-      // éªŒè¯ç»Ÿè®¡ä¿¡æ¯è®¿é—®
+      // ÑéÖ¤Í³¼ÆĞÅÏ¢·ÃÎÊ
       const stats = client.getConcurrencyStats();
       expect(stats).toHaveProperty("activeCount");
       expect(stats).toHaveProperty("queueLength");
       expect(stats).toHaveProperty("totalRequests");
     });
 
-    it("åº”æ­£ç¡®è®°å½•æ—¥å¿—", async () => {
+    it("Ó¦ÕıÈ·¼ÇÂ¼ÈÕÖ¾", async () => {
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
@@ -501,36 +501,36 @@ describe("LLM Client Integration Tests", () => {
         meta: { agentId: "test-agent" }
       });
 
-      // éªŒè¯æ—¥å¿—è®°å½•åŠŸèƒ½
+      // ÑéÖ¤ÈÕÖ¾¼ÇÂ¼¹¦ÄÜ
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining("å¼€å§‹å¤„ç†LLMè¯·æ±‚"),
+        expect.stringContaining("¿ªÊ¼´¦ÀíLLMÇëÇó"),
         expect.any(Object)
       );
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining("LLMè¯·æ±‚å®Œæˆ"),
+        expect.stringContaining("LLMÇëÇóÍê³É"),
         expect.any(Object)
       );
     });
   });
 
-  describe("é”™è¯¯å¤„ç†å’Œæ¢å¤", () => {
-    it("åº”æ­£ç¡®å¤„ç†è¯·æ±‚å¤±è´¥å¹¶é‡Šæ”¾èµ„æº", async () => {
-      const testName = "è¯·æ±‚å¤±è´¥å¤„ç†";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+  describe("´íÎó´¦ÀíºÍ»Ö¸´", () => {
+    it("Ó¦ÕıÈ·´¦ÀíÇëÇóÊ§°Ü²¢ÊÍ·Å×ÊÔ´", async () => {
+      const testName = "ÇëÇóÊ§°Ü´¦Àí";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
         apiKey: "test-key",
-        maxConcurrentRequests: 2, // å¢åŠ å¹¶å‘æ•°ä»¥ç®€åŒ–æµ‹è¯•
-        maxRetries: 1, // å‡å°‘é‡è¯•æ¬¡æ•°ä»¥åŠ å¿«æµ‹è¯•
+        maxConcurrentRequests: 2, // Ôö¼Ó²¢·¢ÊıÒÔ¼ò»¯²âÊÔ
+        maxRetries: 1, // ¼õÉÙÖØÊÔ´ÎÊıÒÔ¼Ó¿ì²âÊÔ
         logger: mockLogger
       });
 
       // Mock sleep to speed up test
       client._sleep = vi.fn().mockResolvedValue(undefined);
 
-      logTestState(testName, client, "åˆå§‹åŒ–å");
+      logTestState(testName, client, "³õÊ¼»¯ºó");
 
       let callCount = 0;
       client._client = {
@@ -538,18 +538,18 @@ describe("LLM Client Integration Tests", () => {
           completions: {
             create: vi.fn().mockImplementation(async (payload, options) => {
               const currentCall = ++callCount;
-              console.log(`[${testName}] OpenAI API è°ƒç”¨ #${currentCall} - å¼€å§‹å¤„ç†`);
+              console.log(`[${testName}] OpenAI API µ÷ÓÃ #${currentCall} - ¿ªÊ¼´¦Àí`);
               
-              // æ£€æŸ¥æ˜¯å¦è¢«ä¸­æ–­
+              // ¼ì²éÊÇ·ñ±»ÖĞ¶Ï
               if (options?.signal?.aborted) {
-                console.log(`[${testName}] è°ƒç”¨ #${currentCall} å·²è¢«ä¸­æ–­`);
+                console.log(`[${testName}] µ÷ÓÃ #${currentCall} ÒÑ±»ÖĞ¶Ï`);
                 const abortError = new Error("Request aborted");
                 abortError.name = "AbortError";
                 throw abortError;
               }
               
-              // ç«‹å³æŠ›å‡ºé”™è¯¯ï¼Œä¸ä½¿ç”¨å»¶è¿Ÿ
-              console.log(`[${testName}] è°ƒç”¨ #${currentCall} ç«‹å³å¤±è´¥`);
+              // Á¢¼´Å×³ö´íÎó£¬²»Ê¹ÓÃÑÓ³Ù
+              console.log(`[${testName}] µ÷ÓÃ #${currentCall} Á¢¼´Ê§°Ü`);
               const error = new Error("API Error");
               throw error;
             })
@@ -557,14 +557,14 @@ describe("LLM Client Integration Tests", () => {
         }
       };
 
-      console.log(`[${testName}] å‘èµ·2ä¸ªè¯·æ±‚ï¼Œåº”è¯¥éƒ½èƒ½ç«‹å³å¼€å§‹å¤„ç†`);
+      console.log(`[${testName}] ·¢Æğ2¸öÇëÇó£¬Ó¦¸Ã¶¼ÄÜÁ¢¼´¿ªÊ¼´¦Àí`);
 
-      // å‘èµ·2ä¸ªè¯·æ±‚
+      // ·¢Æğ2¸öÇëÇó
       const promise1 = client.chat({
         messages: [{ role: "user", content: "test1" }],
         meta: { agentId: "agent1" }
       }).catch(error => {
-        console.log(`[${testName}] agent1 è¯·æ±‚æœ€ç»ˆå¤±è´¥:`, error.message);
+        console.log(`[${testName}] agent1 ÇëÇó×îÖÕÊ§°Ü:`, error.message);
         return { error: error.message };
       });
 
@@ -572,76 +572,76 @@ describe("LLM Client Integration Tests", () => {
         messages: [{ role: "user", content: "test2" }],
         meta: { agentId: "agent2" }
       }).catch(error => {
-        console.log(`[${testName}] agent2 è¯·æ±‚æœ€ç»ˆå¤±è´¥:`, error.message);
+        console.log(`[${testName}] agent2 ÇëÇó×îÖÕÊ§°Ü:`, error.message);
         return { error: error.message };
       });
 
-      console.log(`[${testName}] ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ`);
+      console.log(`[${testName}] µÈ´ıËùÓĞÇëÇóÍê³É`);
       
-      // ç­‰å¾…æ‰€æœ‰è¯·æ±‚å®Œæˆ
+      // µÈ´ıËùÓĞÇëÇóÍê³É
       const [result1, result2] = await Promise.all([promise1, promise2]);
       
-      console.log(`[${testName}] ç¬¬ä¸€ä¸ªè¯·æ±‚ç»“æœ:`, result1);
-      console.log(`[${testName}] ç¬¬äºŒä¸ªè¯·æ±‚ç»“æœ:`, result2);
+      console.log(`[${testName}] µÚÒ»¸öÇëÇó½á¹û:`, result1);
+      console.log(`[${testName}] µÚ¶ş¸öÇëÇó½á¹û:`, result2);
       
       expect(result1.error).toBeDefined();
       expect(result2.error).toBeDefined();
 
-      console.log(`[${testName}] ç­‰å¾…èµ„æºæ¸…ç†`);
+      console.log(`[${testName}] µÈ´ı×ÊÔ´ÇåÀí`);
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // éªŒè¯èµ„æºè¢«æ­£ç¡®é‡Šæ”¾
-      logTestState(testName, client, "æ‰€æœ‰è¯·æ±‚å¤±è´¥å");
+      // ÑéÖ¤×ÊÔ´±»ÕıÈ·ÊÍ·Å
+      logTestState(testName, client, "ËùÓĞÇëÇóÊ§°Üºó");
       expect(client.getConcurrencyStats().activeCount).toBe(0);
       
-      console.log(`[${testName}] éªŒè¯è°ƒç”¨æ¬¡æ•°`);
-      console.log(`[${testName}] OpenAI API æ€»è°ƒç”¨æ¬¡æ•°: ${callCount}`);
-      // æ¯ä¸ªè¯·æ±‚ä¼šé‡è¯•1æ¬¡ï¼Œæ‰€ä»¥æ€»å…±åº”è¯¥æœ‰4æ¬¡è°ƒç”¨ï¼ˆ2ä¸ªè¯·æ±‚ Ã— 2æ¬¡å°è¯•ï¼‰
+      console.log(`[${testName}] ÑéÖ¤µ÷ÓÃ´ÎÊı`);
+      console.log(`[${testName}] OpenAI API ×Üµ÷ÓÃ´ÎÊı: ${callCount}`);
+      // Ã¿¸öÇëÇó»áÖØÊÔ1´Î£¬ËùÒÔ×Ü¹²Ó¦¸ÃÓĞ4´Îµ÷ÓÃ£¨2¸öÇëÇó ¡Á 2´Î³¢ÊÔ£©
       expect(callCount).toBe(4);
       
-      console.log(`[${testName}] æµ‹è¯•å®Œæˆ`);
+      console.log(`[${testName}] ²âÊÔÍê³É`);
     });
 
-    it("åº”æ­£ç¡®å¤„ç†æ— æ•ˆé…ç½®", async () => {
-      const testName = "æ— æ•ˆé…ç½®å¤„ç†";
-      console.log(`[${testName}] å¼€å§‹æµ‹è¯•`);
+    it("Ó¦ÕıÈ·´¦ÀíÎŞĞ§ÅäÖÃ", async () => {
+      const testName = "ÎŞĞ§ÅäÖÃ´¦Àí";
+      console.log(`[${testName}] ¿ªÊ¼²âÊÔ`);
       
-      // æµ‹è¯•æ— æ•ˆçš„maxConcurrentRequests
+      // ²âÊÔÎŞĞ§µÄmaxConcurrentRequests
       const client = new LlmClient({
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
         apiKey: "test-key",
-        maxConcurrentRequests: -1, // æ— æ•ˆå€¼
+        maxConcurrentRequests: -1, // ÎŞĞ§Öµ
         logger: mockLogger
       });
 
-      console.log(`[${testName}] æ£€æŸ¥é…ç½®æ˜¯å¦è¢«ä¿®æ­£ä¸ºé»˜è®¤å€¼`);
-      console.log(`[${testName}] å®é™…maxConcurrentRequests: ${client.concurrencyController.maxConcurrentRequests}`);
+      console.log(`[${testName}] ¼ì²éÅäÖÃÊÇ·ñ±»ĞŞÕıÎªÄ¬ÈÏÖµ`);
+      console.log(`[${testName}] Êµ¼ÊmaxConcurrentRequests: ${client.concurrencyController.maxConcurrentRequests}`);
 
-      // åº”è¯¥ä½¿ç”¨é»˜è®¤å€¼3
+      // Ó¦¸ÃÊ¹ÓÃÄ¬ÈÏÖµ3
       expect(client.concurrencyController.maxConcurrentRequests).toBe(3);
 
-      // éªŒè¯è­¦å‘Šæ—¥å¿—è¢«è®°å½•
-      console.log(`[${testName}] æ£€æŸ¥æ˜¯å¦è®°å½•äº†è­¦å‘Šæ—¥å¿—`);
+      // ÑéÖ¤¾¯¸æÈÕÖ¾±»¼ÇÂ¼
+      console.log(`[${testName}] ¼ì²éÊÇ·ñ¼ÇÂ¼ÁË¾¯¸æÈÕÖ¾`);
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("æ— æ•ˆçš„maxConcurrentRequestsé…ç½®"),
+        expect.stringContaining("ÎŞĞ§µÄmaxConcurrentRequestsÅäÖÃ"),
         expect.any(Object)
       );
       
-      console.log(`[${testName}] æµ‹è¯•é€šè¿‡`);
+      console.log(`[${testName}] ²âÊÔÍ¨¹ı`);
     });
   });
 
-  describe("å±æ€§æµ‹è¯• - å¤šæ™ºèƒ½ä½“å¹¶å‘æ­£ç¡®æ€§", () => {
-    it("å¯¹äºä»»æ„æ•°é‡çš„æ™ºèƒ½ä½“å¹¶å‘è¯·æ±‚ï¼Œç³»ç»Ÿåº”æ­£ç¡®ç®¡ç†å¹¶å‘é™åˆ¶å’Œé˜Ÿåˆ—", async () => {
-      const testName = "å±æ€§æµ‹è¯•-å¹¶å‘æ­£ç¡®æ€§";
-      console.log(`[${testName}] å¼€å§‹å±æ€§æµ‹è¯•`);
+  describe("ÊôĞÔ²âÊÔ - ¶àÖÇÄÜÌå²¢·¢ÕıÈ·ĞÔ", () => {
+    it("¶ÔÓÚÈÎÒâÊıÁ¿µÄÖÇÄÜÌå²¢·¢ÇëÇó£¬ÏµÍ³Ó¦ÕıÈ·¹ÜÀí²¢·¢ÏŞÖÆºÍ¶ÓÁĞ", async () => {
+      const testName = "ÊôĞÔ²âÊÔ-²¢·¢ÕıÈ·ĞÔ";
+      console.log(`[${testName}] ¿ªÊ¼ÊôĞÔ²âÊÔ`);
       
       await fc.assert(fc.asyncProperty(
         fc.integer({ min: 1, max: 5 }), // maxConcurrentRequests
         fc.array(fc.string({ minLength: 1, maxLength: 10 }), { minLength: 1, maxLength: 8 }), // agentIds
         async (maxConcurrentRequests, agentIds) => {
-          console.log(`[${testName}] æµ‹è¯•å‚æ•°: maxConcurrent=${maxConcurrentRequests}, agents=[${agentIds.join(',')}]`);
+          console.log(`[${testName}] ²âÊÔ²ÎÊı: maxConcurrent=${maxConcurrentRequests}, agents=[${agentIds.join(',')}]`);
           
           const client = new LlmClient({
             baseURL: "http://localhost:1234/v1",
@@ -651,7 +651,7 @@ describe("LLM Client Integration Tests", () => {
             logger: mockLogger
           });
 
-          logTestState(testName, client, "åˆå§‹åŒ–å");
+          logTestState(testName, client, "³õÊ¼»¯ºó");
 
           const resolvers = [];
           let callCount = 0;
@@ -660,84 +660,84 @@ describe("LLM Client Integration Tests", () => {
               completions: {
                 create: vi.fn().mockImplementation(() => {
                   const currentCall = ++callCount;
-                  console.log(`[${testName}] OpenAI API è°ƒç”¨ #${currentCall}`);
+                  console.log(`[${testName}] OpenAI API µ÷ÓÃ #${currentCall}`);
                   return new Promise(resolve => {
                     resolvers.push({ resolve, callId: currentCall });
-                    console.log(`[${testName}] Promise #${currentCall} å·²åˆ›å»º`);
+                    console.log(`[${testName}] Promise #${currentCall} ÒÑ´´½¨`);
                   });
                 })
               }
             }
           };
 
-          console.log(`[${testName}] å‘èµ· ${agentIds.length} ä¸ªè¯·æ±‚`);
+          console.log(`[${testName}] ·¢Æğ ${agentIds.length} ¸öÇëÇó`);
 
-          // å‘èµ·æ‰€æœ‰è¯·æ±‚
+          // ·¢ÆğËùÓĞÇëÇó
           const promises = agentIds.map((agentId, index) => {
-            console.log(`[${testName}] å‘èµ·è¯·æ±‚ ${index + 1}/${agentIds.length} for agent: ${agentId}`);
+            console.log(`[${testName}] ·¢ÆğÇëÇó ${index + 1}/${agentIds.length} for agent: ${agentId}`);
             return client.chat({
               messages: [{ role: "user", content: "test" }],
               meta: { agentId }
             }).then(result => {
-              console.log(`[${testName}] agent ${agentId} å®Œæˆ`);
+              console.log(`[${testName}] agent ${agentId} Íê³É`);
               return result;
             }).catch(error => {
-              console.log(`[${testName}] agent ${agentId} å¤±è´¥:`, error.message);
+              console.log(`[${testName}] agent ${agentId} Ê§°Ü:`, error.message);
               throw error;
             });
           });
 
-          console.log(`[${testName}] æ‰€æœ‰è¯·æ±‚å·²å‘èµ·ï¼Œç­‰å¾…çŠ¶æ€ç¨³å®š`);
+          console.log(`[${testName}] ËùÓĞÇëÇóÒÑ·¢Æğ£¬µÈ´ı×´Ì¬ÎÈ¶¨`);
           await new Promise(resolve => setTimeout(resolve, 100));
 
           const stats = client.getConcurrencyStats();
-          console.log(`[${testName}] å½“å‰çŠ¶æ€: active=${stats.activeCount}, queue=${stats.queueLength}, total=${stats.totalRequests}`);
+          console.log(`[${testName}] µ±Ç°×´Ì¬: active=${stats.activeCount}, queue=${stats.queueLength}, total=${stats.totalRequests}`);
           
-          // éªŒè¯å¹¶å‘é™åˆ¶
-          console.log(`[${testName}] éªŒè¯å¹¶å‘é™åˆ¶: ${stats.activeCount} <= ${maxConcurrentRequests}`);
+          // ÑéÖ¤²¢·¢ÏŞÖÆ
+          console.log(`[${testName}] ÑéÖ¤²¢·¢ÏŞÖÆ: ${stats.activeCount} <= ${maxConcurrentRequests}`);
           expect(stats.activeCount).toBeLessThanOrEqual(maxConcurrentRequests);
           
-          // éªŒè¯æ€»è¯·æ±‚æ•°
-          console.log(`[${testName}] éªŒè¯æ€»è¯·æ±‚æ•°: ${stats.activeCount + stats.queueLength} === ${agentIds.length}`);
+          // ÑéÖ¤×ÜÇëÇóÊı
+          console.log(`[${testName}] ÑéÖ¤×ÜÇëÇóÊı: ${stats.activeCount + stats.queueLength} === ${agentIds.length}`);
           expect(stats.activeCount + stats.queueLength).toBe(agentIds.length);
 
-          console.log(`[${testName}] å¼€å§‹å®Œæˆæ‰€æœ‰è¯·æ±‚ï¼Œresolversæ•°é‡: ${resolvers.length}`);
+          console.log(`[${testName}] ¿ªÊ¼Íê³ÉËùÓĞÇëÇó£¬resolversÊıÁ¿: ${resolvers.length}`);
 
-          // å®Œæˆæ‰€æœ‰è¯·æ±‚
+          // Íê³ÉËùÓĞÇëÇó
           const mockResponse = {
             choices: [{ message: { content: "response" } }],
             usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }
           };
 
           resolvers.forEach(({ resolve, callId }) => {
-            console.log(`[${testName}] è§£æPromise #${callId}`);
+            console.log(`[${testName}] ½âÎöPromise #${callId}`);
             resolve(mockResponse);
           });
 
-          console.log(`[${testName}] ç­‰å¾…æ‰€æœ‰Promiseå®Œæˆ`);
+          console.log(`[${testName}] µÈ´ıËùÓĞPromiseÍê³É`);
           const results = await Promise.all(promises);
           
-          console.log(`[${testName}] æ‰€æœ‰è¯·æ±‚å®Œæˆï¼Œç»“æœæ•°é‡: ${results.length}`);
+          console.log(`[${testName}] ËùÓĞÇëÇóÍê³É£¬½á¹ûÊıÁ¿: ${results.length}`);
           
-          // éªŒè¯æ‰€æœ‰è¯·æ±‚éƒ½æˆåŠŸå®Œæˆ
+          // ÑéÖ¤ËùÓĞÇëÇó¶¼³É¹¦Íê³É
           expect(results).toHaveLength(agentIds.length);
           results.forEach((result, index) => {
-            console.log(`[${testName}] éªŒè¯ç»“æœ ${index + 1}: ${result.content}`);
+            console.log(`[${testName}] ÑéÖ¤½á¹û ${index + 1}: ${result.content}`);
             expect(result.content).toBe("response");
           });
 
-          // éªŒè¯æœ€ç»ˆç»Ÿè®¡
+          // ÑéÖ¤×îÖÕÍ³¼Æ
           const finalStats = client.getConcurrencyStats();
-          console.log(`[${testName}] æœ€ç»ˆçŠ¶æ€:`, finalStats);
+          console.log(`[${testName}] ×îÖÕ×´Ì¬:`, finalStats);
           expect(finalStats.activeCount).toBe(0);
           expect(finalStats.queueLength).toBe(0);
           expect(finalStats.completedRequests).toBe(agentIds.length);
           
-          console.log(`[${testName}] å±æ€§æµ‹è¯•é€šè¿‡`);
+          console.log(`[${testName}] ÊôĞÔ²âÊÔÍ¨¹ı`);
         }
-      ), { numRuns: 5 }); // å‡å°‘è¿è¡Œæ¬¡æ•°ä»¥é¿å…è¶…æ—¶
+      ), { numRuns: 5 }); // ¼õÉÙÔËĞĞ´ÎÊıÒÔ±ÜÃâ³¬Ê±
       
-      console.log(`[${testName}] æ‰€æœ‰å±æ€§æµ‹è¯•å®Œæˆ`);
+      console.log(`[${testName}] ËùÓĞÊôĞÔ²âÊÔÍê³É`);
     });
   });
 });

@@ -272,15 +272,15 @@ export default {
 
         // 文件传输
         case 'ssh_upload': {
-          const validationError = validateParams(args, ['connectionId', 'artifactId', 'remotePath']);
+          const validationError = validateParams(args, ['connectionId', 'path', 'remotePath']);
           if (validationError) return validationError;
-          return await fileTransfer.upload(args.connectionId, args.artifactId, args.remotePath, ctx);
+          return await fileTransfer.upload(args.connectionId, args.path, args.remotePath, ctx);
         }
         
         case 'ssh_download': {
-          const validationError = validateParams(args, ['connectionId', 'remotePath', 'fileName']);
+          const validationError = validateParams(args, ['connectionId', 'remotePath', 'path']);
           if (validationError) return validationError;
-          return await fileTransfer.download(args.connectionId, args.remotePath, args.fileName, ctx);
+          return await fileTransfer.download(args.connectionId, args.remotePath, args.path, ctx);
         }
         
         case 'ssh_transfer_status': {

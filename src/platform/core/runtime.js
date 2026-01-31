@@ -1,6 +1,5 @@
 import path from "node:path";
 import { Config } from "../utils/config/config.js";
-import { ArtifactStore } from "../services/artifact/artifact_store.js";
 import { MessageBus } from "./message_bus.js";
 import { OrgPrimitives } from "./org_primitives.js";
 import { PromptLoader } from "../prompt_loader.js";
@@ -15,7 +14,8 @@ import { LlmServiceRegistry } from "../services/llm/llm_service_registry.js";
 import { ModelSelector } from "../services/llm/model_selector.js";
 import { ToolGroupManager } from "../extensions/tool_group_manager.js";
 import { ContentAdapter } from "../utils/content/content_adapter.js";
-import { ContentRouter } from "../services/artifact/content_router.js";
+import { ContentRouter } from "../utils/content/content_router.js";
+
 import { OrgTemplateRepository } from "../services/org_templates/org_template_repository.js";
 import { UiCommandBroker } from "../services/ui/ui_command_broker.js";
 
@@ -42,7 +42,7 @@ import { ComputeScheduler } from "../runtime/compute_scheduler.js";
  * Runtime 类作为核心协调器，负责：
  * 1. 系统初始化：加载配置、初始化服务、注册智能体
  * 2. 配置管理：管理系统配置和服务配置
- * 3. 服务初始化：初始化各个平台服务（MessageBus、OrgPrimitives、ArtifactStore 等）
+ * 3. 服务初始化：初始化各个平台服务（MessageBus、OrgPrimitives、WorkspaceManager 等）
  * 4. 子模块组合：导入并组合各个功能子模块
  * 5. 统一接口：提供统一的公共 API，委托给子模块实现
  * 
@@ -394,7 +394,7 @@ export class Runtime {
    * 【初始化流程】
    * 1. 加载配置文件
    * 2. 初始化日志系统
-   * 3. 初始化核心服务（MessageBus、OrgPrimitives、ArtifactStore、PromptLoader、LlmClient）
+   * 3. 初始化核心服务（MessageBus、OrgPrimitives、PromptLoader、LlmClient）
    * 4. 加载系统提示词
    * 5. 初始化辅助服务（HttpClient、WorkspaceManager、ContactManager）
    * 6. 初始化工具组管理器
@@ -444,11 +444,7 @@ export class Runtime {
       isAgentActivelyProcessing: (agentId) => this._state.isAgentActivelyProcessing(agentId),
       onInterruptionNeeded: (agentId, message) => this.handleMessageInterruption(agentId, message)
     });
-    this.artifacts = new ArtifactStore({ 
-      artifactsDir: this.config.artifactsDir, 
-      runtime: this,
-      logger: this.loggerRoot.forModule("artifacts") 
-    });
+
     this.prompts = new PromptLoader({ promptsDir: this.config.promptsDir, logger: this.loggerRoot.forModule("prompts") });
     this.org = new OrgPrimitives({ runtimeDir: this.config.runtimeDir, logger: this.loggerRoot.forModule("org") });
     await this.org.loadIfExists();
@@ -470,7 +466,10 @@ export class Runtime {
     }) : null;
     this.httpClient = new HttpClient({ logger: this.loggerRoot.forModule("http") });
     // 重新初始化 WorkspaceManager 带 logger
-    this.workspaceManager = new WorkspaceManager({ logger: this.loggerRoot.forModule("workspace") });
+    this.workspaceManager = new WorkspaceManager({ 
+      workspacesDir: this.config.workspacesDir,
+      logger: this.loggerRoot.forModule("workspace") 
+    });
     // 重新初始化 ContactManager 带 logger
     this.contactManager = new ContactManager({ logger: this.loggerRoot.forModule("contact") });
 
@@ -543,7 +542,7 @@ export class Runtime {
     // 初始化内容路由器
     this.contentRouter = new ContentRouter({
       serviceRegistry: this.serviceRegistry,
-      binaryDetector: this.artifacts?.binaryDetector,
+      workspaceManager: this.workspaceManager,
       contentAdapter: this.contentAdapter,
       logger: this.loggerRoot.forModule("content_router")
     });

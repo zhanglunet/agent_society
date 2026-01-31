@@ -6,7 +6,7 @@ import { LlmServiceRegistry, validateCapabilities, DEFAULT_CAPABILITIES } from "
 
 const TEST_CONFIG_DIR = "test/.tmp/llm_services_test";
 
-// 生成有效的服务配置
+// 生成有效的服务配�?
 const validServiceConfigArb = fc.record({
   id: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0),
   name: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
@@ -17,17 +17,17 @@ const validServiceConfigArb = fc.record({
   description: fc.string({ minLength: 0, maxLength: 500 })
 });
 
-// 生成无效的服务配置（缺少必填字段）
+// 生成无效的服务配置（缺少必填字段�?
 const invalidServiceConfigArb = fc.oneof(
   fc.constant(null),
   fc.constant(undefined),
   fc.constant({}),
-  fc.record({ id: fc.constant("") }), // 空 id
-  fc.record({ id: fc.string({ minLength: 1 }), name: fc.constant("") }), // 空 name
+  fc.record({ id: fc.constant("") }), // �?id
+  fc.record({ id: fc.string({ minLength: 1 }), name: fc.constant("") }), // �?name
   fc.record({ 
     id: fc.string({ minLength: 1 }), 
     name: fc.string({ minLength: 1 }),
-    baseURL: fc.constant("") // 空 baseURL
+    baseURL: fc.constant("") // �?baseURL
   })
 );
 
@@ -52,7 +52,7 @@ describe("LlmServiceRegistry", () => {
       expect(registry.getServices()).toEqual([]);
     });
 
-    test("加载有效的配置文件", async () => {
+    test("加载有效的配置文�?, async () => {
       const config = {
         services: [
           {
@@ -83,12 +83,12 @@ describe("LlmServiceRegistry", () => {
   });
 
   /**
-   * Feature: llm-service-selector, Property 1: 配置文件加载优先级
-   * *For any* 配置加载场景，当 llmservices.local.json 和 llmservices.json 都存在时，
-   * 系统应加载 local 文件的内容；当仅 llmservices.json 存在时，系统应加载该文件的内容。
+   * Feature: llm-service-selector, Property 1: 配置文件加载优先�?
+   * *For any* 配置加载场景，当 llmservices.local.json �?llmservices.json 都存在时�?
+   * 系统应加�?local 文件的内容；当仅 llmservices.json 存在时，系统应加载该文件的内容�?
    * **Validates: Requirements 1.1, 1.2**
    */
-  describe("Property 1: 配置文件加载优先级", () => {
+  describe("Property 1: 配置文件加载优先�?, () => {
     test("当两个配置文件都存在时，优先加载 local 文件", async () => {
       await fc.assert(
         fc.asyncProperty(
@@ -114,7 +114,7 @@ describe("LlmServiceRegistry", () => {
             const registry = new LlmServiceRegistry({ configDir: TEST_CONFIG_DIR });
             const result = await registry.load();
             
-            // 应该加载 local 文件的内容
+            // 应该加载 local 文件的内�?
             expect(result.loaded).toBe(true);
             expect(registry.getServiceById(localServiceWithId.id)).not.toBeNull();
             expect(registry.getServiceById(defaultServiceWithId.id)).toBeNull();
@@ -129,7 +129,7 @@ describe("LlmServiceRegistry", () => {
         fc.asyncProperty(
           validServiceConfigArb,
           async (service) => {
-            // 只创建 default 配置文件
+            // 只创�?default 配置文件
             await writeFile(
               path.join(TEST_CONFIG_DIR, "llmservices.json"),
               JSON.stringify({ services: [service] })
@@ -149,13 +149,13 @@ describe("LlmServiceRegistry", () => {
 
 
   /**
-   * Feature: llm-service-selector, Property 2: 服务配置字段完整性
-   * *For any* 有效的服务配置条目，加载后应包含 id、name、baseURL、model、apiKey、
-   * capabilityTags 和 description 所有字段，且值与配置文件中一致。
+   * Feature: llm-service-selector, Property 2: 服务配置字段完整�?
+   * *For any* 有效的服务配置条目，加载后应包含 id、name、baseURL、model、apiKey�?
+   * capabilityTags �?description 所有字段，且值与配置文件中一致�?
    * **Validates: Requirements 1.4**
    */
-  describe("Property 2: 服务配置字段完整性", () => {
-    test("加载后的服务配置包含所有必填字段且值一致", async () => {
+  describe("Property 2: 服务配置字段完整�?, () => {
+    test("加载后的服务配置包含所有必填字段且值一�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -188,7 +188,7 @@ describe("LlmServiceRegistry", () => {
   /**
    * Feature: llm-service-selector, Property 3: 无效条目过滤
    * *For any* 包含有效和无效条目的配置文件，加载后的服务列表应仅包含有效条目，
-   * 无效条目应被跳过。
+   * 无效条目应被跳过�?
    * **Validates: Requirements 1.5**
    */
   describe("Property 3: 无效条目过滤", () => {
@@ -203,7 +203,7 @@ describe("LlmServiceRegistry", () => {
               id: `valid-${i}-${s.id}`
             }));
             
-            // 创建混合配置（有效 + 无效）
+            // 创建混合配置（有�?+ 无效�?
             const invalidEntries = [
               null,
               {},
@@ -222,10 +222,10 @@ describe("LlmServiceRegistry", () => {
             const registry = new LlmServiceRegistry({ configDir: TEST_CONFIG_DIR });
             const result = await registry.load();
             
-            // 只有有效条目被加载
+            // 只有有效条目被加�?
             expect(registry.getServiceCount()).toBe(uniqueServices.length);
             
-            // 验证所有有效服务都被加载
+            // 验证所有有效服务都被加�?
             for (const service of uniqueServices) {
               expect(registry.getServiceById(service.id)).not.toBeNull();
             }
@@ -237,12 +237,12 @@ describe("LlmServiceRegistry", () => {
   });
 
   /**
-   * Feature: llm-service-selector, Property 4: 服务 ID 查询一致性
+   * Feature: llm-service-selector, Property 4: 服务 ID 查询一致�?
    * *For any* 已加载的服务配置，通过 getServiceById 查询应返回与原始配置相同的服务对象；
-   * 查询不存在的 ID 应返回 null。
+   * 查询不存在的 ID 应返�?null�?
    * **Validates: Requirements 1.6**
    */
-  describe("Property 4: 服务 ID 查询一致性", () => {
+  describe("Property 4: 服务 ID 查询一致�?, () => {
     test("通过 ID 查询返回正确的服务，不存在的 ID 返回 null", async () => {
       await fc.assert(
         fc.asyncProperty(
@@ -263,7 +263,7 @@ describe("LlmServiceRegistry", () => {
             const registry = new LlmServiceRegistry({ configDir: TEST_CONFIG_DIR });
             await registry.load();
             
-            // 验证每个服务都能通过 ID 查询到
+            // 验证每个服务都能通过 ID 查询�?
             for (const service of uniqueServices) {
               const found = registry.getServiceById(service.id);
               expect(found).not.toBeNull();
@@ -289,13 +289,13 @@ describe("LlmServiceRegistry", () => {
    * **Validates: Requirements 1.1, 1.2, 1.4**
    */
   describe("Property 1: Capabilities Configuration Validation", () => {
-    // 生成有效的 capabilities 配置
+    // 生成有效�?capabilities 配置
     const validCapabilitiesArb = fc.record({
       input: fc.array(fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0), { minLength: 1, maxLength: 5 }),
       output: fc.array(fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0), { minLength: 1, maxLength: 5 })
     });
 
-    // 生成无效的 capabilities 配置
+    // 生成无效�?capabilities 配置
     const invalidCapabilitiesArb = fc.oneof(
       fc.constant("not-an-object"),
       fc.constant([]),
@@ -306,7 +306,7 @@ describe("LlmServiceRegistry", () => {
       fc.record({ output: fc.constant([123]) }) // 非字符串元素
     );
 
-    test("validateCapabilities 对有效配置返回 valid=true 且 normalized 包含正确值", () => {
+    test("validateCapabilities 对有效配置返�?valid=true �?normalized 包含正确�?, () => {
       fc.assert(
         fc.property(
           validCapabilitiesArb,
@@ -323,7 +323,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("validateCapabilities 对 null/undefined 返回默认 text 能力", () => {
+    test("validateCapabilities �?null/undefined 返回默认 text 能力", () => {
       const nullResult = validateCapabilities(null);
       expect(nullResult.valid).toBe(true);
       expect(nullResult.normalized).toEqual(DEFAULT_CAPABILITIES);
@@ -333,7 +333,7 @@ describe("LlmServiceRegistry", () => {
       expect(undefinedResult.normalized).toEqual(DEFAULT_CAPABILITIES);
     });
 
-    test("validateCapabilities 对无效配置返回 valid=false 且包含错误信息", () => {
+    test("validateCapabilities 对无效配置返�?valid=false 且包含错误信�?, () => {
       fc.assert(
         fc.property(
           invalidCapabilitiesArb,
@@ -341,7 +341,7 @@ describe("LlmServiceRegistry", () => {
             const result = validateCapabilities(capabilities);
             
             // 无效配置应该返回 valid=false 或者有错误
-            // 注意：某些无效配置可能部分有效，所以检查是否有错误或者 normalized 使用了默认值
+            // 注意：某些无效配置可能部分有效，所以检查是否有错误或�?normalized 使用了默认�?
             if (!result.valid) {
               expect(result.errors.length).toBeGreaterThan(0);
             }
@@ -351,7 +351,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("加载带有效 capabilities 的服务配置", async () => {
+    test("加载带有�?capabilities 的服务配�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -376,7 +376,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("加载带无效 capabilities 的服务配置时使用默认值", async () => {
+    test("加载带无�?capabilities 的服务配置时使用默认�?, async () => {
       const service = {
         id: "test-invalid-caps",
         name: "测试服务",
@@ -398,7 +398,7 @@ describe("LlmServiceRegistry", () => {
       
       const loadedService = registry.getServiceById(service.id);
       expect(loadedService).not.toBeNull();
-      // 无效 capabilities 应该回退到默认值
+      // 无效 capabilities 应该回退到默认�?
       expect(loadedService.capabilities).toEqual(DEFAULT_CAPABILITIES);
     });
   });
@@ -412,7 +412,7 @@ describe("LlmServiceRegistry", () => {
    * **Validates: Requirements 1.5, 5.2**
    */
   describe("Property 6: Backward Compatibility", () => {
-    test("无 capabilities 字段的配置加载成功并使用默认 text 能力", async () => {
+    test("�?capabilities 字段的配置加载成功并使用默认 text 能力", async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -454,21 +454,21 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("现有配置格式（无 capabilities）与新格式（有 capabilities）可以混合加载", async () => {
+    test("现有配置格式（无 capabilities）与新格式（�?capabilities）可以混合加�?, async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
           validServiceConfigArb,
           fc.array(fc.string({ minLength: 1, maxLength: 20 }).filter(s => s.trim().length > 0), { minLength: 1, maxLength: 3 }),
           async (oldService, newService, inputCaps) => {
-            // 旧格式服务（无 capabilities）
+            // 旧格式服务（�?capabilities�?
             const oldServiceConfig = { 
               ...oldService, 
               id: `old-${oldService.id}` 
             };
             delete oldServiceConfig.capabilities;
             
-            // 新格式服务（有 capabilities）
+            // 新格式服务（�?capabilities�?
             const newServiceConfig = { 
               ...newService, 
               id: `new-${newService.id}`,
@@ -505,11 +505,11 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("只有 input 或只有 output 的 capabilities 配置应该为缺失的部分使用默认值", async () => {
+    test("只有 input 或只�?output �?capabilities 配置应该为缺失的部分使用默认�?, async () => {
       // 只有 input
       const serviceInputOnly = {
         id: "input-only",
-        name: "仅输入能力",
+        name: "仅输入能�?,
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
         apiKey: "test-key",
@@ -523,7 +523,7 @@ describe("LlmServiceRegistry", () => {
       // 只有 output
       const serviceOutputOnly = {
         id: "output-only",
-        name: "仅输出能力",
+        name: "仅输出能�?,
         baseURL: "http://localhost:1234/v1",
         model: "test-model",
         apiKey: "test-key",
@@ -544,10 +544,10 @@ describe("LlmServiceRegistry", () => {
       
       const loadedInputOnly = registry.getServiceById("input-only");
       expect(loadedInputOnly.capabilities.input).toEqual(["text", "vision"]);
-      expect(loadedInputOnly.capabilities.output).toEqual(["text"]); // 默认值
+      expect(loadedInputOnly.capabilities.output).toEqual(["text"]); // 默认�?
       
       const loadedOutputOnly = registry.getServiceById("output-only");
-      expect(loadedOutputOnly.capabilities.input).toEqual(["text"]); // 默认值
+      expect(loadedOutputOnly.capabilities.input).toEqual(["text"]); // 默认�?
       expect(loadedOutputOnly.capabilities.output).toEqual(["text", "structured_output"]);
     });
   });
@@ -562,13 +562,13 @@ describe("LlmServiceRegistry", () => {
    * **Validates: Requirements 4.1, 4.2, 6.1, 6.2, 6.4**
    */
   describe("Property 7: Capability Query API Correctness", () => {
-    // 生成有效的 capabilities 配置
+    // 生成有效�?capabilities 配置
     const validCapabilitiesArb = fc.record({
       input: fc.array(fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0), { minLength: 1, maxLength: 5 }),
       output: fc.array(fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.trim().length > 0), { minLength: 1, maxLength: 5 })
     });
 
-    test("hasCapability 对 input 方向正确返回结果", async () => {
+    test("hasCapability �?input 方向正确返回结果", async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -595,7 +595,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("hasCapability 对 output 方向正确返回结果", async () => {
+    test("hasCapability �?output 方向正确返回结果", async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -622,7 +622,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("hasCapability 对 both 方向正确返回结果", async () => {
+    test("hasCapability �?both 方向正确返回结果", async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -649,7 +649,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("hasCapability 对不存在的服务返回 false", async () => {
+    test("hasCapability 对不存在的服务返�?false", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 50 }),
@@ -667,7 +667,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("getCapabilities 返回正确的 capabilities 对象", async () => {
+    test("getCapabilities 返回正确�?capabilities 对象", async () => {
       await fc.assert(
         fc.asyncProperty(
           validServiceConfigArb,
@@ -691,7 +691,7 @@ describe("LlmServiceRegistry", () => {
       );
     });
 
-    test("getCapabilities 对不存在的服务返回 null", async () => {
+    test("getCapabilities 对不存在的服务返�?null", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 50 }),
@@ -707,16 +707,16 @@ describe("LlmServiceRegistry", () => {
     });
 
     test("getServicesByCapability 返回所有具备指定能力的服务", async () => {
-      // 创建多个服务，部分具备 vision 能力
+      // 创建多个服务，部分具�?vision 能力
       const services = [
         {
           id: "text-only",
-          name: "纯文本",
+          name: "纯文�?,
           baseURL: "http://localhost:1234/v1",
           model: "text-model",
           apiKey: "key",
           capabilityTags: [],
-          description: "纯文本模型",
+          description: "纯文本模�?,
           capabilities: { input: ["text"], output: ["text"] }
         },
         {
@@ -731,12 +731,12 @@ describe("LlmServiceRegistry", () => {
         },
         {
           id: "multimodal",
-          name: "多模态",
+          name: "多模�?,
           baseURL: "http://localhost:1234/v1",
           model: "multimodal-model",
           apiKey: "key",
           capabilityTags: [],
-          description: "多模态模型",
+          description: "多模态模�?,
           capabilities: { input: ["text", "vision", "audio"], output: ["text", "vision"] }
         }
       ];

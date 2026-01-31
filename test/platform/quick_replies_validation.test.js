@@ -10,18 +10,18 @@ const toolExecutor = new ToolExecutor(mockRuntime);
 
 describe("QuickReplies Validation", () => {
   /**
-   * Property 1: 输入验证完整性
-   * *For any* `quickReplies` 输入，如果它不是字符串数组、包含非字符串元素、包含空字符串、或长度超过10，
-   * 验证函数应返回错误；否则应返回有效结果。
+   * Property 1: 输入验证完整�?
+   * *For any* `quickReplies` 输入，如果它不是字符串数组、包含非字符串元素、包含空字符串、或长度超过10�?
+   * 验证函数应返回错误；否则应返回有效结果�?
    * 
    * **Validates: Requirements 1.2, 1.3, 1.5, 1.6**
-   * **Feature: quick-reply-options, Property 1: 输入验证完整性**
+   * **Feature: quick-reply-options, Property 1: 输入验证完整�?*
    */
 
   test("Property 1: 有效的字符串数组应通过验证", async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成 1-10 个非空字符串的数组
+        // 生成 1-10 个非空字符串的数�?
         fc.array(
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           { minLength: 1, maxLength: 10 }
@@ -38,10 +38,10 @@ describe("QuickReplies Validation", () => {
     );
   });
 
-  test("Property 1: 超过10个元素的数组应返回错误", async () => {
+  test("Property 1: 超过10个元素的数组应返回错�?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成 11-20 个非空字符串的数组
+        // 生成 11-20 个非空字符串的数�?
         fc.array(
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           { minLength: 11, maxLength: 20 }
@@ -82,7 +82,7 @@ describe("QuickReplies Validation", () => {
   test("Property 1: 包含空字符串的数组应返回错误", async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成包含至少一个空字符串（或纯空白字符串）的数组
+        // 生成包含至少一个空字符串（或纯空白字符串）的数�?
         fc.tuple(
           fc.array(fc.string({ minLength: 1 }).filter(s => s.trim().length > 0), { minLength: 0, maxLength: 5 }),
           fc.oneof(fc.constant(""), fc.constant("   "), fc.constant("\t"), fc.constant("\n")),
@@ -100,28 +100,28 @@ describe("QuickReplies Validation", () => {
     );
   });
 
-  test("Property 1: 空数组应视为未提供（返回 null）", () => {
+  test("Property 1: 空数组应视为未提供（返回 null�?, () => {
     const result = toolExecutor._validateQuickReplies([]);
     
     expect(result.valid).toBe(true);
     expect(result.quickReplies).toBeNull();
   });
 
-  test("Property 1: undefined 应视为未提供（返回 null）", () => {
+  test("Property 1: undefined 应视为未提供（返�?null�?, () => {
     const result = toolExecutor._validateQuickReplies(undefined);
     
     expect(result.valid).toBe(true);
     expect(result.quickReplies).toBeNull();
   });
 
-  test("Property 1: null 应视为未提供（返回 null）", () => {
+  test("Property 1: null 应视为未提供（返�?null�?, () => {
     const result = toolExecutor._validateQuickReplies(null);
     
     expect(result.valid).toBe(true);
     expect(result.quickReplies).toBeNull();
   });
 
-  test("Property 1: 非数组类型应视为未提供（返回 null）", async () => {
+  test("Property 1: 非数组类型应视为未提供（返回 null�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.object()),
@@ -163,18 +163,18 @@ describe("QuickReplies Validation", () => {
 
 describe("QuickReplies Message Passing", () => {
   /**
-   * Property 2: 消息传递完整性
+   * Property 2: 消息传递完整�?
    * *For any* 包含有效 `quickReplies` 的消息，发送后接收端获取的 `quickReplies` 数组
-   * 应与发送时完全相同（内容和顺序）。
+   * 应与发送时完全相同（内容和顺序）�?
    * 
    * **Validates: Requirements 2.1, 2.2, 2.3**
-   * **Feature: quick-reply-options, Property 2: 消息传递完整性**
+   * **Feature: quick-reply-options, Property 2: 消息传递完整�?*
    */
 
-  test("Property 2: quickReplies 应该被正确添加到 payload 中", async () => {
+  test("Property 2: quickReplies 应该被正确添加到 payload �?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成有效的 quickReplies 数组
+        // 生成有效�?quickReplies 数组
         fc.array(
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           { minLength: 1, maxLength: 10 }
@@ -189,13 +189,13 @@ describe("QuickReplies Message Passing", () => {
           const validation = toolExecutor._validateQuickReplies(quickReplies);
           expect(validation.valid).toBe(true);
           
-          // 模拟构建最终 payload 的逻辑
+          // 模拟构建最�?payload 的逻辑
           const finalPayload = {
             ...originalPayload,
             quickReplies: validation.quickReplies
           };
           
-          // 验证 quickReplies 被正确添加
+          // 验证 quickReplies 被正确添�?
           expect(finalPayload.quickReplies).toEqual(quickReplies);
           // 验证原始 payload 字段保持不变
           expect(finalPayload.text).toBe(originalPayload.text);
@@ -208,10 +208,10 @@ describe("QuickReplies Message Passing", () => {
     );
   });
 
-  test("Property 2: quickReplies 数组顺序应保持不变", async () => {
+  test("Property 2: quickReplies 数组顺序应保持不�?, async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成有效的 quickReplies 数组
+        // 生成有效�?quickReplies 数组
         fc.array(
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           { minLength: 2, maxLength: 10 }
@@ -232,10 +232,10 @@ describe("QuickReplies Message Passing", () => {
     );
   });
 
-  test("Property 2: 无效的 quickReplies 不应添加到 payload", async () => {
+  test("Property 2: 无效�?quickReplies 不应添加�?payload", async () => {
     await fc.assert(
       fc.asyncProperty(
-        // 生成无效的 quickReplies（超过10个元素）
+        // 生成无效�?quickReplies（超�?0个元素）
         fc.array(
           fc.string({ minLength: 1 }).filter(s => s.trim().length > 0),
           { minLength: 11, maxLength: 20 }
@@ -252,7 +252,7 @@ describe("QuickReplies Message Passing", () => {
     );
   });
 
-  test("Property 2: 空 quickReplies 不应添加到 payload", () => {
+  test("Property 2: �?quickReplies 不应添加�?payload", () => {
     const validation = toolExecutor._validateQuickReplies([]);
     
     expect(validation.valid).toBe(true);
@@ -265,7 +265,7 @@ describe("QuickReplies Message Passing", () => {
       finalPayload = { ...originalPayload, quickReplies: validation.quickReplies };
     }
     
-    // 验证 quickReplies 没有被添加
+    // 验证 quickReplies 没有被添�?
     expect(finalPayload.quickReplies).toBeUndefined();
   });
 });

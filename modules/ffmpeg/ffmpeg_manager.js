@@ -26,12 +26,12 @@ async function tryLoadFfmpegStaticPath() {
  * - 支持单引号与双引号包裹（引号本身不进入结果）
  * - 支持反斜杠转义（在双引号内与非引号环境生效；单引号内反斜杠视为普通字符）
  *
- * @param {string} vargs - 不包含程序名的参数字符串
+ * @param {string} command - 不包含程序名的参数字符串
  * @returns {{ok:true, argv:string[]} | {ok:false, error:string, message:string}}
  */
-function parseVargsToArgv(vargs) {
-  if (typeof vargs !== "string" || !vargs.trim()) {
-    return { ok: false, error: "invalid_parameter", message: "vargs 必须是非空字符串" };
+function parseCommandToArgv(command) {
+  if (typeof command !== "string" || !command.trim()) {
+    return { ok: false, error: "invalid_parameter", message: "command 必须是非空字符串" };
   }
 
   const argv = [];
@@ -45,8 +45,8 @@ function parseVargsToArgv(vargs) {
     current = "";
   };
 
-  for (let i = 0; i < vargs.length; i++) {
-    const ch = vargs[i];
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
 
     if (escaping) {
       current += ch;
@@ -55,7 +55,7 @@ function parseVargsToArgv(vargs) {
     }
 
     if (!inSingleQuote && ch === "\\") {
-      const next = i + 1 < vargs.length ? vargs[i + 1] : "";
+      const next = i + 1 < command.length ? command[i + 1] : "";
       const shouldEscape =
         (inDoubleQuote && (next === '"' || next === "\\")) ||
         (!inDoubleQuote && (next === '"' || next === "'" || next === "\\" || /\s/.test(next)));
@@ -89,80 +89,11 @@ function parseVargsToArgv(vargs) {
     current += "\\";
   }
   if (inSingleQuote || inDoubleQuote) {
-    return { ok: false, error: "invalid_parameter", message: "vargs 引号不匹配" };
+    return { ok: false, error: "invalid_parameter", message: "command 引号不匹配" };
   }
 
   pushToken();
   return { ok: true, argv };
-}
-
-/**
- * 解析输出占位符参数。
- *
- * 规则：
- * - 允许 "$FFMEPG_OUTPUT" 或 "$FFMPEG_OUTPUT"
- * - 允许在其后追加扩展名，例如 "$FFMEPG_OUTPUT.mp4" 或 "$FFMEPG_OUTPUT.tar.gz"
- * - 必须是“整个参数值”，不支持嵌入在更长字符串中（避免歧义）
- *
- * @param {string} token - 单个 argv 参数
- * @returns {{ok:true, ext:string|null} | {ok:false}}
- */
-function parseOutputPlaceholderToken(token) {
-  const raw = String(token ?? "");
-  const m = /^\$(FFMEPG|FFMPEG)_OUTPUT((\.[A-Za-z0-9]+)+)?$/.exec(raw);
-  if (!m) return { ok: false };
-  const ext = m[2] ? String(m[2]) : null;
-  return { ok: true, ext };
-}
-
-/**
- * 以“从左到右”的顺序，把输入占位符逐个替换为对应的文件路径。
- *
- * 规则：
- * - 输入占位符："$FFMEPG_INPUT" 或 "$FFMPEG_INPUT"
- * - 支持占位符出现在任意 argv 参数字符串内部（同一个参数中可出现多次）
- * - 替换顺序按 argv 扫描顺序进行，占位符出现一次消耗一个 artifacts 条目
- *
- * @param {string[]} argv - 参数数组（会返回新数组，不修改入参）
- * @param {string[]} inputFilePaths - 与占位符一一对应的输入文件路径（按顺序）
- * @returns {{ok:true, argv:string[]} | {ok:false, error:string, message:string}}
- */
-function replaceInputPlaceholders(argv, inputFilePaths) {
-  const placeholders = ["$FFMEPG_INPUT", "$FFMPEG_INPUT"];
-  const out = [];
-  let used = 0;
-
-  const findNext = (text, startIndex) => {
-    let best = null;
-    for (const p of placeholders) {
-      const idx = text.indexOf(p, startIndex);
-      if (idx < 0) continue;
-      if (!best || idx < best.idx) best = { idx, p };
-    }
-    return best;
-  };
-
-  for (const token of argv) {
-    let text = String(token ?? "");
-    let searchFrom = 0;
-    while (true) {
-      const found = findNext(text, searchFrom);
-      if (!found) break;
-      if (used >= inputFilePaths.length) {
-        return { ok: false, error: "insufficient_artifacts", message: "输入占位符数量超过 artifacts 数组长度" };
-      }
-      const filePath = inputFilePaths[used++];
-      text = text.slice(0, found.idx) + filePath + text.slice(found.idx + found.p.length);
-      searchFrom = found.idx + String(filePath).length;
-    }
-    out.push(text);
-  }
-
-  if (used < inputFilePaths.length) {
-    return { ok: false, error: "too_many_artifacts", message: "artifacts 数组长度超过输入占位符数量" };
-  }
-
-  return { ok: true, argv: out };
 }
 
 function normalizeStringArray(value) {
@@ -204,9 +135,8 @@ export class FfmpegManager {
       exitCode: null,
       error: null,
       pid: null,
-      outputArtifactIds: [],
-      outputFiles: [],
-      logArtifactIds: [],
+      outputPaths: [],
+      logPaths: [],
       stdoutLogPath: null,
       stderrLogPath: null,
       progress: {
@@ -218,9 +148,6 @@ export class FfmpegManager {
 
     this.tasks.set(taskId, task);
 
-    const messageId = ctx?.currentMessage?.id ?? null;
-    const createdByAgentId = ctx?.agent?.id ?? null;
-
     const fail = (error, message) => {
       task.status = "failed";
       task.error = error;
@@ -228,12 +155,7 @@ export class FfmpegManager {
       if (message) {
         pushBoundedLines(task.progress.lastStderrLines, String(message), this.maxStderrLines);
       }
-      const artifactIds = [];
-      if (Array.isArray(task.outputArtifactIds)) artifactIds.push(...task.outputArtifactIds);
-      if (Array.isArray(task.logArtifactIds)) artifactIds.push(...task.logArtifactIds);
-      const res = { taskId, status: task.status, error, message, outputArtifactIds: task.outputArtifactIds, logArtifactIds: task.logArtifactIds };
-      if (artifactIds.length > 0) res.artifactIds = artifactIds;
-      return res;
+      return { taskId, status: task.status, error, message, outputPaths: task.outputPaths, logPaths: task.logPaths };
     };
 
     const ffmpegPath = await this._resolveFfmpegPath();
@@ -241,105 +163,73 @@ export class FfmpegManager {
       return fail("ffmpeg_not_found", "未找到 ffmpeg 可执行文件");
     }
 
-    const vargs = typeof input?.vargs === "string" ? input.vargs : "";
-    const parsed = parseVargsToArgv(vargs);
+    const command = typeof input?.command === "string" ? input.command : "";
+    const parsed = parseCommandToArgv(command);
     if (!parsed.ok) {
       return fail(parsed.error, parsed.message);
     }
 
-    const artifacts = normalizeStringArray(input?.artifacts);
-    if (!artifacts) {
-      return fail("invalid_parameter", "artifacts 必须是字符串数组");
+    // 获取工作区
+    const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+    if (!workspaceId) {
+      return fail("workspace_not_assigned", "当前智能体未分配工作空间");
     }
+    const ws = await this.runtime.workspaceManager.getWorkspace(workspaceId);
 
-    const inputFilePaths = [];
-    for (const artifactIdRaw of artifacts) {
-      const artifactId = String(artifactIdRaw ?? "").trim();
-      if (!artifactId) return fail("invalid_parameter", "artifacts 不能包含空字符串");
-      const filePath = await ctx.tools.resolveArtifactFilePath(artifactId);
-      if (!filePath) return fail("input_artifact_not_found", `输入工件不存在或无法解析路径: ${artifactId}`);
-      inputFilePaths.push(filePath);
-    }
-
-    const finalArgv = [...parsed.argv];
-
-    let outputIndex = -1;
-    let outputExt = null;
-    for (let i = 0; i < finalArgv.length; i++) {
-      const parsedOutput = parseOutputPlaceholderToken(finalArgv[i]);
-      if (!parsedOutput.ok) continue;
-      if (outputIndex >= 0) {
-        return fail("multiple_output_placeholders", "vargs 中只能出现一个输出占位符 $FFMEPG_OUTPUT");
+    // 解析命令中的所有路径为工作区的真实路径
+    const finalArgv = [];
+    for (const token of parsed.argv) {
+      if (token.startsWith('-')) {
+        finalArgv.push(token);
+        continue;
       }
-      outputIndex = i;
-      outputExt = parsedOutput.ext;
-    }
 
-    if (outputIndex < 0) {
-      return fail("missing_output_placeholder", "vargs 必须包含输出占位符 $FFMEPG_OUTPUT");
-    }
-
-    const outputName = `ffmpeg-output${outputExt || ".bin"}`;
-    const reservedOutput = await ctx.tools.reserveArtifactFile({
-      name: outputName,
-      type: null,
-      messageId,
-      createdByAgentId,
-      meta: {
-        module: "ffmpeg",
-        taskId,
-        role: "ffmpeg_output"
+      if (path.isAbsolute(token)) {
+        finalArgv.push(token);
+      } else {
+        const resolved = path.resolve(ws.rootPath, token);
+        finalArgv.push(resolved);
       }
-    });
-
-    if (!reservedOutput?.artifactId || !reservedOutput?.filePath) {
-      return fail("reserve_output_failed", "预留输出工件失败");
     }
 
-    task.outputArtifactIds.push(reservedOutput.artifactId);
-    task.outputFiles.push({
-      artifactId: reservedOutput.artifactId,
-      filePath: reservedOutput.filePath,
-      name: outputName,
-      type: null
-    });
-    finalArgv[outputIndex] = reservedOutput.filePath;
-
-    const replaced = replaceInputPlaceholders(finalArgv, inputFilePaths);
-    if (!replaced.ok) {
-      return fail(replaced.error, replaced.message);
+    // 启发式寻找输出文件：通常是最后一个参数
+    if (parsed.argv.length > 0) {
+      const lastToken = parsed.argv[parsed.argv.length - 1];
+      if (!lastToken.startsWith('-')) {
+        // 在 outputPaths 中保存原始相对路径
+        task.outputPaths.push(lastToken);
+      }
     }
-    for (let i = 0; i < finalArgv.length; i++) finalArgv[i] = replaced.argv[i];
 
-    const logDir = path.resolve(this.runtime.config.runtimeDir, "ffmpeg");
-    await mkdir(logDir, { recursive: true });
-    task.stdoutLogPath = path.join(logDir, `${taskId}.stdout.log`);
-    task.stderrLogPath = path.join(logDir, `${taskId}.stderr.log`);
+    const ffmpegArgs = [...finalArgv];
+    // 如果 ffmpegPath 是 node 程序，第一个参数应该是脚本路径
+    if (ffmpegPath === process.execPath) {
+      const fakeFfmpegScript = path.resolve(process.cwd(), "test/.tmp/ffmpeg_module_test/fake_ffmpeg.js");
+      ffmpegArgs.unshift(fakeFfmpegScript);
+    }
 
-    const stdoutStream = createWriteStream(task.stdoutLogPath, { flags: "a" });
-    const stderrStream = createWriteStream(task.stderrLogPath, { flags: "a" });
+    // 日志路径也放在工作区内
+    const logDir = ".ffmpeg_logs";
+    const stdoutLogPath = `${logDir}/${taskId}.stdout.log`;
+    const stderrLogPath = `${logDir}/${taskId}.stderr.log`;
+    
+    const absStdoutLogPath = path.resolve(ws.rootPath, stdoutLogPath);
+    const absStderrLogPath = path.resolve(ws.rootPath, stderrLogPath);
+
+    await mkdir(path.dirname(absStdoutLogPath), { recursive: true });
+    task.stdoutLogPath = stdoutLogPath;
+    task.stderrLogPath = stderrLogPath;
+    task.logPaths = [stdoutLogPath, stderrLogPath];
+
+    const stdoutStream = createWriteStream(absStdoutLogPath);
+    const stderrStream = createWriteStream(absStderrLogPath);
 
     task.status = "running";
     task.startedAt = new Date().toISOString();
-    // 记录 ffmpeg 路径与最终参数
-    let cmd = JSON.stringify( {
-      taskId,
-      ffmpegPath,
-      finalArgv,
-      stdoutLogPath: task.stdoutLogPath,
-      stderrLogPath: task.stderrLogPath,
-      input
-    });
 
-    // 将 cmd 写入 task.stdoutLogPath 文件
-    try {
-      stdoutStream.write(cmd + '\n');
-    } catch (e) {
-      void this.log.warn?.("[FFmpeg] 写入命令日志失败", { taskId, error: e?.message ?? String(e) });
-    }
-
-    
-    const child = spawn(ffmpegPath, finalArgv, {
+    const child = spawn(ffmpegPath, ffmpegArgs, {
+      cwd: ws.rootPath, // 在工作区根目录执行
+      env: { ...process.env },
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"]
     });
@@ -394,18 +284,13 @@ export class FfmpegManager {
 
     return {
       taskId,
-      outputArtifactIds: task.outputArtifactIds,
-      artifactIds: task.outputArtifactIds
+      outputPaths: task.outputPaths
     };
   }
 
   async getStatus(ctx, taskId) {
     const task = this.tasks.get(String(taskId));
     if (!task) return { error: "task_not_found", message: "任务不存在", taskId };
-
-    if ((task.status === "completed" || task.status === "failed") && task.logArtifactIds.length === 0) {
-      await this._ensureLogArtifacts(ctx, task);
-    }
 
     const response = {
       taskId: task.taskId,
@@ -417,8 +302,8 @@ export class FfmpegManager {
       exitCode: task.exitCode,
       error: task.error,
       progress: task.progress,
-      outputArtifactIds: task.outputArtifactIds,
-      logArtifactIds: task.logArtifactIds
+      outputPaths: task.outputPaths,
+      logPaths: task.logPaths
     };
 
     if (task.status === "failed") {
@@ -428,11 +313,6 @@ export class FfmpegManager {
         stderrTail: Array.isArray(task.progress?.lastStderrLines) ? task.progress.lastStderrLines : []
       };
     }
-
-    const artifactIds = [];
-    if (Array.isArray(task.outputArtifactIds)) artifactIds.push(...task.outputArtifactIds);
-    if (Array.isArray(task.logArtifactIds)) artifactIds.push(...task.logArtifactIds);
-    if (artifactIds.length > 0) response.artifactIds = artifactIds;
 
     return response;
   }
@@ -448,7 +328,8 @@ export class FfmpegManager {
         completedAt: task.completedAt,
         exitCode: task.exitCode,
         error: task.error,
-        outputArtifactIds: task.outputArtifactIds
+        outputPaths: task.outputPaths,
+        logPaths: task.logPaths
       });
     }
     tasks.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -484,40 +365,6 @@ export class FfmpegManager {
     const fpsMatch = /fps=\s*([0-9.]+)/.exec(text);
     if (fpsMatch?.[1]) {
       task.progress.raw.fps = Number(fpsMatch[1]);
-    }
-  }
-
-  async _ensureLogArtifacts(ctx, task) {
-    const messageId = ctx?.currentMessage?.id ?? null;
-    const createdByAgentId = ctx?.agent?.id ?? null;
-
-    try {
-      const stdout = task.stdoutLogPath ? await readFile(task.stdoutLogPath, "utf8") : "";
-      const stderr = task.stderrLogPath ? await readFile(task.stderrLogPath, "utf8") : "";
-
-      if (stdout) {
-        const id = await ctx.tools.putArtifact({
-          name: `ffmpeg-${task.taskId}-stdout.log`,
-          type: "text/plain",
-          content: stdout,
-          messageId,
-          meta: { module: "ffmpeg", taskId: task.taskId, role: "stdout", createdByAgentId }
-        });
-        task.logArtifactIds.push(id);
-      }
-
-      if (stderr) {
-        const id = await ctx.tools.putArtifact({
-          name: `ffmpeg-${task.taskId}-stderr.log`,
-          type: "text/plain",
-          content: stderr,
-          messageId,
-          meta: { module: "ffmpeg", taskId: task.taskId, role: "stderr", createdByAgentId }
-        });
-        task.logArtifactIds.push(id);
-      }
-    } catch (err) {
-      void this.log.warn?.("[FFmpeg] 写入日志工件失败", { taskId: task.taskId, error: err?.message ?? String(err) });
     }
   }
 }

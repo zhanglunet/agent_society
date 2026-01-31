@@ -42,7 +42,6 @@ export class ContextBuilder {
    * - runtime: Runtime 实例引用
    * - org: 组织原语
    * - bus: 消息总线
-   * - artifacts: 工件存储
    * - prompts: 提示词加载器
    * - systemBasePrompt: 基础系统提示词
    * - systemComposeTemplate: 提示词组合模板
@@ -80,11 +79,6 @@ export class ContextBuilder {
         }
         return runtime.bus.send(message);
       },
-      putArtifact: (artifact) => runtime.artifacts.putArtifact(artifact),
-      getArtifact: (ref) => runtime.artifacts.getArtifact(ref),
-      resolveArtifactFilePath: (ref) => runtime.artifacts.resolveArtifactFilePath(ref),
-      reserveArtifactFile: (input) => runtime.artifacts.reserveArtifactFile(input),
-      saveImage: (buffer, meta) => runtime.artifacts.saveImage(buffer, meta),
       composePrompt: (parts) => runtime.prompts.compose(parts),
       consolePrint: (text) => process.stdout.write(String(text ?? ""))
     };
@@ -93,7 +87,7 @@ export class ContextBuilder {
       runtime,
       org: runtime.org,
       bus: runtime.bus,
-      artifacts: runtime.artifacts,
+      workspaceManager: runtime.workspaceManager,
       prompts: runtime.prompts,
       systemBasePrompt: runtime.systemBasePrompt,
       systemComposeTemplate: runtime.systemComposeTemplate,

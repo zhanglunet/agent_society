@@ -398,7 +398,7 @@ export class BrowserJavaScriptExecutor {
           return { result: result.result, error: "canvas_export_failed", message: imageResult.message };
         }
         
-        return { result: result.result, artifactIds: imageResult.artifactIds };
+        return { result: result.result, filePaths: imageResult.filePaths };
       }
 
       // 转换为 JSON 安全格式
@@ -439,7 +439,7 @@ export class BrowserJavaScriptExecutor {
   }
 
   /**
-   * 保存所有 Canvas 图像到工件库
+   * 保存所有 Canvas 图像到工作区
    * @param {string[]} dataUrls - Canvas 数据 URL 数组
    * @param {object[]} canvasSizes - Canvas 尺寸数组
    * @param {string[]} canvasNames - Canvas 工件名称数组
@@ -453,8 +453,12 @@ export class BrowserJavaScriptExecutor {
       return { error: "no_canvas_data" };
     }
 
-    const artifactIds = [];
+    const filePaths = [];
     const errors = [];
+    
+    // 获取智能体对应的工作区
+    const workspaceId = agentId || "system";
+    const workspace = await this.runtime.workspaceManager.getWorkspace(workspaceId);
 
     for (let i = 0; i < dataUrls.length; i++) {
       const dataUrl = dataUrls[i];
@@ -478,35 +482,29 @@ export class BrowserJavaScriptExecutor {
         const base64Data = matches[1];
         const pngBuffer = Buffer.from(base64Data, "base64");
         
-        const artifactId = randomUUID();
-        const extension = ".png";
-        const fileName = `${artifactId}${extension}`;
-        const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
-        const createdAt = new Date().toISOString();
+        // 生成文件名：canvas/名称_时间戳.png
+        const sanitizedName = name.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const fileName = `canvas/${sanitizedName}.png`;
         
-        await this.runtime.artifacts.ensureReady();
-        await writeFile(filePath, pngBuffer);
+        // 写入文件到工作区
+        await workspace.writeFile(fileName, pngBuffer, {
+          mimeType: "image/png",
+          meta: {
+            messageId,
+            agentId,
+            name: name.trim(),
+            width: canvasSize.width,
+            height: canvasSize.height,
+            source: "browser-canvas",
+            canvasIndex: i
+          }
+        });
         
-        // 写入元信息文件
-        const metadata = {
-          id: artifactId,
-          extension,
-          type: "image/png",
-          createdAt,
-          messageId: messageId,
-          agentId: agentId,
-          name: name.trim(),
-          width: canvasSize.width,
-          height: canvasSize.height,
-          source: "browser-canvas",
-          canvasIndex: i
-        };
-        await this.runtime.artifacts._writeMetadata(artifactId, metadata);
-        
-        artifactIds.push(artifactId);
+        filePaths.push(fileName);
         
         this.runtime.log?.info?.("保存浏览器 Canvas 图像", {
-          artifactId,
+          workspaceId,
+          path: fileName,
           userName: name.trim(),
           width: canvasSize.width,
           height: canvasSize.height,
@@ -523,70 +521,15 @@ export class BrowserJavaScriptExecutor {
       }
     }
 
-    if (artifactIds.length === 0 && errors.length > 0) {
+    if (filePaths.length === 0 && errors.length > 0) {
       return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
     }
 
-    const response = { artifactIds };
+    const response = { filePaths };
     if (errors.length > 0) {
       response.partialErrors = errors;
     }
     return response;
-  }
-
-  /**
-   * 保存 Canvas 图像到工件库
-   * @private
-   */
-  async _saveCanvasImage(dataUrl, canvasSize, messageId, agentId) {
-    if (!dataUrl) {
-      return { error: "no_canvas_data" };
-    }
-
-    try {
-      // 解析 data URL
-      const matches = dataUrl.match(/^data:image\/png;base64,(.+)$/);
-      if (!matches) {
-        return { error: "invalid_canvas_data", message: "无效的 Canvas 数据格式" };
-      }
-      
-      const base64Data = matches[1];
-      const pngBuffer = Buffer.from(base64Data, "base64");
-      
-      const artifactId = randomUUID();
-      const extension = ".png";
-      const fileName = `${artifactId}${extension}`;
-      const filePath = path.resolve(this.runtime.artifacts.artifactsDir, fileName);
-      const createdAt = new Date().toISOString();
-      
-      await this.runtime.artifacts.ensureReady();
-      await writeFile(filePath, pngBuffer);
-      
-      // 写入元信息文件
-      const metadata = {
-        id: artifactId,
-        extension,
-        type: "image",
-        createdAt,
-        messageId: messageId,
-        agentId: agentId,
-        width: canvasSize?.width ?? 0,
-        height: canvasSize?.height ?? 0,
-        source: "browser-canvas"
-      };
-      await this.runtime.artifacts._writeMetadata(artifactId, metadata);
-      
-      this.runtime.log?.info?.("保存浏览器 Canvas 图像", {
-        artifactId,
-        width: canvasSize?.width,
-        height: canvasSize?.height
-      });
-      
-      return { artifactRef: `artifact:${artifactId}` };
-    } catch (err) {
-      const message = err?.message ?? String(err);
-      return { error: "canvas_export_failed", message };
-    }
   }
 
   /**

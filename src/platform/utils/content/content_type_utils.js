@@ -139,12 +139,12 @@ export const ATTACHMENT_TYPE_TO_CAPABILITY = {
 /**
  * Detect the specific type of binary content
  * 
- * @param {Object} artifact - Artifact object
+ * @param {Object} fileInfo - File info object from Workspace
  * @returns {BinaryTypeResult} Binary type and confidence
  */
-export function detectBinaryType(artifact) {
-  const mimeType = artifact?.mimeType || artifact?.meta?.mimeType;
-  const filename = artifact?.meta?.filename || artifact?.id;
+export function detectBinaryType(fileInfo) {
+  const mimeType = fileInfo?.mimeType;
+  const filename = fileInfo?.filename || fileInfo?.path;
   
   // Priority 1: MIME type detection
   if (mimeType && typeof mimeType === 'string') {

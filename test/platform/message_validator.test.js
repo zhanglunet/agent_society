@@ -10,10 +10,10 @@ import {
 describe("MessageValidator", () => {
   /**
    * Property 10: 消息类型验证
-   * *For any* 包含 message_type 字段的消息，系统应验证 payload 符合该类型的格式要求：
+   * *For any* 包含 message_type 字段的消息，系统应验�?payload 符合该类型的格式要求�?
    * - task_assignment 需包含 TaskBrief 结构
-   * - introduction_request 需包含 reason 和 required_capability
-   * - introduction_response 需包含目标智能体信息
+   * - introduction_request 需包含 reason �?required_capability
+   * - introduction_response 需包含目标智能体信�?
    * 
    * **Validates: Requirements 8.2, 8.3, 8.4, 8.5**
    * **Feature: agent-communication-protocol, Property 10: 消息类型验证**
@@ -58,7 +58,7 @@ describe("MessageValidator", () => {
     );
   });
 
-  test("Property 10: introduction_request 消息必须包含 reason 和 required_capability", async () => {
+  test("Property 10: introduction_request 消息必须包含 reason �?required_capability", async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
@@ -74,7 +74,7 @@ describe("MessageValidator", () => {
                                         payload.required_capability !== null && 
                                         payload.required_capability !== '';
           
-          // 验证：如果缺少 reason 或 required_capability，应返回 valid=false
+          // 验证：如果缺�?reason �?required_capability，应返回 valid=false
           if (!hasReason || !hasRequiredCapability) {
             expect(result.valid).toBe(false);
             expect(result.errors.length).toBeGreaterThan(0);
@@ -97,7 +97,7 @@ describe("MessageValidator", () => {
     );
   });
 
-  test("Property 10: introduction_response 消息必须包含目标智能体信息", async () => {
+  test("Property 10: introduction_response 消息必须包含目标智能体信�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
@@ -117,11 +117,11 @@ describe("MessageValidator", () => {
                                    payload.targetAgentId !== null && 
                                    payload.targetAgentId !== '';
           
-          // 验证：如果缺少 targetAgentId，应返回 valid=false
+          // 验证：如果缺�?targetAgentId，应返回 valid=false
           if (!hasTargetAgentId) {
             expect(result.valid).toBe(false);
             expect(result.errors.length).toBeGreaterThan(0);
-            expect(result.errors.some(e => e.includes('targetAgentId') || e.includes('目标智能体'))).toBe(true);
+            expect(result.errors.some(e => e.includes('targetAgentId') || e.includes('目标智能�?))).toBe(true);
           } else {
             expect(result.valid).toBe(true);
             expect(result.errors.length).toBe(0);
@@ -134,7 +134,7 @@ describe("MessageValidator", () => {
     );
   });
 
-  test("Property 10: 无效的 message_type 应返回错误", async () => {
+  test("Property 10: 无效�?message_type 应返回错�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
@@ -145,14 +145,14 @@ describe("MessageValidator", () => {
           
           expect(result.valid).toBe(false);
           expect(result.errors.length).toBeGreaterThan(0);
-          expect(result.errors.some(e => e.includes('无效的 message_type'))).toBe(true);
+          expect(result.errors.some(e => e.includes('无效�?message_type'))).toBe(true);
         }
       ),
       { numRuns: 100 }
     );
   });
 
-  test("Property 10: general 类型消息不需要特殊验证", async () => {
+  test("Property 10: general 类型消息不需要特殊验�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
@@ -163,7 +163,7 @@ describe("MessageValidator", () => {
         async (payload) => {
           const result = validateMessageFormat(payload);
           
-          // general 类型总是有效的
+          // general 类型总是有效�?
           expect(result.valid).toBe(true);
           expect(result.errors.length).toBe(0);
           expect(result.message_type).toBe('general');
@@ -173,7 +173,7 @@ describe("MessageValidator", () => {
     );
   });
 
-  test("Property 10: 没有 message_type 的消息视为有效", async () => {
+  test("Property 10: 没有 message_type 的消息视为有�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
@@ -183,7 +183,7 @@ describe("MessageValidator", () => {
         async (payload) => {
           const result = validateMessageFormat(payload);
           
-          // 没有 message_type 的消息总是有效的
+          // 没有 message_type 的消息总是有效�?
           expect(result.valid).toBe(true);
           expect(result.errors.length).toBe(0);
           expect(result.message_type).toBe(null);

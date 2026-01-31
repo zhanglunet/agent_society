@@ -1,11 +1,11 @@
-ï»¿/**
- * LLMå¹¶å‘æ§åˆ¶æœ€ç»ˆæµ‹è¯•å¥—ä»¶
+/**
+ * LLM²¢·¢¿ØÖÆ×îÖÕ²âÊÔÌ×¼ş
  * 
- * ç‰¹ç‚¹ï¼š
- * 1. è¯¦å°½çš„æ—¥å¿—è¾“å‡º
- * 2. ä¸¥æ ¼çš„è¶…æ—¶æ§åˆ¶
- * 3. é«˜ä»£ç è¦†ç›–ç‡
- * 4. è¾¹ç•Œæµ‹è¯•ã€éšæœºæµ‹è¯•ã€ç‰¹æ®Šå€¼æµ‹è¯•ã€å‹åŠ›æµ‹è¯•ã€å´©æºƒæµ‹è¯•
+ * ÌØµã£º
+ * 1. Ïê¾¡µÄÈÕÖ¾Êä³ö
+ * 2. ÑÏ¸ñµÄ³¬Ê±¿ØÖÆ
+ * 3. ¸ß´úÂë¸²¸ÇÂÊ
+ * 4. ±ß½ç²âÊÔ¡¢Ëæ»ú²âÊÔ¡¢ÌØÊâÖµ²âÊÔ¡¢Ñ¹Á¦²âÊÔ¡¢±ÀÀ£²âÊÔ
  * 
  * @feature llm-concurrency-control
  */
@@ -13,18 +13,18 @@
 import { describe, it, expect, beforeEach, afterEach, mock, beforeAll, afterAll } from "bun:test";
 import fc from "fast-check";
 import { ConcurrencyController, RequestInfo, ConcurrencyStats } from "../../src/platform/concurrency_controller.js";
-import { LlmClient } from "../src/platform/services/llm/llm_client.js";
-import { createNoopModuleLogger } from "../src/platform/utils/logger/logger.js";
+import { LlmClient } from "../../src/platform/services/llm/llm_client.js";
+import { createNoopModuleLogger } from "../../src/platform/utils/logger/logger.js";
 
 // ============================================================================
-// æµ‹è¯•é…ç½®å’Œå·¥å…·å‡½æ•°
+// ²âÊÔÅäÖÃºÍ¹¤¾ßº¯Êı
 // ============================================================================
 
 const OPERATION_TIMEOUT = 3000;
 const SHORT_DELAY = 30;
 
 /**
- * åˆ›å»ºå¸¦è¶…æ—¶çš„Promise
+ * ´´½¨´ø³¬Ê±µÄPromise
  */
 function withTimeout(promise, timeoutMs, operationName = 'Operation') {
   let timeoutId;
@@ -40,7 +40,7 @@ function withTimeout(promise, timeoutMs, operationName = 'Operation') {
 }
 
 /**
- * åˆ›å»ºå¯æ§åˆ¶çš„Promiseï¼ˆå¸¦è‡ªåŠ¨è¶…æ—¶ï¼‰
+ * ´´½¨¿É¿ØÖÆµÄPromise£¨´ø×Ô¶¯³¬Ê±£©
  */
 function createControllablePromise(autoResolveMs = OPERATION_TIMEOUT) {
   let resolver, rejecter;
@@ -133,10 +133,10 @@ function setupSuccessMock(client, delay = 0, content = "success") {
 }
 
 // ============================================================================
-// æµ‹è¯•å¥—ä»¶
+// ²âÊÔÌ×¼ş
 // ============================================================================
 
-describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
+describe("LLM²¢·¢¿ØÖÆ²âÊÔÌ×¼ş", () => {
   let mockLogger;
   
   beforeEach(() => {
@@ -144,11 +144,11 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬ä¸€éƒ¨åˆ†ï¼šæ•°æ®æ¨¡å‹æµ‹è¯•
+  // µÚÒ»²¿·Ö£ºÊı¾İÄ£ĞÍ²âÊÔ
   // ==========================================================================
-  describe("1. æ•°æ®æ¨¡å‹æµ‹è¯•", () => {
+  describe("1. Êı¾İÄ£ĞÍ²âÊÔ", () => {
     describe("1.1 RequestInfo", () => {
-      it("åº”æ­£ç¡®åˆå§‹åŒ–æ‰€æœ‰å±æ€§", () => {
+      it("Ó¦ÕıÈ·³õÊ¼»¯ËùÓĞÊôĞÔ", () => {
         const resolve = mock(() => {});
         const reject = mock(() => {});
         const requestFn = mock(() => {});
@@ -164,7 +164,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(requestInfo.abortController).toBeInstanceOf(AbortController);
       });
       
-      it("åº”ä¸ºæ¯ä¸ªå®ä¾‹åˆ›å»ºç‹¬ç«‹çš„AbortController", () => {
+      it("Ó¦ÎªÃ¿¸öÊµÀı´´½¨¶ÀÁ¢µÄAbortController", () => {
         const req1 = new RequestInfo("agent1", mock(() => {}), mock(() => {}), mock(() => {}));
         const req2 = new RequestInfo("agent2", mock(() => {}), mock(() => {}), mock(() => {}));
         
@@ -175,8 +175,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(req2.abortController.signal.aborted).toBe(false);
       });
       
-      it("è¾¹ç•Œæµ‹è¯•ï¼šç‰¹æ®Šå­—ç¬¦agentId", () => {
-        const specialIds = ["agent-dash", "agent_underscore", "agent.dot", "agentä¸­æ–‡", "a".repeat(1000)];
+      it("±ß½ç²âÊÔ£ºÌØÊâ×Ö·ûagentId", () => {
+        const specialIds = ["agent-dash", "agent_underscore", "agent.dot", "agentÖĞÎÄ", "a".repeat(1000)];
         
         specialIds.forEach(id => {
           const req = new RequestInfo(id, mock(() => {}), mock(() => {}), mock(() => {}));
@@ -186,7 +186,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
     });
     
     describe("1.2 ConcurrencyStats", () => {
-      it("åº”æ­£ç¡®åˆå§‹åŒ–æ‰€æœ‰ç»Ÿè®¡å­—æ®µä¸º0", () => {
+      it("Ó¦ÕıÈ·³õÊ¼»¯ËùÓĞÍ³¼Æ×Ö¶ÎÎª0", () => {
         const stats = new ConcurrencyStats();
         
         expect(stats.activeCount).toBe(0);
@@ -196,7 +196,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(stats.rejectedRequests).toBe(0);
       });
       
-      it("reset()åº”é‡ç½®æ‰€æœ‰ç»Ÿè®¡ä¿¡æ¯", () => {
+      it("reset()Ó¦ÖØÖÃËùÓĞÍ³¼ÆĞÅÏ¢", () => {
         const stats = new ConcurrencyStats();
         stats.activeCount = 5;
         stats.queueLength = 3;
@@ -213,7 +213,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(stats.rejectedRequests).toBe(0);
       });
       
-      it("getSnapshot()åº”è¿”å›ç‹¬ç«‹çš„å‰¯æœ¬", () => {
+      it("getSnapshot()Ó¦·µ»Ø¶ÀÁ¢µÄ¸±±¾", () => {
         const stats = new ConcurrencyStats();
         stats.activeCount = 2;
         
@@ -227,37 +227,37 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬äºŒéƒ¨åˆ†ï¼šConcurrencyControlleræ ¸å¿ƒåŠŸèƒ½æµ‹è¯•
+  // µÚ¶ş²¿·Ö£ºConcurrencyControllerºËĞÄ¹¦ÄÜ²âÊÔ
   // ==========================================================================
-  describe("2. ConcurrencyControlleræ ¸å¿ƒåŠŸèƒ½æµ‹è¯•", () => {
+  describe("2. ConcurrencyControllerºËĞÄ¹¦ÄÜ²âÊÔ", () => {
     let controller;
     
     beforeEach(() => {
       controller = new ConcurrencyController(3, mockLogger);
     });
     
-    describe("2.1 åˆå§‹åŒ–", () => {
-      it("åº”ä½¿ç”¨æä¾›çš„å‚æ•°æ­£ç¡®åˆå§‹åŒ–", () => {
+    describe("2.1 ³õÊ¼»¯", () => {
+      it("Ó¦Ê¹ÓÃÌá¹©µÄ²ÎÊıÕıÈ·³õÊ¼»¯", () => {
         expect(controller.maxConcurrentRequests).toBe(3);
         expect(controller.activeRequests).toBeInstanceOf(Map);
         expect(controller.requestQueue).toBeInstanceOf(Array);
         expect(controller.stats).toBeInstanceOf(ConcurrencyStats);
       });
       
-      it("åº”ä½¿ç”¨é»˜è®¤å€¼åˆå§‹åŒ–", () => {
+      it("Ó¦Ê¹ÓÃÄ¬ÈÏÖµ³õÊ¼»¯", () => {
         const defaultController = new ConcurrencyController();
         expect(defaultController.maxConcurrentRequests).toBe(3);
       });
     });
     
-    describe("2.2 è¯·æ±‚æ‰§è¡Œ", () => {
-      it("åº”ç«‹å³æ‰§è¡Œç¬¬ä¸€ä¸ªè¯·æ±‚", async () => {
+    describe("2.2 ÇëÇóÖ´ĞĞ", () => {
+      it("Ó¦Á¢¼´Ö´ĞĞµÚÒ»¸öÇëÇó", async () => {
         const requestFn = mock(() => Promise.resolve("result"));
         
         const result = await withTimeout(
           controller.executeRequest("agent1", requestFn),
           OPERATION_TIMEOUT,
-          "ç«‹å³æ‰§è¡Œé¦–ä¸ªè¯·æ±‚"
+          "Á¢¼´Ö´ĞĞÊ×¸öÇëÇó"
         );
         
         expect(result).toBe("result");
@@ -265,7 +265,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(controller.stats.completedRequests).toBe(1);
       });
       
-      it("åº”æ‹’ç»æ²¡æœ‰agentIdçš„è¯·æ±‚", async () => {
+      it("Ó¦¾Ü¾øÃ»ÓĞagentIdµÄÇëÇó", async () => {
         const requestFn = mock(() => Promise.resolve("result"));
         
         try {
@@ -279,7 +279,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(controller.stats.rejectedRequests).toBe(1);
       });
       
-      it("åº”æ‹’ç»åŒä¸€æ™ºèƒ½ä½“çš„ç¬¬äºŒä¸ªè¯·æ±‚", async () => {
+      it("Ó¦¾Ü¾øÍ¬Ò»ÖÇÄÜÌåµÄµÚ¶ş¸öÇëÇó", async () => {
         const { promise: firstPromise, resolve: resolveFirst } = createControllablePromise();
         const firstRequestFn = mock(() => firstPromise);
         
@@ -297,7 +297,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         await withTimeout(firstRequest, OPERATION_TIMEOUT, "cleanup");
       });
       
-      it("åº”å…è®¸ä¸åŒæ™ºèƒ½ä½“å¹¶å‘è¯·æ±‚", async () => {
+      it("Ó¦ÔÊĞí²»Í¬ÖÇÄÜÌå²¢·¢ÇëÇó", async () => {
         const requestFns = [
           mock(() => Promise.resolve("result1")),
           mock(() => Promise.resolve("result2")),
@@ -308,15 +308,15 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           controller.executeRequest(`agent${i}`, fn)
         );
         
-        const results = await withTimeout(Promise.all(promises), OPERATION_TIMEOUT, "å¹¶å‘è¯·æ±‚");
+        const results = await withTimeout(Promise.all(promises), OPERATION_TIMEOUT, "²¢·¢ÇëÇó");
         
         expect(results).toEqual(["result1", "result2", "result3"]);
         expect(controller.stats.completedRequests).toBe(3);
       });
     });
     
-    describe("2.3 é˜Ÿåˆ—ç®¡ç†", () => {
-      it("åº”åœ¨è¾¾åˆ°å¹¶å‘é™åˆ¶æ—¶å°†è¯·æ±‚åŠ å…¥é˜Ÿåˆ—", async () => {
+    describe("2.3 ¶ÓÁĞ¹ÜÀí", () => {
+      it("Ó¦ÔÚ´ïµ½²¢·¢ÏŞÖÆÊ±½«ÇëÇó¼ÓÈë¶ÓÁĞ", async () => {
         const resolvers = [];
         const requestFns = Array.from({ length: 4 }, () => {
           const { promise, resolve } = createControllablePromise();
@@ -337,7 +337,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         await withTimeout(Promise.all(promises), OPERATION_TIMEOUT, "cleanup");
       });
       
-      it("åº”åœ¨æ´»è·ƒè¯·æ±‚å®Œæˆåå¤„ç†é˜Ÿåˆ—", async () => {
+      it("Ó¦ÔÚ»îÔ¾ÇëÇóÍê³Éºó´¦Àí¶ÓÁĞ", async () => {
         const resolvers = [];
         const requestFns = Array.from({ length: 4 }, () => {
           const { promise, resolve } = createControllablePromise();
@@ -351,11 +351,11 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         
         await sleep(SHORT_DELAY);
         
-        // å®Œæˆç¬¬ä¸€ä¸ªè¯·æ±‚
+        // Íê³ÉµÚÒ»¸öÇëÇó
         resolvers[0]("result0");
         await sleep(SHORT_DELAY * 2);
         
-        // ç¬¬4ä¸ªè¯·æ±‚åº”è¯¥å¼€å§‹æ‰§è¡Œ
+        // µÚ4¸öÇëÇóÓ¦¸Ã¿ªÊ¼Ö´ĞĞ
         expect(requestFns[3]).toHaveBeenCalled();
         
         resolvers.slice(1).forEach((resolve, i) => resolve(`result${i + 1}`));
@@ -363,8 +363,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("2.4 è¯·æ±‚å–æ¶ˆ", () => {
-      it("åº”æ­£ç¡®å–æ¶ˆæ´»è·ƒè¯·æ±‚", async () => {
+    describe("2.4 ÇëÇóÈ¡Ïû", () => {
+      it("Ó¦ÕıÈ·È¡Ïû»îÔ¾ÇëÇó", async () => {
         const { promise } = createControllablePromise();
         const requestFn = mock(() => promise);
         
@@ -386,14 +386,14 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         }
       });
       
-      it("åº”æ­£ç¡®å¤„ç†ä¸å­˜åœ¨çš„è¯·æ±‚å–æ¶ˆ", async () => {
+      it("Ó¦ÕıÈ·´¦Àí²»´æÔÚµÄÇëÇóÈ¡Ïû", async () => {
         const cancelled = await controller.cancelRequest("non-existent-agent");
         expect(cancelled).toBe(false);
       });
     });
     
-    describe("2.5 é…ç½®æ›´æ–°", () => {
-      it("åº”æ­£ç¡®æ›´æ–°æœ€å¤§å¹¶å‘æ•°", async () => {
+    describe("2.5 ÅäÖÃ¸üĞÂ", () => {
+      it("Ó¦ÕıÈ·¸üĞÂ×î´ó²¢·¢Êı", async () => {
         expect(controller.maxConcurrentRequests).toBe(3);
         
         await controller.updateMaxConcurrentRequests(5);
@@ -403,7 +403,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(controller.maxConcurrentRequests).toBe(1);
       });
       
-      it("åº”æ‹’ç»æ— æ•ˆçš„é…ç½®å€¼ï¼ˆè´Ÿæ•°å’Œé›¶ï¼‰", async () => {
+      it("Ó¦¾Ü¾øÎŞĞ§µÄÅäÖÃÖµ£¨¸ºÊıºÍÁã£©", async () => {
         const originalValue = controller.maxConcurrentRequests;
         
         await controller.updateMaxConcurrentRequests(-1);
@@ -417,8 +417,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("2.6 é”™è¯¯å¤„ç†", () => {
-      it("åº”æ­£ç¡®å¤„ç†è¯·æ±‚æ‰§è¡Œå¤±è´¥", async () => {
+    describe("2.6 ´íÎó´¦Àí", () => {
+      it("Ó¦ÕıÈ·´¦ÀíÇëÇóÖ´ĞĞÊ§°Ü", async () => {
         const requestFn = mock(() => Promise.reject(new Error("Network timeout")));
         
         try {
@@ -431,7 +431,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         expect(controller.getActiveCount()).toBe(0);
       });
       
-      it("å¤±è´¥ååº”é‡Šæ”¾æ§½ä½å¹¶å¤„ç†é˜Ÿåˆ—", async () => {
+      it("Ê§°ÜºóÓ¦ÊÍ·Å²ÛÎ»²¢´¦Àí¶ÓÁĞ", async () => {
         const singleController = new ConcurrencyController(1, mockLogger);
         
         const failingFn = mock(() => Promise.reject(new Error("Request failed")));
@@ -443,7 +443,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         const results = await withTimeout(
           Promise.allSettled([promise1, promise2]),
           OPERATION_TIMEOUT,
-          "å¤±è´¥åå¤„ç†é˜Ÿåˆ—"
+          "Ê§°Üºó´¦Àí¶ÓÁĞ"
         );
         
         expect(results[0].status).toBe("rejected");
@@ -452,8 +452,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("2.7 ç»Ÿè®¡ä¿¡æ¯", () => {
-      it("åº”æ­£ç¡®è·Ÿè¸ªæ‰€æœ‰ç»Ÿè®¡æŒ‡æ ‡", async () => {
+    describe("2.7 Í³¼ÆĞÅÏ¢", () => {
+      it("Ó¦ÕıÈ·¸ú×ÙËùÓĞÍ³¼ÆÖ¸±ê", async () => {
         await controller.executeRequest("agent1", mock(() => Promise.resolve("result")));
         
         const stats = controller.getStats();
@@ -470,22 +470,22 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬ä¸‰éƒ¨åˆ†ï¼šLlmClienté›†æˆæµ‹è¯•
+  // µÚÈı²¿·Ö£ºLlmClient¼¯³É²âÊÔ
   // ==========================================================================
-  describe("3. LlmClienté›†æˆæµ‹è¯•", () => {
+  describe("3. LlmClient¼¯³É²âÊÔ", () => {
     let client;
     
     beforeEach(() => {
       client = createMockClient(3, 1, mockLogger);
     });
     
-    describe("3.1 åˆå§‹åŒ–", () => {
-      it("åº”æ­£ç¡®åˆå§‹åŒ–å¹¶å‘æ§åˆ¶å™¨", () => {
+    describe("3.1 ³õÊ¼»¯", () => {
+      it("Ó¦ÕıÈ·³õÊ¼»¯²¢·¢¿ØÖÆÆ÷", () => {
         expect(client.concurrencyController).toBeDefined();
         expect(client.concurrencyController.maxConcurrentRequests).toBe(3);
       });
       
-      it("åº”ä½¿ç”¨é»˜è®¤çš„æœ€å¤§å¹¶å‘æ•°", () => {
+      it("Ó¦Ê¹ÓÃÄ¬ÈÏµÄ×î´ó²¢·¢Êı", () => {
         const defaultClient = new LlmClient({
           baseURL: "http://localhost:1234/v1",
           model: "test-model",
@@ -497,8 +497,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("3.2 è¯·æ±‚å¤„ç†", () => {
-      it("åº”æ­£ç¡®å¤„ç†æœ‰agentIdçš„è¯·æ±‚", async () => {
+    describe("3.2 ÇëÇó´¦Àí", () => {
+      it("Ó¦ÕıÈ·´¦ÀíÓĞagentIdµÄÇëÇó", async () => {
         setupSuccessMock(client);
         
         const result = await withTimeout(
@@ -507,13 +507,13 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
             meta: { agentId: "test-agent" }
           }),
           OPERATION_TIMEOUT,
-          "æœ‰agentIdè¯·æ±‚"
+          "ÓĞagentIdÇëÇó"
         );
         
         expect(result.content).toBe("success");
       });
       
-      it("åº”æ­£ç¡®å¤„ç†æ²¡æœ‰agentIdçš„è¯·æ±‚ï¼ˆå‘åå…¼å®¹ï¼‰", async () => {
+      it("Ó¦ÕıÈ·´¦ÀíÃ»ÓĞagentIdµÄÇëÇó£¨Ïòºó¼æÈİ£©", async () => {
         setupSuccessMock(client);
         
         const result = await withTimeout(
@@ -522,13 +522,13 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
             meta: {}
           }),
           OPERATION_TIMEOUT,
-          "æ— agentIdè¯·æ±‚"
+          "ÎŞagentIdÇëÇó"
         );
         
         expect(result.content).toBe("success");
       });
       
-      it("åº”æ‹’ç»åŒä¸€æ™ºèƒ½ä½“çš„ç¬¬äºŒä¸ªè¯·æ±‚", async () => {
+      it("Ó¦¾Ü¾øÍ¬Ò»ÖÇÄÜÌåµÄµÚ¶ş¸öÇëÇó", async () => {
         const { promise, resolve } = createControllablePromise();
         
         client._client = {
@@ -564,8 +564,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("3.3 ä¸­æ–­åŠŸèƒ½", () => {
-      it("abortåº”å–æ¶ˆæ´»è·ƒè¯·æ±‚", async () => {
+    describe("3.3 ÖĞ¶Ï¹¦ÄÜ", () => {
+      it("abortÓ¦È¡Ïû»îÔ¾ÇëÇó", async () => {
         const { promise } = createControllablePromise();
         
         client._client = {
@@ -591,18 +591,18 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         try {
           await requestPromise;
         } catch (error) {
-          // é¢„æœŸè¢«å–æ¶ˆ
+          // Ô¤ÆÚ±»È¡Ïû
         }
       });
       
-      it("abortä¸å­˜åœ¨çš„è¯·æ±‚åº”è¿”å›false", () => {
+      it("abort²»´æÔÚµÄÇëÇóÓ¦·µ»Øfalse", () => {
         const aborted = client.abort("non-existent-agent");
         expect(aborted).toBe(false);
       });
     });
     
-    describe("3.4 ç»Ÿè®¡ä¿¡æ¯", () => {
-      it("getConcurrencyStatsåº”è¿”å›æ­£ç¡®çš„ç»Ÿè®¡ä¿¡æ¯", async () => {
+    describe("3.4 Í³¼ÆĞÅÏ¢", () => {
+      it("getConcurrencyStatsÓ¦·µ»ØÕıÈ·µÄÍ³¼ÆĞÅÏ¢", async () => {
         setupSuccessMock(client);
         
         const initialStats = client.getConcurrencyStats();
@@ -614,7 +614,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
             meta: { agentId: "agent1" }
           }),
           OPERATION_TIMEOUT,
-          "ç»Ÿè®¡ä¿¡æ¯è·å–"
+          "Í³¼ÆĞÅÏ¢»ñÈ¡"
         );
         
         const finalStats = client.getConcurrencyStats();
@@ -625,11 +625,11 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬å››éƒ¨åˆ†ï¼šå±æ€§æµ‹è¯•
+  // µÚËÄ²¿·Ö£ºÊôĞÔ²âÊÔ
   // ==========================================================================
-  describe("4. å±æ€§æµ‹è¯•", () => {
-    describe("Property 3: å¹¶å‘è¯·æ±‚å¤„ç†", () => {
-      it("å¯¹äºä»»ä½•æ²¡æœ‰æ´»è·ƒè¯·æ±‚çš„æ™ºèƒ½ä½“é›†åˆï¼Œè¯·æ±‚åº”ç«‹å³ç‹¬ç«‹å¤„ç†", async () => {
+  describe("4. ÊôĞÔ²âÊÔ", () => {
+    describe("Property 3: ²¢·¢ÇëÇó´¦Àí", () => {
+      it("¶ÔÓÚÈÎºÎÃ»ÓĞ»îÔ¾ÇëÇóµÄÖÇÄÜÌå¼¯ºÏ£¬ÇëÇóÓ¦Á¢¼´¶ÀÁ¢´¦Àí", async () => {
         await fc.assert(fc.asyncProperty(
           fc.array(fc.string({ minLength: 1, maxLength: 10 }), { minLength: 1, maxLength: 3 })
             .map(arr => [...new Set(arr)].filter(s => s.length > 0)),
@@ -654,8 +654,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("Property 4: å•æ™ºèƒ½ä½“ä¸²è¡Œçº¦æŸ", () => {
-      it("å¯¹äºä»»ä½•å·²æœ‰æ´»è·ƒè¯·æ±‚çš„æ™ºèƒ½ä½“ï¼Œåç»­è¯·æ±‚åº”è¢«æ‹’ç»", async () => {
+    describe("Property 4: µ¥ÖÇÄÜÌå´®ĞĞÔ¼Êø", () => {
+      it("¶ÔÓÚÈÎºÎÒÑÓĞ»îÔ¾ÇëÇóµÄÖÇÄÜÌå£¬ºóĞøÇëÇóÓ¦±»¾Ü¾ø", async () => {
         await fc.assert(fc.asyncProperty(
           fc.string({ minLength: 1, maxLength: 10 }),
           async (agentId) => {
@@ -681,8 +681,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("Property 5: é˜Ÿåˆ—ç®¡ç†", () => {
-      it("å½“ç³»ç»Ÿè¾¾åˆ°æœ€å¤§å¹¶å‘æ—¶ï¼Œè¯·æ±‚åº”è¿›å…¥é˜Ÿåˆ—å¹¶åœ¨æ§½ä½å¯ç”¨æ—¶å¤„ç†", async () => {
+    describe("Property 5: ¶ÓÁĞ¹ÜÀí", () => {
+      it("µ±ÏµÍ³´ïµ½×î´ó²¢·¢Ê±£¬ÇëÇóÓ¦½øÈë¶ÓÁĞ²¢ÔÚ²ÛÎ»¿ÉÓÃÊ±´¦Àí", async () => {
         await fc.assert(fc.asyncProperty(
           fc.integer({ min: 1, max: 2 }),
           fc.integer({ min: 3, max: 5 }),
@@ -707,8 +707,8 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("Property 8: é”™è¯¯å¤„ç†å’Œèµ„æºé‡Šæ”¾", () => {
-      it("å¤±è´¥çš„è¯·æ±‚åº”é‡Šæ”¾å¹¶å‘æ§½ä½å¹¶å¤„ç†ä¸‹ä¸€ä¸ªé˜Ÿåˆ—è¯·æ±‚", async () => {
+    describe("Property 8: ´íÎó´¦ÀíºÍ×ÊÔ´ÊÍ·Å", () => {
+      it("Ê§°ÜµÄÇëÇóÓ¦ÊÍ·Å²¢·¢²ÛÎ»²¢´¦ÀíÏÂÒ»¸ö¶ÓÁĞÇëÇó", async () => {
         await fc.assert(fc.asyncProperty(
           fc.array(fc.string({ minLength: 1, maxLength: 5 }), { minLength: 2, maxLength: 4 })
             .map(arr => [...new Set(arr)].filter(s => s.length > 0)),
@@ -739,11 +739,11 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬äº”éƒ¨åˆ†ï¼šè¾¹ç•Œæµ‹è¯•
+  // µÚÎå²¿·Ö£º±ß½ç²âÊÔ
   // ==========================================================================
-  describe("5. è¾¹ç•Œæµ‹è¯•", () => {
-    describe("5.1 å¹¶å‘æ•°è¾¹ç•Œ", () => {
-      it("æœ€å¤§å¹¶å‘æ•°ä¸º1æ—¶åº”ä¸¥æ ¼ä¸²è¡Œå¤„ç†", async () => {
+  describe("5. ±ß½ç²âÊÔ", () => {
+    describe("5.1 ²¢·¢Êı±ß½ç", () => {
+      it("×î´ó²¢·¢ÊıÎª1Ê±Ó¦ÑÏ¸ñ´®ĞĞ´¦Àí", async () => {
         const controller = new ConcurrencyController(1, mockLogger);
         const executionOrder = [];
         
@@ -760,9 +760,9 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           controller.executeRequest(`agent${i}`, fn)
         );
         
-        await withTimeout(Promise.all(promises), OPERATION_TIMEOUT * 2, "ä¸²è¡Œå¤„ç†");
+        await withTimeout(Promise.all(promises), OPERATION_TIMEOUT * 2, "´®ĞĞ´¦Àí");
         
-        // éªŒè¯ä¸²è¡Œï¼šæ¯ä¸ªè¯·æ±‚çš„endåº”è¯¥åœ¨ä¸‹ä¸€ä¸ªè¯·æ±‚çš„startä¹‹å‰
+        // ÑéÖ¤´®ĞĞ£ºÃ¿¸öÇëÇóµÄendÓ¦¸ÃÔÚÏÂÒ»¸öÇëÇóµÄstartÖ®Ç°
         for (let i = 0; i < 2; i++) {
           const endIndex = executionOrder.indexOf(`end-${i}`);
           const nextStartIndex = executionOrder.indexOf(`start-${i + 1}`);
@@ -771,35 +771,35 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       });
     });
     
-    describe("5.2 agentIdè¾¹ç•Œ", () => {
-      it("åº”å¤„ç†æœ€çŸ­æœ‰æ•ˆagentId", async () => {
+    describe("5.2 agentId±ß½ç", () => {
+      it("Ó¦´¦Àí×î¶ÌÓĞĞ§agentId", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
         
         const result = await withTimeout(
           controller.executeRequest("a", mock(() => Promise.resolve("result"))),
           OPERATION_TIMEOUT,
-          "æœ€çŸ­agentId"
+          "×î¶ÌagentId"
         );
         
         expect(result).toBe("result");
       });
       
-      it("åº”å¤„ç†è¶…é•¿agentId", async () => {
+      it("Ó¦´¦Àí³¬³¤agentId", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
         const longId = "a".repeat(10000);
         
         const result = await withTimeout(
           controller.executeRequest(longId, mock(() => Promise.resolve("result"))),
           OPERATION_TIMEOUT,
-          "è¶…é•¿agentId"
+          "³¬³¤agentId"
         );
         
         expect(result).toBe("result");
       });
       
-      it("åº”å¤„ç†Unicode agentId", async () => {
+      it("Ó¦´¦ÀíUnicode agentId", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
-        const unicodeIds = ["æ™ºèƒ½ä½“1", "ã‚¨ãƒ¼ã‚¸ã‚§ãƒ³ãƒˆ", "ğŸ¤–ğŸš€ğŸ’»"];
+        const unicodeIds = ["ÖÇÄÜÌå1", "¥¨©`¥¸¥§¥ó¥È", "??????"];
         
         for (const id of unicodeIds) {
           const result = await withTimeout(
@@ -814,10 +814,10 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬å…­éƒ¨åˆ†ï¼šå‹åŠ›æµ‹è¯•
+  // µÚÁù²¿·Ö£ºÑ¹Á¦²âÊÔ
   // ==========================================================================
-  describe("6. å‹åŠ›æµ‹è¯•", () => {
-    it("åº”å¤„ç†å¤§é‡å¹¶å‘è¯·æ±‚", async () => {
+  describe("6. Ñ¹Á¦²âÊÔ", () => {
+    it("Ó¦´¦Àí´óÁ¿²¢·¢ÇëÇó", async () => {
       const controller = new ConcurrencyController(10, mockLogger);
       const numRequests = 100;
       
@@ -828,7 +828,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       const results = await withTimeout(
         Promise.all(promises),
         OPERATION_TIMEOUT * 5,
-        "å¤§é‡å¹¶å‘è¯·æ±‚"
+        "´óÁ¿²¢·¢ÇëÇó"
       );
       
       expect(results.length).toBe(numRequests);
@@ -836,7 +836,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       expect(controller.getActiveCount()).toBe(0);
     });
     
-    it("åº”å¤„ç†æ··åˆæˆåŠŸå’Œå¤±è´¥çš„è¯·æ±‚", async () => {
+    it("Ó¦´¦Àí»ìºÏ³É¹¦ºÍÊ§°ÜµÄÇëÇó", async () => {
       const controller = new ConcurrencyController(5, mockLogger);
       const numRequests = 30;
       
@@ -853,7 +853,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       const results = await withTimeout(
         Promise.all(promises),
         OPERATION_TIMEOUT * 3,
-        "æ··åˆæˆåŠŸå¤±è´¥"
+        "»ìºÏ³É¹¦Ê§°Ü"
       );
       
       const successes = results.filter(r => !r.error);
@@ -863,7 +863,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       expect(controller.getActiveCount()).toBe(0);
     });
     
-    it("å†…å­˜æ³„æ¼æ£€æµ‹ï¼šå¤§é‡è¯·æ±‚åèµ„æºåº”è¢«æ­£ç¡®é‡Šæ”¾", async () => {
+    it("ÄÚ´æĞ¹Â©¼ì²â£º´óÁ¿ÇëÇóºó×ÊÔ´Ó¦±»ÕıÈ·ÊÍ·Å", async () => {
       const controller = new ConcurrencyController(10, mockLogger);
       
       for (let batch = 0; batch < 3; batch++) {
@@ -882,10 +882,10 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬ä¸ƒéƒ¨åˆ†ï¼šå´©æºƒæµ‹è¯•
+  // µÚÆß²¿·Ö£º±ÀÀ£²âÊÔ
   // ==========================================================================
-  describe("7. å´©æºƒæµ‹è¯•", () => {
-    it("åº”å¤„ç†è¯·æ±‚å‡½æ•°æŠ›å‡ºåŒæ­¥å¼‚å¸¸", async () => {
+  describe("7. ±ÀÀ£²âÊÔ", () => {
+    it("Ó¦´¦ÀíÇëÇóº¯ÊıÅ×³öÍ¬²½Òì³£", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       const requestFn = mock(() => {
@@ -902,7 +902,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       expect(controller.getActiveCount()).toBe(0);
     });
     
-    it("åº”å¤„ç†è¯·æ±‚å‡½æ•°è¿”å›éPromiseå€¼", async () => {
+    it("Ó¦´¦ÀíÇëÇóº¯Êı·µ»Ø·ÇPromiseÖµ", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       const requestFn = mock(() => "sync-result");
@@ -910,25 +910,25 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       const result = await withTimeout(
         controller.executeRequest("agent1", requestFn),
         OPERATION_TIMEOUT,
-        "éPromiseè¿”å›å€¼"
+        "·ÇPromise·µ»ØÖµ"
       );
       
       expect(result).toBe("sync-result");
     });
     
-    it("åº”å¤„ç†è¯·æ±‚å‡½æ•°è¿”å›null", async () => {
+    it("Ó¦´¦ÀíÇëÇóº¯Êı·µ»Ønull", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       const result = await withTimeout(
         controller.executeRequest("agent1", mock(() => null)),
         OPERATION_TIMEOUT,
-        "nullè¿”å›å€¼"
+        "null·µ»ØÖµ"
       );
       
       expect(result).toBe(null);
     });
     
-    it("åº”å¤„ç†å„ç§é”™è¯¯ç±»å‹", async () => {
+    it("Ó¦´¦Àí¸÷ÖÖ´íÎóÀàĞÍ", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       const errorTypes = [
@@ -945,14 +945,14 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           await controller.executeRequest(`agent${i}`, requestFn);
           expect(true).toBe(false);
         } catch (error) {
-          // é¢„æœŸæŠ›å‡ºé”™è¯¯
+          // Ô¤ÆÚÅ×³ö´íÎó
         }
         
         expect(controller.getActiveCount()).toBe(0);
       }
     });
     
-    it("åº”åœ¨è¿ç»­é”™è¯¯åæ¢å¤æ­£å¸¸", async () => {
+    it("Ó¦ÔÚÁ¬Ğø´íÎóºó»Ö¸´Õı³£", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       for (let i = 0; i < 3; i++) {
@@ -964,7 +964,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       const result = await withTimeout(
         controller.executeRequest("success-agent", mock(() => Promise.resolve("success"))),
         OPERATION_TIMEOUT,
-        "é”™è¯¯åæ¢å¤"
+        "´íÎóºó»Ö¸´"
       );
       
       expect(result).toBe("success");
@@ -972,11 +972,11 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬å…«éƒ¨åˆ†ï¼šç‰¹æ®Šå€¼æµ‹è¯•
+  // µÚ°Ë²¿·Ö£ºÌØÊâÖµ²âÊÔ
   // ==========================================================================
-  describe("8. ç‰¹æ®Šå€¼æµ‹è¯•", () => {
-    describe("8.1 ç‰¹æ®ŠagentIdå€¼", () => {
-      it("åº”å¤„ç†æ•°å­—å­—ç¬¦ä¸²agentId", async () => {
+  describe("8. ÌØÊâÖµ²âÊÔ", () => {
+    describe("8.1 ÌØÊâagentIdÖµ", () => {
+      it("Ó¦´¦ÀíÊı×Ö×Ö·û´®agentId", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
         
         const numericIds = ["0", "1", "123", "-1", "3.14"];
@@ -985,13 +985,13 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           const result = await withTimeout(
             controller.executeRequest(id, mock(() => Promise.resolve("result"))),
             OPERATION_TIMEOUT,
-            "æ•°å­—å­—ç¬¦ä¸²agentId"
+            "Êı×Ö×Ö·û´®agentId"
           );
           expect(result).toBe("result");
         }
       });
       
-      it("åº”å¤„ç†ç©ºç™½å­—ç¬¦agentId", async () => {
+      it("Ó¦´¦Àí¿Õ°××Ö·ûagentId", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
         
         const whitespaceIds = [" ", "  ", "\t", " agent "];
@@ -1000,15 +1000,15 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           const result = await withTimeout(
             controller.executeRequest(id, mock(() => Promise.resolve("result"))),
             OPERATION_TIMEOUT,
-            "ç©ºç™½å­—ç¬¦agentId"
+            "¿Õ°××Ö·ûagentId"
           );
           expect(result).toBe("result");
         }
       });
     });
     
-    describe("8.2 ç‰¹æ®Šè¿”å›å€¼", () => {
-      it("åº”å¤„ç†å„ç§è¿”å›å€¼ç±»å‹", async () => {
+    describe("8.2 ÌØÊâ·µ»ØÖµ", () => {
+      it("Ó¦´¦Àí¸÷ÖÖ·µ»ØÖµÀàĞÍ", async () => {
         const controller = new ConcurrencyController(3, mockLogger);
         
         const returnValues = [
@@ -1028,7 +1028,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
           const result = await withTimeout(
             controller.executeRequest(`agent${i}`, mock(() => Promise.resolve(value))),
             OPERATION_TIMEOUT,
-            "å„ç§è¿”å›å€¼ç±»å‹"
+            "¸÷ÖÖ·µ»ØÖµÀàĞÍ"
           );
           expect(result).toEqual(value);
         }
@@ -1037,22 +1037,22 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬ä¹éƒ¨åˆ†ï¼šæ—¥å¿—å’Œç›‘æ§æµ‹è¯•
+  // µÚ¾Å²¿·Ö£ºÈÕÖ¾ºÍ¼à¿Ø²âÊÔ
   // ==========================================================================
-  describe("9. æ—¥å¿—å’Œç›‘æ§æµ‹è¯•", () => {
-    it("åº”è®°å½•è¯·æ±‚å¼€å§‹æ—¥å¿—", async () => {
+  describe("9. ÈÕÖ¾ºÍ¼à¿Ø²âÊÔ", () => {
+    it("Ó¦¼ÇÂ¼ÇëÇó¿ªÊ¼ÈÕÖ¾", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       await withTimeout(
         controller.executeRequest("agent1", mock(() => Promise.resolve("result"))),
         OPERATION_TIMEOUT,
-        "è¯·æ±‚å¼€å§‹æ—¥å¿—"
+        "ÇëÇó¿ªÊ¼ÈÕÖ¾"
       );
       
       expect(mockLogger.info).toHaveBeenCalled();
     });
     
-    it("åº”è®°å½•è¯·æ±‚å¤±è´¥æ—¥å¿—", async () => {
+    it("Ó¦¼ÇÂ¼ÇëÇóÊ§°ÜÈÕÖ¾", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       try {
@@ -1062,7 +1062,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       expect(mockLogger.error).toHaveBeenCalled();
     });
     
-    it("åº”åœ¨è¾¾åˆ°å¹¶å‘é™åˆ¶æ—¶è®°å½•è­¦å‘Š", async () => {
+    it("Ó¦ÔÚ´ïµ½²¢·¢ÏŞÖÆÊ±¼ÇÂ¼¾¯¸æ", async () => {
       const controller = new ConcurrencyController(1, mockLogger);
       
       const resolvers = [];
@@ -1080,7 +1080,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       await withTimeout(Promise.all(promises), OPERATION_TIMEOUT, "cleanup");
     });
     
-    it("åº”è®°å½•é…ç½®æ›´æ–°æ—¥å¿—", async () => {
+    it("Ó¦¼ÇÂ¼ÅäÖÃ¸üĞÂÈÕÖ¾", async () => {
       const controller = new ConcurrencyController(3, mockLogger);
       
       await controller.updateMaxConcurrentRequests(5);
@@ -1090,10 +1090,10 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
   });
 
   // ==========================================================================
-  // ç¬¬åéƒ¨åˆ†ï¼šé›†æˆæµ‹è¯•
+  // µÚÊ®²¿·Ö£º¼¯³É²âÊÔ
   // ==========================================================================
-  describe("10. é›†æˆæµ‹è¯•", () => {
-    it("å®Œæ•´çš„è¯·æ±‚ç”Ÿå‘½å‘¨æœŸæµ‹è¯•", async () => {
+  describe("10. ¼¯³É²âÊÔ", () => {
+    it("ÍêÕûµÄÇëÇóÉúÃüÖÜÆÚ²âÊÔ", async () => {
       const client = createMockClient(2, 1, mockLogger);
       setupSuccessMock(client, SHORT_DELAY);
       
@@ -1107,7 +1107,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       const results = await withTimeout(
         Promise.all(promises),
         OPERATION_TIMEOUT * 3,
-        "å®Œæ•´ç”Ÿå‘½å‘¨æœŸ"
+        "ÍêÕûÉúÃüÖÜÆÚ"
       );
       
       expect(results).toHaveLength(5);
@@ -1118,7 +1118,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
       expect(stats.completedRequests).toBe(5);
     });
     
-    it("å‘åå…¼å®¹æ€§é›†æˆæµ‹è¯•", async () => {
+    it("Ïòºó¼æÈİĞÔ¼¯³É²âÊÔ", async () => {
       const client = createMockClient(3, 1, mockLogger);
       setupSuccessMock(client);
       
@@ -1133,7 +1133,7 @@ describe("LLMå¹¶å‘æ§åˆ¶æµ‹è¯•å¥—ä»¶", () => {
         const result = await withTimeout(
           client.chat(input),
           OPERATION_TIMEOUT,
-          "å‘åå…¼å®¹æ€§"
+          "Ïòºó¼æÈİĞÔ"
         );
         expect(result.content).toBe("success");
       }

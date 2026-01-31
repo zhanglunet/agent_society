@@ -1,24 +1,24 @@
-ï»¿import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import fc from "fast-check";
 import { ToolGroupManager, BUILTIN_TOOL_GROUPS } from "../../src/platform/extensions/tool_group_manager.js";
 
-// ==================== è¾…åŠ©å‡½æ•° ====================
+// ==================== ¸¨Öúº¯Êı ====================
 
 /**
- * ç”Ÿæˆæœ‰æ•ˆçš„å·¥å…·ç»„æ ‡è¯†ç¬¦ï¼ˆé¿å…ä¿ç•™åç§°ï¼‰
+ * Éú³ÉÓĞĞ§µÄ¹¤¾ß×é±êÊ¶·û£¨±ÜÃâ±£ÁôÃû³Æ£©
  */
 const validGroupIdArb = fc.string({ minLength: 1, maxLength: 20 })
   .filter(s => /^[a-z][a-z0-9_]*$/.test(s))
   .filter(s => !Object.keys(BUILTIN_TOOL_GROUPS).includes(s));
 
 /**
- * ç”Ÿæˆæœ‰æ•ˆçš„å·¥å…·åç§°
+ * Éú³ÉÓĞĞ§µÄ¹¤¾ßÃû³Æ
  */
 const validToolNameArb = fc.string({ minLength: 1, maxLength: 30 })
   .filter(s => /^[a-z][a-z0-9_]*$/.test(s));
 
 /**
- * ç”Ÿæˆå·¥å…·å®šä¹‰
+ * Éú³É¹¤¾ß¶¨Òå
  */
 const toolDefArb = validToolNameArb.map(name => ({
   type: "function",
@@ -30,7 +30,7 @@ const toolDefArb = validToolNameArb.map(name => ({
 }));
 
 /**
- * ç”Ÿæˆå·¥å…·ç»„å®šä¹‰ï¼ˆç¡®ä¿å·¥å…·åå”¯ä¸€ï¼‰
+ * Éú³É¹¤¾ß×é¶¨Òå£¨È·±£¹¤¾ßÃûÎ¨Ò»£©
  */
 const groupDefArb = fc.record({
   description: fc.string({ minLength: 0, maxLength: 100 }),
@@ -41,12 +41,12 @@ const groupDefArb = fc.record({
   })
 });
 
-// ==================== å±æ€§ 1: å·¥å…·ç»„æ³¨å†Œä¸€è‡´æ€§ ====================
-// Feature: tool-group-management, Property 1: å·¥å…·ç»„æ³¨å†Œä¸€è‡´æ€§
-// éªŒè¯: éœ€æ±‚ 1.1, 1.2, 1.4
+// ==================== ÊôĞÔ 1: ¹¤¾ß×é×¢²áÒ»ÖÂĞÔ ====================
+// Feature: tool-group-management, Property 1: ¹¤¾ß×é×¢²áÒ»ÖÂĞÔ
+// ÑéÖ¤: ĞèÇó 1.1, 1.2, 1.4
 
-describe("å±æ€§ 1: å·¥å…·ç»„æ³¨å†Œä¸€è‡´æ€§", () => {
-  it("æ³¨å†ŒæˆåŠŸåï¼Œå·¥å…·ç»„ç®¡ç†å™¨åº”åŒ…å«è¯¥å·¥å…·ç»„ï¼Œä¸”æ‰€æœ‰å·¥å…·éƒ½èƒ½æ‰¾åˆ°å…¶æ‰€å±å·¥å…·ç»„", () => {
+describe("ÊôĞÔ 1: ¹¤¾ß×é×¢²áÒ»ÖÂĞÔ", () => {
+  it("×¢²á³É¹¦ºó£¬¹¤¾ß×é¹ÜÀíÆ÷Ó¦°üº¬¸Ã¹¤¾ß×é£¬ÇÒËùÓĞ¹¤¾ß¶¼ÄÜÕÒµ½ÆäËùÊô¹¤¾ß×é", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -54,22 +54,22 @@ describe("å±æ€§ 1: å·¥å…·ç»„æ³¨å†Œä¸€è‡´æ€§", () => {
         (groupId, groupDef) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // æ³¨å†Œå·¥å…·ç»„
+          // ×¢²á¹¤¾ß×é
           const result = manager.registerGroup(groupId, groupDef);
           
-          // éªŒè¯æ³¨å†ŒæˆåŠŸ
+          // ÑéÖ¤×¢²á³É¹¦
           expect(result.ok).toBe(true);
           
-          // éªŒè¯å·¥å…·ç»„å­˜åœ¨
+          // ÑéÖ¤¹¤¾ß×é´æÔÚ
           expect(manager.hasGroup(groupId)).toBe(true);
           
-          // éªŒè¯æ‰€æœ‰å·¥å…·éƒ½èƒ½æ‰¾åˆ°å…¶æ‰€å±å·¥å…·ç»„
+          // ÑéÖ¤ËùÓĞ¹¤¾ß¶¼ÄÜÕÒµ½ÆäËùÊô¹¤¾ß×é
           for (const tool of groupDef.tools) {
             const toolName = tool.function.name;
             expect(manager.getToolGroup(toolName)).toBe(groupId);
           }
           
-          // éªŒè¯å·¥å…·ç»„ä¿¡æ¯æ­£ç¡®
+          // ÑéÖ¤¹¤¾ß×éĞÅÏ¢ÕıÈ·
           const groupInfo = manager.getGroup(groupId);
           expect(groupInfo).not.toBeNull();
           expect(groupInfo.id).toBe(groupId);
@@ -83,12 +83,12 @@ describe("å±æ€§ 1: å·¥å…·ç»„æ³¨å†Œä¸€è‡´æ€§", () => {
 });
 
 
-// ==================== å±æ€§ 2: å·¥å…·ç»„æ³¨é”€å®Œæ•´æ€§ ====================
-// Feature: tool-group-management, Property 2: å·¥å…·ç»„æ³¨é”€å®Œæ•´æ€§
-// éªŒè¯: éœ€æ±‚ 1.5
+// ==================== ÊôĞÔ 2: ¹¤¾ß×é×¢ÏúÍêÕûĞÔ ====================
+// Feature: tool-group-management, Property 2: ¹¤¾ß×é×¢ÏúÍêÕûĞÔ
+// ÑéÖ¤: ĞèÇó 1.5
 
-describe("å±æ€§ 2: å·¥å…·ç»„æ³¨é”€å®Œæ•´æ€§", () => {
-  it("æ³¨é”€åï¼Œå·¥å…·ç»„ç®¡ç†å™¨ä¸åº”å†åŒ…å«è¯¥å·¥å…·ç»„ï¼Œä¸”æ‰€æœ‰å·¥å…·éƒ½ä¸åº”å†èƒ½æ‰¾åˆ°", () => {
+describe("ÊôĞÔ 2: ¹¤¾ß×é×¢ÏúÍêÕûĞÔ", () => {
+  it("×¢Ïúºó£¬¹¤¾ß×é¹ÜÀíÆ÷²»Ó¦ÔÙ°üº¬¸Ã¹¤¾ß×é£¬ÇÒËùÓĞ¹¤¾ß¶¼²»Ó¦ÔÙÄÜÕÒµ½", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -96,18 +96,18 @@ describe("å±æ€§ 2: å·¥å…·ç»„æ³¨é”€å®Œæ•´æ€§", () => {
         (groupId, groupDef) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // å…ˆæ³¨å†Œå·¥å…·ç»„
+          // ÏÈ×¢²á¹¤¾ß×é
           manager.registerGroup(groupId, groupDef);
           expect(manager.hasGroup(groupId)).toBe(true);
           
-          // æ³¨é”€å·¥å…·ç»„
+          // ×¢Ïú¹¤¾ß×é
           const result = manager.unregisterGroup(groupId);
           expect(result.ok).toBe(true);
           
-          // éªŒè¯å·¥å…·ç»„ä¸å­˜åœ¨
+          // ÑéÖ¤¹¤¾ß×é²»´æÔÚ
           expect(manager.hasGroup(groupId)).toBe(false);
           
-          // éªŒè¯æ‰€æœ‰å·¥å…·éƒ½ä¸èƒ½æ‰¾åˆ°å…¶æ‰€å±å·¥å…·ç»„
+          // ÑéÖ¤ËùÓĞ¹¤¾ß¶¼²»ÄÜÕÒµ½ÆäËùÊô¹¤¾ß×é
           for (const tool of groupDef.tools) {
             const toolName = tool.function.name;
             expect(manager.getToolGroup(toolName)).toBeNull();
@@ -119,12 +119,12 @@ describe("å±æ€§ 2: å·¥å…·ç»„æ³¨é”€å®Œæ•´æ€§", () => {
   });
 });
 
-// ==================== å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹ ====================
-// Feature: tool-group-management, Property 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹
-// éªŒè¯: éœ€æ±‚ 2.3
+// ==================== ÊôĞÔ 3: ±£Áô±êÊ¶·û³åÍ»¼ì²â ====================
+// Feature: tool-group-management, Property 3: ±£Áô±êÊ¶·û³åÍ»¼ì²â
+// ÑéÖ¤: ĞèÇó 2.3
 
-describe("å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹", () => {
-  it("å°è¯•ä½¿ç”¨ä¿ç•™æ ‡è¯†ç¬¦æ³¨å†Œå·¥å…·ç»„åº”å¤±è´¥", () => {
+describe("ÊôĞÔ 3: ±£Áô±êÊ¶·û³åÍ»¼ì²â", () => {
+  it("³¢ÊÔÊ¹ÓÃ±£Áô±êÊ¶·û×¢²á¹¤¾ß×éÓ¦Ê§°Ü", () => {
     const reservedIds = Object.keys(BUILTIN_TOOL_GROUPS);
     
     fc.assert(
@@ -134,10 +134,10 @@ describe("å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹", () => {
         (reservedId, groupDef) => {
           const manager = new ToolGroupManager({ registerBuiltins: true });
           
-          // å°è¯•ä½¿ç”¨ä¿ç•™æ ‡è¯†ç¬¦æ³¨å†Œ
+          // ³¢ÊÔÊ¹ÓÃ±£Áô±êÊ¶·û×¢²á
           const result = manager.registerGroup(reservedId, groupDef);
           
-          // éªŒè¯æ³¨å†Œå¤±è´¥
+          // ÑéÖ¤×¢²áÊ§°Ü
           expect(result.ok).toBe(false);
           expect(result.error).toBe("reserved_group_id");
         }
@@ -146,7 +146,7 @@ describe("å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹", () => {
     );
   });
 
-  it("å°è¯•æ³¨é”€ä¿ç•™å·¥å…·ç»„åº”å¤±è´¥", () => {
+  it("³¢ÊÔ×¢Ïú±£Áô¹¤¾ß×éÓ¦Ê§°Ü", () => {
     const reservedIds = Object.keys(BUILTIN_TOOL_GROUPS);
     
     fc.assert(
@@ -155,10 +155,10 @@ describe("å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹", () => {
         (reservedId) => {
           const manager = new ToolGroupManager({ registerBuiltins: true });
           
-          // å°è¯•æ³¨é”€ä¿ç•™å·¥å…·ç»„
+          // ³¢ÊÔ×¢Ïú±£Áô¹¤¾ß×é
           const result = manager.unregisterGroup(reservedId);
           
-          // éªŒè¯æ³¨é”€å¤±è´¥
+          // ÑéÖ¤×¢ÏúÊ§°Ü
           expect(result.ok).toBe(false);
           expect(result.error).toBe("cannot_unregister_reserved");
         }
@@ -168,19 +168,19 @@ describe("å±æ€§ 3: ä¿ç•™æ ‡è¯†ç¬¦å†²çªæ£€æµ‹", () => {
   });
 });
 
-// ==================== å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§ ====================
-// Feature: tool-group-management, Property 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§
-// éªŒè¯: éœ€æ±‚ 5.1, 5.2, 5.3, 5.4
+// ==================== ÊôĞÔ 6: ¹¤¾ß×é²éÑ¯ÍêÕûĞÔ ====================
+// Feature: tool-group-management, Property 6: ¹¤¾ß×é²éÑ¯ÍêÕûĞÔ
+// ÑéÖ¤: ĞèÇó 5.1, 5.2, 5.3, 5.4
 
-describe("å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§", () => {
-  it("æŸ¥è¯¢å·¥å…·ç»„æ—¶ï¼Œç»“æœåº”åŒ…å«æ­£ç¡®çš„æ ‡è¯†ç¬¦ã€æè¿°å’Œå·¥å…·æ•°é‡", () => {
+describe("ÊôĞÔ 6: ¹¤¾ß×é²éÑ¯ÍêÕûĞÔ", () => {
+  it("²éÑ¯¹¤¾ß×éÊ±£¬½á¹ûÓ¦°üº¬ÕıÈ·µÄ±êÊ¶·û¡¢ÃèÊöºÍ¹¤¾ßÊıÁ¿", () => {
     fc.assert(
       fc.property(
         fc.array(fc.tuple(validGroupIdArb, groupDefArb), { minLength: 1, maxLength: 5 }),
         (groupPairs) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // æ³¨å†Œå¤šä¸ªå·¥å…·ç»„ï¼ˆå»é‡ï¼‰
+          // ×¢²á¶à¸ö¹¤¾ß×é£¨È¥ÖØ£©
           const uniqueGroups = new Map();
           for (const [groupId, groupDef] of groupPairs) {
             if (!uniqueGroups.has(groupId)) {
@@ -189,13 +189,13 @@ describe("å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§", () => {
             }
           }
           
-          // åˆ—å‡ºæ‰€æœ‰å·¥å…·ç»„
+          // ÁĞ³öËùÓĞ¹¤¾ß×é
           const groups = manager.listGroups();
           
-          // éªŒè¯æ•°é‡
+          // ÑéÖ¤ÊıÁ¿
           expect(groups.length).toBe(uniqueGroups.size);
           
-          // éªŒè¯æ¯ä¸ªå·¥å…·ç»„çš„ä¿¡æ¯
+          // ÑéÖ¤Ã¿¸ö¹¤¾ß×éµÄĞÅÏ¢
           for (const group of groups) {
             expect(group.id).toBeDefined();
             expect(group.description).toBeDefined();
@@ -209,7 +209,7 @@ describe("å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§", () => {
     );
   });
 
-  it("getToolDefinitions åº”è¿”å›æŒ‡å®šå·¥å…·ç»„çš„æ‰€æœ‰å·¥å…·å®šä¹‰", () => {
+  it("getToolDefinitions Ó¦·µ»ØÖ¸¶¨¹¤¾ß×éµÄËùÓĞ¹¤¾ß¶¨Òå", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -218,13 +218,13 @@ describe("å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§", () => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           manager.registerGroup(groupId, groupDef);
           
-          // è·å–å·¥å…·å®šä¹‰
+          // »ñÈ¡¹¤¾ß¶¨Òå
           const tools = manager.getToolDefinitions([groupId]);
           
-          // éªŒè¯å·¥å…·æ•°é‡
+          // ÑéÖ¤¹¤¾ßÊıÁ¿
           expect(tools.length).toBe(groupDef.tools.length);
           
-          // éªŒè¯æ‰€æœ‰å·¥å…·éƒ½åœ¨ç»“æœä¸­
+          // ÑéÖ¤ËùÓĞ¹¤¾ß¶¼ÔÚ½á¹ûÖĞ
           const toolNames = tools.map(t => t.function.name);
           for (const tool of groupDef.tools) {
             expect(toolNames).toContain(tool.function.name);
@@ -236,17 +236,17 @@ describe("å±æ€§ 6: å·¥å…·ç»„æŸ¥è¯¢å®Œæ•´æ€§", () => {
   });
 });
 
-// ==================== å•å…ƒæµ‹è¯• ====================
+// ==================== µ¥Ôª²âÊÔ ====================
 
-describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
+describe("ToolGroupManager µ¥Ôª²âÊÔ", () => {
   let manager;
 
   beforeEach(() => {
     manager = new ToolGroupManager({ registerBuiltins: true });
   });
 
-  describe("å†…ç½®å·¥å…·ç»„", () => {
-    it("åº”è‡ªåŠ¨æ³¨å†Œæ‰€æœ‰å†…ç½®å·¥å…·ç»„", () => {
+  describe("ÄÚÖÃ¹¤¾ß×é", () => {
+    it("Ó¦×Ô¶¯×¢²áËùÓĞÄÚÖÃ¹¤¾ß×é", () => {
       const builtinIds = Object.keys(BUILTIN_TOOL_GROUPS);
       
       for (const groupId of builtinIds) {
@@ -255,7 +255,7 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
       }
     });
 
-    it("getAllGroupIds åº”è¿”å›æ‰€æœ‰å†…ç½®å·¥å…·ç»„", () => {
+    it("getAllGroupIds Ó¦·µ»ØËùÓĞÄÚÖÃ¹¤¾ß×é", () => {
       const allIds = manager.getAllGroupIds();
       const builtinIds = Object.keys(BUILTIN_TOOL_GROUPS);
       
@@ -265,9 +265,9 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
     });
   });
 
-  describe("å·¥å…·å®šä¹‰è·å–", () => {
-    it("getToolDefinitions åº”åˆå¹¶å¤šä¸ªå·¥å…·ç»„çš„å·¥å…·å®šä¹‰", () => {
-      // æ³¨å†Œä¸¤ä¸ªè‡ªå®šä¹‰å·¥å…·ç»„
+  describe("¹¤¾ß¶¨Òå»ñÈ¡", () => {
+    it("getToolDefinitions Ó¦ºÏ²¢¶à¸ö¹¤¾ß×éµÄ¹¤¾ß¶¨Òå", () => {
+      // ×¢²áÁ½¸ö×Ô¶¨Òå¹¤¾ß×é
       manager.registerGroup("custom1", {
         description: "Custom 1",
         tools: [
@@ -292,8 +292,8 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
       expect(toolNames).toContain("tool_c");
     });
 
-    it("getToolDefinitions åº”å»é‡", () => {
-      // æ³¨å†Œä¸¤ä¸ªåŒ…å«ç›¸åŒå·¥å…·çš„å·¥å…·ç»„
+    it("getToolDefinitions Ó¦È¥ÖØ", () => {
+      // ×¢²áÁ½¸ö°üº¬ÏàÍ¬¹¤¾ßµÄ¹¤¾ß×é
       manager.registerGroup("custom1", {
         description: "Custom 1",
         tools: [
@@ -301,21 +301,21 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
         ]
       });
       
-      // æ³¨æ„ï¼šç”±äºå·¥å…·ååˆ°å·¥å…·ç»„çš„æ˜ å°„æ˜¯ä¸€å¯¹ä¸€çš„ï¼Œåæ³¨å†Œçš„ä¼šè¦†ç›–
-      // ä½† getToolDefinitions åº”è¯¥å»é‡
+      // ×¢Òâ£ºÓÉÓÚ¹¤¾ßÃûµ½¹¤¾ß×éµÄÓ³ÉäÊÇÒ»¶ÔÒ»µÄ£¬ºó×¢²áµÄ»á¸²¸Ç
+      // µ« getToolDefinitions Ó¦¸ÃÈ¥ÖØ
       const tools = manager.getToolDefinitions(["custom1", "custom1"]);
       
       expect(tools.length).toBe(1);
     });
 
-    it("getToolDefinitions åº”å¿½ç•¥ä¸å­˜åœ¨çš„å·¥å…·ç»„", () => {
+    it("getToolDefinitions Ó¦ºöÂÔ²»´æÔÚµÄ¹¤¾ß×é", () => {
       const tools = manager.getToolDefinitions(["nonexistent"]);
       expect(tools.length).toBe(0);
     });
   });
 
   describe("isToolInGroups", () => {
-    it("åº”æ­£ç¡®æ£€æŸ¥å·¥å…·æ˜¯å¦åœ¨æŒ‡å®šå·¥å…·ç»„ä¸­", () => {
+    it("Ó¦ÕıÈ·¼ì²é¹¤¾ßÊÇ·ñÔÚÖ¸¶¨¹¤¾ß×éÖĞ", () => {
       manager.registerGroup("test_group", {
         description: "Test",
         tools: [
@@ -330,7 +330,7 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
   });
 
   describe("updateGroupTools", () => {
-    it("åº”æ›´æ–°å·¥å…·ç»„çš„å·¥å…·å®šä¹‰", () => {
+    it("Ó¦¸üĞÂ¹¤¾ß×éµÄ¹¤¾ß¶¨Òå", () => {
       const newTools = [
         { type: "function", function: { name: "new_tool_1", description: "New 1" } },
         { type: "function", function: { name: "new_tool_2", description: "New 2" } }
@@ -346,7 +346,7 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
       expect(group.tools).toContain("new_tool_2");
     });
 
-    it("æ›´æ–°ä¸å­˜åœ¨çš„å·¥å…·ç»„åº”å¤±è´¥", () => {
+    it("¸üĞÂ²»´æÔÚµÄ¹¤¾ß×éÓ¦Ê§°Ü", () => {
       const result = manager.updateGroupTools("nonexistent", []);
       expect(result.ok).toBe(false);
       expect(result.error).toBe("group_not_found");
@@ -355,12 +355,12 @@ describe("ToolGroupManager å•å…ƒæµ‹è¯•", () => {
 });
 
 
-// ==================== å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§ ====================
-// Feature: tool-group-management, Property 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§
-// éªŒè¯: éœ€æ±‚ 4.1, 4.2
+// ==================== ÊôĞÔ 4: ¹¤¾ß¶¨Òå¹¹½¨ÕıÈ·ĞÔ ====================
+// Feature: tool-group-management, Property 4: ¹¤¾ß¶¨Òå¹¹½¨ÕıÈ·ĞÔ
+// ÑéÖ¤: ĞèÇó 4.1, 4.2
 
-describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
-  it("getToolDefinitions è¿”å›çš„å·¥å…·å®šä¹‰åº”åªåŒ…å«é…ç½®å·¥å…·ç»„ä¸­çš„å·¥å…·", () => {
+describe("ÊôĞÔ 4: ¹¤¾ß¶¨Òå¹¹½¨ÕıÈ·ĞÔ", () => {
+  it("getToolDefinitions ·µ»ØµÄ¹¤¾ß¶¨ÒåÓ¦Ö»°üº¬ÅäÖÃ¹¤¾ß×éÖĞµÄ¹¤¾ß", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -370,10 +370,10 @@ describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
         (groupId1, groupDef1, otherGroupIds, otherGroupDefs) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // æ³¨å†Œç¬¬ä¸€ä¸ªå·¥å…·ç»„
+          // ×¢²áµÚÒ»¸ö¹¤¾ß×é
           manager.registerGroup(groupId1, groupDef1);
           
-          // æ³¨å†Œå…¶ä»–å·¥å…·ç»„ï¼ˆç¡®ä¿å·¥å…·ç»„IDä¸é‡å¤ï¼‰
+          // ×¢²áÆäËû¹¤¾ß×é£¨È·±£¹¤¾ß×éID²»ÖØ¸´£©
           const registeredIds = new Set([groupId1]);
           for (let i = 0; i < Math.min(otherGroupIds.length, otherGroupDefs.length); i++) {
             const gid = otherGroupIds[i];
@@ -383,19 +383,19 @@ describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
             }
           }
           
-          // åªé€‰æ‹©ç¬¬ä¸€ä¸ªå·¥å…·ç»„
+          // Ö»Ñ¡ÔñµÚÒ»¸ö¹¤¾ß×é
           const tools = manager.getToolDefinitions([groupId1]);
           const toolNames = tools.map(t => t.function.name);
           
-          // éªŒè¯æ‰€æœ‰è¿”å›çš„å·¥å…·éƒ½åœ¨é€‰ä¸­çš„å·¥å…·ç»„ä¸­
+          // ÑéÖ¤ËùÓĞ·µ»ØµÄ¹¤¾ß¶¼ÔÚÑ¡ÖĞµÄ¹¤¾ß×éÖĞ
           for (const toolName of toolNames) {
             const toolGroup = manager.getToolGroup(toolName);
-            // å·¥å…·å¯èƒ½åœ¨ç¬¬ä¸€ä¸ªå·¥å…·ç»„ä¸­ï¼Œæˆ–è€…è¢«åæ³¨å†Œçš„å·¥å…·ç»„è¦†ç›–
-            // ä½†è¿”å›çš„å·¥å…·å®šä¹‰åº”è¯¥æ¥è‡ªç¬¬ä¸€ä¸ªå·¥å…·ç»„
+            // ¹¤¾ß¿ÉÄÜÔÚµÚÒ»¸ö¹¤¾ß×éÖĞ£¬»òÕß±»ºó×¢²áµÄ¹¤¾ß×é¸²¸Ç
+            // µ«·µ»ØµÄ¹¤¾ß¶¨ÒåÓ¦¸ÃÀ´×ÔµÚÒ»¸ö¹¤¾ß×é
             expect(groupDef1.tools.some(t => t.function.name === toolName)).toBe(true);
           }
           
-          // éªŒè¯æ²¡æœ‰é‡å¤çš„å·¥å…·å®šä¹‰
+          // ÑéÖ¤Ã»ÓĞÖØ¸´µÄ¹¤¾ß¶¨Òå
           const uniqueToolNames = new Set(toolNames);
           expect(uniqueToolNames.size).toBe(toolNames.length);
         }
@@ -404,7 +404,7 @@ describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
     );
   });
 
-  it("getToolDefinitions åº”åŒ…å«é…ç½®å·¥å…·ç»„ä¸­çš„æ‰€æœ‰å·¥å…·", () => {
+  it("getToolDefinitions Ó¦°üº¬ÅäÖÃ¹¤¾ß×éÖĞµÄËùÓĞ¹¤¾ß", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -413,11 +413,11 @@ describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           manager.registerGroup(groupId, groupDef);
           
-          // è·å–å·¥å…·å®šä¹‰
+          // »ñÈ¡¹¤¾ß¶¨Òå
           const tools = manager.getToolDefinitions([groupId]);
           const toolNames = new Set(tools.map(t => t.function.name));
           
-          // éªŒè¯æ‰€æœ‰å·¥å…·ç»„ä¸­çš„å·¥å…·éƒ½åœ¨ç»“æœä¸­
+          // ÑéÖ¤ËùÓĞ¹¤¾ß×éÖĞµÄ¹¤¾ß¶¼ÔÚ½á¹ûÖĞ
           for (const tool of groupDef.tools) {
             expect(toolNames.has(tool.function.name)).toBe(true);
           }
@@ -428,19 +428,19 @@ describe("å±æ€§ 4: å·¥å…·å®šä¹‰æ„å»ºæ­£ç¡®æ€§", () => {
   });
 });
 
-// ==================== å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º ====================
-// Feature: tool-group-management, Property 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º
-// éªŒè¯: éœ€æ±‚ 3.3
+// ==================== ÊôĞÔ 8: Ä¬ÈÏ¹¤¾ß×éĞĞÎª ====================
+// Feature: tool-group-management, Property 8: Ä¬ÈÏ¹¤¾ß×éĞĞÎª
+// ÑéÖ¤: ĞèÇó 3.3
 
-describe("å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º", () => {
-  it("getAllGroupIds åº”è¿”å›æ‰€æœ‰å·²æ³¨å†Œçš„å·¥å…·ç»„", () => {
+describe("ÊôĞÔ 8: Ä¬ÈÏ¹¤¾ß×éĞĞÎª", () => {
+  it("getAllGroupIds Ó¦·µ»ØËùÓĞÒÑ×¢²áµÄ¹¤¾ß×é", () => {
     fc.assert(
       fc.property(
         fc.array(fc.tuple(validGroupIdArb, groupDefArb), { minLength: 1, maxLength: 5 }),
         (groupPairs) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // æ³¨å†Œå¤šä¸ªå·¥å…·ç»„ï¼ˆå»é‡ï¼‰
+          // ×¢²á¶à¸ö¹¤¾ß×é£¨È¥ÖØ£©
           const uniqueGroupIds = new Set();
           for (const [groupId, groupDef] of groupPairs) {
             if (!uniqueGroupIds.has(groupId)) {
@@ -449,13 +449,13 @@ describe("å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º", () => {
             }
           }
           
-          // è·å–æ‰€æœ‰å·¥å…·ç»„ID
+          // »ñÈ¡ËùÓĞ¹¤¾ß×éID
           const allGroupIds = manager.getAllGroupIds();
           
-          // éªŒè¯æ•°é‡
+          // ÑéÖ¤ÊıÁ¿
           expect(allGroupIds.length).toBe(uniqueGroupIds.size);
           
-          // éªŒè¯æ‰€æœ‰æ³¨å†Œçš„å·¥å…·ç»„éƒ½åœ¨ç»“æœä¸­
+          // ÑéÖ¤ËùÓĞ×¢²áµÄ¹¤¾ß×é¶¼ÔÚ½á¹ûÖĞ
           for (const groupId of uniqueGroupIds) {
             expect(allGroupIds).toContain(groupId);
           }
@@ -465,14 +465,14 @@ describe("å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º", () => {
     );
   });
 
-  it("ä½¿ç”¨ getAllGroupIds è·å–å·¥å…·å®šä¹‰åº”è¿”å›æ‰€æœ‰å·¥å…·", () => {
+  it("Ê¹ÓÃ getAllGroupIds »ñÈ¡¹¤¾ß¶¨ÒåÓ¦·µ»ØËùÓĞ¹¤¾ß", () => {
     fc.assert(
       fc.property(
         fc.array(fc.tuple(validGroupIdArb, groupDefArb), { minLength: 1, maxLength: 3 }),
         (groupPairs) => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           
-          // æ³¨å†Œå¤šä¸ªå·¥å…·ç»„ï¼ˆå»é‡ï¼‰
+          // ×¢²á¶à¸ö¹¤¾ß×é£¨È¥ÖØ£©
           const allExpectedTools = new Set();
           for (const [groupId, groupDef] of groupPairs) {
             if (!manager.hasGroup(groupId)) {
@@ -483,12 +483,12 @@ describe("å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º", () => {
             }
           }
           
-          // ä½¿ç”¨ getAllGroupIds è·å–æ‰€æœ‰å·¥å…·å®šä¹‰
+          // Ê¹ÓÃ getAllGroupIds »ñÈ¡ËùÓĞ¹¤¾ß¶¨Òå
           const allGroupIds = manager.getAllGroupIds();
           const tools = manager.getToolDefinitions(allGroupIds);
           const toolNames = new Set(tools.map(t => t.function.name));
           
-          // éªŒè¯æ‰€æœ‰å·¥å…·éƒ½åœ¨ç»“æœä¸­
+          // ÑéÖ¤ËùÓĞ¹¤¾ß¶¼ÔÚ½á¹ûÖĞ
           for (const expectedTool of allExpectedTools) {
             expect(toolNames.has(expectedTool)).toBe(true);
           }
@@ -500,26 +500,26 @@ describe("å±æ€§ 8: é»˜è®¤å·¥å…·ç»„è¡Œä¸º", () => {
 });
 
 
-// ==================== å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç» ====================
-// Feature: tool-group-management, Property 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»
-// éªŒè¯: éœ€æ±‚ 4.3, 4.4
-// æ³¨æ„: æ­¤å±æ€§æµ‹è¯• isToolInGroups æ–¹æ³•çš„æ­£ç¡®æ€§ï¼Œå®é™…çš„æƒé™æ£€æŸ¥åœ¨ Runtime ä¸­å®ç°
+// ==================== ÊôĞÔ 5: Î´ÊÚÈ¨¹¤¾ßµ÷ÓÃ¾Ü¾ø ====================
+// Feature: tool-group-management, Property 5: Î´ÊÚÈ¨¹¤¾ßµ÷ÓÃ¾Ü¾ø
+// ÑéÖ¤: ĞèÇó 4.3, 4.4
+// ×¢Òâ: ´ËÊôĞÔ²âÊÔ isToolInGroups ·½·¨µÄÕıÈ·ĞÔ£¬Êµ¼ÊµÄÈ¨ÏŞ¼ì²éÔÚ Runtime ÖĞÊµÏÖ
 
-describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
-  it("isToolInGroups åº”æ­£ç¡®æ‹’ç»ä¸åœ¨æŒ‡å®šå·¥å…·ç»„ä¸­çš„å·¥å…·", () => {
+describe("ÊôĞÔ 5: Î´ÊÚÈ¨¹¤¾ßµ÷ÓÃ¾Ü¾ø", () => {
+  it("isToolInGroups Ó¦ÕıÈ·¾Ü¾ø²»ÔÚÖ¸¶¨¹¤¾ß×éÖĞµÄ¹¤¾ß", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
         groupDefArb,
         validGroupIdArb,
         (groupId1, groupDef1, groupId2) => {
-          // ç¡®ä¿ä¸¤ä¸ªå·¥å…·ç»„IDä¸åŒ
+          // È·±£Á½¸ö¹¤¾ß×éID²»Í¬
           if (groupId1 === groupId2) return true;
           
           const manager = new ToolGroupManager({ registerBuiltins: false });
           manager.registerGroup(groupId1, groupDef1);
           
-          // åˆ›å»ºä¸€ä¸ªä¸åŒçš„å·¥å…·ç»„ï¼ŒåŒ…å«ä¸åŒçš„å·¥å…·
+          // ´´½¨Ò»¸ö²»Í¬µÄ¹¤¾ß×é£¬°üº¬²»Í¬µÄ¹¤¾ß
           const uniqueToolName = `unique_tool_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           const groupDef2 = {
             description: "Test group 2",
@@ -529,16 +529,16 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
           };
           manager.registerGroup(groupId2, groupDef2);
           
-          // éªŒè¯ uniqueToolName ä¸åœ¨ group1 ä¸­
+          // ÑéÖ¤ uniqueToolName ²»ÔÚ group1 ÖĞ
           expect(manager.isToolInGroups(uniqueToolName, [groupId1])).toBe(false);
           
-          // éªŒè¯ uniqueToolName åœ¨ group2 ä¸­
+          // ÑéÖ¤ uniqueToolName ÔÚ group2 ÖĞ
           expect(manager.isToolInGroups(uniqueToolName, [groupId2])).toBe(true);
           
-          // éªŒè¯ group1 ä¸­çš„å·¥å…·ç¡®å®åœ¨ group1 ä¸­
+          // ÑéÖ¤ group1 ÖĞµÄ¹¤¾ßÈ·ÊµÔÚ group1 ÖĞ
           for (const tool of groupDef1.tools) {
             const toolName = tool.function.name;
-            // å·¥å…·å¯èƒ½è¢« group2 è¦†ç›–ï¼Œæ‰€ä»¥åªæ£€æŸ¥å®ƒæ˜¯å¦åœ¨æŸä¸ªå·¥å…·ç»„ä¸­
+            // ¹¤¾ß¿ÉÄÜ±» group2 ¸²¸Ç£¬ËùÒÔÖ»¼ì²éËüÊÇ·ñÔÚÄ³¸ö¹¤¾ß×éÖĞ
             const toolGroup = manager.getToolGroup(toolName);
             expect(toolGroup).not.toBeNull();
           }
@@ -548,7 +548,7 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
     );
   });
 
-  it("isToolInGroups åº”æ­£ç¡®å¤„ç†ç©ºå·¥å…·ç»„åˆ—è¡¨", () => {
+  it("isToolInGroups Ó¦ÕıÈ·´¦Àí¿Õ¹¤¾ß×éÁĞ±í", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -557,7 +557,7 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           manager.registerGroup(groupId, groupDef);
           
-          // ç©ºå·¥å…·ç»„åˆ—è¡¨åº”è¯¥æ‹’ç»æ‰€æœ‰å·¥å…·
+          // ¿Õ¹¤¾ß×éÁĞ±íÓ¦¸Ã¾Ü¾øËùÓĞ¹¤¾ß
           for (const tool of groupDef.tools) {
             expect(manager.isToolInGroups(tool.function.name, [])).toBe(false);
           }
@@ -567,7 +567,7 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
     );
   });
 
-  it("isToolInGroups åº”æ­£ç¡®å¤„ç†ä¸å­˜åœ¨çš„å·¥å…·", () => {
+  it("isToolInGroups Ó¦ÕıÈ·´¦Àí²»´æÔÚµÄ¹¤¾ß", () => {
     fc.assert(
       fc.property(
         validGroupIdArb,
@@ -577,11 +577,11 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
           const manager = new ToolGroupManager({ registerBuiltins: false });
           manager.registerGroup(groupId, groupDef);
           
-          // ç¡®ä¿éšæœºå·¥å…·åä¸åœ¨å·¥å…·ç»„ä¸­
+          // È·±£Ëæ»ú¹¤¾ßÃû²»ÔÚ¹¤¾ß×éÖĞ
           const existingToolNames = groupDef.tools.map(t => t.function.name);
           if (existingToolNames.includes(randomToolName)) return true;
           
-          // ä¸å­˜åœ¨çš„å·¥å…·åº”è¯¥è¿”å› false
+          // ²»´æÔÚµÄ¹¤¾ßÓ¦¸Ã·µ»Ø false
           expect(manager.isToolInGroups(randomToolName, [groupId])).toBe(false);
         }
       ),
@@ -591,17 +591,17 @@ describe("å±æ€§ 5: æœªæˆæƒå·¥å…·è°ƒç”¨æ‹’ç»", () => {
 });
 
 
-// ==================== å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ– ====================
-// Feature: tool-group-management, Property 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–
-// éªŒè¯: éœ€æ±‚ 3.4
-// æ³¨æ„: æ­¤å±æ€§æµ‹è¯• OrgPrimitives çš„ toolGroups æŒä¹…åŒ–åŠŸèƒ½
+// ==================== ÊôĞÔ 7: ¸ÚÎ»¹¤¾ß×é³Ö¾Ã»¯ ====================
+// Feature: tool-group-management, Property 7: ¸ÚÎ»¹¤¾ß×é³Ö¾Ã»¯
+// ÑéÖ¤: ĞèÇó 3.4
+// ×¢Òâ: ´ËÊôĞÔ²âÊÔ OrgPrimitives µÄ toolGroups ³Ö¾Ã»¯¹¦ÄÜ
 
-import { OrgPrimitives } from "../src/platform/core/org_primitives.js";
+import { OrgPrimitives } from "../../src/platform/core/org_primitives.js";
 import path from "node:path";
 import { rm, readFile as fsReadFile } from "node:fs/promises";
 
-describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
-  it("åˆ›å»ºå²—ä½æ—¶æŒ‡å®šçš„ toolGroups åº”æ­£ç¡®æŒä¹…åŒ–", async () => {
+describe("ÊôĞÔ 7: ¸ÚÎ»¹¤¾ß×é³Ö¾Ã»¯", () => {
+  it("´´½¨¸ÚÎ»Ê±Ö¸¶¨µÄ toolGroups Ó¦ÕıÈ·³Ö¾Ã»¯", async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 30 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)),
@@ -614,17 +614,17 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
           try {
             const org = new OrgPrimitives({ runtimeDir });
             
-            // åˆ›å»ºå¸¦ toolGroups çš„å²—ä½
+            // ´´½¨´ø toolGroups µÄ¸ÚÎ»
             const role = await org.createRole({ 
               name: roleName, 
               rolePrompt, 
               toolGroups 
             });
             
-            // éªŒè¯è¿”å›çš„å²—ä½åŒ…å« toolGroups
+            // ÑéÖ¤·µ»ØµÄ¸ÚÎ»°üº¬ toolGroups
             expect(role.toolGroups).toEqual(toolGroups);
             
-            // è¯»å–æŒä¹…åŒ–æ–‡ä»¶éªŒè¯
+            // ¶ÁÈ¡³Ö¾Ã»¯ÎÄ¼şÑéÖ¤
             const filePath = path.resolve(runtimeDir, "org.json");
             const raw = await fsReadFile(filePath, "utf8");
             const data = JSON.parse(raw);
@@ -641,7 +641,7 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
     );
   });
 
-  it("æ›´æ–°å²—ä½çš„ toolGroups åº”æ­£ç¡®æŒä¹…åŒ–", async () => {
+  it("¸üĞÂ¸ÚÎ»µÄ toolGroups Ó¦ÕıÈ·³Ö¾Ã»¯", async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 30 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)),
@@ -654,22 +654,22 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
           try {
             const org = new OrgPrimitives({ runtimeDir });
             
-            // åˆ›å»ºå¸¦åˆå§‹ toolGroups çš„å²—ä½
+            // ´´½¨´ø³õÊ¼ toolGroups µÄ¸ÚÎ»
             const role = await org.createRole({ 
               name: roleName, 
               rolePrompt: "test", 
               toolGroups: initialToolGroups 
             });
             
-            // æ›´æ–° toolGroups
+            // ¸üĞÂ toolGroups
             const updatedRole = await org.updateRole(role.id, { 
               toolGroups: updatedToolGroups 
             });
             
-            // éªŒè¯æ›´æ–°åçš„å²—ä½åŒ…å«æ–°çš„ toolGroups
+            // ÑéÖ¤¸üĞÂºóµÄ¸ÚÎ»°üº¬ĞÂµÄ toolGroups
             expect(updatedRole.toolGroups).toEqual(updatedToolGroups);
             
-            // è¯»å–æŒä¹…åŒ–æ–‡ä»¶éªŒè¯
+            // ¶ÁÈ¡³Ö¾Ã»¯ÎÄ¼şÑéÖ¤
             const filePath = path.resolve(runtimeDir, "org.json");
             const raw = await fsReadFile(filePath, "utf8");
             const data = JSON.parse(raw);
@@ -686,23 +686,23 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
     );
   });
 
-  it("ä¸æŒ‡å®š toolGroups æ—¶åº”ä¸º nullï¼ˆä½¿ç”¨é»˜è®¤å…¨éƒ¨å·¥å…·ç»„ï¼‰", async () => {
+  it("²»Ö¸¶¨ toolGroups Ê±Ó¦Îª null£¨Ê¹ÓÃÄ¬ÈÏÈ«²¿¹¤¾ß×é£©", async () => {
     const runtimeDir = path.resolve(process.cwd(), `test/.tmp/pbt_toolgroups_null_${Date.now()}`);
     await rm(runtimeDir, { recursive: true, force: true });
     
     try {
       const org = new OrgPrimitives({ runtimeDir });
       
-      // åˆ›å»ºä¸å¸¦ toolGroups çš„å²—ä½
+      // ´´½¨²»´ø toolGroups µÄ¸ÚÎ»
       const role = await org.createRole({ 
         name: "test_role", 
         rolePrompt: "test" 
       });
       
-      // éªŒè¯ toolGroups ä¸º null
+      // ÑéÖ¤ toolGroups Îª null
       expect(role.toolGroups).toBeNull();
       
-      // è¯»å–æŒä¹…åŒ–æ–‡ä»¶éªŒè¯
+      // ¶ÁÈ¡³Ö¾Ã»¯ÎÄ¼şÑéÖ¤
       const filePath = path.resolve(runtimeDir, "org.json");
       const raw = await fsReadFile(filePath, "utf8");
       const data = JSON.parse(raw);
@@ -715,14 +715,14 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
     }
   });
 
-  it("æ¸…ç©º toolGroupsï¼ˆè®¾ä¸ºç©ºæ•°ç»„ï¼‰åº”å˜ä¸º null", async () => {
+  it("Çå¿Õ toolGroups£¨ÉèÎª¿ÕÊı×é£©Ó¦±äÎª null", async () => {
     const runtimeDir = path.resolve(process.cwd(), `test/.tmp/pbt_toolgroups_empty_${Date.now()}`);
     await rm(runtimeDir, { recursive: true, force: true });
     
     try {
       const org = new OrgPrimitives({ runtimeDir });
       
-      // åˆ›å»ºå¸¦ toolGroups çš„å²—ä½
+      // ´´½¨´ø toolGroups µÄ¸ÚÎ»
       const role = await org.createRole({ 
         name: "test_role", 
         rolePrompt: "test",
@@ -731,19 +731,19 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
       
       expect(role.toolGroups).toEqual(["artifact", "workspace"]);
       
-      // æ›´æ–°ä¸ºç©ºæ•°ç»„
+      // ¸üĞÂÎª¿ÕÊı×é
       const updatedRole = await org.updateRole(role.id, { 
         toolGroups: [] 
       });
       
-      // éªŒè¯ toolGroups å˜ä¸º null
+      // ÑéÖ¤ toolGroups ±äÎª null
       expect(updatedRole.toolGroups).toBeNull();
     } finally {
       await rm(runtimeDir, { recursive: true, force: true });
     }
   });
 
-  it("åŠ è½½å·²æŒä¹…åŒ–çš„å²—ä½åº”ä¿ç•™ toolGroups", async () => {
+  it("¼ÓÔØÒÑ³Ö¾Ã»¯µÄ¸ÚÎ»Ó¦±£Áô toolGroups", async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.string({ minLength: 1, maxLength: 30 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)),
@@ -753,7 +753,7 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
           await rm(runtimeDir, { recursive: true, force: true });
           
           try {
-            // ç¬¬ä¸€ä¸ªå®ä¾‹ï¼šåˆ›å»ºå²—ä½
+            // µÚÒ»¸öÊµÀı£º´´½¨¸ÚÎ»
             const org1 = new OrgPrimitives({ runtimeDir });
             const role = await org1.createRole({ 
               name: roleName, 
@@ -761,7 +761,7 @@ describe("å±æ€§ 7: å²—ä½å·¥å…·ç»„æŒä¹…åŒ–", () => {
               toolGroups 
             });
             
-            // ç¬¬äºŒä¸ªå®ä¾‹ï¼šåŠ è½½å¹¶éªŒè¯
+            // µÚ¶ş¸öÊµÀı£º¼ÓÔØ²¢ÑéÖ¤
             const org2 = new OrgPrimitives({ runtimeDir });
             await org2.loadIfExists();
             

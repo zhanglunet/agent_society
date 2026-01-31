@@ -6,7 +6,7 @@ describe("TaskBrief", () => {
   /**
    * Property 1: Task Brief 验证
    * *For any* Task_Brief 对象，如果缺少任何必填字段（objective、constraints、inputs、outputs、completion_criteria），
-   * 则 validateTaskBrief 函数应返回 valid=false 并列出所有缺失字段。
+   * �?validateTaskBrief 函数应返�?valid=false 并列出所有缺失字段�?
    * 
    * **Validates: Requirements 1.2, 1.4**
    * **Feature: agent-communication-protocol, Property 1: Task Brief 验证**
@@ -34,7 +34,7 @@ describe("TaskBrief", () => {
           // 验证：valid 应该等于 !hasMissingFields
           expect(result.valid).toBe(!hasMissingFields);
           
-          // 验证：如果有缺失字段，errors 应该包含对应的错误信息
+          // 验证：如果有缺失字段，errors 应该包含对应的错误信�?
           if (hasMissingFields) {
             expect(result.errors.length).toBeGreaterThan(0);
             
@@ -62,16 +62,16 @@ describe("TaskBrief", () => {
     );
   });
 
-  test("Property 1: Task Brief 验证 - constraints 必须是数组", async () => {
+  test("Property 1: Task Brief 验证 - constraints 必须是数�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
           objective: fc.string({ minLength: 1 }),
           constraints: fc.oneof(
-            fc.array(fc.string()),  // 有效：数组
+            fc.array(fc.string()),  // 有效：数�?
             fc.string(),            // 无效：字符串
-            fc.integer(),           // 无效：数字
-            fc.record({})           // 无效：对象
+            fc.integer(),           // 无效：数�?
+            fc.record({})           // 无效：对�?
           ),
           inputs: fc.string({ minLength: 1 }),
           outputs: fc.string({ minLength: 1 }),
@@ -91,7 +91,7 @@ describe("TaskBrief", () => {
     );
   });
 
-  test("Property 1: Task Brief 验证 - null 和非对象输入应返回错误", async () => {
+  test("Property 1: Task Brief 验证 - null 和非对象输入应返回错�?, async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.oneof(
@@ -111,10 +111,10 @@ describe("TaskBrief", () => {
     );
   });
 
-  test("完整有效的 TaskBrief 应通过验证", () => {
+  test("完整有效�?TaskBrief 应通过验证", () => {
     const validTaskBrief = {
-      objective: "创建一个简单的计算器程序",
-      constraints: ["使用 HTML + JavaScript 实现", "必须是静态网页"],
+      objective: "创建一个简单的计算器程�?,
+      constraints: ["使用 HTML + JavaScript 实现", "必须是静态网�?],
       inputs: "用户通过网页界面输入数字和运算符",
       outputs: "在网页上显示计算结果",
       completion_criteria: "计算器能正确执行加减乘除运算"
@@ -127,15 +127,15 @@ describe("TaskBrief", () => {
 });
 
 describe("formatTaskBrief", () => {
-  test("格式化完整的 TaskBrief 应包含所有字段", () => {
+  test("格式化完整的 TaskBrief 应包含所有字�?, () => {
     const taskBrief = {
-      objective: "创建一个简单的计算器程序",
-      constraints: ["使用 HTML + JavaScript 实现", "必须是静态网页"],
+      objective: "创建一个简单的计算器程�?,
+      constraints: ["使用 HTML + JavaScript 实现", "必须是静态网�?],
       inputs: "用户通过网页界面输入数字和运算符",
       outputs: "在网页上显示计算结果",
       completion_criteria: "计算器能正确执行加减乘除运算",
       collaborators: [
-        { agentId: "agent-ui", role: "UI设计师", description: "界面设计支持" }
+        { agentId: "agent-ui", role: "UI设计�?, description: "界面设计支持" }
       ],
       references: ["参考现有计算器应用"],
       priority: "high"
@@ -144,14 +144,14 @@ describe("formatTaskBrief", () => {
     const formatted = formatTaskBrief(taskBrief);
     
     // 验证包含标题
-    expect(formatted).toContain("【任务委托书 Task Brief】");
+    expect(formatted).toContain("【任务委托书 Task Brief�?);
     
     // 验证包含必填字段
     expect(formatted).toContain("## 目标描述");
     expect(formatted).toContain(taskBrief.objective);
-    expect(formatted).toContain("## 技术约束");
+    expect(formatted).toContain("## 技术约�?);
     expect(formatted).toContain("使用 HTML + JavaScript 实现");
-    expect(formatted).toContain("必须是静态网页");
+    expect(formatted).toContain("必须是静态网�?);
     expect(formatted).toContain("## 输入说明");
     expect(formatted).toContain(taskBrief.inputs);
     expect(formatted).toContain("## 输出要求");
@@ -159,23 +159,23 @@ describe("formatTaskBrief", () => {
     expect(formatted).toContain("## 完成标准");
     expect(formatted).toContain(taskBrief.completion_criteria);
     
-    // 验证包含可选字段
-    expect(formatted).toContain("## 协作联系人");
-    expect(formatted).toContain("UI设计师");
-    expect(formatted).toContain("## 参考资料");
+    // 验证包含可选字�?
+    expect(formatted).toContain("## 协作联系�?);
+    expect(formatted).toContain("UI设计�?);
+    expect(formatted).toContain("## 参考资�?);
     expect(formatted).toContain("参考现有计算器应用");
-    expect(formatted).toContain("## 优先级");
+    expect(formatted).toContain("## 优先�?);
     expect(formatted).toContain("high");
   });
 
-  test("格式化 null 或非对象输入应返回空字符串", () => {
+  test("格式�?null 或非对象输入应返回空字符�?, () => {
     expect(formatTaskBrief(null)).toBe("");
     expect(formatTaskBrief(undefined)).toBe("");
     expect(formatTaskBrief("string")).toBe("");
     expect(formatTaskBrief(123)).toBe("");
   });
 
-  test("格式化只有部分字段的 TaskBrief 应只包含存在的字段", () => {
+  test("格式化只有部分字段的 TaskBrief 应只包含存在的字�?, () => {
     const partialTaskBrief = {
       objective: "测试目标",
       constraints: ["约束1"]
@@ -185,7 +185,7 @@ describe("formatTaskBrief", () => {
     
     expect(formatted).toContain("## 目标描述");
     expect(formatted).toContain("测试目标");
-    expect(formatted).toContain("## 技术约束");
+    expect(formatted).toContain("## 技术约�?);
     expect(formatted).toContain("约束1");
     expect(formatted).not.toContain("## 输入说明");
     expect(formatted).not.toContain("## 输出要求");

@@ -128,14 +128,11 @@ export class AgentManager {
     // 工作空间处理：只有 root 的直接子智能体需要分配工作空间
     if (input.parentAgentId === "root") {
       const workspaceId = agent.id;
-      const path = await import("node:path");
-      const baseDir = runtime.config.dataDir ?? path.dirname(runtime.config.runtimeDir);
-      const workspacePath = path.join(baseDir, "workspaces", workspaceId);
-      await runtime.workspaceManager.assignWorkspace(workspaceId, workspacePath);
+      // 触发工作空间分配
+      await runtime.workspaceManager.getWorkspace(workspaceId);
       void runtime.log?.info?.("为智能体分配工作空间", {
         agentId: agent.id,
-        workspaceId,
-        workspacePath
+        workspaceId
       });
     }
     
@@ -488,14 +485,10 @@ export class AgentManager {
       restoredCount++;
 
       if (meta.parentAgentId === "root") {
-        const path = await import("node:path");
-        const baseDir = runtime.config.dataDir ?? path.dirname(runtime.config.runtimeDir);
-        const workspacePath = path.join(baseDir, "workspaces", agent.id);
-        await runtime.workspaceManager.assignWorkspace(agent.id, workspacePath);
+        await runtime.workspaceManager.createWorkspace(agent.id);
         void runtime.log?.info?.("为恢复的智能体分配工作空间", {
           agentId: agent.id,
-          workspaceId: agent.id,
-          workspacePath
+          workspaceId: agent.id
         });
       }
 
@@ -526,8 +519,8 @@ export class AgentManager {
     const runtime = this.runtime;
     let currentAgentId = agentId;
     
-    while (currentAgentId && currentAgentId !== "root" && currentAgentId !== "user") {
-      if (runtime.workspaceManager.hasWorkspace(currentAgentId)) {
+    while (currentAgentId && currentAgentId !== "user") {
+      if (runtime.workspaceManager.checkWorkspaceExists(currentAgentId)) {
         return currentAgentId;
       }
       

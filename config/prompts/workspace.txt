@@ -6,22 +6,27 @@
 
 1) 路径隔离：只能访问工作空间内的文件，无法访问外部文件系统
 2) 相对路径：所有文件操作必须使用相对路径（相对于工作空间根目录）
+3) 工作空间内没有执行代码或者命令的权限，只有读写文件的权限，可能无法满足编程开发的需要。但目录可以作为静态HTTP服务，可以用户在浏览器里打开HTML文件。
 
 ## 可用工具
 
 ### read_file - 读取文件
 ```
-read_file({ path: "src/main.js" })
+read_file({ path: "src/main.js", offset: 0, length: 5000 })
 ```
 返回：{ content: "文件内容" } 或 { error: "错误类型" }
+- 支持分段读取大文件
+- offset: 读取起始位置（字节/字符），默认为 0
+- length: 读取长度，默认为 5000
 
 ### write_file - 写入文件
 ```
-write_file({ path: "src/main.js", content: "代码内容" })
+write_file({ path: "src/main.js", content: "代码内容", mimeType: "text/javascript" })
 ```
-返回：{ ok: true } 或 { ok: false, error: "错误类型" }
+返回：{ ok: true, path: "src/main.js", size: 1024, mimeType: "text/javascript" } 或 { ok: false, error: "错误类型" }
 - 父目录不存在时自动创建
 - 文件已存在时覆盖
+- mimeType 可选，未提供时自动检测（支持 text/javascript、application/json 等）
 
 ### list_files - 列出目录
 ```
@@ -53,13 +58,6 @@ get_workspace_info({})
    - 写入前确认路径正确
    - 用 get_workspace_info 检查空间使用情况
 
-## 工作空间 vs 工件（重要）
-
-| 特性 | 工作空间（Workspace） | 工件（Artifact） |
-|------|----------------------|------------------|
-| 用途 | 多智能体协作的共享文件系统 | 单个交付物的存储和传递 |
-| 访问范围 | 同一工作空间内的所有智能体共享 | 通过 artifactRef 点对点传递 |
-| 适用场景 | 系统性工程、多文件项目、协作开发 | 单一文件交付、简单结果传递 |
 
 ### 何时使用工作空间
 
@@ -69,13 +67,6 @@ get_workspace_info({})
 - 需要相互引用的文件（如：代码引用配置文件、模块间相互依赖）
 - 多智能体协作编写的多文件合集（如：分卷的书籍、课程）
 
-### 何时使用工件
-
-当只需要传递单个独立文件时，使用工件更简单：
-- 生成一份报告或文档
-- 返回一个计算结果
-- 传递一张图片
-当某个智能体完成了自己阶段的人物需要把工作结果传递给另一位智能体时，使用工件ID传递，可以降低上下文的占用。
 
 ### 协作示例
 

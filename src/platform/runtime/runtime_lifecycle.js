@@ -175,7 +175,7 @@ export class RuntimeLifecycle {
     runtime._computeScheduler?.cancelInFlight?.(agentId);
     runtime._state.unmarkAgentAsActivelyProcessing(agentId);
 
-    runtime._state.setAgentComputeStatus(agentId, "stopped");
+    runtime._state.setAgentComputeStatus(agentId, "idle");
 
     if (aborted) {
       void runtime.log?.info?.("已发起 LLM 中止请求", { agentId });
@@ -183,7 +183,7 @@ export class RuntimeLifecycle {
       void runtime.log?.info?.("未发现可中止的 LLM 请求，但已触发取消 epoch", { agentId });
     }
 
-    return { ok: true, agentId, aborted, stopped: true };
+    return { ok: true, agentId, aborted, stopped: false };
   }
 
   /**
@@ -289,7 +289,7 @@ export class RuntimeLifecycle {
       runtime._agentLastActivityTime.delete(id);
       runtime._idleWarningEmitted?.delete?.(id);
       runtime._state.unmarkAgentAsActivelyProcessing(id);
-      runtime._state.setAgentComputeStatus(id, "idle");
+      runtime._state.setAgentComputeStatus(id, "stopped");
       runtime._cancelManager?.clear(id);
     }
 

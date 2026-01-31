@@ -11,11 +11,12 @@
 
 export class PageActions {
   /**
-   * @param {{log?: any, tabManager: import('./tab_manager.js').TabManager}} options
+   * @param {{log?: any, tabManager: import('./tab_manager.js').TabManager, runtime?: any}} options
    */
   constructor(options) {
     this.log = options.log ?? console;
     this.tabManager = options.tabManager;
+    this.runtime = options.runtime;
   }
 
   /**
@@ -118,14 +119,14 @@ export class PageActions {
   /**
    * 获取页面截图并保存为 JPEG 图片文件
    * @param {string} tabId
-   * @param {{fullPage?: boolean, selector?: string, ctx?: any}} options
+   * @param {{fullPage?: boolean, selector?: string, ctx?: any, workspacePath?: string, runtime?: any}} options
    */
   async screenshot(tabId, options = {}) {
     const result = this._getPage(tabId);
     if ("error" in result) return result;
     
     const { page } = result;
-    const { fullPage = false, selector, ctx } = options;
+    const { fullPage = false, selector, ctx, workspacePath, runtime } = options;
 
     // 清理选择器（如果提供）
     let cleanedSelector = selector;
@@ -160,41 +161,27 @@ export class PageActions {
         });
       }
 
-      // 如果有上下文，保存为图片文件
-      if (ctx && ctx.tools && typeof ctx.tools.saveImage === 'function') {
-        const pageUrl = page.url();
-        const pageTitle = await page.title();
-        const messageId = ctx.currentMessage?.id ?? null;
-        const agentId = ctx.agent?.id ?? null;
-        
-        // 生成截图名称
-        const screenshotName = cleanedSelector 
-          ? `${pageTitle || 'Page'} - ${cleanedSelector} Screenshot`
-          : `${pageTitle || 'Page'} Screenshot`;
-        
-        const artifactId = await ctx.tools.saveImage(screenshotBuffer, {
-          name: screenshotName,
-          format: "jpg",
-          messageId,
-          agentId,
-          tabId,
-          url: pageUrl,
-          title: pageTitle,
-          fullPage,
-          selector: cleanedSelector || null
-        });
-
-        return { 
-          ok: true, 
-          artifactIds: [artifactId],
-          url: pageUrl,
-          title: pageTitle,
-          fullPage,
-          selector: cleanedSelector || null
-        };
+    // 如果提供了 workspacePath，则保存到工作区
+    if (workspacePath && ctx) {
+      const runtime = this.runtime;
+      if (runtime) {
+        const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+        if (workspaceId) {
+          const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+          await ws.writeFile(workspacePath, screenshotBuffer, { mimeType: "image/jpeg" });
+          return {
+            ok: true,
+            path: workspacePath,
+            url: page.url(),
+            title: await page.title(),
+            fullPage,
+            selector: cleanedSelector || null
+          };
+        }
       }
+    }
 
-      // 没有上下文时返回 base64（用于 HTTP API 预览）
+      // 没有保存到文件时返回 base64（用于 HTTP API 预览）
       return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
     } catch (err) {
       const message = err?.message ?? String(err);
@@ -814,160 +801,177 @@ export class PageActions {
    * @param {{ctx?: any, resourceNames?: string[], type?: string}} options - 选项
    * @returns {Promise<{ok: boolean, artifactIds?: string[], errors?: Array, error?: string}>}
    */
-  async saveResource(tabId, resourceUrls, options = {}) {
+  /**
+   * 保存页面资源到工作区
+   * @param {string} tabId
+   * @param {Array<{url: string, name: string}>} resources - 资源列表，每个对象包含 url 和 name
+   * @param {{ctx?: any, type?: string, workspacePath?: string}} options
+   */
+  async saveResource(tabId, resources, options = {}) {
     const result = this._getPage(tabId);
     if ("error" in result) return result;
     
     const { page } = result;
-    const { ctx, resourceNames, type = 'image' } = options;
-
-    // 检查是否有上下文和 saveImage 方法
-    if (!ctx || !ctx.tools || typeof ctx.tools.saveImage !== 'function') {
-      return { error: "context_required", message: "需要运行时上下文才能保存资源" };
-    }
+    const { ctx, type = 'image', workspacePath = 'downloads' } = options;
 
     // 统一处理为数组
-    const urlArray = Array.isArray(resourceUrls) ? resourceUrls : [resourceUrls];
-    const nameArray = Array.isArray(resourceNames) ? resourceNames : (resourceNames ? [resourceNames] : []);
+    const resourceArray = Array.isArray(resources) ? resources : (resources ? [resources] : []);
     
-    if (urlArray.length === 0) {
-      return { error: "empty_urls", message: "资源URL数组不能为空" };
+    if (resourceArray.length === 0) {
+      return { error: "empty_resources", message: "资源列表不能为空" };
     }
 
-    // 验证名称数组长度
-    if (nameArray.length > 0 && nameArray.length !== urlArray.length) {
-      return { error: "names_length_mismatch", message: `资源名称数组长度(${nameArray.length})必须与URL数组长度(${urlArray.length})相同` };
-    }
-
-    // 验证所有名称都不为空
-    for (let i = 0; i < nameArray.length; i++) {
-      if (!nameArray[i] || typeof nameArray[i] !== 'string' || nameArray[i].trim() === '') {
-        return { error: "invalid_resource_name", message: `资源名称[${i}]不能为空` };
+    // 验证所有资源都有 url 和 name
+    for (let i = 0; i < resourceArray.length; i++) {
+      const res = resourceArray[i];
+      if (!res.url || typeof res.url !== 'string') {
+        return { error: "invalid_resource_url", message: `资源[${i}]的 URL 不能为空` };
+      }
+      if (!res.name || typeof res.name !== 'string' || res.name.trim() === '') {
+        return { error: "invalid_resource_name", message: `资源[${i}]的名称不能为空` };
       }
     }
 
-    this.log.info?.("保存页面资源", { tabId, count: urlArray.length, type });
+    this.log.info?.("保存页面资源", { tabId, count: resourceArray.length, type, workspacePath });
 
-    // 保存结果
-    const artifactIds = [];
-    const filePaths = [];  // 保存完整的文件路径
+    // 统计成功和失败数量
+    const savedPaths = [];
     const errors = [];
 
-    // 获取页面信息（所有资源共享）
-    const pageUrl = page.url();
-    const pageTitle = await page.title();
-    const messageId = ctx.currentMessage?.id ?? null;
-    const agentId = ctx.agent?.id ?? null;
+    // 获取工作区
+    let ws = null;
+    if (ctx && this.runtime) {
+      const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+      if (workspaceId) {
+        ws = await this.runtime.workspaceManager.getWorkspace(workspaceId);
+      }
+    }
 
-    // 逐个处理资源
-    for (let i = 0; i < urlArray.length; i++) {
-      const resourceUrl = urlArray[i];
-      const resourceName = nameArray[i]; // 使用提供的名称
-      
-      try {
-        // 获取资源内容
-        let buffer;
+    if (!ws) {
+      return { error: "workspace_not_found", message: "无法获取工作空间，请确保智能体已分配工作空间" };
+    }
+
+    // 用于网络资源下载的临时页面，确保使用浏览器的 Cookie 和 Session
+    let tempPage = null;
+
+    try {
+      // 逐个处理资源
+      for (let i = 0; i < resourceArray.length; i++) {
+        const { url: resourceUrl, name: resourceName } = resourceArray[i];
         
-        if (resourceUrl.startsWith('data:')) {
-          // 处理 data URL
-          const matches = resourceUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (!matches) {
-            errors.push({ 
-              index: i, 
-              resourceUrl, 
-              error: "invalid_data_url" 
-            });
-            artifactIds.push(null);
-            filePaths.push(null);
-            continue;
-          }
-          buffer = Buffer.from(matches[2], 'base64');
-        } else {
-          // 通过页面上下文获取资源
-          const resourceData = await page.evaluate(async (url) => {
-            try {
-              const response = await fetch(url);
-              const blob = await response.blob();
-              const arrayBuffer = await blob.arrayBuffer();
-              const bytes = Array.from(new Uint8Array(arrayBuffer));
-              return {
-                ok: true,
-                data: bytes,
-                contentType: response.headers.get('content-type')
-              };
-            } catch (err) {
-              return {
-                ok: false,
-                error: err.message
-              };
+        try {
+          // 获取资源内容
+          let buffer;
+          let mimeType = null;
+          
+          if (resourceUrl.startsWith('data:')) {
+            // 处理 data URL
+            const matches = resourceUrl.match(/^data:([^;]+);base64,(.+)$/);
+            if (!matches) {
+              errors.push({ 
+                index: i, 
+                resourceUrl, 
+                error: "invalid_data_url" 
+              });
+              savedPaths.push(null);
+              continue;
             }
-          }, resourceUrl);
-
-          if (!resourceData.ok) {
-            errors.push({ 
-              index: i, 
-              resourceUrl, 
-              error: "fetch_resource_failed", 
-              message: resourceData.error 
+            mimeType = matches[1];
+            buffer = Buffer.from(matches[2], 'base64');
+          } else {
+            // 使用浏览器导航方式下载资源，确保 Cookie 和 Session 一致，并绕过 CORS 限制
+            if (!tempPage) {
+              const browserContext = page.browserContext();
+              tempPage = await browserContext.newPage();
+            }
+            
+            this.log.info?.("通过浏览器下载资源", { index: i, url: resourceUrl });
+            
+            // 导航到资源 URL
+            const response = await tempPage.goto(resourceUrl, { 
+                waitUntil: 'load', 
+                timeout: 30000 
             });
-            artifactIds.push(null);
-            filePaths.push(null);
-            continue;
+
+            if (!response || !response.ok()) {
+              errors.push({ 
+                index: i, 
+                resourceUrl, 
+                error: "fetch_resource_failed", 
+                message: response ? `HTTP ${response.status()}` : "无响应" 
+              });
+              savedPaths.push(null);
+              continue;
+            }
+
+            buffer = await response.buffer();
+            mimeType = response.headers()['content-type'];
           }
 
-          buffer = Buffer.from(resourceData.data);
+          // 确定文件后缀
+          let ext = 'png';
+          if (mimeType) {
+            if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+            else if (mimeType.includes('gif')) ext = 'gif';
+            else if (mimeType.includes('webp')) ext = 'webp';
+            else if (mimeType.includes('png')) ext = 'png';
+            else if (mimeType.includes('svg')) ext = 'svg';
+          } else {
+            if (resourceUrl.includes('.jpg') || resourceUrl.includes('.jpeg')) {
+              ext = 'jpg';
+            } else if (resourceUrl.includes('.gif')) {
+              ext = 'gif';
+            } else if (resourceUrl.includes('.webp')) {
+              ext = 'webp';
+            }
+          }
+
+          // 构建保存路径
+          let finalPath = resourceName;
+          if (!finalPath.includes('.')) {
+            finalPath += `.${ext}`;
+          }
+          
+          // 如果提供了 workspacePath，则作为目录
+          const fullPath = workspacePath ? 
+            (workspacePath.endsWith('/') ? `${workspacePath}${finalPath}` : `${workspacePath}/${finalPath}`) : 
+            finalPath;
+
+          // 保存到工作区
+          await ws.writeFile(fullPath, buffer, { mimeType });
+          savedPaths.push(fullPath);
+
+        } catch (err) {
+          const message = err?.message ?? String(err);
+          this.log.error?.("保存资源失败", { index: i, resourceUrl, resourceName, error: message });
+          errors.push({ 
+            index: i, 
+            resourceUrl, 
+            resourceName,
+            error: "save_resource_failed", 
+            message 
+          });
+          savedPaths.push(null);
         }
-
-        // 确定文件格式
-        let format = 'png';
-        if (resourceUrl.includes('.jpg') || resourceUrl.includes('.jpeg')) {
-          format = 'jpg';
-        } else if (resourceUrl.includes('.gif')) {
-          format = 'gif';
-        } else if (resourceUrl.includes('.webp')) {
-          format = 'webp';
-        }
-
-        // 保存到工件
-        const artifactId = await ctx.tools.saveImage(buffer, {
-          name: resourceName,
-          format,
-          messageId,
-          agentId,
-          tabId,
-          url: pageUrl,
-          title: pageTitle,
-          resourceUrl
-        });
-
-        artifactIds.push(artifactId);
-
-      } catch (err) {
-        const message = err?.message ?? String(err);
-        this.log.error?.("保存资源失败", { index: i, resourceUrl, resourceName, error: message });
-        errors.push({ 
-          index: i, 
-          resourceUrl, 
-          resourceName,
-          error: "save_resource_failed", 
-          message 
-        });
-        artifactIds.push(null);
-        filePaths.push(null);
+      }
+    } finally {
+      // 确保关闭临时页面
+      if (tempPage) {
+        await tempPage.close().catch(() => {});
       }
     }
 
     // 统计成功和失败数量
-    const successCount = artifactIds.filter(id => id !== null).length;
+    const successCount = savedPaths.filter(p => p !== null).length;
     const failureCount = errors.length;
 
     return {
       ok: true,
-      artifactIds,
+      paths: savedPaths,
       successCount,
       failureCount,
       errors: errors.length > 0 ? errors : undefined,
-      totalCount: urlArray.length
+      totalCount: resourceArray.length
     };
   }
 

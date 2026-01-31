@@ -4,8 +4,8 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { ConversationManager } from "../../src/platform/services/conversation/conversation_manager.js";
 import { RuntimeLlm } from "../../src/platform/runtime/runtime_llm.js";
 
-describe("RuntimeLlm 对话历史持久化", () => {
-  test("新链路写盘后重启可恢复历史", async () => {
+describe("RuntimeLlm 对话历史持久�?, () => {
+  test("新链路写盘后重启可恢复历�?, async () => {
     const tmpDir = path.resolve(
       process.cwd(),
       "test/.tmp/runtime_llm_persistence_" + Date.now() + "_" + Math.random().toString(16).slice(2)

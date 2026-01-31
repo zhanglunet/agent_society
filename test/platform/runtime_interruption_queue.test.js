@@ -1,19 +1,19 @@
-ï»¿/**
- * Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†å•å…ƒæµ‹è¯•
+/**
+ * Runtime ²å»°¶ÓÁĞ¹ÜÀíµ¥Ôª²âÊÔ
  * 
- * æµ‹è¯• Runtime çš„æ’è¯é˜Ÿåˆ—ç®¡ç†åŠŸèƒ½ï¼š
- * - addInterruption() æ–¹æ³•
- * - getAndClearInterruptions() æ–¹æ³•
- * - FIFO é¡ºåº
- * - ç©ºé˜Ÿåˆ—æƒ…å†µ
+ * ²âÊÔ Runtime µÄ²å»°¶ÓÁĞ¹ÜÀí¹¦ÄÜ£º
+ * - addInterruption() ·½·¨
+ * - getAndClearInterruptions() ·½·¨
+ * - FIFO Ë³Ğò
+ * - ¿Õ¶ÓÁĞÇé¿ö
  * 
  * Requirements: 1.1, 4.1, 4.2, 4.3, 4.4
  */
 
 import { describe, test, expect, beforeEach } from "bun:test";
-import { Runtime } from "../src/platform/core/runtime.js";
+import { Runtime } from "../../src/platform/core/runtime.js";
 
-describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
+describe("Runtime ²å»°¶ÓÁĞ¹ÜÀí", () => {
   let runtime;
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     await runtime.init();
   });
 
-  test("addInterruption æ­£ç¡®æ·»åŠ æ¶ˆæ¯åˆ°é˜Ÿåˆ—", () => {
+  test("addInterruption ÕıÈ·Ìí¼ÓÏûÏ¢µ½¶ÓÁĞ", () => {
     const agentId = "test-agent";
     const message = {
       id: "msg-1",
@@ -40,14 +40,14 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
 
     runtime.addInterruption(agentId, message);
 
-    // éªŒè¯é˜Ÿåˆ—ä¸­æœ‰æ¶ˆæ¯
+    // ÑéÖ¤¶ÓÁĞÖĞÓĞÏûÏ¢
     const queue = runtime._interruptionQueues.get(agentId);
     expect(queue).toBeDefined();
     expect(queue.length).toBe(1);
     expect(queue[0]).toBe(message);
   });
 
-  test("addInterruption æ”¯æŒå¤šæ¬¡æ·»åŠ æ¶ˆæ¯", () => {
+  test("addInterruption Ö§³Ö¶à´ÎÌí¼ÓÏûÏ¢", () => {
     const agentId = "test-agent";
     const message1 = {
       id: "msg-1",
@@ -72,13 +72,13 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     runtime.addInterruption(agentId, message2);
     runtime.addInterruption(agentId, message3);
 
-    // éªŒè¯é˜Ÿåˆ—ä¸­æœ‰3æ¡æ¶ˆæ¯
+    // ÑéÖ¤¶ÓÁĞÖĞÓĞ3ÌõÏûÏ¢
     const queue = runtime._interruptionQueues.get(agentId);
     expect(queue).toBeDefined();
     expect(queue.length).toBe(3);
   });
 
-  test("getAndClearInterruptions è¿”å›æ‰€æœ‰æ’è¯æ¶ˆæ¯å¹¶æ¸…ç©ºé˜Ÿåˆ—", () => {
+  test("getAndClearInterruptions ·µ»ØËùÓĞ²å»°ÏûÏ¢²¢Çå¿Õ¶ÓÁĞ", () => {
     const agentId = "test-agent";
     const message1 = {
       id: "msg-1",
@@ -96,25 +96,25 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     runtime.addInterruption(agentId, message1);
     runtime.addInterruption(agentId, message2);
 
-    // è·å–å¹¶æ¸…ç©ºé˜Ÿåˆ—
+    // »ñÈ¡²¢Çå¿Õ¶ÓÁĞ
     const interruptions = runtime.getAndClearInterruptions(agentId);
 
-    // éªŒè¯è¿”å›çš„æ¶ˆæ¯
+    // ÑéÖ¤·µ»ØµÄÏûÏ¢
     expect(interruptions).toBeDefined();
     expect(interruptions.length).toBe(2);
     expect(interruptions[0]).toBe(message1);
     expect(interruptions[1]).toBe(message2);
 
-    // éªŒè¯é˜Ÿåˆ—å·²è¢«æ¸…ç©º
+    // ÑéÖ¤¶ÓÁĞÒÑ±»Çå¿Õ
     const queue = runtime._interruptionQueues.get(agentId);
     expect(queue).toBeUndefined();
   });
 
-  test("getAndClearInterruptions ä¿æŒ FIFO é¡ºåº", () => {
+  test("getAndClearInterruptions ±£³Ö FIFO Ë³Ğò", () => {
     const agentId = "test-agent";
     const messages = [];
     
-    // æ·»åŠ 10æ¡æ¶ˆæ¯
+    // Ìí¼Ó10ÌõÏûÏ¢
     for (let i = 0; i < 10; i++) {
       const message = {
         id: `msg-${i}`,
@@ -126,7 +126,7 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
       runtime.addInterruption(agentId, message);
     }
 
-    // è·å–å¹¶éªŒè¯é¡ºåº
+    // »ñÈ¡²¢ÑéÖ¤Ë³Ğò
     const interruptions = runtime.getAndClearInterruptions(agentId);
     expect(interruptions.length).toBe(10);
     
@@ -136,19 +136,19 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     }
   });
 
-  test("getAndClearInterruptions å¤„ç†ç©ºé˜Ÿåˆ—æƒ…å†µ", () => {
+  test("getAndClearInterruptions ´¦Àí¿Õ¶ÓÁĞÇé¿ö", () => {
     const agentId = "test-agent";
 
-    // è·å–ä¸å­˜åœ¨çš„é˜Ÿåˆ—
+    // »ñÈ¡²»´æÔÚµÄ¶ÓÁĞ
     const interruptions = runtime.getAndClearInterruptions(agentId);
 
-    // éªŒè¯è¿”å›ç©ºæ•°ç»„
+    // ÑéÖ¤·µ»Ø¿ÕÊı×é
     expect(interruptions).toBeDefined();
     expect(interruptions.length).toBe(0);
     expect(Array.isArray(interruptions)).toBe(true);
   });
 
-  test("å¤šä¸ªæ™ºèƒ½ä½“çš„æ’è¯é˜Ÿåˆ—ç›¸äº’ç‹¬ç«‹", () => {
+  test("¶à¸öÖÇÄÜÌåµÄ²å»°¶ÓÁĞÏà»¥¶ÀÁ¢", () => {
     const agent1 = "agent-1";
     const agent2 = "agent-2";
     
@@ -168,7 +168,7 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     runtime.addInterruption(agent1, message1);
     runtime.addInterruption(agent2, message2);
 
-    // éªŒè¯é˜Ÿåˆ—ç‹¬ç«‹
+    // ÑéÖ¤¶ÓÁĞ¶ÀÁ¢
     const queue1 = runtime._interruptionQueues.get(agent1);
     const queue2 = runtime._interruptionQueues.get(agent2);
     
@@ -177,7 +177,7 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     expect(queue1[0]).toBe(message1);
     expect(queue2[0]).toBe(message2);
 
-    // æ¸…ç©º agent1 çš„é˜Ÿåˆ—ä¸å½±å“ agent2
+    // Çå¿Õ agent1 µÄ¶ÓÁĞ²»Ó°Ïì agent2
     runtime.getAndClearInterruptions(agent1);
     
     expect(runtime._interruptionQueues.get(agent1)).toBeUndefined();
@@ -185,7 +185,7 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
     expect(runtime._interruptionQueues.get(agent2).length).toBe(1);
   });
 
-  test("è¿ç»­è°ƒç”¨ getAndClearInterruptions è¿”å›ç©ºæ•°ç»„", () => {
+  test("Á¬Ğøµ÷ÓÃ getAndClearInterruptions ·µ»Ø¿ÕÊı×é", () => {
     const agentId = "test-agent";
     const message = {
       id: "msg-1",
@@ -196,15 +196,15 @@ describe("Runtime æ’è¯é˜Ÿåˆ—ç®¡ç†", () => {
 
     runtime.addInterruption(agentId, message);
 
-    // ç¬¬ä¸€æ¬¡è°ƒç”¨è¿”å›æ¶ˆæ¯
+    // µÚÒ»´Îµ÷ÓÃ·µ»ØÏûÏ¢
     const interruptions1 = runtime.getAndClearInterruptions(agentId);
     expect(interruptions1.length).toBe(1);
 
-    // ç¬¬äºŒæ¬¡è°ƒç”¨è¿”å›ç©ºæ•°ç»„
+    // µÚ¶ş´Îµ÷ÓÃ·µ»Ø¿ÕÊı×é
     const interruptions2 = runtime.getAndClearInterruptions(agentId);
     expect(interruptions2.length).toBe(0);
 
-    // ç¬¬ä¸‰æ¬¡è°ƒç”¨ä»ç„¶è¿”å›ç©ºæ•°ç»„
+    // µÚÈı´Îµ÷ÓÃÈÔÈ»·µ»Ø¿ÕÊı×é
     const interruptions3 = runtime.getAndClearInterruptions(agentId);
     expect(interruptions3.length).toBe(0);
   });
