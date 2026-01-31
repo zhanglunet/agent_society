@@ -78,7 +78,7 @@ export class ComputeScheduler {
 
       this._ingestMessagesToTurns();
 
-      const progressed = this._runOneStep();
+      const progressed = await this._runOneStep();
 
       if (!progressed && !this.runtime.bus.hasPending() && this._inFlight.size === 0) {
         await this.runtime.bus.waitForMessage({ timeoutMs: 100 });
@@ -169,10 +169,10 @@ export class ComputeScheduler {
 
   /**
    * 推进一个 agent 的一个 step。
-   * @returns {boolean} 是否推进成功
+   * @returns {Promise<boolean>} 是否推进成功
    * @private
    */
-  _runOneStep() {
+  async _runOneStep() {
     const agentId = this._takeReady();
     if (!agentId) return false;
 
@@ -192,7 +192,7 @@ export class ComputeScheduler {
     }
 
     const cancelScope = this.runtime._cancelManager?.newScope(agentId) ?? null;
-    const outcome = this.turnEngine.step(agentId, cancelScope);
+    const outcome = await this.turnEngine.step(agentId, cancelScope);
 
     if (!outcome || outcome.kind === "noop") {
       if (this.turnEngine.hasRunnable(agentId)) {

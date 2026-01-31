@@ -125,9 +125,18 @@ export class AgentSociety {
     
     // 构建 payload：支持字符串或带附件的对象
     let payload;
-    if (typeof text === 'object' && text !== null) {
+    if (text && typeof text === 'object' && typeof text.then === 'function') {
+      // 如果传入的是 Promise，这通常是上层代码缺少 await 导致的
+      void this.log.error("检测到 sendTextToAgent 接收到 Promise 对象作为 text 载荷，已强制转换", { toAgentId, taskId });
+      payload = { text: "[Error: Unexpected Promise in message payload]" };
+    } else if (typeof text === 'object' && text !== null) {
       // 已经是对象格式（带 attachments），直接使用
       payload = text;
+      // 检查内部 text 字段是否为 Promise
+      if (payload.text && typeof payload.text === 'object' && typeof payload.text.then === 'function') {
+        void this.log.error("检测到 payload.text 是 Promise 对象，已强制转换", { toAgentId, taskId });
+        payload.text = "[Error: Unexpected Promise in payload.text]";
+      }
     } else {
       // 纯文本格式
       payload = { text: String(text ?? "") };
@@ -244,12 +253,20 @@ export class AgentSociety {
   _registerRootAgent() {
     const rootPrompt = this._rootPrompt ?? "";
 
+    // 为 root 角色注册行为工厂，使用 RuntimeLlm 处理消息
+    this.runtime.registerRoleBehavior("root", (ctx) => {
+      return async (innerCtx, message) => {
+        await this.runtime._handleWithLlm(innerCtx, message);
+      };
+    });
+
     const rootAgent = new Agent({
       id: "root",
       roleId: "root",
       roleName: "root",
       rolePrompt: rootPrompt,
-      behavior: async () => {}
+      // 从行为注册表中获取行为
+      behavior: this.runtime._behaviorRegistry.get("root")(this.runtime._buildAgentContext())
     });
     this.runtime.registerAgentInstance(rootAgent);
   }

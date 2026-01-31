@@ -829,11 +829,11 @@ export class Runtime {
    * 将运行时消息格式化为 LLM 可理解的文本输入。
    * @param {any} ctx - 智能体上下文
    * @param {any} message - 消息对象
-   * @returns {string}
+   * @returns {Promise<string>}
    */
-  _formatMessageForLlm(ctx, message) {
+  async _formatMessageForLlm(ctx, message) {
     // 委托给 RuntimeLlm 处理
-    return this._llm.formatMessageForLlm(ctx, message);
+    return await this._llm.formatMessageForLlm(ctx, message);
   }
 
   /**

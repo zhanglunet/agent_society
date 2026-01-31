@@ -38,6 +38,9 @@ export function formatMessageForAgent(message, senderInfo) {
   
   if (payload === null || payload === undefined) {
     content = '';
+  } else if (payload && typeof payload === 'object' && typeof payload.then === 'function') {
+    // 防御性处理：如果是一个 Promise，说明上层逻辑有异步未等待的问题
+    content = "[Error: Unexpected Promise in message payload]";
   } else if (typeof payload === 'object') {
     // 优先使用 text 或 content 字段
     const textField = payload.text ?? payload.content ?? '';
@@ -45,6 +48,9 @@ export function formatMessageForAgent(message, senderInfo) {
     // 确保 content 是字符串，如果是对象则序列化
     if (typeof textField === 'string') {
       content = textField;
+    } else if (textField && typeof textField === 'object' && typeof textField.then === 'function') {
+      // 检查 text 字段是否为 Promise
+      content = "[Error: Unexpected Promise in message.payload.text]";
     } else if (textField === null || textField === undefined) {
       content = '';
     } else {

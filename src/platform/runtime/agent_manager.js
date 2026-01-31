@@ -99,7 +99,10 @@ export class AgentManager {
     const behaviorFactory = runtime._behaviorRegistry.get(roleName);
     const behavior = behaviorFactory
       ? behaviorFactory(runtime._buildAgentContext())
-      : async () => {};
+      : async (ctx, message) => {
+          // 默认行为：使用 LLM 处理
+          return await runtime._handleWithLlm(ctx, message);
+        };
     
     // 创建智能体实例
     const agent = new Agent({

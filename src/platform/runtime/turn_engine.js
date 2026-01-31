@@ -77,9 +77,9 @@ export class TurnEngine {
    * 推进某个 agent 的一个 step，返回下一步需要的原子动作。
    * @param {string} agentId
    * @param {{epoch:number, signal:AbortSignal, assertActive:() => void}|null} cancelScope
-   * @returns {any}
+   * @returns {Promise<any>}
    */
-  step(agentId, cancelScope) {
+  async step(agentId, cancelScope) {
     const entry = this._ensureEntry(agentId);
     const turn = entry.activeTurn ?? entry.queue.shift() ?? null;
     if (!turn) {
@@ -99,7 +99,8 @@ export class TurnEngine {
       turn.lastStepId += 1;
 
       const contextStatusPrompt = this.runtime._conversationManager.buildContextStatusPrompt(agentId);
-      const userContent = this.runtime._formatMessageForLlm(turn.ctx, turn.message) + contextStatusPrompt;
+      const formatted = await this.runtime._formatMessageForLlm(turn.ctx, turn.message);
+      const userContent = formatted + contextStatusPrompt;
       turn.conv.push({ role: "user", content: userContent });
 
       this.runtime._checkContextAndWarn?.(agentId);
@@ -111,8 +112,11 @@ export class TurnEngine {
 
       const interruptions = this.runtime._state?.getAndClearInterruptions?.(agentId) ?? [];
       if (Array.isArray(interruptions) && interruptions.length > 0) {
-        const merged = interruptions
-          .map((m) => this.runtime._formatMessageForLlm(turn.ctx, m))
+        const formattedList = [];
+        for (const m of interruptions) {
+          formattedList.push(await this.runtime._formatMessageForLlm(turn.ctx, m));
+        }
+        const merged = formattedList
           .filter((t) => typeof t === "string" && t.trim().length > 0)
           .join("\n\n");
         if (merged) {

@@ -1044,7 +1044,7 @@ export class HTTPServer {
    * @param {import("node:http").ServerResponse} res
    */
   _handleSubmit(req, res) {
-    this._readJsonBody(req, (err, body) => {
+    this._readJsonBody(req, async (err, body) => {
       if (err) {
         this._sendJson(res, 400, { error: "invalid_json", message: err.message });
         return;
@@ -1062,7 +1062,7 @@ export class HTTPServer {
       }
 
       // 调用User_Endpoint将需求转发给根智能体
-      const result = this.society.sendTextToAgent("root", text);
+      const result = await this.society.submitRequirement(text);
       
       if (result.error) {
         this._sendJson(res, 400, { error: result.error });
