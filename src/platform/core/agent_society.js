@@ -286,14 +286,6 @@ export class AgentSociety {
         void this.log.warn("HTTP服务器消息持久化目录未设置，消息将不会持久化");
       }
       
-      // 设置工件目录，用于静态文件服务
-      if (this.runtime.config?.artifactsDir) {
-        this._httpServer.setArtifactsDir(this.runtime.config.artifactsDir);
-        void this.log.info("HTTP服务器工件目录已设置", { artifactsDir: this.runtime.config.artifactsDir });
-      } else {
-        void this.log.warn("HTTP服务器工件目录未设置，/artifacts/* 路径将不可用");
-      }
-      
       const result = await this._httpServer.start();
       
       if (result.ok) {

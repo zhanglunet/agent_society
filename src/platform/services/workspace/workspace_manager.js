@@ -86,6 +86,17 @@ export class WorkspaceManager {
   }
 
   /**
+   * 设置工作区基础目录
+   * @param {string} dir
+   */
+  setWorkspacesDir(dir) {
+    this.workspacesDir = dir;
+    // 如果目录发生变化，清空已缓存的工作区实例，以便下次获取时重新创建
+    this._workspaces.clear();
+    void this.log.info("工作区基础目录已更新", { dir });
+  }
+
+  /**
    * 获取文件信息
    * @param {string} workspaceId
    * @param {string} relativePath
