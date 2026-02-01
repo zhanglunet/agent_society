@@ -52,3 +52,24 @@ export interface Tab {
   title: string;
   params?: any;
 }
+
+/**
+ * 组织模板
+ * 对应 org 目录下的一个文件夹
+ */
+export interface OrgTemplate {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/**
+ * 模板文件内容
+ * 包含 info.md 和 org.md 的内容
+ */
+export interface TemplateContent {
+  /** info.md 文件内容 */
+  info: string;
+  /** org.md 文件内容 */
+  org: string;
+}

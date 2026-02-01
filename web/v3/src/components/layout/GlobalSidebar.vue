@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2 } from 'lucide-vue-next';
+import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2, Layers } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
 import { useDialog } from 'primevue/usedialog';
@@ -9,6 +9,7 @@ import { ref, computed } from 'vue';
 import ArtifactsList from '../artifacts/ArtifactsList.vue';
 import SettingsDialog from '../settings/SettingsDialog.vue';
 import RoleTreeView from '../overview/RoleTreeView.vue';
+import OrgTemplateManager from '../template/OrgTemplateManager.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
@@ -68,8 +69,25 @@ const openSettings = () => {
   });
 };
 
+const openTemplateManager = () => {
+  dialog.open(OrgTemplateManager, {
+    props: {
+      header: '组织模板管理器',
+      style: {
+        width: '90vw',
+        height: '80vh',
+        maxWidth: '1200px',
+      },
+      modal: true,
+      dismissableMask: false,
+      maximizable: true,
+    }
+  });
+};
+
 const tools = [
   { id: 'overview', icon: LayoutGrid, label: '总览视图', action: openOverview },
+  { id: 'templates', icon: Layers, label: '组织模板', action: openTemplateManager },
   { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
 
