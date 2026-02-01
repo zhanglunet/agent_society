@@ -210,7 +210,7 @@ watch(showChat, (newVal) => {
                     class="w-full !bg-[var(--surface-2)] !border-[var(--border)] focus:!border-[var(--primary)] !pl-4 !pr-14 !py-3 !rounded-xl !resize-none min-h-[52px]"
                     @keydown="handleKeyDown"
                   />
-                  <div class="absolute right-3 bottom-2.5 flex items-center">
+                  <div class="absolute right-3 bottom-3.5 flex items-center">
                     <Button 
                       @click="createOrganization"
                       :loading="isCreating"

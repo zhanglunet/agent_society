@@ -7,7 +7,7 @@
  * @author Agent Society
  */
 import { ref, onMounted, computed, inject } from 'vue';
-import { Settings, Puzzle, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle, X, Trash2, Plus, Tag } from 'lucide-vue-next';
+import { Settings, Puzzle, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle, X, Trash2, Plus } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -643,18 +643,19 @@ onMounted(() => {
     <Dialog
       v-model:visible="serviceDialogVisible"
       :header="isEditingService ? '编辑服务' : '添加服务'"
-      :style="{ width: '500px' }"
+      :style="{ width: '520px' }"
       :modal="true"
       :closable="!serviceSaving"
+      pt:content:class="!p-0"
     >
-      <div class="space-y-4">
+      <div class="px-6 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
         <!-- 错误提示 -->
-        <Message v-if="serviceError" severity="error" class="mb-4">{{ serviceError }}</Message>
+        <Message v-if="serviceError" severity="error">{{ serviceError }}</Message>
 
         <!-- 服务 ID -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
-            服务 ID
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
+            服务 ID <span class="text-red-500">*</span>
           </label>
           <InputText
             v-model="serviceForm.id"
@@ -669,8 +670,8 @@ onMounted(() => {
 
         <!-- 服务名称 -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
-            服务名称
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
+            服务名称 <span class="text-red-500">*</span>
           </label>
           <InputText
             v-model="serviceForm.name"
@@ -681,8 +682,8 @@ onMounted(() => {
 
         <!-- API 地址 -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
-            API 地址
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
+            API 地址 <span class="text-red-500">*</span>
           </label>
           <InputText
             v-model="serviceForm.baseURL"
@@ -693,8 +694,8 @@ onMounted(() => {
 
         <!-- 模型名称 -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
-            模型名称
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
+            模型名称 <span class="text-red-500">*</span>
           </label>
           <InputText
             v-model="serviceForm.model"
@@ -705,7 +706,7 @@ onMounted(() => {
 
         <!-- API Key -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
             API Key
           </label>
           <InputText
@@ -714,15 +715,15 @@ onMounted(() => {
             type="password"
             class="w-full"
           />
-          <p v-if="isEditingService" class="text-xs text-[var(--text-3)] mt-1">
-            留空或输入 **** 表示不修改
+          <p class="text-xs text-[var(--text-3)] mt-1">
+            {{ isEditingService ? '留空表示不修改原值' : '本地部署可填写 NOT_NEEDED' }}
           </p>
         </section>
 
         <!-- 高级设置 -->
         <section class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
               最大 Token 数
             </label>
             <InputNumber
@@ -733,7 +734,7 @@ onMounted(() => {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
               最大并发请求
             </label>
             <InputNumber
@@ -747,22 +748,10 @@ onMounted(() => {
 
         <!-- 能力标签 -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
-            <Tag class="w-4 h-4 inline-block mr-1" />
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
             能力标签
           </label>
-          <div class="flex gap-2 mb-2">
-            <InputText
-              v-model="serviceTagInput"
-              placeholder="输入标签后按回车"
-              class="flex-1"
-              @keydown.enter.prevent="addCapabilityTag"
-            />
-            <Button variant="text" size="small" @click="addCapabilityTag">
-              <Plus class="w-4 h-4" />
-            </Button>
-          </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 mb-2">
             <span
               v-for="tag in serviceForm.capabilityTags"
               :key="tag"
@@ -774,24 +763,35 @@ onMounted(() => {
               </button>
             </span>
           </div>
+          <div class="flex gap-2">
+            <InputText
+              v-model="serviceTagInput"
+              placeholder="输入标签后按回车"
+              class="flex-1"
+              @keydown.enter.prevent="addCapabilityTag"
+            />
+            <Button variant="text" size="small" @click="addCapabilityTag">
+              <Plus class="w-4 h-4" />
+            </Button>
+          </div>
         </section>
 
         <!-- 描述 -->
         <section>
-          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-1.5">
             描述
           </label>
           <Textarea
             v-model="serviceForm.description"
             placeholder="服务描述..."
-            rows="3"
-            class="w-full"
+            rows="2"
+            class="w-full resize-none"
           />
         </section>
       </div>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 px-6 py-3">
           <Button
             variant="text"
             :disabled="serviceSaving"
@@ -804,7 +804,7 @@ onMounted(() => {
             :loading="serviceSaving"
             @click="saveService"
           >
-            <Save class="w-4 h-4 mr-2" />
+            <Save class="w-4 h-4 mr-1" />
             {{ isEditingService ? '保存' : '添加' }}
           </Button>
         </div>
