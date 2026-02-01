@@ -19,7 +19,7 @@ const appStore = useAppStore();
 <template>
   <div class="flex-grow flex flex-col h-full bg-[var(--bg)]">
     <Tabs v-model:value="appStore.currentTabId" class="flex flex-col h-full !bg-transparent overflow-visible" :pt="{ root: { class: 'bg-transparent border-none overflow-visible' } }">
-      <TabList class="px-3 py-2 !bg-[var(--bg)] gap-2 flex items-center border-b border-[var(--border)] relative z-10" :pt="{ root: { class: '!bg-transparent border-none overflow-visible' }, content: { class: '!bg-transparent overflow-visible' } }">
+      <TabList class="px-3 py-2 !bg-[var(--bg)] gap-2 flex items-center border-b border-[var(--border)] relative z-10 [--tablist-bg:var(--bg)]" :pt="{ root: { class: '!bg-transparent border-none overflow-visible' }, content: { class: '!bg-transparent overflow-visible' } }">
         <Tab v-for="tab in appStore.activeTabs" :key="tab.id" :value="tab.id" class="custom-tab group">
           <span class="truncate">{{ tab.title }}</span>
           <Button 

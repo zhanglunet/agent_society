@@ -143,11 +143,44 @@
 .p-tablist {
   background: transparent !important;
   border-color: var(--border) !important;
+  position: relative;
+  --tablist-bg: var(--surface-1);
 }
 
 .p-tablist-content {
   background: transparent !important;
   border-color: var(--border) !important;
+}
+
+/* 修复横向滚动时的箭头按钮和遮罩背景 */
+.p-tablist-nav-button {
+  background: var(--tablist-bg) !important;
+  color: var(--text-2) !important;
+  border: none !important;
+  width: 32px !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+}
+
+.p-tablist-prev-button {
+  left: 0 !important;
+  background: linear-gradient(to right, var(--tablist-bg) 70%, transparent 100%) !important;
+}
+
+.p-tablist-next-button {
+  right: 0 !important;
+  background: linear-gradient(to left, var(--tablist-bg) 70%, transparent 100%) !important;
+}
+
+.p-tablist-nav-button:hover {
+  color: var(--text-1) !important;
 }
 
 .p-tab {
