@@ -59,6 +59,9 @@ describe("FFmpeg Module - Run and Status", () => {
       "utf8"
     );
 
+    const wrapperPath = path.join(TEST_DIR, "ffmpeg_wrapper.bat");
+    await writeFile(wrapperPath, `@echo off\n"${process.execPath}" "${fakeFfmpegScript}" %*`, "utf8");
+
     const config = new Config(TEST_DIR);
     runtime = new Runtime({ configService: config });
     await runtime.init();
@@ -67,7 +70,7 @@ describe("FFmpeg Module - Run and Status", () => {
     await loader.loadModules(
       {
         ffmpeg: {
-          ffmpegPath: process.execPath
+          ffmpegPath: wrapperPath
         }
       },
       runtime
@@ -86,7 +89,7 @@ describe("FFmpeg Module - Run and Status", () => {
     await rm(TEST_DIR, { recursive: true, force: true });
   });
 
-  it("ffmpeg_run should return taskId and outputPaths immediately, and output becomes complete after completed", async () => {
+  it("ffmpeg_run should return taskId immediately, and output becomes complete after completed", async () => {
     // 为 root 智能体创建工作空间
     await runtime.workspaceManager.createWorkspace("root");
 
@@ -102,8 +105,6 @@ describe("FFmpeg Module - Run and Status", () => {
     }
 
     expect(runRes.taskId).toBeDefined();
-    expect(runRes.outputPaths).toBeInstanceOf(Array);
-    expect(runRes.outputPaths).toContain("output.txt");
 
     const taskId = runRes.taskId;
     let status = null;
@@ -121,9 +122,6 @@ describe("FFmpeg Module - Run and Status", () => {
 
     expect(status.status).toBe("completed");
     expect(status.exitCode).toBe(0);
-    expect(status.outputPaths).toContain("output.txt");
-    expect(Array.isArray(status.outputPaths)).toBe(true);
-    expect(status.outputPaths).toEqual(["output.txt"]);
     expect(Array.isArray(status.logPaths)).toBe(true);
     expect(status.logPaths.length).toBeGreaterThan(0);
 

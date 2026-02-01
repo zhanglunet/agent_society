@@ -5,7 +5,7 @@ export function getToolDefinitions() {
       function: {
         name: "ffmpeg_run",
         description:
-          "执行 ffmpeg 命令（异步）。参数 command 是完整的 ffmpeg 参数字符串（不含程序名 ffmpeg 本身）。命令中的文件路径应为相对于工作区的相对路径。系统会自动将命令中的路径解析为工作区的真实路径。注意：在 ffmpeg_task_status 显示 completed 之前，输出文件可能不完整，不应当作为最终结果使用。",
+          "执行 ffmpeg 命令（异步）。参数 command 是完整的 ffmpeg 参数字符串（不含程序名 ffmpeg 本身）。命令中的文件路径应为相对于工作区的相对路径。ffmpeg 将在工作区根目录下执行。注意：在 ffmpeg_task_status 显示 completed 之前，输出文件可能不完整，不应当作为最终结果使用。",
         parameters: {
           type: "object",
           properties: {
