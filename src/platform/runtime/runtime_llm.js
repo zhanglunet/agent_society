@@ -668,55 +668,30 @@ export class RuntimeLlm {
     
     // root 智能体使用原有格式（需要看到 taskId）
     if (isRoot) {
-      const payloadText =
-        message?.payload?.text ??
-        message?.payload?.content ??
-        (typeof message?.payload === "string" ? message.payload : null);
+      const payloadRaw = message?.payload;
+      let payloadText =
+        payloadRaw?.text ??
+        payloadRaw?.content ??
+        (typeof payloadRaw === "string" ? payloadRaw : null);
       
-      // 添加日志调试 Promise 问题
+      // 等待 Promise
       if (payloadText && typeof payloadText === 'object' && typeof payloadText.then === 'function') {
-        void this.runtime.log.error("发现 payloadText 是 Promise!", { 
-          from: message?.from, 
-          to: message?.to, 
-          taskId: message?.taskId,
-          payloadKeys: Object.keys(message?.payload || {})
-        });
+        payloadText = await payloadText;
       }
 
-      const payload = payloadText ?? JSON.stringify(message?.payload ?? {}, null, 2);
+      const payload = payloadText ?? JSON.stringify(payloadRaw ?? {}, null, 2);
       
-      // 最终检查 payload 是否包含 [object Promise]
-      if (typeof payload === 'string' && payload.includes('[object Promise]')) {
-        void this.runtime.log.error("检测到序列化后的 payload 包含 [object Promise]", { 
-          from: message?.from, 
-          to: message?.to, 
-          taskId: message?.taskId 
-        });
-      }
       return `from=${message?.from ?? ""}\nto=${message?.to ?? ""}\ntaskId=${message?.taskId ?? ""}\npayload=${payload}`;
     }
     
     // 非 root 智能体使用新的消息格式化器
     const senderId = message?.from ?? 'unknown';
     const senderInfo = this.getSenderInfo(senderId);
-    const textContent = formatMessageForAgent(message, senderInfo);
+    let textContent = formatMessageForAgent(message, senderInfo);
 
-    // 添加日志调试 Promise 问题
+    // 等待 Promise
     if (textContent && typeof textContent === 'object' && typeof textContent.then === 'function') {
-      void this.runtime.log.error("发现 textContent 是 Promise!", { 
-        from: message?.from, 
-        to: message?.to,
-        taskId: message?.taskId
-      });
-    }
-
-    // 最终检查 textContent 是否包含 [object Promise]
-    if (typeof textContent === 'string' && textContent.includes('[object Promise]')) {
-      void this.runtime.log.error("检测到格式化后的 textContent 包含 [object Promise]", { 
-        from: message?.from, 
-        to: message?.to,
-        taskId: message?.taskId
-      });
+      textContent = await textContent;
     }
 
     // 如果没有附件，直接返回文本内容

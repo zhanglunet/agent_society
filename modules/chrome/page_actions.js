@@ -168,7 +168,18 @@ export class PageActions {
         const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
         if (workspaceId) {
           const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
-          await ws.writeFile(workspacePath, screenshotBuffer, { mimeType: "image/jpeg" });
+          await ws.writeFile(workspacePath, screenshotBuffer, { 
+            mimeType: "image/jpeg",
+            operator: ctx.agent?.id,
+            messageId: ctx.currentMessage?.id,
+            meta: {
+              source: "chrome-screenshot",
+              url: page.url(),
+              title: await page.title(),
+              fullPage,
+              selector: cleanedSelector || null
+            }
+          });
           return {
             ok: true,
             path: workspacePath,
@@ -181,8 +192,8 @@ export class PageActions {
       }
     }
 
-      // 没有保存到文件时返回 base64（用于 HTTP API 预览）
-      return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
+    // 只有在没有保存到文件时才返回 base64（用于 HTTP API 预览或单次临时查看）
+    return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
     } catch (err) {
       const message = err?.message ?? String(err);
       return { error: "screenshot_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };

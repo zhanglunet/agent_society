@@ -189,6 +189,58 @@ export class ConversationManager {
   }
 
   /**
+   * 同步加载单个智能体的对话历史。
+   * 用于在 LLM 调用前确保上下文已加载。
+   * 
+   * @param {string} agentId
+   * @returns {{ok: boolean, loaded: boolean, messageCount?: number, error?: string}}
+   */
+  loadConversationSync(agentId) {
+    if (!this._conversationsDir) {
+      return { ok: false, loaded: false, error: "conversationsDir not set" };
+    }
+
+    if (!agentId || typeof agentId !== "string" || !agentId.trim()) {
+      return { ok: false, loaded: false, error: "missing_agent_id" };
+    }
+
+    const filePath = path.join(this._conversationsDir, `${agentId}.json`);
+    
+    if (!existsSync(filePath)) {
+      return { ok: true, loaded: false }; // 文件不存在不是错误，只是没历史
+    }
+
+    try {
+      const raw = readFileSync(filePath, "utf8");
+      const data = JSON.parse(raw);
+      
+      if (Array.isArray(data.messages)) {
+        // 如果内存中已经有消息（比如刚插入的系统提示词），我们要合并或者替换
+        // 这里的策略是：如果内存中只有系统提示词，则替换为加载的消息
+        // 确保加载的消息包含系统提示词，或者在后续 ensureConversation 中会补齐
+        this.conversations.set(agentId, data.messages);
+        
+        if (data.tokenUsage) {
+          this._tokenUsage.set(agentId, data.tokenUsage);
+        }
+        
+        if (this._logger) {
+          this._logger.debug?.("同步加载对话历史成功", { agentId, messages: data.messages.length });
+        }
+        return { ok: true, loaded: true, messageCount: data.messages.length };
+      } else {
+        return { ok: false, loaded: false, error: "invalid format" };
+      }
+    } catch (err) {
+      const errorMsg = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+      if (this._logger) {
+        this._logger.error?.("同步加载对话历史失败", { agentId, error: errorMsg });
+      }
+      return { ok: false, loaded: false, error: errorMsg };
+    }
+  }
+
+  /**
    * 持久化单个智能体的对话历史（带防抖）。
    * @param {string} agentId
    * @returns {Promise<void>}
@@ -843,98 +895,6 @@ export class ConversationManager {
    */
   clearTokenUsage(agentId) {
     this._tokenUsage.delete(agentId);
-  }
-
-  /**
-   * 获取或创建某个智能体的会话上下文。
-   * @param {string} agentId
-   * @param {string} systemPrompt
-   * @returns {any[]}
-   */
-  ensureConversation(agentId, systemPrompt) {
-    if (!this.conversations.has(agentId)) {
-      this.conversations.set(agentId, [{ role: "system", content: systemPrompt }]);
-    }
-    return this.conversations.get(agentId);
-  }
-
-  /**
-   * 获取智能体的会话上下文（如果存在）。
-   * @param {string} agentId
-   * @returns {any[]|undefined}
-   */
-  getConversation(agentId) {
-    return this.conversations.get(agentId);
-  }
-
-  /**
-   * 检查智能体是否有会话上下文。
-   * @param {string} agentId
-   * @returns {boolean}
-   */
-  hasConversation(agentId) {
-    return this.conversations.has(agentId);
-  }
-
-  /**
-   * 删除智能体的会话上下文。
-   * @param {string} agentId
-   * @returns {boolean}
-   */
-  deleteConversation(agentId) {
-    return this.conversations.delete(agentId);
-  }
-
-  /**
-   * 压缩会话上下文，保留系统提示词、摘要和最近的消息。
-   * @param {string} agentId 智能体ID
-   * @param {string} summary 对被压缩历史的重要内容摘要
-   * @param {number} [keepRecentCount=10] 保留最近多少条消息
-   * @returns {{ok:boolean, compressed?:boolean, originalCount?:number, newCount?:number, error?:string}}
-   */
-  compress(agentId, summary, keepRecentCount = 10) {
-    const conv = this.conversations.get(agentId);
-    
-    if (!conv) {
-      return { ok: false, error: "conversation_not_found" };
-    }
-
-    if (!summary || typeof summary !== "string") {
-      return { ok: false, error: "invalid_summary" };
-    }
-
-    const originalCount = conv.length;
-
-    // 如果消息数量不足以压缩，直接返回
-    // 需要至少有：系统提示词(1) + 要保留的消息(keepRecentCount) + 至少1条要压缩的消息
-    if (conv.length <= keepRecentCount + 1) {
-      return { ok: true, compressed: false, originalCount, newCount: originalCount };
-    }
-
-    // 保留系统提示词（第一条消息）
-    const systemPrompt = conv[0];
-    
-    // 保留最近的消息
-    const recentMessages = conv.slice(-keepRecentCount);
-
-    // 创建压缩后的上下文
-    const compressed = [
-      systemPrompt,
-      { 
-        role: "system", 
-        content: `[历史摘要] ${summary}` 
-      },
-      ...recentMessages
-    ];
-
-    this.conversations.set(agentId, compressed);
-
-    return { 
-      ok: true, 
-      compressed: true, 
-      originalCount, 
-      newCount: compressed.length 
-    };
   }
 
   /**
