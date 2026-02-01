@@ -207,7 +207,7 @@ export class AgentManager {
       return result;
     };
 
-    const runOnce = async (syncAttempts = 5) => {
+    const runOnce = async (syncAttempts = 15) => {
       const existingNames = buildExistingNamesSnapshot();
       void runtime.log?.info?.(`${logPrefix} 调用名字生成器`, {
         roleName,
@@ -289,7 +289,7 @@ export class AgentManager {
       const name = await this._generateUniqueHumanName({ 
         roleName, 
         existingNames, 
-        maxAttempts: 1,
+        maxAttempts: 15,
         asyncAttempt: attempt 
       });
       
@@ -334,7 +334,7 @@ export class AgentManager {
     return null;
   }
 
-  async _generateUniqueHumanName({ roleName, existingNames, maxAttempts = 5, asyncAttempt = 0 }) {
+  async _generateUniqueHumanName({ roleName, existingNames, maxAttempts = 15, asyncAttempt = 0 }) {
     const runtime = this.runtime;
     const logPrefix = "[NameGeneration]";
     
@@ -382,7 +382,10 @@ export class AgentManager {
         "尝试使用另一个姓氏组合",
         "尝试使用更常见的名字",
         "尝试使用简洁的两字姓名",
-        "尝试使用三字姓名"
+        "尝试使用三字姓名",
+        "尝试使用三字姓名和生僻字",
+        "尝试使用两字姓名和生僻字",
+        "尝试使用三字姓名和叠字"
       ];
       const currentStrategy = strategyHints[attempt % strategyHints.length];
       
