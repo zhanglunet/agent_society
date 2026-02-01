@@ -2,7 +2,7 @@
 import { useOrgStore } from '../../stores/org';
 import { useAppStore } from '../../stores/app';
 import { useChatStore } from '../../stores/chat';
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
@@ -16,6 +16,7 @@ const chatStore = useChatStore();
 const newGoal = ref('');
 const isCreating = ref(false);
 const showChat = ref(false);
+const chatContainer = ref<HTMLElement | null>(null);
 
 // 获取除了首页之外的所有组织
 const organizations = computed(() => orgStore.orgs.filter(o => o.id !== 'home'));
@@ -47,6 +48,11 @@ onMounted(async () => {
   
   // 仅加载消息，但不自动显示对话框
   await chatStore.fetchMessages('root');
+  
+  // 如果聊天已显示，滚动到底部
+  if (showChat.value) {
+    scrollToBottom();
+  }
 });
 
 const handleOrgClick = (org: any) => {
@@ -86,6 +92,48 @@ const handleKeyDown = (e: KeyboardEvent) => {
     createOrganization();
   }
 };
+
+/**
+ * 滚动聊天容器到底部
+ */
+const scrollToBottom = () => {
+  if (!chatContainer.value) return;
+  setTimeout(() => {
+    if (chatContainer.value) {
+      chatContainer.value.scrollTo({
+        top: chatContainer.value.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, 50);
+};
+
+/**
+ * 监听当前标签变化，切换回首页时滚动到底部
+ */
+watch(() => appStore.currentTabId, (newTabId, oldTabId) => {
+  if (newTabId === 'home' && oldTabId !== 'home' && showChat.value) {
+    scrollToBottom();
+  }
+});
+
+/**
+ * 监听消息变化，自动滚动到底部
+ */
+watch(() => rootMessages.value?.length, (newLen, oldLen) => {
+  if (newLen !== undefined && (oldLen === undefined || newLen > oldLen)) {
+    scrollToBottom();
+  }
+}, { deep: true });
+
+/**
+ * 监听聊天显示状态变化，显示时滚动到底部
+ */
+watch(showChat, (newVal) => {
+  if (newVal) {
+    scrollToBottom();
+  }
+});
 </script>
 
 <template>
@@ -114,6 +162,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
                 class="chat-expand-animation border border-[var(--border)] rounded-xl bg-[var(--surface-2)] overflow-hidden mb-4"
               >
                 <div 
+                  ref="chatContainer"
                   class="p-4 overflow-y-auto"
                   style="max-height: 50vh; min-height: 100px;"
                 >
