@@ -7,7 +7,7 @@
  * @author Agent Society
  */
 import { ref, onMounted, computed, inject } from 'vue';
-import { Settings, Puzzle, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle } from 'lucide-vue-next';
+import { Settings, Puzzle, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle, X, Trash2, Plus, Tag } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -18,6 +18,8 @@ import ToggleButton from 'primevue/togglebutton';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Message from 'primevue/message';
+import Dialog from 'primevue/dialog';
+import Textarea from 'primevue/textarea';
 import { useAppStore } from '../../stores/app';
 import { configApi } from '../../services/configApi';
 const appStore = useAppStore();
@@ -52,6 +54,25 @@ const llmSuccess = ref(false);
 // LLM Services 状态
 const llmServices = ref<any[]>([]);
 const servicesLoading = ref(false);
+
+// 服务编辑对话框状态
+const serviceDialogVisible = ref(false);
+const isEditingService = ref(false);
+const serviceForm = ref({
+  id: '',
+  name: '',
+  baseURL: '',
+  model: '',
+  apiKey: '',
+  maxTokens: 4096,
+  maxConcurrentRequests: 2,
+  capabilityTags: [] as string[],
+  description: '',
+  capabilities: { input: ['text'], output: ['text'] }
+});
+const serviceTagInput = ref('');
+const serviceSaving = ref(false);
+const serviceError = ref('');
 
 // 插件列表（示例数据）
 const plugins = ref([
@@ -144,6 +165,150 @@ const resetLlmConfig = () => {
  */
 const togglePlugin = (plugin: any) => {
   plugin.status = plugin.status === 'active' ? 'inactive' : 'active';
+};
+
+/**
+ * 打开添加服务对话框
+ */
+const openAddServiceDialog = () => {
+  isEditingService.value = false;
+  serviceForm.value = {
+    id: '',
+    name: '',
+    baseURL: 'http://127.0.0.1:1234/v1',
+    model: '',
+    apiKey: '',
+    maxTokens: 4096,
+    maxConcurrentRequests: 2,
+    capabilityTags: ['文本对话'],
+    description: '',
+    capabilities: { input: ['text'], output: ['text'] }
+  };
+  serviceTagInput.value = '';
+  serviceError.value = '';
+  serviceDialogVisible.value = true;
+};
+
+/**
+ * 打开编辑服务对话框
+ */
+const openEditServiceDialog = (service: any) => {
+  isEditingService.value = true;
+  serviceForm.value = {
+    id: service.id || '',
+    name: service.name || '',
+    baseURL: service.baseURL || '',
+    model: service.model || '',
+    apiKey: service.apiKey || '',
+    maxTokens: service.maxTokens || 4096,
+    maxConcurrentRequests: service.maxConcurrentRequests || 2,
+    capabilityTags: service.capabilityTags || [],
+    description: service.description || '',
+    capabilities: service.capabilities || { input: ['text'], output: ['text'] }
+  };
+  serviceTagInput.value = '';
+  serviceError.value = '';
+  serviceDialogVisible.value = true;
+};
+
+/**
+ * 添加能力标签
+ */
+const addCapabilityTag = () => {
+  const tag = serviceTagInput.value.trim();
+  if (tag && !serviceForm.value.capabilityTags.includes(tag)) {
+    serviceForm.value.capabilityTags.push(tag);
+  }
+  serviceTagInput.value = '';
+};
+
+/**
+ * 移除能力标签
+ */
+const removeCapabilityTag = (tag: string) => {
+  const index = serviceForm.value.capabilityTags.indexOf(tag);
+  if (index > -1) {
+    serviceForm.value.capabilityTags.splice(index, 1);
+  }
+};
+
+/**
+ * 判断 API Key 是否为掩码格式
+ */
+const isServiceApiKeyMasked = (key: string | undefined): boolean => {
+  return !!key && key.startsWith('****');
+};
+
+/**
+ * 保存服务
+ */
+const saveService = async () => {
+  serviceSaving.value = true;
+  serviceError.value = '';
+  
+  try {
+    // 验证必填字段
+    if (!serviceForm.value.id.trim()) {
+      throw new Error('服务 ID 不能为空');
+    }
+    if (!serviceForm.value.name.trim()) {
+      throw new Error('服务名称不能为空');
+    }
+    if (!serviceForm.value.baseURL.trim()) {
+      throw new Error('API 地址不能为空');
+    }
+    if (!serviceForm.value.model.trim()) {
+      throw new Error('模型名称不能为空');
+    }
+    
+    // 构造保存数据
+    const saveData: any = {
+      id: serviceForm.value.id.trim(),
+      name: serviceForm.value.name.trim(),
+      baseURL: serviceForm.value.baseURL.trim(),
+      model: serviceForm.value.model.trim(),
+      maxTokens: serviceForm.value.maxTokens,
+      maxConcurrentRequests: serviceForm.value.maxConcurrentRequests,
+      capabilityTags: serviceForm.value.capabilityTags,
+      description: serviceForm.value.description.trim(),
+      capabilities: serviceForm.value.capabilities
+    };
+    
+    // 只有 apiKey 不是掩码格式时才传递
+    if (!isServiceApiKeyMasked(serviceForm.value.apiKey)) {
+      saveData.apiKey = serviceForm.value.apiKey;
+    }
+    
+    if (isEditingService.value) {
+      await configApi.updateLlmService(serviceForm.value.id, saveData);
+    } else {
+      await configApi.addLlmService(saveData);
+    }
+    
+    // 保存成功后刷新列表
+    await loadLlmServices();
+    serviceDialogVisible.value = false;
+  } catch (err) {
+    serviceError.value = err instanceof Error ? err.message : '保存失败';
+  } finally {
+    serviceSaving.value = false;
+  }
+};
+
+/**
+ * 删除服务
+ */
+const deleteService = async (serviceId: string) => {
+  if (!confirm('确定要删除此服务吗？')) {
+    return;
+  }
+  
+  try {
+    await configApi.deleteLlmService(serviceId);
+    await loadLlmServices();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : '删除失败');
+  }
 };
 
 /**
@@ -369,8 +534,8 @@ onMounted(() => {
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-bold text-[var(--text-1)]">模型服务列表</h3>
-              <Button variant="text" size="small">
-                <Cpu class="w-4 h-4 mr-1" />
+              <Button variant="text" size="small" @click="openAddServiceDialog">
+                <Plus class="w-4 h-4 mr-1" />
                 添加服务
               </Button>
             </div>
@@ -393,9 +558,26 @@ onMounted(() => {
                     <div>
                       <p class="font-medium text-[var(--text-1)]">{{ service.name }}</p>
                       <p class="text-xs text-[var(--text-3)]">{{ service.id }}</p>
+                      <p v-if="service.description" class="text-xs text-[var(--text-3)] mt-1 max-w-[300px] truncate">{{ service.description }}</p>
+                      <div class="flex gap-1 mt-1.5">
+                        <span 
+                          v-for="tag in service.capabilityTags?.slice(0, 3)" 
+                          :key="tag"
+                          class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--primary-weak)] text-[var(--primary)]"
+                        >
+                          {{ tag }}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <Button variant="text" size="small">编辑</Button>
+                  <div class="flex gap-2">
+                    <Button variant="text" size="small" @click="openEditServiceDialog(service)">
+                      编辑
+                    </Button>
+                    <Button variant="text" size="small" class="text-red-500" @click="deleteService(service.id)">
+                      <Trash2 class="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -456,5 +638,177 @@ onMounted(() => {
         </TabPanel>
       </TabPanels>
     </Tabs>
+
+    <!-- 服务编辑对话框 -->
+    <Dialog
+      v-model:visible="serviceDialogVisible"
+      :header="isEditingService ? '编辑服务' : '添加服务'"
+      :style="{ width: '500px' }"
+      :modal="true"
+      :closable="!serviceSaving"
+    >
+      <div class="space-y-4">
+        <!-- 错误提示 -->
+        <Message v-if="serviceError" severity="error" class="mb-4">{{ serviceError }}</Message>
+
+        <!-- 服务 ID -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            服务 ID
+          </label>
+          <InputText
+            v-model="serviceForm.id"
+            placeholder="my-service"
+            class="w-full"
+            :disabled="isEditingService"
+          />
+          <p class="text-xs text-[var(--text-3)] mt-1">
+            唯一标识符，保存后不可修改
+          </p>
+        </section>
+
+        <!-- 服务名称 -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            服务名称
+          </label>
+          <InputText
+            v-model="serviceForm.name"
+            placeholder="我的服务"
+            class="w-full"
+          />
+        </section>
+
+        <!-- API 地址 -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            API 地址
+          </label>
+          <InputText
+            v-model="serviceForm.baseURL"
+            placeholder="http://127.0.0.1:1234/v1"
+            class="w-full"
+          />
+        </section>
+
+        <!-- 模型名称 -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            模型名称
+          </label>
+          <InputText
+            v-model="serviceForm.model"
+            placeholder="model-name"
+            class="w-full"
+          />
+        </section>
+
+        <!-- API Key -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            API Key
+          </label>
+          <InputText
+            v-model="serviceForm.apiKey"
+            placeholder="sk-..."
+            type="password"
+            class="w-full"
+          />
+          <p v-if="isEditingService" class="text-xs text-[var(--text-3)] mt-1">
+            留空或输入 **** 表示不修改
+          </p>
+        </section>
+
+        <!-- 高级设置 -->
+        <section class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+              最大 Token 数
+            </label>
+            <InputNumber
+              v-model="serviceForm.maxTokens"
+              :min="1"
+              :max="128000"
+              class="w-full"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+              最大并发请求
+            </label>
+            <InputNumber
+              v-model="serviceForm.maxConcurrentRequests"
+              :min="1"
+              :max="10"
+              class="w-full"
+            />
+          </div>
+        </section>
+
+        <!-- 能力标签 -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            <Tag class="w-4 h-4 inline-block mr-1" />
+            能力标签
+          </label>
+          <div class="flex gap-2 mb-2">
+            <InputText
+              v-model="serviceTagInput"
+              placeholder="输入标签后按回车"
+              class="flex-1"
+              @keydown.enter.prevent="addCapabilityTag"
+            />
+            <Button variant="text" size="small" @click="addCapabilityTag">
+              <Plus class="w-4 h-4" />
+            </Button>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="tag in serviceForm.capabilityTags"
+              :key="tag"
+              class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-[var(--primary-weak)] text-[var(--primary)]"
+            >
+              {{ tag }}
+              <button @click="removeCapabilityTag(tag)" class="hover:text-red-500">
+                <X class="w-3 h-3" />
+              </button>
+            </span>
+          </div>
+        </section>
+
+        <!-- 描述 -->
+        <section>
+          <label class="block text-sm font-medium text-[var(--text-1)] mb-2">
+            描述
+          </label>
+          <Textarea
+            v-model="serviceForm.description"
+            placeholder="服务描述..."
+            rows="3"
+            class="w-full"
+          />
+        </section>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <Button
+            variant="text"
+            :disabled="serviceSaving"
+            @click="serviceDialogVisible = false"
+          >
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            :loading="serviceSaving"
+            @click="saveService"
+          >
+            <Save class="w-4 h-4 mr-2" />
+            {{ isEditingService ? '保存' : '添加' }}
+          </Button>
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
