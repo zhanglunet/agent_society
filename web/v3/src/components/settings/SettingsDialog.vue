@@ -146,9 +146,26 @@ const togglePlugin = (plugin: any) => {
   plugin.status = plugin.status === 'active' ? 'inactive' : 'active';
 };
 
+/**
+ * 加载 LLM 服务列表
+ */
+const loadLlmServices = async () => {
+  servicesLoading.value = true;
+  try {
+    const data = await configApi.getLlmServicesConfig();
+    llmServices.value = data.services || [];
+  } catch (err) {
+    console.warn('加载 LLM 服务列表失败:', err);
+    llmServices.value = [];
+  } finally {
+    servicesLoading.value = false;
+  }
+};
+
 // 组件挂载时加载配置
 onMounted(() => {
   loadLlmConfig();
+  loadLlmServices();
 });
 </script>
 

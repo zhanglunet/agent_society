@@ -48,9 +48,29 @@
     caret-color: var(--text-1);
   }
 
-  /* 确保 PrimeVue 的 InputText 也继承正确的文字颜色 */
-  .p-inputtext, .p-inputtextarea ,.p-textarea{
+  /* 确保 PrimeVue 的 InputText 也继承正确的文字颜色和背景色 */
+  .p-inputtext, .p-inputtextarea, .p-textarea {
     color: var(--text-1) !important;
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* PrimeVue InputText focus 状态 */
+  .p-inputtext:focus, .p-inputtextarea:focus, .p-textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--primary-weak) !important;
+  }
+
+  /* PrimeVue InputNumber 样式 */
+  .p-inputnumber-input {
+    color: var(--text-1) !important;
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+  }
+
+  .p-inputnumber-input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--primary-weak) !important;
   }
 }
 

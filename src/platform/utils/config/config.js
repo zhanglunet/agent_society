@@ -209,29 +209,21 @@ export class Config {
   
   /**
    * 获取 LLM 服务列表
+   * 只读取 llmservices.local.json，不存在则返回空列表
+   * llmservices_template.json 只是模板参考，不读取
    * @returns {Promise<{services: object[], source: string}>}
    */
   async getServices() {
-    let configPath;
-    let source;
-
-    if (existsSync(this.llmServicesLocalJsonPath)) {
-      configPath = this.llmServicesLocalJsonPath;
-      source = "local";
-    } else if (existsSync(this.llmServicesJsonPath)) {
-      configPath = this.llmServicesJsonPath;
-      source = "default";
-    } else {
-      // 如果两个文件都不存在，返回空列表
+    if (!existsSync(this.llmServicesLocalJsonPath)) {
       return { services: [], source: "none" };
     }
 
-    const content = await readFile(configPath, "utf8");
+    const content = await readFile(this.llmServicesLocalJsonPath, "utf8");
     const config = JSON.parse(content);
     
     return {
       services: Array.isArray(config.services) ? config.services : [],
-      source
+      source: "local"
     };
   }
 
@@ -476,19 +468,13 @@ export class Config {
     let configPath = null;
     let configSource = null;
     
-    // 优先加载 local 配置文件
-    if (existsSync(this.llmServicesLocalJsonPath)) {
-      configPath = this.llmServicesLocalJsonPath;
-      configSource = "local";
-    } else if (existsSync(this.llmServicesJsonPath)) {
-      configPath = this.llmServicesJsonPath;
-      configSource = "default";
-    }
-    
-    // 如果两个文件都不存在，返回空配置
-    if (!configPath) {
+    // 只读取 llmservices.local.json，llmservices_template.json 只是模板参考
+    if (!existsSync(this.llmServicesLocalJsonPath)) {
       return { services: [], configPath: null, configSource: null };
     }
+    
+    configPath = this.llmServicesLocalJsonPath;
+    configSource = "local";
     
     try {
       const raw = await readFile(configPath, "utf8");
@@ -511,13 +497,8 @@ export class Config {
       return;
     }
 
-    if (existsSync(this.llmServicesJsonPath)) {
-      await copyFile(this.llmServicesJsonPath, this.llmServicesLocalJsonPath);
-      void this.log.info("已从 llmservices.json 复制到 llmservices.local.json");
-    } else {
-      // 创建空配置
-      await writeFile(this.llmServicesLocalJsonPath, JSON.stringify({ services: [] }, null, 2), "utf8");
-      void this.log.info("已创建空的 llmservices.local.json");
-    }
+    // 创建空配置（llmservices_template.json 只是模板参考，不自动复制）
+    await writeFile(this.llmServicesLocalJsonPath, JSON.stringify({ services: [] }, null, 2), "utf8");
+    void this.log.info("已创建空的 llmservices.local.json");
   }
 }
