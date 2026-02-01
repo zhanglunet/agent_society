@@ -218,7 +218,7 @@ export class AgentManager {
       return name;
     };
 
-    const task = this._nameGenerationChain.then(() => runOnce(5), () => runOnce(5));
+    const task = this._nameGenerationChain.then(() => runOnce(15), () => runOnce(15));
     this._nameGenerationChain = task.catch(() => {});
 
     try {
@@ -378,6 +378,9 @@ export class AgentManager {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       // 动态变化：每次尝试使用不同的策略提示
       const strategyHints = [
+        "尝试一个看起来很专业的名字",
+        "尝试一个看起来很大气的名字",
+        "尝试一个女性的名字",
         "尝试使用一个不同的姓氏",
         "尝试使用另一个姓氏组合",
         "尝试使用更常见的名字",

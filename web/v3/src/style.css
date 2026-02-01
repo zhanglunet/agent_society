@@ -96,8 +96,10 @@
 .p-dialog {
   background: var(--surface-1) !important;
   border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
   color: var(--text-1) !important;
   box-shadow: 0 20px 25px -5px var(--overlay), 0 8px 10px -6px var(--overlay) !important;
+  overflow: hidden !important;
 }
 
 .p-dialog-header {
