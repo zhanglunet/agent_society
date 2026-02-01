@@ -156,7 +156,7 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_upload',
-        description: '上传文件到远程服务器（异步，立即返回任务ID）',
+        description: '上传文件到远程服务器（异步，立即返回任务ID）传输过程不要停止连接或会话，否则文件不完整',
         parameters: {
           type: 'object',
           properties: {
@@ -181,7 +181,7 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_download',
-        description: '从远程服务器下载文件（异步，立即返回任务ID）',
+        description: '从远程服务器下载文件（异步，立即返回任务ID）传输过程不要停止连接或会话，否则文件不完整',
         parameters: {
           type: 'object',
           properties: {

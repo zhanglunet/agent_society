@@ -166,6 +166,8 @@ class FileTransfer {
         totalBytes: fileSize,
         remotePath,
         path: workspacePath,
+        operator: ctx.agent?.id,
+        messageId: ctx.currentMessage?.id,
         error: null,
         createdAt: new Date(),
         completedAt: null
@@ -346,6 +348,8 @@ class FileTransfer {
         remotePath,
         path: workspacePath,
         workspaceId,
+        operator: ctx.agent?.id,
+        messageId: ctx.currentMessage?.id,
         error: null,
         createdAt: new Date(),
         completedAt: null
@@ -437,7 +441,10 @@ class FileTransfer {
 
       // 保存到工作区
       const ws = await this.runtime.workspaceManager.getWorkspace(task.workspaceId);
-      await ws.writeFile(task.path, fileContent);
+      await ws.writeFile(task.path, fileContent, {
+        operator: task.operator,
+        messageId: task.messageId
+      });
 
       // 更新任务状态为完成
       task.status = 'completed';
