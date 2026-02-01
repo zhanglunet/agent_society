@@ -42,9 +42,15 @@
     caret-color: var(--text-1); /* 确保光标颜色在深色模式下可见，与文字颜色一致 */
   }
 
-  /* 显式设置输入框和文本域的光标颜色，防止浏览器默认样式干扰 */
+  /* 显式设置输入框和文本域的文字和光标颜色，防止浏览器默认样式干扰 */
   input, textarea {
+    color: var(--text-1);
     caret-color: var(--text-1);
+  }
+
+  /* 确保 PrimeVue 的 InputText 也继承正确的文字颜色 */
+  .p-inputtext, .p-inputtextarea ,.p-textarea{
+    color: var(--text-1) !important;
   }
 }
 

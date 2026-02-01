@@ -1,18 +1,38 @@
 <script setup lang="ts">
+/**
+ * 应用根组件
+ * 
+ * 职责：
+ * - 应用整体布局（侧边栏 + 主内容区）
+ * - 主题管理（亮/暗模式切换）
+ * - 全局数据同步轮询
+ * - 首次运行配置检查
+ * 
+ * @author Agent Society
+ */
 import GlobalSidebar from './components/layout/GlobalSidebar.vue';
 import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
+import SettingsDialog from './components/settings/SettingsDialog.vue';
 import Button from 'primevue/button';
-import { Sun, Moon } from 'lucide-vue-next';
+import { Sun, Moon, AlertCircle } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
 import { useOrgStore } from './stores/org';
 import DynamicDialog from 'primevue/dynamicdialog';
+import { useDialog } from 'primevue/usedialog';
+import { configApi } from './services/configApi';
+
 
 const appStore = useAppStore();
 const agentStore = useAgentStore();
 const orgStore = useOrgStore();
+const dialog = useDialog();
 const isDark = ref(false);
+
+// 配置检查状态
+const configChecked = ref(false);
+const hasLocalConfig = ref(true); // 默认假设有配置，避免闪烁
 
 // 监听主题变化并更新 DOM
 watch(() => appStore.theme, (newTheme) => {
@@ -31,6 +51,9 @@ const toggleDarkMode = () => {
 
 let syncTimer: any = null;
 
+/**
+ * 启动全局数据同步轮询
+ */
 const startGlobalSync = () => {
     stopGlobalSync();
     syncTimer = setInterval(async () => {
@@ -45,10 +68,53 @@ const startGlobalSync = () => {
     }, 2000); // 用户要求 2 秒更新一次
 };
 
+/**
+ * 停止全局数据同步轮询
+ */
 const stopGlobalSync = () => {
     if (syncTimer) {
         clearInterval(syncTimer);
         syncTimer = null;
+    }
+};
+
+/**
+ * 打开首次运行配置对话框
+ */
+const openFirstRunDialog = () => {
+    dialog.open(SettingsDialog, {
+        props: {
+            header: '首次运行配置',
+            style: {
+                width: '600px',
+            },
+            modal: true,
+            dismissableMask: false,
+            closable: false, // 首次运行时不能关闭
+            closeOnEscape: false,
+        },
+        data: {
+            firstRun: true
+        }
+    });
+};
+
+/**
+ * 检查配置状态
+ */
+const checkConfigStatus = async () => {
+    try {
+        const status = await configApi.getConfigStatus();
+        hasLocalConfig.value = status.hasLocalConfig;
+        
+        // 如果没有本地配置，认为是首次运行，弹出配置对话框
+        if (!status.hasLocalConfig) {
+            openFirstRunDialog();
+        }
+    } catch (err) {
+        console.warn('检查配置状态失败:', err);
+    } finally {
+        configChecked.value = true;
     }
 };
 
@@ -61,6 +127,9 @@ onMounted(() => {
     
     // 启动全局轮询
     startGlobalSync();
+    
+    // 检查配置状态（首次运行检测）
+    checkConfigStatus();
 });
 
 onUnmounted(stopGlobalSync);
@@ -69,6 +138,16 @@ onUnmounted(stopGlobalSync);
 <template>
   <div class="flex h-screen w-screen overflow-hidden bg-[var(--bg)] text-[var(--text-1)]">
     <DynamicDialog />
+    
+    <!-- 首次运行提示条 -->
+    <div 
+      v-if="configChecked && !hasLocalConfig" 
+      class="fixed top-0 left-0 right-0 z-[100] bg-orange-500 text-white px-4 py-2 flex items-center justify-center gap-2"
+    >
+      <AlertCircle class="w-4 h-4" />
+      <span class="text-sm">首次运行，请先配置大模型参数</span>
+    </div>
+    
     <!-- 全局侧栏 -->
     <GlobalSidebar />
 
