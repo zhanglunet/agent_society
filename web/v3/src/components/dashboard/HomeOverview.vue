@@ -6,7 +6,7 @@ import { ref, onMounted, computed, onUnmounted, watch } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
-import { Sparkles, Users, ArrowRight, Send, Loader2 } from 'lucide-vue-next';
+import { Sparkles, Users, ArrowRight, Send, Loader2, X } from 'lucide-vue-next';
 import ChatMessageList from '../chat/ChatMessageList.vue';
 
 const orgStore = useOrgStore();
@@ -86,6 +86,14 @@ const createOrganization = async () => {
   }
 };
 
+/**
+ * 关闭对话区域
+ */
+const closeChat = () => {
+  showChat.value = false;
+  stopPolling();
+};
+
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -161,6 +169,18 @@ watch(showChat, (newVal) => {
               <div v-if="showChat" 
                 class="chat-expand-animation border border-[var(--border)] rounded-xl bg-[var(--surface-2)] overflow-hidden mb-4"
               >
+                <!-- 聊天头部工具栏 -->
+                <div class="flex items-center justify-end px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-1)]">
+                  <Button 
+                    variant="text" 
+                    rounded 
+                    class="!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)] ml-1"
+                    @click="closeChat"
+                    title="关闭对话"
+                  >
+                    <X class="w-4 h-4" />
+                  </Button>
+                </div>
                 <div 
                   ref="chatContainer"
                   class="p-4 overflow-y-auto"
