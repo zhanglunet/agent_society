@@ -207,17 +207,18 @@ export class AgentManager {
       return result;
     };
 
-    const runOnce = async () => {
+    const runOnce = async (syncAttempts = 5) => {
       const existingNames = buildExistingNamesSnapshot();
       void runtime.log?.info?.(`${logPrefix} 调用名字生成器`, {
         roleName,
-        existingNamesCount: existingNames.length
+        existingNamesCount: existingNames.length,
+        syncAttempts
       });
-      const name = await this._generateUniqueHumanName({ roleName, existingNames });
+      const name = await this._generateUniqueHumanName({ roleName, existingNames, maxAttempts: syncAttempts });
       return name;
     };
 
-    const task = this._nameGenerationChain.then(runOnce, runOnce);
+    const task = this._nameGenerationChain.then(() => runOnce(5), () => runOnce(5));
     this._nameGenerationChain = task.catch(() => {});
 
     try {
@@ -229,9 +230,15 @@ export class AgentManager {
         });
         return name;
       }
-      void runtime.log?.warn?.(`${logPrefix} 智能体姓名生成失败：未生成有效名字`, {
+      
+      // 同步尝试失败，启动异步后台重试
+      void runtime.log?.warn?.(`${logPrefix} 同步尝试未生成有效名字，启动异步后台重试`, {
         roleName
       });
+      
+      // 异步重试，不阻塞主流程
+      this._asyncRetryNameGeneration({ roleName });
+      
       return null;
     } catch (err) {
       void runtime.log?.error?.(`${logPrefix} 智能体姓名生成异常`, {
@@ -244,7 +251,90 @@ export class AgentManager {
     }
   }
 
-  async _generateUniqueHumanName({ roleName, existingNames }) {
+  /**
+   * 异步后台重试名字生成
+   * 当同步尝试失败后，在后台继续尝试生成名字并更新智能体
+   */
+  async _asyncRetryNameGeneration({ roleName, maxAsyncAttempts = 20 }) {
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
+    void runtime.log?.info?.(`${logPrefix} 开始异步后台重试`, {
+      roleName,
+      maxAsyncAttempts
+    });
+    
+    // 延迟一点时间再开始，避免与当前操作冲突
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const buildExistingNamesSnapshot = () => {
+      const existing = new Set(["root", "user"]);
+      const agents = runtime?.org?.listAgents?.() ?? [];
+      for (const a of agents) {
+        if (!a || typeof a.id !== "string") continue;
+        if (a.status === "terminated") continue;
+        if (typeof a.name === "string" && a.name.trim()) {
+          existing.add(a.name.trim());
+        } else {
+          existing.add(a.id);
+        }
+      }
+      return Array.from(existing);
+    };
+    
+    for (let attempt = 1; attempt <= maxAsyncAttempts; attempt++) {
+      void runtime.log?.info?.(`${logPrefix} 异步重试第${attempt}次`, { roleName });
+      
+      const existingNames = buildExistingNamesSnapshot();
+      const name = await this._generateUniqueHumanName({ 
+        roleName, 
+        existingNames, 
+        maxAttempts: 1,
+        asyncAttempt: attempt 
+      });
+      
+      if (name) {
+        void runtime.log?.info?.(`${logPrefix} 异步重试成功`, {
+          roleName,
+          generatedName: name,
+          asyncAttempt: attempt
+        });
+        
+        // 找到最近创建的需要名字的智能体并更新
+        const agents = runtime?.org?.listAgents?.() ?? [];
+        const targetAgent = agents
+          .filter(a => a.status !== "terminated" && (!a.name || a.name === roleName))
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+        
+        if (targetAgent) {
+          try {
+            await runtime?.org?.setAgentName?.(targetAgent.id, name);
+            void runtime.log?.info?.(`${logPrefix} 已异步更新智能体姓名`, {
+              agentId: targetAgent.id,
+              name
+            });
+          } catch (e) {
+            void runtime.log?.warn?.(`${logPrefix} 异步更新智能体姓名失败`, {
+              agentId: targetAgent.id,
+              error: e?.message
+            });
+          }
+        }
+        return name;
+      }
+      
+      // 每次重试间隔递增
+      await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+    }
+    
+    void runtime.log?.warn?.(`${logPrefix} 异步后台重试全部失败`, {
+      roleName,
+      totalAsyncAttempts: maxAsyncAttempts
+    });
+    return null;
+  }
+
+  async _generateUniqueHumanName({ roleName, existingNames, maxAttempts = 5, asyncAttempt = 0 }) {
     const runtime = this.runtime;
     const logPrefix = "[NameGeneration]";
     
@@ -252,25 +342,67 @@ export class AgentManager {
     void runtime.log?.info?.(`${logPrefix} 开始唯一名字生成`, {
       roleName,
       usedNamesCount: used.size,
-      usedNamesSample: Array.from(used).slice(0, 10)
+      usedNamesSample: Array.from(used).slice(0, 10),
+      maxAttempts
     });
     
+    // 常见姓氏列表，用于提示词
+    const commonSurnames = [
+      "王", "李", "张", "刘", "陈", "杨", "黄", "赵", "周", "吴",
+      "徐", "孙", "马", "朱", "胡", "郭", "林", "何", "高", "罗",
+      "郑", "梁", "谢", "宋", "唐", "许", "韩", "冯", "邓", "曹",
+      "彭", "曾", "肖", "田", "董", "袁", "潘", "于", "蒋", "蔡"
+    ];
+    
+    // 随机选择一部分姓氏作为推荐
+    const shuffledSurnames = [...commonSurnames].sort(() => Math.random() - 0.5);
+    const suggestedSurnames = shuffledSurnames.slice(0, 8).join("、");
+    
+    // 动态生成种子，用于促使生成差异更大的名字
+    const dynamicSeed = Date.now() + asyncAttempt * 1000 + Math.floor(Math.random() * 1000);
+    
     const baseSystemPrompt =
-      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复，符合中国人的姓名习惯，用常用的姓氏。要一个人名姓名，而不是岗位，不要把岗位名称回复回来。回复格式：<姓名>";
+      `你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。\n\n` +
+      `【严格要求】\n` +
+      `1. 必须是中文人名，2到4个汉字\n` +
+      `2. 不能与已存在名字重复\n` +
+      `3. 绝对不能是岗位名称，不要把岗位名称回复回来\n` +
+      `4. 必须是真正的人名（姓名），如"张伟"、"李芳"等\n\n` +
+      `【推荐姓氏】\n` +
+      `推荐使用以下常见姓氏：${suggestedSurnames}\n\n` +
+      `【生成策略】\n` +
+      `每次尝试使用不同的姓氏和名字组合，确保多样性。\n` +
+      `回复格式：直接输出姓名，不要添加任何其他内容。`;
 
     let lastBad = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // 动态变化：每次尝试使用不同的策略提示
+      const strategyHints = [
+        "尝试使用一个不同的姓氏",
+        "尝试使用另一个姓氏组合",
+        "尝试使用更常见的名字",
+        "尝试使用简洁的两字姓名",
+        "尝试使用三字姓名"
+      ];
+      const currentStrategy = strategyHints[attempt % strategyHints.length];
+      
       void runtime.log?.info?.(`${logPrefix} 第${attempt + 1}次尝试生成名字`, {
         roleName,
         attempt: attempt + 1,
-        lastBadReason: lastBad
+        maxAttempts,
+        lastBadReason: lastBad,
+        strategy: currentStrategy,
+        dynamicSeed
       });
       
       const userPromptLines = [
         `岗位名称：${String(roleName ?? "").trim() || "未知"}`,
         `已存在名字（禁止重复）：${Array.from(used).slice(0, 200).join("、") || "无"}`,
+        `本次生成策略：${currentStrategy}`,
+        `推荐可用姓氏：${suggestedSurnames}`,
         lastBad ? `上次输出不合格原因：${lastBad}` : null,
-        "请生成一个新名字："
+        `随机种子：${dynamicSeed + attempt}`,
+        "请生成一个新名字（只需输出姓名本身）："
       ].filter(Boolean);
 
       const messages = [
@@ -281,8 +413,7 @@ export class AgentManager {
       void runtime.log?.info?.(`${logPrefix} 准备调用模型`, {
         attempt: attempt + 1,
         messagesCount: messages.length,
-        systemPrompt: baseSystemPrompt,
-        userPrompt: userPromptLines.join("\n")
+        strategy: currentStrategy
       });
 
       let raw = "";
@@ -357,9 +488,9 @@ export class AgentManager {
       return name;
     }
     
-    void runtime.log?.warn?.(`${logPrefix} 所有尝试均失败，无法生成有效名字`, {
+    void runtime.log?.warn?.(`${logPrefix} 所有同步尝试均失败，无法生成有效名字`, {
       roleName,
-      totalAttempts: 3,
+      totalAttempts: maxAttempts,
       lastBadReason: lastBad
     });
     return null;
