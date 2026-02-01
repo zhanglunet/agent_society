@@ -256,7 +256,7 @@ const formatTime = (timestamp: number) => {
                   >{{ getReceiverName(item) }}</span>
                 </template>
               </div>
-              <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
+              <span class="text-[10px] text-[var(--text-3)]">{{ formatTime(item.timestamp) }}</span>
             </div>
             <div 
               class="px-4 py-2.5 rounded-2xl text-sm shadow-sm relative group/msg overflow-hidden"
@@ -292,7 +292,7 @@ const formatTime = (timestamp: number) => {
                   @click="toggleToolCall(item.id)"
                 >
                   <Wrench class="w-3 h-3 text-[var(--primary)]" />
-                  <span class="text-xs font-mono font-bold">{{ item.toolCall.name }}</span>
+                  <span class="text-xs font-mono font-bold text-[var(--text-1)]">{{ item.toolCall.name }}</span>
                   <span class="text-[10px] text-[var(--text-3)] flex-grow">工具调用</span>
                   <ChevronDown v-if="!expandedToolCalls[item.id]" class="w-3 h-3" />
                   <ChevronUp v-else class="w-3 h-3" />
@@ -357,7 +357,7 @@ const formatTime = (timestamp: number) => {
                   >{{ getReceiverName(item) }}</span>
                 </template>
               </div>
-              <span class="text-[10px] text-[var(--text-4)]">{{ formatTime(item.timestamp) }}</span>
+              <span class="text-[10px] text-[var(--text-3)]">{{ formatTime(item.timestamp) }}</span>
             </div>
             
             <div class="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl rounded-tl-none overflow-hidden shadow-sm">
@@ -386,7 +386,7 @@ const formatTime = (timestamp: number) => {
                   >
                     <div class="flex items-center space-x-2">
                       <Wrench class="w-3 h-3 text-[var(--primary)] opacity-70" />
-                      <span class="text-xs font-mono font-medium">{{ msg.toolCall.name }}</span>
+                      <span class="text-xs font-mono font-medium text-[var(--text-1)]">{{ msg.toolCall.name }}</span>
                     </div>
                     <ChevronDown v-if="!expandedToolCalls[msg.id]" class="w-3 h-3 opacity-50" />
                     <ChevronUp v-else class="w-3 h-3 opacity-50" />
@@ -398,11 +398,11 @@ const formatTime = (timestamp: number) => {
                       {{ msg.reasoning }}
                     </div>
                     <div class="space-y-1">
-                      <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">参数</div>
+                      <div class="text-[10px] font-bold text-[var(--text-3)] uppercase">参数</div>
                       <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(msg.toolCall.args), null, 2) }}</pre>
                     </div>
                     <div v-if="msg.toolCall.result" class="space-y-1">
-                      <div class="text-[10px] font-bold text-[var(--text-4)] uppercase">结果</div>
+                      <div class="text-[10px] font-bold text-[var(--text-3)] uppercase">结果</div>
                       <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(msg.toolCall.result), null, 2) }}</pre>
                     </div>
                   </div>
