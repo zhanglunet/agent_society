@@ -49,7 +49,7 @@ export class RuntimeLlm {
     }
 
     const systemPrompt = this.buildSystemPromptForAgent(ctx);
-    const conv = this.ensureConversation(agentId, systemPrompt);
+    const conv = this.runtime._ensureConversation(agentId, systemPrompt);
 
     try {
       await this.doLlmProcessing(ctx, message, conv, agentId, llmClient, cancelScope);
@@ -759,48 +759,6 @@ export class RuntimeLlm {
     }
     
     return { role: 'unknown' };
-  }
-
-  /**
-   * 获取或创建某个智能体的会话上下文。
-   * @param {string} agentId - 智能体ID
-   * @param {string} systemPrompt - 系统提示词
-   * @returns {any[]}
-   */
-  ensureConversation(agentId, systemPrompt) {
-    const existing = this.runtime._conversations.get(agentId);
-    const shouldTryLoad =
-      !existing ||
-      (Array.isArray(existing) && existing.length <= 1);
-
-    if (shouldTryLoad) {
-      const loadResult = this.runtime._conversationManager?.loadConversationSync?.(agentId) ?? null;
-      if (loadResult?.ok && loadResult.loaded) {
-        const loaded = this.runtime._conversations.get(agentId);
-        if (Array.isArray(loaded) && loaded.length > 0) {
-          return loaded;
-        }
-      }
-    }
-
-    if (!this.runtime._conversations.has(agentId)) {
-      this.runtime._conversations.set(agentId, [{ role: "system", content: systemPrompt }]);
-      return this.runtime._conversations.get(agentId);
-    }
-
-    const conv = this.runtime._conversations.get(agentId);
-    if (!Array.isArray(conv) || conv.length === 0) {
-      const created = [{ role: "system", content: systemPrompt }];
-      this.runtime._conversations.set(agentId, created);
-      return created;
-    }
-
-    const first = conv[0];
-    if (first?.role !== "system") {
-      conv.unshift({ role: "system", content: systemPrompt });
-    }
-
-    return conv;
   }
 
   /**

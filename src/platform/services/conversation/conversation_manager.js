@@ -898,6 +898,93 @@ export class ConversationManager {
   }
 
   /**
+   * 获取或确保某个智能体的会话上下文已准备就绪。
+   * 
+   * 此方法是 RuntimeLLM 调用前的核心入口。
+   * 它负责：
+   * 1. 检查内存中是否已有会话。
+   * 2. 如果没有，尝试从磁盘同步加载历史。
+   * 3. 确保会话存在，并以正确的 systemPrompt 开头。
+   * 4. 处理系统提示词的更新（如果与历史不一致）。
+   * 
+   * @param {string} agentId - 智能体ID
+   * @param {string} systemPrompt - 预期的系统提示词内容
+   * @returns {any[]} 准备就绪的会话消息数组
+   */
+  ensureConversation(agentId, systemPrompt) {
+    let conv = this.getConversation(agentId);
+
+    // 1. 如果完全没有会话，初始化一个
+    if (!conv) {
+      conv = [{ role: "system", content: systemPrompt }];
+      this.conversations.set(agentId, conv);
+      return conv;
+    }
+
+    // 2. 确保会话数组不为空
+    if (conv.length === 0) {
+      conv.push({ role: "system", content: systemPrompt });
+      return conv;
+    }
+
+    // 3. 确保第一条消息是系统提示词
+    const firstMsg = conv[0];
+    if (firstMsg?.role !== "system") {
+      // 如果第一条不是 system，在最前面插入
+      conv.unshift({ role: "system", content: systemPrompt });
+    } else {
+      // 如果第一条是 system，检查内容是否一致（防止 Prompt 更新后历史中还是旧的）
+      if (firstMsg.content !== systemPrompt) {
+        if (this._logger) {
+          this._logger.debug?.("更新系统提示词", { agentId });
+        }
+        firstMsg.content = systemPrompt;
+      }
+    }
+
+    return conv;
+  }
+
+  /**
+   * 获取智能体的会话上下文。
+   * 如果内存中不存在，会尝试从磁盘同步加载。
+   * 
+   * @param {string} agentId
+   * @returns {any[]|undefined}
+   */
+  getConversation(agentId) {
+    // 1. 优先从内存获取
+    let conv = this.conversations.get(agentId);
+    if (conv) return conv;
+
+    // 2. 内存没有，尝试同步加载
+    const loadResult = this.loadConversationSync(agentId);
+    if (loadResult.ok && loadResult.loaded) {
+      return this.conversations.get(agentId);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * 检查智能体是否有会话上下文。
+   * @param {string} agentId
+   * @returns {boolean}
+   */
+  hasConversation(agentId) {
+    return this.getConversation(agentId) !== undefined;
+  }
+
+  /**
+   * 删除智能体的会话上下文。
+   * @param {string} agentId
+   * @returns {boolean}
+   */
+  deleteConversation(agentId) {
+    return this.conversations.delete(agentId);
+  }
+
+  /**
    * 检查智能体的上下文是否超过限制，如果超过则返回警告信息。
    * @param {string} agentId
    * @returns {{warning:boolean, currentCount?:number, maxCount?:number}}

@@ -847,14 +847,18 @@ export class Runtime {
   }
 
   /**
-   * 获取或创建某个智能体的会话上下文。
+   * 获取或确保某个智能体的会话上下文已准备就绪。
+   * 
+   * 【职责】
+   * 将会话上下文的确保逻辑委托给 ConversationManager。
+   * 这保证了职责的单一性：ConversationManager 负责存储和历史加载，RuntimeLlm 负责 LLM 交互。
+   * 
    * @param {string} agentId - 智能体ID
    * @param {string} systemPrompt - 系统提示词
-   * @returns {any[]}
+   * @returns {any[]} 会话消息数组
    */
   _ensureConversation(agentId, systemPrompt) {
-    // 委托给 RuntimeLlm 处理
-    return this._llm.ensureConversation(agentId, systemPrompt);
+    return this._conversationManager.ensureConversation(agentId, systemPrompt);
   }
 
   /**
