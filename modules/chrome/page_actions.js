@@ -949,7 +949,16 @@ export class PageActions {
             finalPath;
 
           // 保存到工作区
-          await ws.writeFile(fullPath, buffer, { mimeType });
+          await ws.writeFile(fullPath, buffer, { 
+            mimeType,
+            operator: ctx?.agent?.id,
+            messageId: ctx?.currentMessage?.id,
+            meta: {
+              source: "chrome-save-resource",
+              url: resourceUrl,
+              type
+            }
+          });
           savedPaths.push(fullPath);
 
         } catch (err) {
