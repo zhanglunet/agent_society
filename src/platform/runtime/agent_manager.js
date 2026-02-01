@@ -165,23 +165,54 @@ export class AgentManager {
    * @returns {Promise<string|null>}
    */
   async _generateNameForRole({ roleName }) {
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
+    void runtime.log?.info?.(`${logPrefix} 开始生成智能体姓名`, {
+      roleName,
+      timestamp: Date.now()
+    });
+    
     const buildExistingNamesSnapshot = () => {
       const existing = new Set(["root", "user"]);
-      const agents = this.runtime?.org?.listAgents?.() ?? [];
+      const agents = runtime?.org?.listAgents?.() ?? [];
+      void runtime.log?.info?.(`${logPrefix} 获取已存在智能体列表`, {
+        totalAgents: agents.length
+      });
+      
       for (const a of agents) {
-        if (!a || typeof a.id !== "string") continue;
-        if (a.status === "terminated") continue;
+        if (!a || typeof a.id !== "string") {
+          void runtime.log?.info?.(`${logPrefix} 跳过无效智能体记录`, { agent: a });
+          continue;
+        }
+        if (a.status === "terminated") {
+          void runtime.log?.info?.(`${logPrefix} 跳过已终止智能体`, { agentId: a.id });
+          continue;
+        }
         if (typeof a.name === "string" && a.name.trim()) {
           existing.add(a.name.trim());
         } else {
+          void runtime.log?.info?.(`${logPrefix} 智能体缺少姓名，使用ID作为占位`, { 
+            agentId: a.id,
+            rawName: a.name 
+          });
           existing.add(a.id);
         }
       }
-      return Array.from(existing);
+      const result = Array.from(existing);
+      void runtime.log?.info?.(`${logPrefix} 已存在名字列表构建完成`, {
+        count: result.length,
+        names: result.slice(0, 20)
+      });
+      return result;
     };
 
     const runOnce = async () => {
       const existingNames = buildExistingNamesSnapshot();
+      void runtime.log?.info?.(`${logPrefix} 调用名字生成器`, {
+        roleName,
+        existingNamesCount: existingNames.length
+      });
       const name = await this._generateUniqueHumanName({ roleName, existingNames });
       return name;
     };
@@ -191,25 +222,50 @@ export class AgentManager {
 
     try {
       const name = await task;
-      if (name) return name;
+      if (name) {
+        void runtime.log?.info?.(`${logPrefix} 智能体姓名生成成功`, {
+          roleName,
+          generatedName: name
+        });
+        return name;
+      }
+      void runtime.log?.warn?.(`${logPrefix} 智能体姓名生成失败：未生成有效名字`, {
+        roleName
+      });
       return null;
     } catch (err) {
-      void this.runtime.log?.warn?.("生成智能体姓名失败", {
+      void runtime.log?.error?.(`${logPrefix} 智能体姓名生成异常`, {
         roleName,
         error: err?.message ?? String(err),
-        stack: err?.stack ?? null
+        stack: err?.stack ?? null,
+        errorType: err?.constructor?.name ?? "Unknown"
       });
       return null;
     }
   }
 
   async _generateUniqueHumanName({ roleName, existingNames }) {
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
     const used = new Set((existingNames ?? []).map((s) => String(s ?? "").trim()).filter(Boolean));
+    void runtime.log?.info?.(`${logPrefix} 开始唯一名字生成`, {
+      roleName,
+      usedNamesCount: used.size,
+      usedNamesSample: Array.from(used).slice(0, 10)
+    });
+    
     const baseSystemPrompt =
-      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复，符合中国人的姓名习惯，用常用的姓氏。要一个人名姓名，而不是岗位，不要把岗位名称回复回来。";
+      "你负责为新创建的智能体生成一个人名。只输出名字本身，不要解释，不要引号，不要标点，不要换行以外的内容。名字要求：中文人名，2到4个汉字，不能与已存在名字重复，符合中国人的姓名习惯，用常用的姓氏。要一个人名姓名，而不是岗位，不要把岗位名称回复回来。回复格式：<姓名>";
 
     let lastBad = null;
     for (let attempt = 0; attempt < 3; attempt++) {
+      void runtime.log?.info?.(`${logPrefix} 第${attempt + 1}次尝试生成名字`, {
+        roleName,
+        attempt: attempt + 1,
+        lastBadReason: lastBad
+      });
+      
       const userPromptLines = [
         `岗位名称：${String(roleName ?? "").trim() || "未知"}`,
         `已存在名字（禁止重复）：${Array.from(used).slice(0, 200).join("、") || "无"}`,
@@ -221,52 +277,151 @@ export class AgentManager {
         { role: "system", content: baseSystemPrompt },
         { role: "user", content: userPromptLines.join("\n") }
       ];
+      
+      void runtime.log?.info?.(`${logPrefix} 准备调用模型`, {
+        attempt: attempt + 1,
+        messagesCount: messages.length,
+        systemPrompt: baseSystemPrompt,
+        userPrompt: userPromptLines.join("\n")
+      });
 
       let raw = "";
       try {
-        const chatFn = this.runtime?.localLlmChat ?? wllamaChat;
+        const chatFn = runtime?.localLlmChat ?? wllamaChat;
+        const callStartTime = Date.now();
         raw = await chatFn(messages, { timeoutMs: 60000 });
+        const callDuration = Date.now() - callStartTime;
+        void runtime.log?.info?.(`${logPrefix} 模型调用完成`, {
+          attempt: attempt + 1,
+          durationMs: callDuration,
+          rawResponse: raw,
+          rawResponseLength: raw?.length ?? 0
+        });
       } catch (e) {
         lastBad = `模型调用失败：${e?.message ?? String(e)}`;
+        void runtime.log?.warn?.(`${logPrefix} 模型调用异常`, {
+          attempt: attempt + 1,
+          error: e?.message ?? String(e),
+          errorType: e?.constructor?.name ?? "Unknown"
+        });
         continue;
       }
 
       const name = this._sanitizeHumanName(raw);
+      void runtime.log?.info?.(`${logPrefix} 名字清理完成`, {
+        attempt: attempt + 1,
+        rawInput: raw,
+        sanitizedOutput: name
+      });
+      
       if (!name) {
         lastBad = "输出为空或无法解析";
+        void runtime.log?.info?.(`${logPrefix} 名字验证失败：输出为空`, {
+          attempt: attempt + 1,
+          raw: raw
+        });
         continue;
       }
       if (name === roleName) {
         lastBad = `输出与岗位名称相同：${name}`;
+        void runtime.log?.info?.(`${logPrefix} 名字验证失败：与岗位名称相同`, {
+          attempt: attempt + 1,
+          generatedName: name,
+          roleName
+        });
         continue;
       }
       if (!this._isValidChineseHumanName(name)) {
         lastBad = `输出不符合中文人名要求：${name}`;
+        void runtime.log?.info?.(`${logPrefix} 名字验证失败：不符合中文人名要求`, {
+          attempt: attempt + 1,
+          generatedName: name,
+          nameLength: name.length,
+          isChinese: /^[\u4e00-\u9fff]+$/.test(name)
+        });
         continue;
       }
       if (used.has(name)) {
         lastBad = `输出与已存在名字重复：${name}`;
+        void runtime.log?.info?.(`${logPrefix} 名字验证失败：与已存在名字重复`, {
+          attempt: attempt + 1,
+          generatedName: name
+        });
         continue;
       }
+      
+      void runtime.log?.info?.(`${logPrefix} 名字验证通过`, {
+        attempt: attempt + 1,
+        finalName: name
+      });
       return name;
     }
+    
+    void runtime.log?.warn?.(`${logPrefix} 所有尝试均失败，无法生成有效名字`, {
+      roleName,
+      totalAttempts: 3,
+      lastBadReason: lastBad
+    });
     return null;
   }
 
   _sanitizeHumanName(raw) {
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
     const s = typeof raw === "string" ? raw : String(raw ?? "");
+    void runtime?.log?.info?.(`${logPrefix} 开始清理名字`, {
+      rawInput: raw,
+      rawType: typeof raw
+    });
+    
     const firstLine = s.split(/\r?\n/)[0] ?? "";
     const trimmed = firstLine.trim();
-    const unquoted = trimmed.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
+    const unquoted = trimmed.replace(/^["'""''']+|["'""''']+$/g, "").trim();
     const noPunct = unquoted.replace(/[，。,\.!！?？;；:：\s]/g, "");
-    return noPunct.trim() || null;
+    const result = noPunct.trim() || null;
+    
+    void runtime?.log?.info?.(`${logPrefix} 名字清理步骤`, {
+      step1_firstLine: firstLine,
+      step2_trimmed: trimmed,
+      step3_unquoted: unquoted,
+      step4_noPunct: noPunct,
+      finalResult: result
+    });
+    
+    return result;
   }
 
   _isValidChineseHumanName(name) {
-    if (typeof name !== "string") return false;
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
+    if (typeof name !== "string") {
+      void runtime.log?.info?.(`${logPrefix} 名字验证：类型不符`, {
+        name,
+        type: typeof name
+      });
+      return false;
+    }
+    
     const s = name.trim();
-    if (s.length < 2 || s.length > 4) return false;
-    return /^[\u4e00-\u9fff]+$/.test(s);
+    if (s.length < 2 || s.length > 4) {
+      void runtime.log?.info?.(`${logPrefix} 名字验证：长度不符`, {
+        name: s,
+        length: s.length
+      });
+      return false;
+    }
+    
+    const isChinese = /^[\u4e00-\u9fff]+$/.test(s);
+    if (!isChinese) {
+      void runtime.log?.info?.(`${logPrefix} 名字验证：非纯中文字符`, {
+        name: s,
+        charCodes: s.split("").map(c => c.charCodeAt(0).toString(16))
+      });
+    }
+    
+    return isChinese;
   }
 
 

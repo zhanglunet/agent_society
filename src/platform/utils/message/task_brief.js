@@ -40,7 +40,7 @@ export function validateTaskBrief(taskBrief) {
   // 验证 constraints 必须是数组
   if (taskBrief.constraints !== undefined && taskBrief.constraints !== null) {
     if (!Array.isArray(taskBrief.constraints)) {
-      errors.push('constraints 必须是数组');
+      taskBrief.constraints = [JSON.stringify(taskBrief.constraints)];
     }
   }
 
