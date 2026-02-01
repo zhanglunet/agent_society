@@ -60,7 +60,7 @@ console.log(result.artifactIds[0]); // 'artifact-abc123'
 
 ```javascript
 // 先获取页面上的所有图片
-const resources = await chrome_get_resources({
+const resources = await chrome_list_resources({
   tabId: 'tab-123',
   types: ['image']
 });
@@ -183,7 +183,7 @@ const result = await chrome_save_resource({
 
 ## 最佳实践
 
-1. **先获取后保存**: 使用 `chrome_get_resources` 获取资源列表，然后选择性保存
+1. **先获取后保存**: 使用 `chrome_list_resources` 获取资源列表，然后选择性保存
 2. **过滤资源**: 根据尺寸、可见性等条件过滤资源，避免保存不必要的内容
 3. **错误处理**: 检查返回值中的 `errors` 字段，处理失败的情况
 4. **批量处理**: 对于大量资源，分批调用以提高稳定性

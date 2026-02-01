@@ -19,7 +19,7 @@
 ### 资源管理功能
 模块新增了页面资源管理功能，包括：
 
-1. **获取资源列表** (chrome_get_resources)
+1. **列出资源列表** (chrome_list_resources)
    - 获取页面上的各类资源（图片、CSS、JavaScript、视频、音频等）
    - 支持过滤资源类型
    - 支持包含或排除 data URL

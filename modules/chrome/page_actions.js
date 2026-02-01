@@ -5,7 +5,7 @@
  * 功能模块：
  * 1. 页面导航：navigate、getUrl
  * 2. 内容获取：screenshot、getContent、getText、getElements
- * 3. 资源管理：getResources、saveResource
+ * 3. 资源管理：listResources、saveResource
  * 4. 页面交互：click、clickAt、type、fill、evaluate、waitFor
  */
 
@@ -658,12 +658,12 @@ export class PageActions {
   // ==================== 资源管理 ====================
 
   /**
-   * 获取页面上的资源列表
+   * 列出页面上的资源列表
    * @param {string} tabId
    * @param {{types?: string[], includeDataUrls?: boolean}} options
    * @returns {Promise<{ok: boolean, resources?: Array, error?: string}>}
    */
-  async getResources(tabId, options = {}) {
+  async listResources(tabId, options = {}) {
     const result = this._getPage(tabId);
     if ("error" in result) return result;
     

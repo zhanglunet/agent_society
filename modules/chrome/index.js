@@ -117,8 +117,8 @@ export default {
           return await pageActions.getElements(args.tabId, args);
         
         // 资源管理
-        case "chrome_get_resources":
-          return await pageActions.getResources(args.tabId, args);
+        case "chrome_list_resources":
+          return await pageActions.listResources(args.tabId, args);
         case "chrome_save_resource":
           return await pageActions.saveResource(args.tabId, args.resources, { ...args, ctx });
         

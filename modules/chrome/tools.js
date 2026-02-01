@@ -234,8 +234,8 @@ export function getToolDefinitions() {
     {
       type: "function",
       function: {
-        name: "chrome_get_resources",
-        description: "获取页面上的资源列表，包括图片、CSS、JavaScript、视频、音频等。主要用于分析页面资源或批量保存资源。返回资源的URL、类型、尺寸等信息。",
+        name: "chrome_list_resources",
+        description: "列出页面上的资源列表，包括图片、CSS、JavaScript、视频、音频等。主要用于分析页面资源或批量保存资源。返回资源的URL、类型、尺寸等信息。",
         parameters: {
           type: "object",
           properties: {
@@ -266,9 +266,9 @@ export function getToolDefinitions() {
           type: "object",
           properties: {
             tabId: { type: "string", description: "标签页 ID" },
-            resources: { 
-              type: "array", 
-              description: "要保存的资源列表。通常从 chrome_get_resources 的结果中获取",
+            resources: {
+              type: "array",
+              description: "要保存的资源列表。通常从 chrome_list_resources 的结果中获取",
               items: { 
                 type: "object",
                 properties: {
