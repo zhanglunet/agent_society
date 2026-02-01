@@ -81,6 +81,20 @@ const openTemplateManager = () => {
       modal: true,
       dismissableMask: false,
       maximizable: true,
+      // 通过 pt 覆盖最大化时的样式，确保真正填满窗口
+      pt: {
+        root: ({ state }: { state: { maximized: boolean } }) => ({
+          class: [
+            state.maximized ? '!w-screen !h-screen !max-w-none !m-0' : ''
+          ]
+        }),
+        content: ({ state }: { state: { maximized: boolean } }) => ({
+          class: [
+            'overflow-hidden p-0',
+            state.maximized ? '!w-full !h-[calc(100vh-4rem)]' : ''
+          ]
+        })
+      }
     }
   });
 };
