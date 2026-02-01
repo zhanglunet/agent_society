@@ -214,7 +214,7 @@ watch(showChat, (newVal) => {
                     <Button 
                       @click="createOrganization"
                       :loading="isCreating"
-                      class="!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!bg-[var(--primary-hover)] transition-colors shadow-sm"
+                      class="!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!brightness-110 transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       <template #loadingicon>
                         <Loader2 class="w-4 h-4 animate-spin" />

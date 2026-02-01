@@ -297,8 +297,10 @@ const sendMessage = async () => {
           <Button 
             @click="sendMessage"
             :disabled="!message.trim() || isSending"
-            class="!rounded-xl !p-3 transition-all duration-300 min-w-[44px]"
-            :class="message.trim() && !isSending ? '!bg-[var(--primary)] !text-white' : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
+            class="!rounded-xl !p-3 transition-all duration-200 min-w-[44px]"
+            :class="message.trim() && !isSending 
+              ? '!bg-[var(--primary)] !text-white hover:!brightness-110 hover:!shadow-md' 
+              : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
           >
             <Loader2 v-if="isSending" class="w-4 h-4 animate-spin" />
             <Send v-else class="w-4 h-4" />

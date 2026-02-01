@@ -13,6 +13,7 @@
   
   --border: rgba(15, 23, 42, 0.08);
   --primary: #16B981;
+  --primary-hover: #10B981;
   --primary-weak: rgba(22, 185, 129, 0.12);
   --overlay: rgba(15, 23, 42, 0.30);
 }
@@ -30,6 +31,7 @@
   
   --border: #2A3A55;    /* N6: 分割线/描边 */
   --primary: #2DD36F;
+  --primary-hover: #34D399;
   --primary-weak: rgba(45, 211, 111, 0.15);
   --overlay: rgba(0, 0, 0, 0.40);
 }
