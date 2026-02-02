@@ -35,6 +35,7 @@ const openOverview = () => {
       },
       modal: true,
       dismissableMask: false,
+      closeOnEscape: false,
     }
   });
 };
@@ -49,6 +50,7 @@ const openArtifacts = (org: any) => {
       },
       modal: true,
       dismissableMask: false,
+      closeOnEscape: false,
     },
     data: {
       orgId: org.id
@@ -65,6 +67,7 @@ const openSettings = () => {
       },
       modal: true,
       dismissableMask: false,
+      closeOnEscape: false,
     }
   });
 };
@@ -80,6 +83,7 @@ const openTemplateManager = () => {
       },
       modal: true,
       dismissableMask: false,
+      closeOnEscape: false,
       maximizable: true,
       // 通过 pt 覆盖最大化时的样式，确保真正填满窗口
       pt: {

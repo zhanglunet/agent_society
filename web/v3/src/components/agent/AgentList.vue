@@ -37,6 +37,7 @@ const openArtifacts = () => {
       },
       modal: true,
       dismissableMask: false,
+      closeOnEscape: false,
     },
     data: {
       orgId: props.orgId

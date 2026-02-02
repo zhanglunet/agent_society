@@ -646,6 +646,7 @@ onMounted(() => {
       :style="{ width: '520px' }"
       :modal="true"
       :closable="!serviceSaving"
+      :close-on-escape="false"
       pt:content:class="!p-0"
     >
       <div class="px-6 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
