@@ -76,7 +76,51 @@ const openSettings = () => {
 };
 
 const openTemplateManager = () => {
-  const dialogRef = dialog.open(OrgTemplateManager, {
+  // 用于存储对话框引用，以便后续关闭
+  let dialogInstance: any = null;
+  
+  // 处理使用模板的事件
+  const handleUseTemplate = async (template: { id: string; name: string }) => {
+    // 关闭对话框
+    if (dialogInstance) {
+      dialogInstance.close();
+    }
+    
+    // 跳转到首页
+    appStore.openTab({
+      id: 'home',
+      type: 'org',
+      title: '首页'
+    });
+    
+    try {
+      // 获取模板内容（包含 org.md）
+      const content = await templateApi.getTemplateContent(template.id);
+      
+      // 开启 root 新会话
+      await chatStore.rootNewSession();
+      
+      // 构造提示词，包含 org.md 内容
+      const prompt = `请基于以下组织模板创建一个新的组织：
+
+## 组织模板名称
+${template.name}
+
+## 组织架构定义 (org.md)
+\`\`\`markdown
+${content.org}
+\`\`\`
+
+请根据以上模板创建组织，建立相应的岗位和智能体。`;
+      
+      // 发送消息给 root
+      await chatStore.sendMessage('root', prompt);
+    } catch (error) {
+      console.error('使用模板创建组织失败:', error);
+    }
+  };
+  
+  dialogInstance = dialog.open(OrgTemplateManager, {
     props: {
       header: '组织模板管理器',
       style: {
@@ -103,45 +147,9 @@ const openTemplateManager = () => {
         })
       }
     },
-    // 监听 useTemplate 事件
-    emits: {
-      useTemplate: async (template: { id: string; name: string }) => {
-        // 关闭对话框
-        dialogRef.close();
-        
-        // 跳转到首页
-        appStore.openTab({
-          id: 'home',
-          type: 'org',
-          title: '首页'
-        });
-        
-        try {
-          // 获取模板内容（包含 org.md）
-          const content = await templateApi.getTemplateContent(template.id);
-          
-          // 开启 root 新会话
-          await chatStore.rootNewSession();
-          
-          // 构造提示词，包含 org.md 内容
-          const prompt = `请基于以下组织模板创建一个新的组织：
-
-## 组织模板名称
-${template.name}
-
-## 组织架构定义 (org.md)
-\`\`\`markdown
-${content.org}
-\`\`\`
-
-请根据以上模板创建组织，建立相应的岗位和智能体。`;
-          
-          // 发送消息给 root
-          await chatStore.sendMessage('root', prompt);
-        } catch (error) {
-          console.error('使用模板创建组织失败:', error);
-        }
-      }
+    data: {
+      // 将回调函数通过 data 传递给子组件
+      onUseTemplate: handleUseTemplate
     }
   });
 };

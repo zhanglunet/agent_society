@@ -3,7 +3,7 @@ import { test, expect } from "bun:test";
 
 test("Verify API response for specific workspace", async () => {
   const workspaceId = "899a4b15-e034-4dbe-b1a3-8aee214ae218";
-  const url = `http://localhost:2999/api/workspaces/${workspaceId}`;
+  const url = `/api/workspaces/${workspaceId}`;
   
   try {
     console.log(`Fetching: ${url}`);

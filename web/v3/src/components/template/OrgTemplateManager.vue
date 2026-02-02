@@ -7,7 +7,7 @@
  * 
  * @author Agent Society
  */
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, inject } from 'vue';
 import Button from 'primevue/button';
 import ScrollPanel from 'primevue/scrollpanel';
 import Textarea from 'primevue/textarea';
@@ -15,6 +15,9 @@ import InputText from 'primevue/inputtext';
 import { Folder, FileText, Info, Building, Loader2, AlertCircle, Save, Check, X, Plus, Trash2 } from 'lucide-vue-next';
 import { templateApi } from '../../services/templateApi';
 import type { OrgTemplate } from '../../types';
+
+// 注入对话框数据（包含父组件传递的回调函数）
+const dialogRef = inject<any>('dialogRef');
 
 // 组件状态
 const templates = ref<OrgTemplate[]>([]);
@@ -161,8 +164,15 @@ const selectTemplate = (template: OrgTemplate) => {
  */
 const useTemplate = () => {
   if (!selectedTemplate.value) return;
-  // 触发创建组织的流程，通过事件通知父组件
-  emit('useTemplate', selectedTemplate.value);
+  
+  // 获取父组件传递的回调函数
+  const onUseTemplate = dialogRef?.value?.data?.onUseTemplate;
+  if (typeof onUseTemplate === 'function') {
+    // 调用回调函数，传递选中的模板
+    onUseTemplate(selectedTemplate.value);
+  } else {
+    console.warn('未找到 onUseTemplate 回调函数');
+  }
 };
 
 // 定义事件

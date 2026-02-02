@@ -124,6 +124,32 @@ export const apiService = {
   },
 
   /**
+   * 获取所有岗位列表
+   */
+  async getRoles(): Promise<any[]> {
+    const data = await request<{ roles: any[] }>('/roles');
+    return data.roles || [];
+  },
+
+  /**
+   * 获取所有智能体原始数据
+   */
+  async getAllAgentsRaw(): Promise<any[]> {
+    const data = await request<{ agents: any[] }>('/agents');
+    return data.agents || [];
+  },
+
+  /**
+   * 删除岗位
+   */
+  async deleteRole(roleId: string, options: { reason: string, deletedBy: string }): Promise<any> {
+    return request(`/role/${encodeURIComponent(roleId)}`, {
+      method: 'DELETE',
+      body: JSON.stringify(options)
+    });
+  },
+
+  /**
    * 状态映射逻辑
    */
   mapStatus(computeStatus?: string, agentStatus?: string): 'online' | 'offline' | 'busy' {

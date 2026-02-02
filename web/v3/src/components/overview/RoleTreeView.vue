@@ -115,6 +115,7 @@ import Button from 'primevue/button';
 import OrganizationChart from 'primevue/organizationchart';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
+import { apiService } from "../../services/api";
 
 const confirm = useConfirm();
 const toast = useToast();
@@ -289,13 +290,10 @@ const buildTree = (roles: any[], agents: any[]) => {
 const fetchData = async () => {
     loading.value = true;
     try {
-        const [rolesResponse, agentsResponse] = await Promise.all([
-            fetch('http://localhost:2999/api/roles').then(res => res.json()),
-            fetch('http://localhost:2999/api/agents').then(res => res.json())
+        const [roles, agents] = await Promise.all([
+            apiService.getRoles(),
+            apiService.getAllAgentsRaw()
         ]);
-
-        const roles = rolesResponse.roles || [];
-        const agents = agentsResponse.agents || [];
 
         totalRoles.value = roles.length;
         totalAgents.value = agents.length;
@@ -325,41 +323,25 @@ const handleDeleteRole = (roleId: string, roleName: string) => {
         },
         accept: async () => {
             try {
-                const response = await fetch(`http://localhost:2999/api/role/${encodeURIComponent(roleId)}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        reason: '用户从总览视图删除',
-                        deletedBy: 'user'
-                    })
+                await apiService.deleteRole(roleId, {
+                    reason: '用户从总览视图删除',
+                    deletedBy: 'user'
                 });
 
-                const result = await response.json();
-                if (response.ok) {
-                    toast.add({ 
-                        severity: 'success', 
-                        summary: '删除成功', 
-                        detail: `岗位 "${roleName}" 及其分支已删除`, 
-                        life: 3000 
-                    });
-                    // 刷新数据
-                    await fetchData();
-                } else {
-                    toast.add({ 
-                        severity: 'error', 
-                        summary: '删除失败', 
-                        detail: result.message || result.error, 
-                        life: 5000 
-                    });
-                }
-            } catch (error) {
+                toast.add({ 
+                    severity: 'success', 
+                    summary: '删除成功', 
+                    detail: `岗位 "${roleName}" 及其分支已删除`, 
+                    life: 3000 
+                });
+                // 刷新数据
+                await fetchData();
+            } catch (error: any) {
                 console.error('删除岗位失败:', error);
                 toast.add({ 
                     severity: 'error', 
-                    summary: '网络错误', 
-                    detail: '删除岗位失败，请检查网络连接。', 
+                    summary: '删除失败', 
+                    detail: error.message || '删除岗位失败，请检查网络连接。', 
                     life: 5000 
                 });
             }
