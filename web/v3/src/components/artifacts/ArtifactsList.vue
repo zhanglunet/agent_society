@@ -112,7 +112,7 @@ const selectFile = async (file: any) => {
   // 点击文件时使用文件查看器打开
   if (orgId.value) {
     const apiPath = file.path.replace(/^root\//, '');
-    openFileViewer({
+    await openFileViewer({
       dialog,
       workspaceId: orgId.value,
       filePath: apiPath,

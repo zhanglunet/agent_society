@@ -14,7 +14,6 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import ToggleButton from 'primevue/togglebutton';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Message from 'primevue/message';
@@ -389,17 +388,6 @@ onMounted(() => {
                   </Button>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="text-sm font-bold text-[var(--text-1)] mb-4">偏好设置</h3>
-            <div class="flex items-center justify-between p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
-              <div>
-                <p class="font-medium text-[var(--text-1)]">自动保存</p>
-                <p class="text-xs text-[var(--text-3)]">离开页面时自动保存未发送的消息草稿</p>
-              </div>
-              <ToggleButton onLabel="开启" offLabel="关闭" class="!w-20" />
             </div>
           </section>
         </TabPanel>

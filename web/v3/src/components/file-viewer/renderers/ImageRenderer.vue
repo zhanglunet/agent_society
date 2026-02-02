@@ -7,7 +7,7 @@
  * @module components/file-viewer/renderers/ImageRenderer
  */
 import { ref, computed, onMounted } from 'vue';
-import { ZoomIn, ZoomOut, RotateCcw, Download, AlertCircle } from 'lucide-vue-next';
+import { ZoomIn, ZoomOut, RotateCcw, AlertCircle } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import { fileViewerService } from '../services/fileViewerService';
 import type { RendererProps } from '../types';
@@ -56,13 +56,6 @@ const reset = () => {
 };
 
 /**
- * 下载
- */
-const download = () => {
-  fileViewerService.downloadFile(props.workspaceId, props.filePath, props.fileName);
-};
-
-/**
  * 获取图片样式
  */
 const imageStyle = computed(() => ({
@@ -74,28 +67,24 @@ const imageStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="image-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-center gap-2 p-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <Button variant="text" size="small" v-tooltip.top="'缩小'" @click="zoom(-0.2)">
+  <div class="image-renderer flex flex-col h-full bg-[var(--bg)] relative">
+    <!-- 悬浮工具栏 -->
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--surface-1)]/90 backdrop-blur shadow-lg border border-[var(--border)]">
+      <Button variant="text" size="small" v-tooltip.bottom="'缩小'" @click="zoom(-0.2)">
         <ZoomOut class="w-4 h-4" />
       </Button>
-      <span class="text-xs text-[var(--text-3)] min-w-[60px] text-center">
+      <span class="text-xs text-[var(--text-3)] min-w-[50px] text-center">
         {{ Math.round(scale * 100) }}%
       </span>
-      <Button variant="text" size="small" v-tooltip.top="'放大'" @click="zoom(0.2)">
+      <Button variant="text" size="small" v-tooltip.bottom="'放大'" @click="zoom(0.2)">
         <ZoomIn class="w-4 h-4" />
       </Button>
-      <div class="w-px h-4 bg-[var(--border)] mx-2" />
-      <Button variant="text" size="small" v-tooltip.top="'旋转'" @click="rotate">
+      <div class="w-px h-3 bg-[var(--border)] mx-1" />
+      <Button variant="text" size="small" v-tooltip.bottom="'旋转'" @click="rotate">
         <RotateCcw class="w-4 h-4" />
       </Button>
-      <Button variant="text" size="small" v-tooltip.top="'重置'" @click="reset">
+      <Button variant="text" size="small" v-tooltip.bottom="'重置'" @click="reset">
         <span class="text-xs">重置</span>
-      </Button>
-      <div class="w-px h-4 bg-[var(--border)] mx-2" />
-      <Button variant="text" size="small" v-tooltip.top="'下载'" @click="download">
-        <Download class="w-4 h-4" />
       </Button>
     </div>
 

@@ -25,23 +25,10 @@ const textContent = computed(() => {
   }
   return '';
 });
-
-/**
- * 行数
- */
-const lineCount = computed(() => {
-  return textContent.value.split('\n').length;
-});
 </script>
 
 <template>
   <div class="text-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 信息栏 -->
-    <div class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <span class="text-xs text-[var(--text-3)]">{{ lineCount }} 行</span>
-      <span class="text-xs text-[var(--text-3)]">{{ content.mimeType }}</span>
-    </div>
-
     <!-- 文本内容 -->
     <div class="flex-1 overflow-auto">
       <pre class="p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap break-all">{{ textContent }}</pre>

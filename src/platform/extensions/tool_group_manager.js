@@ -19,7 +19,7 @@ export const BUILTIN_TOOL_GROUPS = {
   },
   workspace: {
     description: "工作空间工具 - 用于在任务专属工作空间内进行文件读写操作，每个任务有独立的工作空间目录。",
-    tools: ["read_file", "write_file", "list_files", "get_workspace_info"]
+    tools: ["read_file", "write_file", "list_files", "get_workspace_info", "search_text"]
   },
   command: {
     description: "代码执行工具 - 用于执行 JavaScript 代码，支持 Canvas 绘图。",

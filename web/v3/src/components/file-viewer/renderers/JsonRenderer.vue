@@ -7,7 +7,7 @@
  * @module components/file-viewer/renderers/JsonRenderer
  */
 import { computed, ref } from 'vue';
-import { Copy, Check, Download, Code } from 'lucide-vue-next';
+import { Copy, Check } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import type { RendererProps } from '../types';
 
@@ -68,63 +68,43 @@ const copyToClipboard = async () => {
     console.error('复制失败:', err);
   }
 };
-
-/**
- * 下载
- */
-const download = () => {
-  const blob = new Blob([jsonContent.value], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = props.fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
 </script>
 
 <template>
-  <div class="json-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <div class="flex items-center gap-2">
-        <Code class="w-4 h-4 text-[var(--primary)]" />
-        <span class="text-sm text-[var(--text-1)]">JSON</span>
-        <span 
-          v-if="isValidJson" 
-          class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
-        >
-          有效
-        </span>
-        <span 
-          v-else 
-          class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700"
-        >
-          无效
-        </span>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <Button
-          variant="text"
-          size="small"
-          v-tooltip.top="copied ? '已复制' : '复制'"
-          @click="copyToClipboard"
-        >
-          <Check v-if="copied" class="w-4 h-4 text-green-500" />
-          <Copy v-else class="w-4 h-4" />
-        </Button>
-        <Button variant="text" size="small" v-tooltip.top="'下载'" @click="download">
-          <Download class="w-4 h-4" />
-        </Button>
-      </div>
+  <div class="json-renderer flex flex-col h-full bg-[var(--bg)] relative">
+    <!-- JSON 验证状态 -->
+    <div class="absolute top-3 left-3 z-10">
+      <span 
+        v-if="isValidJson" 
+        class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+      >
+        有效 JSON
+      </span>
+      <span 
+        v-else 
+        class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700"
+      >
+        无效 JSON
+      </span>
+    </div>
+
+    <!-- 悬浮复制按钮 -->
+    <div class="absolute top-3 right-3 z-10">
+      <Button
+        variant="text"
+        size="small"
+        v-tooltip.bottom="copied ? '已复制' : '复制 JSON'"
+        @click="copyToClipboard"
+        class="bg-[var(--surface-1)]/80 backdrop-blur"
+      >
+        <Check v-if="copied" class="w-4 h-4 text-green-500" />
+        <Copy v-else class="w-4 h-4" />
+      </Button>
     </div>
 
     <!-- JSON 内容 -->
     <div class="flex-1 overflow-auto">
-      <pre class="p-4 text-sm font-mono"><code class="json">{{ formattedJson }}</code></pre>
+      <pre class="p-4 pt-12 text-sm font-mono"><code class="json">{{ formattedJson }}</code></pre>
     </div>
   </div>
 </template>

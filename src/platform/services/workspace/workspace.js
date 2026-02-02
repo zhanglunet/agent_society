@@ -378,6 +378,105 @@ export class Workspace {
   }
 
   /**
+   * 在指定子文件夹内搜索文本
+   * @param {string} subDir - 子目录路径，相对于工作区根目录
+   * @param {string} searchText - 要搜索的文本
+   * @param {object} options - 可选参数 { caseSensitive, maxResults }
+   * @returns {Promise<Array<{file: string, line: number, col: number}>>}
+   */
+  async searchText(subDir, searchText, options = {}) {
+    if (!this._isPathSafe(subDir)) {
+      throw new Error("path_traversal_blocked");
+    }
+
+    if (!searchText || typeof searchText !== "string") {
+      throw new Error("invalid_search_text");
+    }
+
+    const { caseSensitive = true, maxResults = 1000 } = options;
+
+    // 确定搜索目录
+    const searchDir = subDir === "." ? this.rootPath : path.resolve(this.rootPath, subDir);
+
+    // 检查目录是否存在
+    try {
+      const stats = await stat(searchDir);
+      if (!stats.isDirectory()) {
+        throw new Error("not_a_directory");
+      }
+    } catch (e) {
+      if (e.code === 'ENOENT') {
+        return [];
+      }
+      throw e;
+    }
+
+    const results = [];
+    const searchPattern = caseSensitive ? searchText : searchText.toLowerCase();
+    const flags = caseSensitive ? 'g' : 'gi';
+
+    // 递归扫描目录并搜索文本文件
+    const searchInDirectory = async (dir, baseRelPath = "") => {
+      const entries = await readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (results.length >= maxResults) break;
+
+        const relPath = baseRelPath ? path.join(baseRelPath, entry.name) : entry.name;
+
+        if (entry.isDirectory()) {
+          // 跳过 .meta 目录
+          if (entry.name === ".meta") continue;
+          await searchInDirectory(path.join(dir, entry.name), relPath);
+        } else {
+          // 检查文件是否为文本文件
+          const ext = extractExtension(entry.name);
+          const textExtensions = ['.txt', '.md', '.js', '.ts', '.py', '.c', '.cpp', '.h', '.sh', '.bat', '.ps1', '.yaml', '.yml', '.json', '.html', '.css', '.xml', '.java', '.go', '.rs'];
+
+          if (!textExtensions.includes(ext?.toLowerCase())) {
+            continue;
+          }
+
+          try {
+            const fullPath = path.join(dir, entry.name);
+            const content = await readFile(fullPath, 'utf8');
+            const lines = content.split(/\r?\n/);
+
+            // 搜索每一行
+            for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+              if (results.length >= maxResults) break;
+
+              const line = lines[lineNum];
+              const searchLine = caseSensitive ? line : line.toLowerCase();
+
+              let matchIndex = searchLine.indexOf(searchPattern);
+              while (matchIndex !== -1) {
+                results.push({
+                  file: relPath.replace(/\\/g, "/"),
+                  line: lineNum + 1,
+                  col: matchIndex + 1
+                });
+
+                // 查找下一个匹配
+                matchIndex = searchLine.indexOf(searchPattern, matchIndex + 1);
+
+                if (results.length >= maxResults) break;
+              }
+            }
+          } catch (e) {
+            // 跳过无法读取的文件
+            this.log.warn(`搜索文件失败: ${relPath}`, { error: e.message });
+          }
+        }
+      }
+    };
+
+    await searchInDirectory(searchDir, subDir === "." ? "" : subDir);
+
+    return results;
+  }
+
+  /**
    * 同步外部变更
    */
   async sync() {

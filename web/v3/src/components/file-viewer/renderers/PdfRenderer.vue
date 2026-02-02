@@ -7,7 +7,7 @@
  * @module components/file-viewer/renderers/PdfRenderer
  */
 import { ref, onMounted } from 'vue';
-import { Download, ExternalLink, FileText } from 'lucide-vue-next';
+import { ExternalLink, FileText } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import { fileViewerService } from '../services/fileViewerService';
 import type { RendererProps } from '../types';
@@ -26,13 +26,6 @@ onMounted(() => {
 });
 
 /**
- * 下载
- */
-const download = () => {
-  fileViewerService.downloadFile(props.workspaceId, props.filePath, props.fileName);
-};
-
-/**
  * 在新标签页打开
  */
 const openInNewTab = () => {
@@ -42,22 +35,18 @@ const openInNewTab = () => {
 </script>
 
 <template>
-  <div class="pdf-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <div class="flex items-center gap-2">
-        <FileText class="w-4 h-4 text-red-500" />
-        <span class="text-sm text-[var(--text-1)]">PDF 文档</span>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <Button variant="text" size="small" v-tooltip.top="'新标签页打开'" @click="openInNewTab">
-          <ExternalLink class="w-4 h-4" />
-        </Button>
-        <Button variant="text" size="small" v-tooltip.top="'下载'" @click="download">
-          <Download class="w-4 h-4" />
-        </Button>
-      </div>
+  <div class="pdf-renderer flex flex-col h-full bg-[var(--bg)] relative">
+    <!-- 悬浮新标签页打开按钮 -->
+    <div class="absolute top-3 right-3 z-10">
+      <Button 
+        variant="text" 
+        size="small" 
+        v-tooltip.bottom="'新标签页打开'" 
+        @click="openInNewTab"
+        class="bg-[var(--surface-1)]/80 backdrop-blur"
+      >
+        <ExternalLink class="w-4 h-4" />
+      </Button>
     </div>
 
     <!-- PDF 显示区域 -->
@@ -76,11 +65,7 @@ const openInNewTab = () => {
         class="flex flex-col items-center justify-center h-full text-[var(--text-3)]"
       >
         <FileText class="w-16 h-16 mb-4" />
-        <p class="text-sm mb-4">无法显示 PDF 预览</p>
-        <Button variant="primary" size="small" @click="download">
-          <Download class="w-4 h-4 mr-2" />
-          下载查看
-        </Button>
+        <p class="text-sm">无法显示 PDF 预览</p>
       </div>
     </div>
   </div>

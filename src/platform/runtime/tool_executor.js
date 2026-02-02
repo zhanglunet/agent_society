@@ -353,6 +353,35 @@ export class ToolExecutor {
           parameters: { type: "object", properties: {} }
         }
       },
+      {
+        type: "function",
+        function: {
+          name: "search_text",
+          description: "在工作空间的指定子文件夹内搜索文本字符串，返回匹配的文件名、行号和列号列表。",
+          parameters: {
+            type: "object",
+            properties: {
+              path: {
+                type: "string",
+                description: "子目录的相对路径"
+              },
+              text: {
+                type: "string",
+                description: "要搜索的文本字符串"
+              },
+              caseSensitive: {
+                type: "boolean",
+                description: "是否区分大小写，默认为 true"
+              },
+              maxResults: {
+                type: "number",
+                description: "最大返回结果数，默认为 1000"
+              }
+            },
+            required: ["path", "text"]
+          }
+        }
+      },
       // 合并模块提供的工具定义
       ...runtime.moduleLoader.getToolDefinitions()
     ];
@@ -453,6 +482,8 @@ export class ToolExecutor {
           return await this._executeDeleteFile(ctx, args);
         case "get_workspace_info":
           return await this._executeGetWorkspaceInfo(ctx, args);
+        case "search_text":
+          return await this._executeSearchText(ctx, args);
         default:
           void runtime.log?.warn?.("未知工具调用", { toolName });
           return { error: `unknown_tool:${toolName}` };
@@ -1057,5 +1088,34 @@ export class ToolExecutor {
     }
     const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
     return await ws.getDiskUsage();
+  }
+
+  async _executeSearchText(ctx, args) {
+    const runtime = this.runtime;
+    const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+    if (!workspaceId) {
+      return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
+    }
+
+    if (!args.text || typeof args.text !== "string") {
+      return { error: "missing_text", message: "必须提供要搜索的文本" };
+    }
+
+    const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+    const results = await ws.searchText(
+      args.path ?? ".",
+      args.text,
+      {
+        caseSensitive: Boolean(args.caseSensitive),
+        maxResults: args.maxResults ?? 1000
+      }
+    );
+
+    return {
+      results,
+      count: results.length,
+      path: args.path ?? ".",
+      text: args.text
+    };
   }
 }

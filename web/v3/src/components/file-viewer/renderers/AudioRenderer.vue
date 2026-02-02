@@ -7,8 +7,7 @@
  * @module components/file-viewer/renderers/AudioRenderer
  */
 import { ref, onMounted } from 'vue';
-import { Music, Download, AlertCircle } from 'lucide-vue-next';
-import Button from 'primevue/button';
+import { Music, AlertCircle } from 'lucide-vue-next';
 import { fileViewerService } from '../services/fileViewerService';
 import type { RendererProps } from '../types';
 
@@ -25,24 +24,10 @@ onMounted(() => {
   // 直接使用原始文件 URL
   audioUrl.value = fileViewerService.getRawFileUrl(props.workspaceId, props.filePath);
 });
-
-/**
- * 下载
- */
-const download = () => {
-  fileViewerService.downloadFile(props.workspaceId, props.filePath, props.fileName);
-};
 </script>
 
 <template>
   <div class="audio-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-end gap-2 p-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <Button variant="text" size="small" v-tooltip.top="'下载'" @click="download">
-        <Download class="w-4 h-4" />
-      </Button>
-    </div>
-
     <!-- 音频显示区域 -->
     <div class="flex-1 flex flex-col items-center justify-center p-8">
       <div v-if="error" class="flex flex-col items-center text-[var(--text-3)]">
@@ -55,7 +40,6 @@ const download = () => {
           <Music class="w-12 h-12 text-[var(--primary)]" />
         </div>
         
-        <p class="text-lg font-medium text-[var(--text-1)] mb-2">{{ fileName }}</p>
         <p class="text-sm text-[var(--text-3)] mb-6">{{ content.mimeType }}</p>
         
         <audio

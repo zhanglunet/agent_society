@@ -49,6 +49,8 @@ export interface RendererProps {
   filePath: string;
   /** 工作区ID */
   workspaceId: string;
+  /** 查看模式（preview/source，用于 Markdown/HTML） */
+  viewMode?: 'preview' | 'source';
 }
 
 /**

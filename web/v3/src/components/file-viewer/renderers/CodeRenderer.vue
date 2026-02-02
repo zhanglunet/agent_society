@@ -7,7 +7,7 @@
  * @module components/file-viewer/renderers/CodeRenderer
  */
 import { computed, ref } from 'vue';
-import { Copy, Check, Download, FileCode } from 'lucide-vue-next';
+import { Copy, Check } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import type { RendererProps } from '../types';
 
@@ -38,47 +38,6 @@ const lines = computed(() => {
 });
 
 /**
- * 语言标识
- */
-const language = computed(() => {
-  const ext = props.fileName.split('.').pop()?.toLowerCase();
-  const langMap: Record<string, string> = {
-    'js': 'javascript',
-    'ts': 'typescript',
-    'jsx': 'jsx',
-    'tsx': 'tsx',
-    'vue': 'vue',
-    'py': 'python',
-    'java': 'java',
-    'c': 'c',
-    'cpp': 'cpp',
-    'cc': 'cpp',
-    'h': 'c',
-    'hpp': 'cpp',
-    'go': 'go',
-    'rs': 'rust',
-    'rb': 'ruby',
-    'php': 'php',
-    'swift': 'swift',
-    'kt': 'kotlin',
-    'css': 'css',
-    'scss': 'scss',
-    'sass': 'sass',
-    'less': 'less',
-    'html': 'html',
-    'htm': 'html',
-    'xml': 'xml',
-    'json': 'json',
-    'yaml': 'yaml',
-    'yml': 'yaml',
-    'sql': 'sql',
-    'sh': 'bash',
-    'bash': 'bash'
-  };
-  return langMap[ext || ''] || 'plaintext';
-});
-
-/**
  * 复制到剪贴板
  */
 const copyToClipboard = async () => {
@@ -91,21 +50,6 @@ const copyToClipboard = async () => {
   } catch (err) {
     console.error('复制失败:', err);
   }
-};
-
-/**
- * 下载
- */
-const download = () => {
-  const blob = new Blob([codeContent.value], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = props.fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 };
 
 /**
@@ -145,29 +89,19 @@ const highlightLine = (line: string): string => {
 </script>
 
 <template>
-  <div class="code-renderer flex flex-col h-full bg-[var(--bg)]">
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-      <div class="flex items-center gap-2">
-        <FileCode class="w-4 h-4 text-[var(--primary)]" />
-        <span class="text-sm text-[var(--text-1)]">{{ language }}</span>
-        <span class="text-xs text-[var(--text-3)]">({{ lines.length }} 行)</span>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <Button
-          variant="text"
-          size="small"
-          v-tooltip.top="copied ? '已复制' : '复制'"
-          @click="copyToClipboard"
-        >
-          <Check v-if="copied" class="w-4 h-4 text-green-500" />
-          <Copy v-else class="w-4 h-4" />
-        </Button>
-        <Button variant="text" size="small" v-tooltip.top="'下载'" @click="download">
-          <Download class="w-4 h-4" />
-        </Button>
-      </div>
+  <div class="code-renderer flex flex-col h-full bg-[var(--bg)] relative">
+    <!-- 悬浮复制按钮 -->
+    <div class="absolute top-3 right-3 z-10">
+      <Button
+        variant="text"
+        size="small"
+        v-tooltip.bottom="copied ? '已复制' : '复制代码'"
+        @click="copyToClipboard"
+        class="bg-[var(--surface-1)]/80 backdrop-blur"
+      >
+        <Check v-if="copied" class="w-4 h-4 text-green-500" />
+        <Copy v-else class="w-4 h-4" />
+      </Button>
     </div>
 
     <!-- 代码内容 -->
