@@ -86,8 +86,9 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
         maxHeight: '100vh'
       },
       modal: true,
-      dismissableMask: true,
+      dismissableMask: false,
       closable: false,
+      closeOnEscape: false,
       maximizable: false,
       pt: {
         root: ({ state }: any) => ({
