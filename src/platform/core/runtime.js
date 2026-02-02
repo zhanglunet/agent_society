@@ -1492,7 +1492,7 @@ export class Runtime {
       return { ok: false, error: "invalid_summary" };
     }
 
-    const keepRecentCount = args?.keepRecentCount ?? 10;
+    const keepRecentCount = args?.keepRecentCount ?? 30;
 
     // 获取压缩前的上下文状态
     const beforeStatus = this._conversationManager.getContextStatus(agentId);

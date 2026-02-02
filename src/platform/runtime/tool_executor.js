@@ -248,8 +248,8 @@ export class ToolExecutor {
           parameters: {
             type: "object",
             properties: {
-              summary: { type: "string", description: "对被压缩历史的重要内容摘要" },
-              keepRecentCount: { type: "number", description: "保留最近多少条消息，默认10" }
+              summary: { type: "string", description: "对被压缩历史的重要内容摘要，要包含重要的、必须保留的信息和历史经验的总结。" },
+              keepRecentCount: { type: "number", description: "保留最近多少条消息，默认30" }
             },
             required: ["summary"]
           }
