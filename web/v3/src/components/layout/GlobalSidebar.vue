@@ -4,6 +4,8 @@ import InputText from 'primevue/inputtext';
 import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2, Layers } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
+import { useChatStore } from '../../stores/chat';
+import { templateApi } from '../../services/templateApi';
 import { useDialog } from 'primevue/usedialog';
 import { ref, computed } from 'vue';
 import ArtifactsList from '../artifacts/ArtifactsList.vue';
@@ -13,6 +15,7 @@ import OrgTemplateManager from '../template/OrgTemplateManager.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
+const chatStore = useChatStore();
 const dialog = useDialog();
 
 const searchQuery = ref('');
@@ -73,7 +76,7 @@ const openSettings = () => {
 };
 
 const openTemplateManager = () => {
-  dialog.open(OrgTemplateManager, {
+  const dialogRef = dialog.open(OrgTemplateManager, {
     props: {
       header: '组织模板管理器',
       style: {
@@ -98,6 +101,46 @@ const openTemplateManager = () => {
             state.maximized ? '!w-full !h-[calc(100vh-4rem)]' : ''
           ]
         })
+      }
+    },
+    // 监听 useTemplate 事件
+    emits: {
+      useTemplate: async (template: { id: string; name: string }) => {
+        // 关闭对话框
+        dialogRef.close();
+        
+        // 跳转到首页
+        appStore.openTab({
+          id: 'home',
+          type: 'org',
+          title: '首页'
+        });
+        
+        try {
+          // 获取模板内容（包含 org.md）
+          const content = await templateApi.getTemplateContent(template.id);
+          
+          // 开启 root 新会话
+          await chatStore.rootNewSession();
+          
+          // 构造提示词，包含 org.md 内容
+          const prompt = `请基于以下组织模板创建一个新的组织：
+
+## 组织模板名称
+${template.name}
+
+## 组织架构定义 (org.md)
+\`\`\`markdown
+${content.org}
+\`\`\`
+
+请根据以上模板创建组织，建立相应的岗位和智能体。`;
+          
+          // 发送消息给 root
+          await chatStore.sendMessage('root', prompt);
+        } catch (error) {
+          console.error('使用模板创建组织失败:', error);
+        }
       }
     }
   });

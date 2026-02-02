@@ -1534,18 +1534,21 @@ export class HTTPServer {
           computeStatus: getComputeStatus("user"),
           customName: null
         },
-        ...persistedAgents.map(a => ({
-          id: a.id,
-          roleId: a.roleId,
-          roleName: roleMap.get(a.roleId) ?? a.roleId,
-          parentAgentId: a.parentAgentId,
-          createdAt: a.createdAt,
-          lastActiveAt: this._getLastActiveAt(a.id),
-          status: a.status ?? "active",
-          computeStatus: getComputeStatus(a.id),
-          terminatedAt: a.terminatedAt,
-          customName: a.name ?? null
-        }))
+        // 过滤掉已终止的智能体
+        ...persistedAgents
+          .filter(a => a.status !== "terminated")
+          .map(a => ({
+            id: a.id,
+            roleId: a.roleId,
+            roleName: roleMap.get(a.roleId) ?? a.roleId,
+            parentAgentId: a.parentAgentId,
+            createdAt: a.createdAt,
+            lastActiveAt: this._getLastActiveAt(a.id),
+            status: a.status ?? "active",
+            computeStatus: getComputeStatus(a.id),
+            terminatedAt: a.terminatedAt,
+            customName: a.name ?? null
+          }))
       ];
       
       void this.log.debug("HTTP查询智能体列表", { count: agents.length });
@@ -1594,8 +1597,11 @@ export class HTTPServer {
       }
 
       const org = this.society.runtime.org;
-      const roles = org ? org.listRoles() : [];
+      const allRoles = org ? org.listRoles() : [];
       const agents = org ? org.listAgents() : [];
+
+      // 过滤已删除的岗位
+      const roles = allRoles.filter(r => r.status !== "deleted");
 
       // 统计每个岗位的智能体数量
       const agentCountByRole = new Map();
@@ -2065,8 +2071,11 @@ export class HTTPServer {
       }
 
       const org = this.society.runtime.org;
-      const agents = org ? org.listAgents() : [];
+      const allAgents = org ? org.listAgents() : [];
       const roles = org ? org.listRoles() : [];
+
+      // 过滤已终止的智能体
+      const agents = allAgents.filter(a => a.status !== "terminated");
       
       // 创建岗位ID到名称的映射
       const roleMap = new Map(roles.map(r => [r.id, r.name]));
@@ -2139,6 +2148,9 @@ export class HTTPServer {
       const roles = org ? org.listRoles() : [];
       const agents = org ? org.listAgents() : [];
 
+      // 过滤已删除的岗位
+      const activeRoles = roles.filter(r => r.status !== "deleted");
+
       // 统计每个岗位的智能体数量（区分活跃和已终止）
       const agentCountByRole = new Map();
       const activeAgentCountByRole = new Map();
@@ -2165,8 +2177,8 @@ export class HTTPServer {
         children: []
       });
 
-      // 添加用户定义的岗位
-      for (const role of roles) {
+      // 添加用户定义的岗位（只添加未删除的）
+      for (const role of activeRoles) {
         roleMap.set(role.id, {
           id: role.id,
           name: role.name,

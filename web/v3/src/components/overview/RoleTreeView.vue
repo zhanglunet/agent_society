@@ -57,6 +57,15 @@
                                 <div class="role-node-header">
                                     <Network class="w-4 h-4 text-[var(--primary)]" />
                                     <span class="role-name">{{ slotProps.node.label }}</span>
+                                    <div v-if="!slotProps.node.data?.isVirtual" class="flex-grow flex justify-end">
+                                        <button 
+                                            class="delete-btn" 
+                                            @click.stop="handleDeleteRole(slotProps.node.key, slotProps.node.label)"
+                                            title="删除岗位及所有子分支"
+                                        >
+                                            <Trash2 class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="role-node-body">
                                     <div v-if="!slotProps.node.data?.isVirtual" class="role-id">{{ slotProps.node.key?.toString().split('-')[0] }}</div>
@@ -101,10 +110,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick } from 'vue';
-import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2 } from 'lucide-vue-next';
+import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2, Trash2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import OrganizationChart from 'primevue/organizationchart';
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 
+const confirm = useConfirm();
+const toast = useToast();
 const loading = ref(true);
 const containerRef = ref<HTMLElement | null>(null);
 const roleTree = ref<any>(null);
@@ -296,6 +309,64 @@ const fetchData = async () => {
     }
 };
 
+const handleDeleteRole = (roleId: string, roleName: string) => {
+    confirm.require({
+        message: `确定要删除岗位 "${roleName}" 吗？\n注意：这将递归删除该岗位及其所有子分支（包括所有关联的智能体）。此操作不可撤销！`,
+        header: '确认删除',
+        icon: 'pi pi-exclamation-triangle',
+        rejectProps: {
+            label: '取消',
+            severity: 'secondary',
+            outlined: true
+        },
+        acceptProps: {
+            label: '确定删除',
+            severity: 'danger'
+        },
+        accept: async () => {
+            try {
+                const response = await fetch(`http://localhost:2999/api/role/${encodeURIComponent(roleId)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        reason: '用户从总览视图删除',
+                        deletedBy: 'user'
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    toast.add({ 
+                        severity: 'success', 
+                        summary: '删除成功', 
+                        detail: `岗位 "${roleName}" 及其分支已删除`, 
+                        life: 3000 
+                    });
+                    // 刷新数据
+                    await fetchData();
+                } else {
+                    toast.add({ 
+                        severity: 'error', 
+                        summary: '删除失败', 
+                        detail: result.message || result.error, 
+                        life: 5000 
+                    });
+                }
+            } catch (error) {
+                console.error('删除岗位失败:', error);
+                toast.add({ 
+                    severity: 'error', 
+                    summary: '网络错误', 
+                    detail: '删除岗位失败，请检查网络连接。', 
+                    life: 5000 
+                });
+            }
+        }
+    });
+};
+
 onMounted(() => {
     fetchData();
 });
@@ -350,6 +421,25 @@ onMounted(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.delete-btn {
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-3);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .role-node-body {

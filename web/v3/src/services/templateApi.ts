@@ -118,4 +118,38 @@ export const templateApi = {
       }),
     ]);
   },
+
+  /**
+   * 创建新的组织模板
+   * 
+   * 在 org 目录下创建新的模板文件夹，包含空的 info.md 和 org.md
+   * 
+   * 调用后端接口: POST /api/org-templates
+   * 
+   * @param orgName - 组织模板名称（只能包含字母、数字、下划线和短横线）
+   * @returns 创建结果
+   * @throws 创建失败时抛出错误
+   */
+  async createTemplate(orgName: string): Promise<{ ok: boolean; orgName: string }> {
+    return request<{ ok: boolean; orgName: string }>('/org-templates', {
+      method: 'POST',
+      body: JSON.stringify({ orgName }),
+    });
+  },
+
+  /**
+   * 删除组织模板
+   * 
+   * 删除 org 目录下指定的模板文件夹及其内容
+   * 
+   * 调用后端接口: DELETE /api/org-templates/:templateId
+   * 
+   * @param templateId - 模板 ID（文件夹名称）
+   * @throws 删除失败时抛出错误
+   */
+  async deleteTemplate(templateId: string): Promise<{ ok: boolean; orgName: string }> {
+    return request<{ ok: boolean; orgName: string }>(`/org-templates/${encodeURIComponent(templateId)}`, {
+      method: 'DELETE',
+    });
+  },
 };

@@ -11,7 +11,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import Button from 'primevue/button';
 import ScrollPanel from 'primevue/scrollpanel';
 import Textarea from 'primevue/textarea';
-import { Folder, FileText, Info, Building, Loader2, AlertCircle, Save, Check, X } from 'lucide-vue-next';
+import InputText from 'primevue/inputtext';
+import { Folder, FileText, Info, Building, Loader2, AlertCircle, Save, Check, X, Plus, Trash2 } from 'lucide-vue-next';
 import { templateApi } from '../../services/templateApi';
 import type { OrgTemplate } from '../../types';
 
@@ -29,6 +30,15 @@ const error = ref<string>('');
 const saveStatus = ref<'idle' | 'success' | 'error'>('idle');
 const saveMessage = ref<string>('');
 
+// 添加/删除对话框状态
+const showAddDialog = ref(false);
+const showDeleteDialog = ref(false);
+const newTemplateName = ref('');
+const addError = ref('');
+const deleteError = ref('');
+const adding = ref(false);
+const deleting = ref(false);
+
 // 计算属性：当前选中的模板
 const selectedTemplate = computed(() => {
   return templates.value.find(t => t.id === selectedTemplateId.value);
@@ -37,6 +47,11 @@ const selectedTemplate = computed(() => {
 // 计算属性：内容是否有变更
 const hasChanges = computed(() => {
   return templateInfo.value !== originalInfo.value || templateOrg.value !== originalOrg.value;
+});
+
+// 计算属性：新模板名称是否有效
+const isValidNewTemplateName = computed(() => {
+  return /^[A-Za-z0-9_-]+$/.test(newTemplateName.value);
 });
 
 /**
@@ -155,6 +170,100 @@ const emit = defineEmits<{
   (e: 'useTemplate', template: OrgTemplate): void;
 }>();
 
+/**
+ * 打开添加模板对话框
+ */
+const openAddDialog = () => {
+  newTemplateName.value = '';
+  addError.value = '';
+  showAddDialog.value = true;
+};
+
+/**
+ * 关闭添加模板对话框
+ */
+const closeAddDialog = () => {
+  showAddDialog.value = false;
+  newTemplateName.value = '';
+  addError.value = '';
+};
+
+/**
+ * 创建新模板
+ */
+const createTemplate = async () => {
+  if (!isValidNewTemplateName.value) {
+    addError.value = '模板名称只能包含字母、数字、下划线和短横线';
+    return;
+  }
+  
+  // 检查是否已存在
+  if (templates.value.some(t => t.id === newTemplateName.value)) {
+    addError.value = '该模板名称已存在';
+    return;
+  }
+  
+  adding.value = true;
+  addError.value = '';
+  
+  try {
+    await templateApi.createTemplate(newTemplateName.value);
+    // 刷新模板列表
+    await loadTemplates();
+    // 选中新创建的模板
+    selectedTemplateId.value = newTemplateName.value;
+    closeAddDialog();
+  } catch (err) {
+    addError.value = err instanceof Error ? err.message : '创建模板失败';
+  } finally {
+    adding.value = false;
+  }
+};
+
+/**
+ * 打开删除模板对话框
+ */
+const openDeleteDialog = () => {
+  if (!selectedTemplate.value) return;
+  deleteError.value = '';
+  showDeleteDialog.value = true;
+};
+
+/**
+ * 关闭删除模板对话框
+ */
+const closeDeleteDialog = () => {
+  showDeleteDialog.value = false;
+  deleteError.value = '';
+};
+
+/**
+ * 删除当前选中的模板
+ */
+const deleteTemplate = async () => {
+  if (!selectedTemplateId.value) return;
+  
+  deleting.value = true;
+  deleteError.value = '';
+  
+  try {
+    await templateApi.deleteTemplate(selectedTemplateId.value);
+    // 刷新模板列表
+    await loadTemplates();
+    // 清空选中
+    selectedTemplateId.value = '';
+    templateInfo.value = '';
+    templateOrg.value = '';
+    originalInfo.value = '';
+    originalOrg.value = '';
+    closeDeleteDialog();
+  } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : '删除模板失败';
+  } finally {
+    deleting.value = false;
+  }
+};
+
 // 监听选中模板变化，加载内容
 watch(selectedTemplateId, (newId) => {
   if (newId) {
@@ -190,9 +299,20 @@ onMounted(() => {
       <div class="w-64 flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
         <!-- 列表头部 -->
         <div class="p-4 border-b border-[var(--border)]">
-          <div class="flex items-center gap-2 text-[var(--text-1)]">
-            <Folder class="w-5 h-5 text-[var(--primary)]" />
-            <span class="font-semibold">组织模板</span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-[var(--text-1)]">
+              <Folder class="w-5 h-5 text-[var(--primary)]" />
+              <span class="font-semibold">组织模板</span>
+            </div>
+            <!-- 添加模板按钮 -->
+            <Button
+              variant="text"
+              size="small"
+              v-tooltip.top="'添加新模板'"
+              @click="openAddDialog"
+            >
+              <Plus class="w-4 h-4" />
+            </Button>
           </div>
           <p class="text-xs text-[var(--text-3)] mt-1">
             共 {{ templates.length }} 个模板
@@ -329,6 +449,19 @@ onMounted(() => {
               <Building class="w-4 h-4 mr-1" />
               使用
             </Button>
+            
+            <!-- 删除模板按钮 -->
+            <Button
+              v-if="selectedTemplate"
+              variant="text"
+              size="small"
+              severity="danger"
+              class="text-red-500 hover:text-red-600"
+              v-tooltip.top="'删除此模板'"
+              @click="openDeleteDialog"
+            >
+              <Trash2 class="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -392,6 +525,130 @@ onMounted(() => {
           <p class="text-sm text-[var(--text-3)] max-w-xs">
             从左侧列表选择一个组织模板，编辑其详细描述和组织架构定义
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加模板弹窗 -->
+    <div
+      v-if="showAddDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      @click.self="!adding && closeAddDialog()"
+    >
+      <!-- 遮罩 -->
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+      <!-- 弹窗内容 -->
+      <div class="relative w-[360px] bg-[var(--surface-1)] rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden">
+        <!-- 头部 -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+          <h3 class="text-sm font-medium text-[var(--text-1)]">添加组织模板</h3>
+          <button
+            v-if="!adding"
+            class="text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors"
+            @click="closeAddDialog"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+        <!-- 内容 -->
+        <div class="p-4 space-y-3">
+          <div>
+            <label class="block text-xs text-[var(--text-2)] mb-1.5">
+              模板名称
+            </label>
+            <InputText
+              v-model="newTemplateName"
+              placeholder="请输入模板名称"
+              class="w-full"
+              :invalid="!!addError"
+              @keyup.enter="createTemplate"
+            />
+            <p class="text-[11px] text-[var(--text-3)] mt-1.5">
+              只能包含字母、数字、下划线和短横线
+            </p>
+          </div>
+          
+          <div v-if="addError" class="p-2 bg-red-50 rounded text-xs text-red-600">
+            {{ addError }}
+          </div>
+        </div>
+        <!-- 底部 -->
+        <div class="flex justify-end gap-2 px-4 py-3 border-t border-[var(--border)] bg-[var(--surface-2)]">
+          <Button
+            variant="text"
+            size="small"
+            :disabled="adding"
+            @click="closeAddDialog"
+          >
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            size="small"
+            :loading="adding"
+            :disabled="!newTemplateName || !isValidNewTemplateName"
+            @click="createTemplate"
+          >
+            创建
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除模板确认弹窗 -->
+    <div
+      v-if="showDeleteDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      @click.self="!deleting && closeDeleteDialog()"
+    >
+      <!-- 遮罩 -->
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+      <!-- 弹窗内容 -->
+      <div class="relative w-[320px] bg-[var(--surface-1)] rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden">
+        <!-- 头部 -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+          <h3 class="text-sm font-medium text-[var(--text-1)]">删除组织模板</h3>
+          <button
+            v-if="!deleting"
+            class="text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors"
+            @click="closeDeleteDialog"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+        <!-- 内容 -->
+        <div class="p-4 space-y-2">
+          <p class="text-[var(--text-1)] text-sm">
+            确定要删除模板 <strong class="text-[var(--primary)]">{{ selectedTemplate?.name }}</strong> 吗？
+          </p>
+          <p class="text-xs text-[var(--text-3)]">
+            此操作将永久删除该模板及其所有内容，无法恢复。
+          </p>
+          
+          <div v-if="deleteError" class="p-2 bg-red-50 rounded text-xs text-red-600">
+            {{ deleteError }}
+          </div>
+        </div>
+        <!-- 底部 -->
+        <div class="flex justify-end gap-2 px-4 py-3 border-t border-[var(--border)] bg-[var(--surface-2)]">
+          <Button
+            variant="text"
+            size="small"
+            :disabled="deleting"
+            @click="closeDeleteDialog"
+          >
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            size="small"
+            severity="danger"
+            :loading="deleting"
+            class="bg-red-500 hover:bg-red-600"
+            @click="deleteTemplate"
+          >
+            删除
+          </Button>
         </div>
       </div>
     </div>

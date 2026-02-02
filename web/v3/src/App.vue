@@ -13,6 +13,8 @@
 import GlobalSidebar from './components/layout/GlobalSidebar.vue';
 import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
 import SettingsDialog from './components/settings/SettingsDialog.vue';
+import ConfirmDialog from 'primevue/confirmdialog';
+import Toast from 'primevue/toast';
 import Button from 'primevue/button';
 import { Sun, Moon, AlertCircle } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
@@ -169,6 +171,9 @@ onUnmounted(stopGlobalSync);
       <!-- 核心工作区标签页 -->
       <WorkspaceTabs />
     </main>
+
+    <ConfirmDialog />
+    <Toast />
   </div>
 </template>
 

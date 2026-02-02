@@ -633,11 +633,16 @@ export class OrgPrimitives {
     const affectedRoles = [];
 
     // 1. 终止该岗位上的所有智能体
+    const agentIdsToDelete = [];
     for (const [agentId, agent] of this._agents) {
       if (agent.roleId === roleId && agent.status !== "terminated") {
-        await this.recordTermination(agentId, deletedBy, `岗位已删除: ${role.name}`);
-        affectedAgents.push(agentId);
+        agentIdsToDelete.push(agentId);
       }
+    }
+
+    for (const agentId of agentIdsToDelete) {
+      await this.recordTermination(agentId, deletedBy, `岗位已删除: ${role.name}`);
+      affectedAgents.push(agentId);
     }
 
     // 2. 递归删除子岗位（通过智能体的父子关系推断岗位层级）
@@ -705,11 +710,16 @@ export class OrgPrimitives {
       const childRole = this._roles.get(childRoleId);
       if (childRole && childRole.status !== "deleted") {
         // 终止该子岗位上的所有智能体
+        const childAgentIdsToDelete = [];
         for (const [agentId, agent] of this._agents) {
           if (agent.roleId === childRoleId && agent.status !== "terminated") {
-            await this.recordTermination(agentId, deletedBy, `父岗位已删除（级联删除）`);
-            affectedAgents.push(agentId);
+            childAgentIdsToDelete.push(agentId);
           }
+        }
+
+        for (const agentId of childAgentIdsToDelete) {
+          await this.recordTermination(agentId, deletedBy, `父岗位已删除（级联删除）`);
+          affectedAgents.push(agentId);
         }
 
         // 标记子岗位为已删除
