@@ -1,50 +1,37 @@
 <script setup lang="ts">
 /**
  * 文件内容查看器组件
- * 
+ *
  * @module components/file-viewer/FileViewer
  */
-import { ref, computed, onMounted, shallowRef, inject, type Ref } from 'vue';
+import { ref, computed, onMounted, shallowRef, inject, provide, toRef } from 'vue';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { fileViewerService } from './services/fileViewerService';
 import { mimeTypeRegistry } from './mimeTypeRegistry';
-import type { FileViewerOptions, FileContent } from './types';
+import { ViewModeKey } from './index';
+import type { FileContent } from './types';
 
 // 注入 Dialog 数据
 const dialogRef = inject<any>('dialogRef');
 
-// 从 dialog 获取数据或使用 props
-const getDialogData = () => {
-  if (dialogRef?.value?.data) {
-    return {
-      workspaceId: dialogRef.value.data.workspaceId,
-      filePath: dialogRef.value.data.filePath,
-      fileName: dialogRef.value.data.fileName,
-      viewMode: dialogRef.value.data.viewMode as Ref<'preview' | 'source'> | undefined,
-      options: dialogRef.value.data.options
-    };
-  }
-  return null;
-};
+// 获取 dialog 数据
+const dialogData = dialogRef?.value?.data;
 
-// 组件属性
-const props = defineProps<{
-  workspaceId?: string;
-  filePath?: string;
-  options?: FileViewerOptions;
-}>();
+// 响应式数据
+const workspaceId = ref(dialogData?.workspaceId || '');
+const filePath = ref(dialogData?.filePath || '');
+const fileName = ref(dialogData?.fileName || '');
 
-// 获取实际的数据（优先从 dialog 获取）
-const actualData = computed(() => {
-  const dialogData = getDialogData();
-  return {
-    workspaceId: dialogData?.workspaceId || props.workspaceId || '',
-    filePath: dialogData?.filePath || props.filePath || '',
-    fileName: dialogData?.fileName || '',
-    viewMode: dialogData?.viewMode,
-    options: dialogData?.options || props.options
-  };
-});
+// viewMode - 使用 toRef 保持引用，避免自动解包
+const viewMode = dialogData ? toRef(dialogData, 'viewMode') : ref<'preview' | 'source'>('preview');
+
+console.log('[FileViewer] dialogData:', dialogData);
+console.log('[FileViewer] viewMode:', viewMode);
+console.log('[FileViewer] Is Ref?', typeof viewMode === 'object' && viewMode !== null && 'value' in viewMode);
+console.log('[FileViewer] viewMode.value:', viewMode.value);
+
+// 提供给子组件
+provide(ViewModeKey, viewMode);
 
 // 组件状态
 const loading = ref(false);
@@ -54,7 +41,7 @@ const rendererComponent = shallowRef<any>(null);
 
 // 文件扩展名
 const fileExtension = computed(() => {
-  const path = actualData.value.filePath;
+  const path = filePath.value;
   if (!path) return '';
   const parts = path.split('.');
   return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
@@ -66,17 +53,15 @@ const fileExtension = computed(() => {
 const loadFile = async () => {
   loading.value = true;
   error.value = null;
-  
-  const { workspaceId, filePath } = actualData.value;
-  
-  if (!workspaceId || !filePath) {
+
+  if (!workspaceId.value || !filePath.value) {
     error.value = '缺少必要参数';
     loading.value = false;
     return;
   }
-  
+
   try {
-    const content = await fileViewerService.getFile(workspaceId, filePath);
+    const content = await fileViewerService.getFile(workspaceId.value, filePath.value);
     fileContent.value = content;
     const renderer = mimeTypeRegistry.getRenderer(content.mimeType, fileExtension.value);
     rendererComponent.value = renderer;
@@ -120,10 +105,9 @@ onMounted(() => {
         v-else-if="rendererComponent && fileContent"
         :is="rendererComponent"
         :content="fileContent"
-        :file-name="actualData.fileName"
-        :file-path="actualData.filePath"
-        :workspace-id="actualData.workspaceId"
-        :view-mode="actualData.viewMode?.value || 'preview'"
+        :file-name="fileName"
+        :file-path="filePath"
+        :workspace-id="workspaceId"
         class="h-full"
       />
 

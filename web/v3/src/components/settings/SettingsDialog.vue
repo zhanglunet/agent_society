@@ -7,7 +7,7 @@
  * @author Agent Society
  */
 import { ref, onMounted, computed, inject } from 'vue';
-import { Settings, Puzzle, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle, X, Trash2, Plus } from 'lucide-vue-next';
+import { Settings, Info, Moon, Sun, Server, Key, Globe, Cpu, Save, Loader2, AlertCircle, X, Trash2, Plus } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -72,13 +72,6 @@ const serviceForm = ref({
 const serviceTagInput = ref('');
 const serviceSaving = ref(false);
 const serviceError = ref('');
-
-// 插件列表（示例数据）
-const plugins = ref([
-  { id: '1', name: 'Python 解释器', description: '允许智能体运行 Python 代码进行计算', status: 'active', version: '1.0.2' },
-  { id: '2', name: 'Web 搜索', description: '赋予智能体搜索互联网的能力', status: 'active', version: '2.1.0' },
-  { id: '3', name: '文件系统访问', description: '受限的本地文件读写权限', status: 'inactive', version: '0.9.5' },
-]);
 
 // 计算属性：LLM 配置是否有变更
 const hasLlmChanges = computed(() => {
@@ -157,13 +150,6 @@ const resetLlmConfig = () => {
   llmConfig.value = { ...originalLlmConfig.value };
   llmError.value = '';
   llmSuccess.value = false;
-};
-
-/**
- * 切换插件状态
- */
-const togglePlugin = (plugin: any) => {
-  plugin.status = plugin.status === 'active' ? 'inactive' : 'active';
 };
 
 /**
@@ -349,10 +335,6 @@ onMounted(() => {
         <Tab v-if="!isFirstRun" value="services" class="flex items-center gap-2">
           <Cpu class="w-4 h-4" />
           <span>模型服务</span>
-        </Tab>
-        <Tab v-if="!isFirstRun" value="plugins" class="flex items-center gap-2">
-          <Puzzle class="w-4 h-4" />
-          <span>插件管理</span>
         </Tab>
         <Tab v-if="!isFirstRun" value="about" class="flex items-center gap-2;">
           <Info class="w-4 h-4" />
@@ -574,35 +556,6 @@ onMounted(() => {
                 <p>暂无自定义模型服务</p>
                 <p class="text-xs mt-1">点击上方按钮添加</p>
               </div>
-            </div>
-          </div>
-        </TabPanel>
-
-        <!-- 插件管理 -->
-        <TabPanel v-if="!isFirstRun" value="plugins" class="p-6">
-          <div class="grid grid-cols-1 gap-4">
-            <div v-for="plugin in plugins" :key="plugin.id" 
-                 class="p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] flex items-start justify-between">
-              <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-lg bg-[var(--surface-3)] flex items-center justify-center text-[var(--primary)]">
-                  <Puzzle class="w-5 h-5" />
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <p class="font-medium text-[var(--text-1)]">{{ plugin.name }}</p>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface-3)] text-[var(--text-3)]">v{{ plugin.version }}</span>
-                  </div>
-                  <p class="text-xs text-[var(--text-3)] mt-1">{{ plugin.description }}</p>
-                </div>
-              </div>
-              <Button 
-                :variant="plugin.status === 'active' ? 'text' : 'primary'"
-                size="small"
-                @click="togglePlugin(plugin)"
-                :class="[plugin.status === 'active' ? 'text-red-500 hover:bg-red-50' : 'bg-[var(--primary)] text-white']"
-              >
-                {{ plugin.status === 'active' ? '禁用' : '启用' }}
-              </Button>
             </div>
           </div>
         </TabPanel>

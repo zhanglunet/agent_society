@@ -1,8 +1,11 @@
 <script setup lang="ts">
 /**
- * 文件查看器标题栏组件
+ * 文件查看器自定义标题栏
+ * 
+ * 包含：文件名 | 类型·大小 | [预览|源码] | 下载 | 全屏 | 关闭
  */
-import { computed, type Ref } from 'vue';
+import { computed } from 'vue';
+import type { Ref } from 'vue';
 import { X, Download, Maximize2, Minimize2, Eye, Code } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import { fileViewerService } from './services/fileViewerService';
@@ -14,11 +17,35 @@ const props = defineProps<{
   mimeType?: string;
   size?: number;
   hasViewMode?: boolean;
-  viewMode: Ref<'preview' | 'source'>;
-  maximized: Ref<boolean>;
-  maximize?: () => void;
-  close?: () => void;
+  viewMode?: Ref<'preview' | 'source'>;
+  maximized?: boolean;
 }>();
+
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'maximize'): void;
+}>();
+
+// 当前 viewMode 值
+const currentMode = computed(() => props.viewMode?.value ?? 'preview');
+
+// 设置 viewMode
+const setPreview = () => {
+  console.log('[FileViewerHeader] setPreview called, props.viewMode:', props.viewMode);
+  if (props.viewMode) {
+    console.log('[FileViewerHeader] Before set, current value:', props.viewMode.value);
+    props.viewMode.value = 'preview';
+    console.log('[FileViewerHeader] After set, new value:', props.viewMode.value);
+  }
+};
+const setSource = () => {
+  console.log('[FileViewerHeader] setSource called, props.viewMode:', props.viewMode);
+  if (props.viewMode) {
+    console.log('[FileViewerHeader] Before set, current value:', props.viewMode.value);
+    props.viewMode.value = 'source';
+    console.log('[FileViewerHeader] After set, new value:', props.viewMode.value);
+  }
+};
 
 const isDownloadable = computed(() => {
   if (!props.mimeType) return true;
@@ -35,15 +62,11 @@ const downloadFile = () => {
 };
 
 const handleMaximize = () => {
-  if (props.maximize) {
-    props.maximize();
-  }
+  emit('maximize');
 };
 
 const handleClose = () => {
-  if (props.close) {
-    props.close();
-  }
+  emit('close');
 };
 </script>
 
@@ -62,21 +85,21 @@ const handleClose = () => {
     <!-- 右侧按钮组 -->
     <div class="flex items-center gap-0.5 shrink-0">
       <!-- 预览/源码切换 -->
-      <div v-if="hasViewMode" class="flex items-center gap-0.5 mr-2">
+      <div v-if="hasViewMode && viewMode" class="flex items-center gap-0.5 mr-2">
         <Button
-          :variant="viewMode.value === 'preview' ? 'primary' : 'text'"
+          :variant="currentMode === 'preview' ? 'primary' : 'text'"
           size="small"
           class="!px-2 !py-1"
-          @click="viewMode.value = 'preview'"
+          @click="setPreview"
         >
           <Eye class="w-3.5 h-3.5 mr-1" />
           预览
         </Button>
         <Button
-          :variant="viewMode.value === 'source' ? 'primary' : 'text'"
+          :variant="currentMode === 'source' ? 'primary' : 'text'"
           size="small"
           class="!px-2 !py-1"
-          @click="viewMode.value = 'source'"
+          @click="setSource"
         >
           <Code class="w-3.5 h-3.5 mr-1" />
           源码
@@ -101,9 +124,9 @@ const handleClose = () => {
         size="small"
         @click="handleMaximize"
         class="!w-8 !h-8"
-        v-tooltip.bottom="maximized.value ? '还原' : '全屏'"
+        v-tooltip.bottom="maximized ? '还原' : '全屏'"
       >
-        <Minimize2 v-if="maximized.value" class="w-4 h-4" />
+        <Minimize2 v-if="maximized" class="w-4 h-4" />
         <Maximize2 v-else class="w-4 h-4" />
       </Button>
       

@@ -4,11 +4,21 @@
  * 
  * @module components/file-viewer/renderers/HtmlRenderer
  */
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { AlertTriangle } from 'lucide-vue-next';
+import { ViewModeKey } from '../index';
 import type { RendererProps } from '../types';
 
-const props = defineProps<RendererProps & { viewMode?: 'preview' | 'source' }>();
+const props = defineProps<RendererProps>();
+
+// 注入 viewMode - 这是一个 Ref
+const injectedViewMode = inject(ViewModeKey);
+// 获取当前值（如果不是 ref 则返回本身）
+const viewMode = computed(() => {
+  return typeof injectedViewMode === 'object' && injectedViewMode !== null && 'value' in injectedViewMode
+    ? injectedViewMode.value
+    : injectedViewMode;
+});
 
 /**
  * HTML 内容

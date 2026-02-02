@@ -5,11 +5,14 @@
  */
 
 import type { useDialog } from 'primevue/usedialog';
-import { h, ref } from 'vue';
+import { h, ref, type InjectionKey, type Ref } from 'vue';
 import FileViewer from './FileViewer.vue';
 import FileViewerHeader from './FileViewerHeader.vue';
 import { fileViewerService } from './services/fileViewerService';
 import type { FileViewerOptions } from './types';
+
+// 提供 viewMode 的 key
+export const ViewModeKey: InjectionKey<Ref<'preview' | 'source'>> = Symbol('viewMode');
 
 /**
  * 打开文件查看器的选项
@@ -44,7 +47,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
 
   const fileName = filePath.split('/').pop() || filePath;
 
-  // 先获取文件信息用于显示在标题栏
+  // 先获取文件信息
   let fileInfo: { mimeType?: string; size?: number; hasViewMode?: boolean } = {};
   try {
     const content = await fileViewerService.getFile(workspaceId, filePath);
@@ -59,15 +62,15 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
                    ext === 'htm'
     };
   } catch {
-    // 如果获取失败，仍然打开查看器
+    // 获取失败也继续打开
   }
 
-  // 创建响应式的 viewMode，供 header 和 content 共享
-  const viewModeRef = ref<'preview' | 'source'>('preview');
-  const maximizedRef = ref(maximized);
+  // 创建共享的 viewMode - 放在 dialog 数据中
+  const viewMode = ref<'preview' | 'source'>('preview');
 
   return dialog.open(FileViewer, {
     props: {
+      header: '', // 使用自定义 header
       style: {
         width: maximized ? '100vw' : width,
         height: maximized ? '100vh' : height,
@@ -84,6 +87,9 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
             state.maximized ? '!w-screen !h-screen !max-w-none !m-0' : ''
           ]
         }),
+        header: {
+          class: ['hidden'] // 隐藏默认 header，使用自定义
+        },
         content: ({ state }: any) => ({
           class: [
             'overflow-hidden p-0',
@@ -96,28 +102,41 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
       workspaceId,
       filePath,
       fileName,
-      viewMode: viewModeRef,
-      maximized: maximizedRef,
+      viewMode, // 共享的 viewMode
+      mimeType: fileInfo.mimeType,
+      size: fileInfo.size,
+      hasViewMode: fileInfo.hasViewMode,
       options
     },
     templates: {
-      header: (props: any) => h(FileViewerHeader, { 
-        fileName,
-        workspaceId,
-        filePath,
-        mimeType: fileInfo.mimeType,
-        size: fileInfo.size,
-        hasViewMode: fileInfo.hasViewMode,
-        viewMode: viewModeRef,
-        maximized: maximizedRef,
-        maximize: () => {
-          maximizedRef.value = !maximizedRef.value;
-          if (props?.maximize) {
-            props.maximize();
+      // 使用自定义 header
+      header: (dialogProps: any) => {
+        // 从 dialog 实例获取最新的数据
+        const instance = dialogProps?.instance;
+        const data = instance?.data;
+        const sharedViewMode = data?.viewMode || viewMode;
+        
+        return h(FileViewerHeader, {
+          fileName,
+          workspaceId,
+          filePath,
+          mimeType: fileInfo.mimeType,
+          size: fileInfo.size,
+          hasViewMode: fileInfo.hasViewMode,
+          viewMode: sharedViewMode,
+          maximized: dialogProps?.state?.maximized,
+          onMaximize: () => {
+            if (dialogProps?.maximize) {
+              dialogProps.maximize();
+            }
+          },
+          onClose: () => {
+            if (dialogProps?.close) {
+              dialogProps.close();
+            }
           }
-        },
-        close: props?.close
-      })
+        });
+      }
     }
   });
 }

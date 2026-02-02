@@ -4,10 +4,24 @@
  * 
  * @module components/file-viewer/renderers/MarkdownRenderer
  */
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
+import { ViewModeKey } from '../index';
 import type { RendererProps } from '../types';
 
-const props = defineProps<RendererProps & { viewMode?: 'preview' | 'source' }>();
+const props = defineProps<RendererProps>();
+
+// 注入 viewMode - 这是一个 Ref
+const injectedViewMode = inject(ViewModeKey);
+console.log('[MarkdownRenderer] injectedViewMode:', injectedViewMode);
+
+// 获取当前值（如果不是 ref 则返回本身）
+const viewMode = computed(() => {
+  const value = typeof injectedViewMode === 'object' && injectedViewMode !== null && 'value' in injectedViewMode
+    ? injectedViewMode.value
+    : injectedViewMode;
+  console.log('[MarkdownRenderer] viewMode computed, value:', value);
+  return value;
+});
 
 /**
  * Markdown 内容
