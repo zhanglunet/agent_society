@@ -121,38 +121,44 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
         // 创建控制方法
         const handleMaximize = () => {
           console.log('[index.ts] === handleMaximize ===');
-          console.log('[index.ts] dialogInstance:', dialogInstance);
-          console.log('[index.ts] dialogInstance keys:', dialogInstance ? Object.keys(dialogInstance) : 'N/A');
-          console.log('[index.ts] dialogProps:', dialogProps);
-          console.log('[index.ts] dialogProps keys:', dialogProps ? Object.keys(dialogProps) : 'N/A');
-
-          // 尝试不同的方式来访问 dialog 方法
           const instance = dialogInstance as any;
-          console.log('[index.ts] instance.maximize:', typeof instance?.maximize);
-          console.log('[index.ts] instance.toggleMaximize:', typeof instance?.toggleMaximize);
-          console.log('[index.ts] dialogProps.maximize:', typeof dialogProps?.maximize);
-          console.log('[index.ts] dialogProps.toggleMaximize:', typeof (dialogProps as any)?.toggleMaximize);
-          console.log('[index.ts] dialogProps.maximizable:', (dialogProps as any)?.maximizable);
-          console.log('[index.ts] dialogProps.maximized:', (dialogProps as any)?.maximized);
 
-          if (typeof instance?.maximize === 'function') {
-            instance.maximize();
-          } else if (typeof instance?.toggleMaximize === 'function') {
-            instance.toggleMaximize();
-          } else if (typeof dialogProps?.maximize === 'function') {
-            dialogProps.maximize();
-          } else if (typeof (dialogProps as any)?.toggleMaximize === 'function') {
-            (dialogProps as any).toggleMaximize();
-          } else {
-            // 尝试通过 state 属性来切换最大化状态
-            const currentState = (dialogProps as any)?.state?.maximized;
-            console.log('[index.ts] 当前 maximized 状态:', currentState);
-            // 可能需要通过设置 state 来切换
-            if ((dialogProps as any)?.state) {
-              (dialogProps as any).state.maximized = !currentState;
+          // 通过 dialog 的 key 属性来找到正确的 dialog 元素
+          const dialogKey = instance.key;
+          console.log('[index.ts] dialogKey:', dialogKey);
+
+          // 找到最新的 dialog（最后创建的）
+          const allDialogs = Array.from(document.querySelectorAll('.p-dialog')) as HTMLElement[];
+          console.log('[index.ts] 找到', allDialogs.length, '个 dialog');
+
+          // 最后创建的 dialog 应该就是我们的文件查看器
+          const targetDialog = allDialogs[allDialogs.length - 1];
+          console.log('[index.ts] targetDialog:', targetDialog);
+          console.log('[index.ts] targetDialog classList:', targetDialog?.classList);
+          console.log('[index.ts] targetDialog textContent preview:', targetDialog?.textContent?.substring(0, 100));
+
+          if (targetDialog) {
+            const isMaximized = targetDialog.classList.contains('maximized');
+            console.log('[index.ts] 当前是否最大化:', isMaximized);
+
+            if (isMaximized) {
+              // 还原
+              targetDialog.classList.remove('maximized');
+              targetDialog.style.width = instance.options.props.style.width;
+              targetDialog.style.height = instance.options.props.style.height;
+              targetDialog.style.maxWidth = instance.options.props.style.maxWidth;
+              targetDialog.style.maxHeight = instance.options.props.style.maxHeight;
             } else {
-              console.error('[index.ts] 无法找到 maximize 方法');
+              // 最大化
+              targetDialog.classList.add('maximized');
+              targetDialog.style.width = '100vw';
+              targetDialog.style.height = '100vh';
+              targetDialog.style.maxWidth = '100vw';
+              targetDialog.style.maxHeight = '100vh';
+              targetDialog.style.margin = '0';
             }
+          } else {
+            console.error('[index.ts] 无法找到 dialog 元素');
           }
         };
 
