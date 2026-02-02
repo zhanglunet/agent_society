@@ -123,10 +123,6 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           console.log('[index.ts] === handleMaximize ===');
           const instance = dialogInstance as any;
 
-          // 通过 dialog 的 key 属性来找到正确的 dialog 元素
-          const dialogKey = instance.key;
-          console.log('[index.ts] dialogKey:', dialogKey);
-
           // 找到最新的 dialog（最后创建的）
           const allDialogs = Array.from(document.querySelectorAll('.p-dialog')) as HTMLElement[];
           console.log('[index.ts] 找到', allDialogs.length, '个 dialog');
@@ -134,12 +130,12 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           // 最后创建的 dialog 应该就是我们的文件查看器
           const targetDialog = allDialogs[allDialogs.length - 1];
           console.log('[index.ts] targetDialog:', targetDialog);
-          console.log('[index.ts] targetDialog classList:', targetDialog?.classList);
-          console.log('[index.ts] targetDialog textContent preview:', targetDialog?.textContent?.substring(0, 100));
 
           if (targetDialog) {
-            const isMaximized = targetDialog.classList.contains('maximized');
-            console.log('[index.ts] 当前是否最大化:', isMaximized);
+            // 检查实际的样式来判断是否最大化，而不是只看 class
+            const actualWidth = targetDialog.style.width;
+            const isMaximized = actualWidth === '100vw';
+            console.log('[index.ts] 当前实际宽度:', actualWidth, ', 是否最大化:', isMaximized);
 
             if (isMaximized) {
               // 还原
