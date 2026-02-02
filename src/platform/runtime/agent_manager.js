@@ -90,7 +90,11 @@ export class AgentManager {
     
     const role = runtime.org.getRole(input.roleId);
     const roleName = role?.name ?? "unknown";
-    const name = await this._generateNameForRole({ roleName });
+    
+    // 如果调用者提供了姓名，则使用提供的；否则生成姓名
+    const name = typeof input.name === "string" && input.name.trim()
+      ? input.name.trim()
+      : await this._generateNameForRole({ roleName });
     
     // 在组织中创建智能体记录（包含姓名）
     const meta = await runtime.org.createAgent({ ...input, name });
@@ -665,6 +669,7 @@ export class AgentManager {
     return await this.spawnAgent({ 
       roleId: input.roleId, 
       parentAgentId: callerAgentId,
+      name: input?.name,
       taskBrief: input?.taskBrief
     });
   }

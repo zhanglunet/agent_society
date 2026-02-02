@@ -150,6 +150,10 @@ export class ToolExecutor {
             type: "object",
             properties: {
               roleId: { type: "string", description: "岗位ID" },
+              name: {
+                type: "string",
+                description: "智能体姓名（可选）。如果不提供，系统会自动生成一个中文人名。"
+              },
               taskBrief: {
                 type: "object",
                 description: "任务委托书",
@@ -702,6 +706,7 @@ export class ToolExecutor {
     try {
       const agent = await runtime.spawnAgentAs(creatorId, {
         roleId: args.roleId,
+        name: args.name,
         taskBrief: args.taskBrief
       });
 

@@ -250,9 +250,23 @@ export class RuntimeLlm {
         this.runtime._state.setAgentComputeStatus(agentId, 'idle');
         return;
       }
-      
+
+      // 调试：检查 msg._usage
+      void this.runtime.log.debug("检查 token 使用信息", {
+        agentId,
+        hasUsage: !!msg._usage,
+        usage: msg._usage,
+        msgKeys: Object.keys(msg)
+      });
+
       // 更新 token 使用统计（基于 LLM 返回的实际值）
       if (agentId && msg._usage) {
+        void this.runtime.log.debug("准备更新 token 使用统计", {
+          agentId,
+          promptTokens: msg._usage.promptTokens,
+          completionTokens: msg._usage.completionTokens
+        });
+
         this.runtime._conversationManager.updateTokenUsage(agentId, msg._usage);
         const status = this.runtime._conversationManager.getContextStatus(agentId);
         void this.runtime.log.debug("更新上下文 token 使用统计", {
@@ -273,8 +287,14 @@ export class RuntimeLlm {
             usagePercent: (status.usagePercent * 100).toFixed(1) + '%'
           });
         }
+      } else {
+        void this.runtime.log.warn("无法更新 token 使用统计 - 条件不满足", {
+          hasAgentId: !!agentId,
+          hasUsage: !!msg._usage,
+          usage: msg._usage
+        });
       }
-      
+
       conv.push(msg);
 
       const toolCalls = msg.tool_calls ?? [];
