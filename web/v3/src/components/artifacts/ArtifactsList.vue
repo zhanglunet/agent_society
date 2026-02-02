@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { FileCode, Folder, Loader2, ExternalLink } from 'lucide-vue-next';
-import Button from 'primevue/button';
+import { FileCode, Folder, Loader2 } from 'lucide-vue-next';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import { ref, inject, onMounted, computed } from 'vue';
@@ -13,7 +12,6 @@ const dialog = useDialog();
 const orgId = ref<string | undefined>();
 const files = ref<any[]>([]);
 const loading = ref(false);
-const contentLoading = ref(false);
 const expandedDirs = ref<Set<string>>(new Set());
 
 // 树形结构转换
@@ -70,8 +68,6 @@ const fileTree = computed(() => {
 });
 
 const selectedId = ref('root'); // 默认选中根目录
-const selectedFile = ref<any>(null);
-const fileContent = ref('');
 
 // 当前选中的目录
 const currentDir = ref<any>(null);
@@ -103,8 +99,6 @@ const selectFile = async (file: any) => {
     // 切换选中的目录
     currentDir.value = file;
     selectedId.value = file.path;
-    selectedFile.value = null;
-
     // 自动展开父级目录
     const parts = file.path.split('/');
     let pathAcc = '';
@@ -115,26 +109,20 @@ const selectFile = async (file: any) => {
     return;
   }
   
-  selectedId.value = file.path;
-  selectedFile.value = file;
-  fileContent.value = '';
-  
-  if (!orgId.value) return;
-  
-  contentLoading.value = true;
-  try {
-    // API 请求时需要去掉 'root/' 前缀
+  // 点击文件时使用文件查看器打开
+  if (orgId.value) {
     const apiPath = file.path.replace(/^root\//, '');
-    const res = await fetch(`/api/workspaces/${orgId.value}/file?path=${encodeURIComponent(apiPath)}`);
-    if (res.ok) {
-      const data = await res.json();
-      fileContent.value = data.content || '';
-    }
-  } catch (err) {
-    console.error('加载文件内容失败:', err);
-  } finally {
-    contentLoading.value = false;
+    openFileViewer({
+      dialog,
+      workspaceId: orgId.value,
+      filePath: apiPath,
+      width: '85vw',
+      height: '80vh'
+    });
   }
+  
+  // 更新选中状态
+  selectedId.value = file.path;
 };
 
 const fetchData = async () => {
@@ -174,23 +162,6 @@ const formatTime = (ts: string) => {
   return new Date(ts).toLocaleString();
 };
 
-/**
- * 在文件查看器中打开文件
- */
-const openInFileViewer = (file: any) => {
-  if (!orgId.value) return;
-  
-  // API 路径需要去掉 'root/' 前缀
-  const apiPath = file.path.replace(/^root\//, '');
-  
-  openFileViewer({
-    dialog,
-    workspaceId: orgId.value,
-    filePath: apiPath,
-    width: '85vw',
-    height: '80vh'
-  });
-};
 </script>
 
 <template>
@@ -234,57 +205,17 @@ const openInFileViewer = (file: any) => {
 
       <!-- 右侧预览与列表 -->
       <SplitterPanel :size="70" class="flex flex-col bg-[var(--bg)]">
-        <!-- 面包屑导航或当前目录信息 -->
-        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between">
+        <!-- 面包屑导航 -->
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center">
           <div class="flex items-center text-xs text-[var(--text-2)] overflow-hidden">
             <Folder class="w-3.5 h-3.5 mr-2 text-[var(--primary)] opacity-70" />
             <span class="font-medium truncate">{{ currentDir ? currentDir.path : '根目录' }}</span>
           </div>
-          <div v-if="selectedFile" class="flex items-center ml-4">
-            <Button 
-              variant="text" 
-              size="small" 
-              class="!py-1 !px-2 !text-[10px]"
-              @click="selectedFile = null"
-            >
-              返回列表
-            </Button>
-          </div>
         </div>
 
-        <!-- 内容区域：文件预览或目录列表 -->
+        <!-- 文件列表 -->
         <div class="flex-grow overflow-hidden relative">
-          <!-- 文件预览 -->
-          <div v-if="selectedFile" class="flex flex-col h-full overflow-hidden">
-            <div class="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-2)]">
-              <div class="flex flex-col min-w-0">
-                <h3 class="font-bold text-[var(--text-1)] truncate">{{ selectedFile.name }}</h3>
-                <p class="text-[10px] text-[var(--text-3)] mt-0.5 truncate">{{ selectedFile.path }}</p>
-              </div>
-              <div class="flex items-center space-x-4 shrink-0 ml-4 text-[10px] text-[var(--text-3)]">
-                <div class="flex flex-col items-end">
-                  <span>大小: {{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
-                  <span>修改于: {{ formatTime(selectedFile.modifiedAt) }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="flex-grow overflow-hidden relative bg-[var(--bg)]">
-              <div v-if="contentLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg)] bg-opacity-50 z-10">
-                <Loader2 class="w-8 h-8 animate-spin text-[var(--primary)]" />
-              </div>
-              <div class="h-full overflow-auto p-4">
-                <pre v-if="fileContent" class="text-sm font-mono text-[var(--text-2)] whitespace-pre-wrap break-all">{{ fileContent }}</pre>
-                <div v-else-if="!contentLoading" class="flex flex-col items-center justify-center h-full text-[var(--text-3)] opacity-50">
-                  <FileCode class="w-12 h-12 mb-2" />
-                  <p>文件内容为空或无法读取</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 详情列表 -->
-          <div v-else class="absolute inset-0 flex flex-col bg-[var(--bg)]">
+          <div class="absolute inset-0 flex flex-col bg-[var(--bg)]">
             <div class="flex-grow overflow-y-auto">
               <div v-if="currentItems.length === 0" class="flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50">
                 <FileCode class="w-16 h-16 mb-4" />
@@ -310,18 +241,7 @@ const openInFileViewer = (file: any) => {
                       <FileCode class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
                     </td>
                     <td class="py-2.5 px-2 min-w-0">
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-[var(--text-1)] truncate">{{ item.name }}</span>
-                        <Button
-                          variant="text"
-                          size="small"
-                          class="!p-1 !h-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          v-tooltip.top="'在新窗口打开'"
-                          @click.stop="openInFileViewer(item)"
-                        >
-                          <ExternalLink class="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      <span class="text-sm font-medium text-[var(--text-1)] truncate">{{ item.name }}</span>
                     </td>
                     <td class="py-2.5 px-4">
                       <span class="text-xs text-[var(--text-3)]">

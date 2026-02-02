@@ -63,12 +63,36 @@ export const apiService = {
   },
 
   /**
+   * 递归获取某个智能体下的所有后代智能体
+   * @param agents 所有智能体列表
+   * @param parentAgentId 父智能体 ID
+   * @returns 后代智能体 ID 集合
+   */
+  getDescendantIds(agents: any[], parentAgentId: string): Set<string> {
+    const descendants = new Set<string>();
+    const queue = [parentAgentId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      // 查找所有以 currentId 为父节点的智能体
+      for (const agent of agents) {
+        if (agent.parentAgentId === currentId && !descendants.has(agent.id)) {
+          descendants.add(agent.id);
+          queue.push(agent.id);
+        }
+      }
+    }
+
+    return descendants;
+  },
+
+  /**
    * 根据组织 ID 获取智能体列表
    * 组织 ID 实际上是父智能体的 ID
    */
   async getAgents(orgId: string): Promise<Agent[]> {
     const data = await request<{ agents: any[] }>('/agents');
-    
+
     // 0. 如果是 all，返回所有智能体，不进行组织过滤
     if (orgId === 'all') {
       return data.agents.map(agent => ({
@@ -95,9 +119,12 @@ export const apiService = {
         }));
     }
 
-    // 2. 否则，返回该组织根智能体（id 等于 orgId）以及其子智能体（parentAgentId 等于 orgId）
+    // 2. 否则，返回该组织根智能体（id 等于 orgId）以及其所有后代智能体
+    // 使用递归查找获取所有后代
+    const descendantIds = this.getDescendantIds(data.agents, orgId);
+
     const filteredAgents: Agent[] = data.agents
-      .filter(agent => agent.parentAgentId === orgId || agent.id === orgId)
+      .filter(agent => agent.id === orgId || descendantIds.has(agent.id))
       .map(agent => ({
         id: agent.id,
         orgId: orgId,
