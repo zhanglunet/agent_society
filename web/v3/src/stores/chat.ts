@@ -19,6 +19,9 @@ export const useChatStore = defineStore('chat', () => {
   // 待滚动的消息 ID
   const pendingScrollMessageId = ref<string | null>(null);
 
+  // 触发首页聊天对话框展开的信号（通过改变值来触发监听）
+  const homeChatOpenTrigger = ref(0);
+
   // 存储每个会话的起始时间（用于隐藏旧消息），key 为 agentId
   const sessionStartTimes = ref<Record<string, number>>({});
 
@@ -149,6 +152,7 @@ export const useChatStore = defineStore('chat', () => {
     rootNewSession,
     getSessionMessages,
     sessionStartTimes,
-    pendingScrollMessageId
+    pendingScrollMessageId,
+    homeChatOpenTrigger
   };
 });

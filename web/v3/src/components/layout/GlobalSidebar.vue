@@ -93,6 +93,9 @@ const openTemplateManager = () => {
       title: '首页'
     });
     
+    // 触发首页聊天对话框展开
+    chatStore.homeChatOpenTrigger++;
+    
     try {
       // 获取模板内容（包含 org.md）
       const content = await templateApi.getTemplateContent(template.id);

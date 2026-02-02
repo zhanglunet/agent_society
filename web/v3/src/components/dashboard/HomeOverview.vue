@@ -142,6 +142,16 @@ watch(showChat, (newVal) => {
     scrollToBottom();
   }
 });
+
+/**
+ * 监听触发信号，展开首页聊天对话框
+ */
+watch(() => chatStore.homeChatOpenTrigger, () => {
+  if (!showChat.value) {
+    showChat.value = true;
+    startPolling();
+  }
+});
 </script>
 
 <template>
