@@ -22,7 +22,7 @@
         <!-- 缩放和平移容器 -->
         <div 
             ref="containerRef"
-            class="flex-grow overflow-hidden relative cursor-grab active:cursor-grabbing bg-[var(--bg)] select-none"
+            :class="['flex-grow overflow-hidden relative cursor-grab active:cursor-grabbing bg-[var(--bg)] select-none', { 'fixed inset-0 z-[9999]': isFullscreen }]"
             @wheel="onWheel"
             @mousedown="onMouseDown"
             @mousemove="onMouseMove"
@@ -101,6 +101,10 @@
                     <Button @click="zoomAtCenter(0.1)" variant="text" size="small" class="!bg-[var(--surface-1)] shadow-md !w-8 !h-8 !p-0 flex items-center justify-center">
                         <ZoomIn class="w-4 h-4 text-[var(--text-1)]" />
                     </Button>
+                    <Button @click="toggleFullscreen" variant="text" size="small" v-tooltip.top="isFullscreen ? '退出全屏' : '全屏查看'" class="!bg-[var(--surface-1)] shadow-md !w-8 !h-8 !p-0 flex items-center justify-center">
+                        <Maximize2 v-if="!isFullscreen" class="w-4 h-4 text-[var(--text-1)]" />
+                        <Minimize2 v-else class="w-4 h-4 text-[var(--text-1)]" />
+                    </Button>
                 </div>
             </div>
         </div>
@@ -109,8 +113,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
-import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2, Trash2 } from 'lucide-vue-next';
+import { ref, onMounted, reactive, nextTick, onUnmounted } from 'vue';
+import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2, Trash2, Maximize2, Minimize2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import OrganizationChart from 'primevue/organizationchart';
 import { useConfirm } from "primevue/useconfirm";
@@ -131,6 +135,36 @@ const scale = ref(1);
 const offset = reactive({ x: 0, y: 0 });
 const isDragging = ref(false);
 const dragStart = reactive({ x: 0, y: 0 });
+
+// 全屏状态
+const isFullscreen = ref(false);
+
+// 切换全屏模式
+const toggleFullscreen = async () => {
+    try {
+        if (!document.fullscreenElement) {
+            await containerRef.value?.requestFullscreen();
+            isFullscreen.value = true;
+        } else {
+            await document.exitFullscreen();
+            isFullscreen.value = false;
+        }
+        // 全屏切换后重新居中
+        setTimeout(() => {
+            centerChart();
+        }, 100);
+    } catch (err) {
+        console.error('全屏切换失败:', err);
+    }
+};
+
+// 监听全屏变化事件
+const handleFullscreenChange = () => {
+    isFullscreen.value = !!document.fullscreenElement;
+    setTimeout(() => {
+        centerChart();
+    }, 100);
+};
 
 const onWheel = (e: WheelEvent) => {
     e.preventDefault();
@@ -351,6 +385,11 @@ const handleDeleteRole = (roleId: string, roleName: string) => {
 
 onMounted(() => {
     fetchData();
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
 });
 </script>
 
