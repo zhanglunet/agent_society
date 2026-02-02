@@ -53,13 +53,15 @@ export class ToolExecutor {
    * 获取所有工具定义
    * 
    * 返回 OpenAI tools schema 格式的工具定义数组。
+   * 如果本地模型不可用，则不包含 localllm_chat 工具。
    * 
    * @returns {object[]} 工具定义数组
    */
   getToolDefinitions() {
     const runtime = this.runtime;
     
-    return [
+    // 基础工具定义（始终可用）
+    const baseTools = [
       // 岗位查找
       {
         type: "function",
@@ -281,33 +283,6 @@ export class ToolExecutor {
           }
         }
       },
-      // 本地 LLM 对话
-      {
-        type: "function",
-        function: {
-          name: "localllm_chat",
-          description: "通过本机 wllama headless 页面进行对话，返回生成文本字符串。",
-          parameters: {
-            type: "object",
-            properties: {
-              messages: {
-                type: "array",
-                description: "LLM 聊天消息列表（role/content）。",
-                items: {
-                  type: "object",
-                  properties: {
-                    role: { type: "string", enum: ["system", "user", "assistant"] },
-                    content: { type: "string" }
-                  },
-                  required: ["role", "content"]
-                }
-              },
-              timeoutMs: { type: "number", description: "可选：超时时间（毫秒）。" }
-            },
-            required: ["messages"]
-          }
-        }
-      },
       // 文件操作
       {
         type: "function",
@@ -381,6 +356,38 @@ export class ToolExecutor {
       // 合并模块提供的工具定义
       ...runtime.moduleLoader.getToolDefinitions()
     ];
+    
+    // 本地模型工具（仅在模型文件存在且大于 1MB 时可用）
+    if (runtime?.localLlmAvailable?.available) {
+      baseTools.push({
+        type: "function",
+        function: {
+          name: "localllm_chat",
+          description: "通过本机 wllama headless 页面进行对话，返回生成文本字符串。",
+          parameters: {
+            type: "object",
+            properties: {
+              messages: {
+                type: "array",
+                description: "LLM 聊天消息列表（role/content）。",
+                items: {
+                  type: "object",
+                  properties: {
+                    role: { type: "string", enum: ["system", "user", "assistant"] },
+                    content: { type: "string" }
+                  },
+                  required: ["role", "content"]
+                }
+              },
+              timeoutMs: { type: "number", description: "可选：超时时间（毫秒）。" }
+            },
+            required: ["messages"]
+          }
+        }
+      });
+    }
+    
+    return baseTools;
   }
 
   /**
@@ -946,6 +953,19 @@ export class ToolExecutor {
 
     if (!Array.isArray(messages)) {
       return { error: "missing_messages", message: "必须提供 messages 数组" };
+    }
+
+    // 检查本地模型是否可用
+    if (!runtime?.localLlmAvailable?.available) {
+      const reason = runtime?.localLlmAvailable?.reason ?? "模型文件不存在或无效";
+      void runtime.log?.warn?.("localllm_chat 被调用但本地模型不可用", {
+        agentId: ctx.agent?.id,
+        reason
+      });
+      return { 
+        error: "localllm_not_available", 
+        message: `本地模型不可用: ${reason}` 
+      };
     }
 
     try {

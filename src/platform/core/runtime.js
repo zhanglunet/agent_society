@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync, statSync } from "node:fs";
 import { Config } from "../utils/config/config.js";
 import { MessageBus } from "./message_bus.js";
 import { OrgPrimitives } from "./org_primitives.js";
@@ -164,6 +165,10 @@ export class Runtime {
     this.llmClientPool = new Map();
     this.toolGroupManager = new ToolGroupManager({ registerBuiltins: false });
     
+    // ==================== 本地模型可用性检测 ====================
+    // 检测 wllama 模型文件是否存在且大于 1MB
+    this.localLlmAvailable = this._checkLocalLlmAvailability();
+    
     // ==================== 子模块初始化 ====================
     // 这些子模块封装了 Runtime 的具体功能实现
     /** @type {RuntimeState} 状态管理器 */
@@ -194,6 +199,33 @@ export class Runtime {
     this._computeScheduler = new ComputeScheduler(this, this._turnEngine);
     /** @type {ShutdownManager} 关闭管理器 */
     this._shutdownManager = new ShutdownManager(this);
+  }
+
+  /**
+   * 检测本地模型是否可用
+   * 检查 wllama 模型文件是否存在且大于 1MB
+   * @returns {{available: boolean, reason?: string, filePath: string}}
+   */
+  _checkLocalLlmAvailability() {
+    const filePath = path.resolve(process.cwd(), "web/wllama/models/LFM2-700M-Q4_K_M.gguf");
+    const minSizeBytes = 1024 * 1024; // 1MB
+    
+    if (!existsSync(filePath)) {
+      return { available: false, reason: "模型文件不存在", filePath };
+    }
+    
+    try {
+      const stats = statSync(filePath);
+      if (!stats.isFile()) {
+        return { available: false, reason: "路径不是文件", filePath };
+      }
+      if (stats.size < minSizeBytes) {
+        return { available: false, reason: `模型文件过小 (${(stats.size / 1024).toFixed(1)}KB < 1MB)`, filePath };
+      }
+      return { available: true, filePath, size: stats.size };
+    } catch (err) {
+      return { available: false, reason: `检测失败: ${err?.message ?? String(err)}`, filePath };
+    }
   }
 
   // ==================== 事件系统接口 ====================
@@ -437,6 +469,19 @@ export class Runtime {
       maxToolRounds: this.maxToolRounds,
       idleWarningMs: this.idleWarningMs
     });
+    
+    // 输出本地模型可用性状态
+    if (this.localLlmAvailable.available) {
+      void this.log.info("本地模型已启用", { 
+        filePath: this.localLlmAvailable.filePath,
+        sizeMB: (this.localLlmAvailable.size / (1024 * 1024)).toFixed(1)
+      });
+    } else {
+      void this.log.warn("本地模型已禁用", { 
+        reason: this.localLlmAvailable.reason,
+        filePath: this.localLlmAvailable.filePath
+      });
+    }
 
     this.bus = new MessageBus({ 
       logger: this.loggerRoot.forModule("bus"),

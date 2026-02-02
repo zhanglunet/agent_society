@@ -161,6 +161,7 @@ export class AgentManager {
 
   /**
    * 生成一个不重名的人名，用于新智能体的元数据初始化。
+   * 如果本地模型可用，使用 LLM 生成人名；否则使用简单的随机命名方案。
    * @param {{roleName:string}} input
    * @returns {Promise<string|null>}
    */
@@ -170,8 +171,18 @@ export class AgentManager {
     
     void runtime.log?.info?.(`${logPrefix} 开始生成智能体姓名`, {
       roleName,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      localLlmAvailable: runtime?.localLlmAvailable?.available ?? false
     });
+    
+    // 如果本地模型不可用，使用简单的随机命名方案
+    if (!runtime?.localLlmAvailable?.available) {
+      void runtime.log?.info?.(`${logPrefix} 本地模型不可用，使用随机命名方案`, {
+        roleName,
+        reason: runtime?.localLlmAvailable?.reason
+      });
+      return this._generateRandomName({ roleName });
+    }
     
     const buildExistingNamesSnapshot = () => {
       const existing = new Set(["root", "user"]);
@@ -330,6 +341,76 @@ export class AgentManager {
     void runtime.log?.warn?.(`${logPrefix} 异步后台重试全部失败`, {
       roleName,
       totalAsyncAttempts: maxAsyncAttempts
+    });
+    return null;
+  }
+
+  /**
+   * 使用简单的随机方案生成中文名（本地模型不可用时使用）
+   * @param {{roleName:string}} input
+   * @returns {string|null}
+   */
+  _generateRandomName({ roleName }) {
+    const runtime = this.runtime;
+    const logPrefix = "[NameGeneration]";
+    
+    // 常见姓氏
+    const surnames = [
+      "王", "李", "张", "刘", "陈", "杨", "黄", "赵", "周", "吴",
+      "徐", "孙", "马", "朱", "胡", "郭", "林", "何", "高", "罗",
+      "郑", "梁", "谢", "宋", "唐", "许", "韩", "冯", "邓", "曹",
+      "彭", "曾", "肖", "田", "董", "袁", "潘", "于", "蒋", "蔡"
+    ];
+    
+    // 常见名字用字
+    const nameChars = [
+      "伟", "芳", "娜", "敏", "静", "强", "磊", "洋", "勇", "军",
+      "杰", "娟", "艳", "丽", "涛", "明", "超", "秀英", "华", "鹏",
+      "飞", "婷", "宇", "慧", "鑫", "欣", "雨", "晨", "辰", "然",
+      "涵", "轩", "昊", "瑞", "嘉", "怡", "琪", "梓", "涵", "诺",
+      "文", "武", "志", "建", "国", "家", "天", "地", "人", "和"
+    ];
+    
+    // 获取已存在的名字
+    const existing = new Set(["root", "user"]);
+    const agents = runtime?.org?.listAgents?.() ?? [];
+    for (const a of agents) {
+      if (a && a.status !== "terminated") {
+        if (typeof a.name === "string" && a.name.trim()) {
+          existing.add(a.name.trim());
+        }
+      }
+    }
+    
+    // 尝试生成不重复的名字
+    const maxAttempts = 100;
+    for (let i = 0; i < maxAttempts; i++) {
+      const surname = surnames[Math.floor(Math.random() * surnames.length)];
+      // 60% 概率生成两字名，40% 概率生成三字名
+      const isTwoChar = Math.random() < 0.6;
+      let name;
+      if (isTwoChar) {
+        const char = nameChars[Math.floor(Math.random() * nameChars.length)];
+        name = surname + char;
+      } else {
+        const char1 = nameChars[Math.floor(Math.random() * nameChars.length)];
+        const char2 = nameChars[Math.floor(Math.random() * nameChars.length)];
+        name = surname + char1 + char2;
+      }
+      
+      if (!existing.has(name)) {
+        void runtime.log?.info?.(`${logPrefix} 随机名字生成成功`, {
+          roleName,
+          generatedName: name,
+          attempt: i + 1
+        });
+        return name;
+      }
+    }
+    
+    void runtime.log?.warn?.(`${logPrefix} 随机名字生成失败，尝试次数耗尽`, {
+      roleName,
+      maxAttempts
     });
     return null;
   }
