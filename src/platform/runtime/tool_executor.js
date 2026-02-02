@@ -892,8 +892,28 @@ export class ToolExecutor {
   async _executeRunJavaScript(ctx, args) {
     const messageId = ctx.currentMessage?.id ?? null;
     const agentId = ctx.agent?.id ?? null;
+    
+    // [WORKSPACE TRACE 1/5] 工具执行入口
+    console.error(`[WORKSPACE TRACE] tool_executor._executeRunJavaScript: agentId=${agentId}, messageId=${messageId}`);
+    console.error(`[WORKSPACE TRACE] ctx.agent=`, ctx.agent);
+    console.error(`[WORKSPACE TRACE] ctx.currentMessage?.from=`, ctx.currentMessage?.from);
+    
     const result = await this.runtime._runJavaScriptTool(args, messageId, agentId);
-    void this.runtime.log?.debug?.("工具调用完成", { toolName: "run_javascript", ok: true });
+    const hasError = result?.error !== undefined;
+    
+    // 如果有错误，记录错误日志
+    if (hasError) {
+      void this.runtime.log?.error?.("run_javascript 执行失败", {
+        toolName: "run_javascript",
+        error: result.error,
+        message: result.message,
+        agentId,
+        messageId
+      });
+    } else {
+      void this.runtime.log?.debug?.("工具调用完成", { toolName: "run_javascript", ok: true });
+    }
+    
     return result;
   }
 

@@ -155,12 +155,22 @@ export class LlmClient {
         const resp = await this._client.chat.completions.create(payload, { signal });
         const latencyMs = Date.now() - startTime;
         const msg = resp.choices?.[0]?.message ?? null;
-        
+
         // 提取token使用信息
         const usage = resp.usage ?? {};
         const promptTokens = usage.prompt_tokens ?? undefined;
         const completionTokens = usage.completion_tokens ?? undefined;
         const totalTokens = usage.total_tokens ?? undefined;
+
+        // 调试：记录完整的 resp.usage 信息
+        await this.log.info("LLM Token 使用信息", {
+          meta,
+          usage: usage,
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          hasUsage: !!resp.usage
+        });
         
         await this.log.info("LLM 响应内容", { meta, message: msg });
         

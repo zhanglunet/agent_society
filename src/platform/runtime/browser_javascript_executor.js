@@ -28,6 +28,33 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 /**
+ * 安全的日志记录函数
+ * 当 runtime.log 不可用时，回退到 console
+ * @param {object} runtime - Runtime 实例
+ * @param {string} level - 日志级别: debug, info, warn, error
+ * @param {string} message - 日志消息
+ * @param {object} [meta] - 元数据
+ */
+function safeLog(runtime, level, message, meta = {}) {
+  // 尝试使用 runtime 日志系统（需要保持 this 上下文）
+  const logger = runtime?.log;
+  const logMethod = logger?.[level];
+  if (typeof logMethod === "function") {
+    try {
+      logMethod.call(logger, message, meta);
+      return;
+    } catch (e) {
+      // 日志系统出错，回退到 console
+    }
+  }
+  
+  // 回退到 console
+  const consoleMethod = console[level] || console.log;
+  const timestamp = new Date().toISOString();
+  consoleMethod(`[${timestamp}] [${level.toUpperCase()}] ${message}`, meta);
+}
+
+/**
  * 浏览器 JavaScript 执行器类
  */
 export class BrowserJavaScriptExecutor {
@@ -100,14 +127,14 @@ export class BrowserJavaScriptExecutor {
     const chromePath = this._findChromePath();
     
     if (!chromePath) {
-      this.runtime.log?.warn?.("Chrome 浏览器未找到，JavaScript 执行将使用降级模式");
+      safeLog(this.runtime, "warn", "Chrome 浏览器未找到，JavaScript 执行将使用降级模式");
       this._browserAvailable = false;
       this._initialized = true;
       return;
     }
 
     try {
-      this.runtime.log?.info?.("启动 JavaScript 执行器浏览器", { chromePath });
+      safeLog(this.runtime, "info", "启动 JavaScript 执行器浏览器", { chromePath });
       
       this._browser = await puppeteer.launch({
         headless: "new",
@@ -126,15 +153,15 @@ export class BrowserJavaScriptExecutor {
       
       // 监听浏览器断开连接
       this._browser.on("disconnected", () => {
-        this.runtime.log?.warn?.("JavaScript 执行器浏览器已断开连接");
+        safeLog(this.runtime, "warn", "JavaScript 执行器浏览器已断开连接");
         this._browser = null;
         this._browserAvailable = false;
       });
 
-      this.runtime.log?.info?.("JavaScript 执行器浏览器启动成功");
+      safeLog(this.runtime, "info", "JavaScript 执行器浏览器启动成功");
     } catch (err) {
       const message = err?.message ?? String(err);
-      this.runtime.log?.warn?.("JavaScript 执行器浏览器启动失败，将使用降级模式", { error: message });
+      safeLog(this.runtime, "warn", "JavaScript 执行器浏览器启动失败，将使用降级模式", { error: message });
       this._browserAvailable = false;
       this._initialized = true;
     }
@@ -147,10 +174,10 @@ export class BrowserJavaScriptExecutor {
   async shutdown() {
     if (this._browser) {
       try {
-        this.runtime.log?.info?.("关闭 JavaScript 执行器浏览器");
+        safeLog(this.runtime, "info", "关闭 JavaScript 执行器浏览器");
         await this._browser.close();
       } catch (err) {
-        this.runtime.log?.warn?.("关闭浏览器时出错", { error: err?.message ?? String(err) });
+        safeLog(this.runtime, "warn", "关闭浏览器时出错", { error: err?.message ?? String(err) });
       } finally {
         this._browser = null;
         this._browserAvailable = false;
@@ -269,6 +296,11 @@ export class BrowserJavaScriptExecutor {
     const input = args?.input;
     const timeout = args?.timeout ?? this._defaultTimeout;
     
+    // [WORKSPACE TRACE 3/5] 执行器入口
+    console.error(`[WORKSPACE TRACE] BrowserJsExecutor.execute: agentId=${agentId}, messageId=${messageId}`);
+    console.error(`[WORKSPACE TRACE] this.runtime exists:`, !!this.runtime);
+    console.error(`[WORKSPACE TRACE] this.runtime._getAgentTaskId exists:`, !!(this.runtime?._getAgentTaskId));
+    
     // 验证代码参数
     if (typeof code !== "string") {
       return { error: "invalid_args", message: "code must be a string" };
@@ -333,6 +365,9 @@ export class BrowserJavaScriptExecutor {
     const { code, input } = args;
     let page = null;
     
+    // [WORKSPACE TRACE 4/5] 浏览器执行入口
+    console.error(`[WORKSPACE TRACE] _executeInBrowser: agentId=${agentId}, messageId=${messageId}`);
+    
     try {
       // 创建新标签页
       page = await this._browser.newPage();
@@ -395,10 +430,31 @@ export class BrowserJavaScriptExecutor {
         );
         
         if (imageResult.error) {
-          return { result: result.result, error: "canvas_export_failed", message: imageResult.message };
+          // 构建详细的错误信息，包含所有子错误
+          let detailedMessage = imageResult.message || "Canvas 导出失败";
+          if (imageResult.errors && imageResult.errors.length > 0) {
+            detailedMessage += `; 详细错误: ${JSON.stringify(imageResult.errors)}`;
+          }
+          
+          // 记录详细错误日志
+          safeLog(this.runtime, "error", "Canvas 导出失败", {
+            error: imageResult.error,
+            message: imageResult.message,
+            workspaceId: imageResult.workspaceId,
+            errors: imageResult.errors,
+            partialErrors: imageResult.partialErrors
+          });
+          
+          return { 
+            result: result.result, 
+            error: "canvas_export_failed", 
+            message: detailedMessage,
+            workspaceId: imageResult.workspaceId,
+            exportErrors: imageResult.errors || imageResult.partialErrors
+          };
         }
         
-        return { result: result.result, filePaths: imageResult.filePaths };
+        return { result: result.result, filePaths: imageResult.filePaths, workspaceId: imageResult.workspaceId };
       }
 
       // 转换为 JSON 安全格式
@@ -408,7 +464,7 @@ export class BrowserJavaScriptExecutor {
       return jsonSafe.value;
     } catch (err) {
       const message = err?.message ?? String(err);
-      this.runtime.log?.error?.("浏览器执行代码失败", { error: message });
+      safeLog(this.runtime, "error", "浏览器执行代码失败", { error: message });
       return { error: "js_execution_failed", message };
     } finally {
       // 关闭标签页
@@ -428,11 +484,20 @@ export class BrowserJavaScriptExecutor {
    * @private
    */
   async _executeInNode(args, messageId, agentId) {
-    this.runtime.log?.warn?.("使用 Node.js 降级模式执行 JavaScript");
+    safeLog(this.runtime, "warn", "使用 Node.js 降级模式执行 JavaScript");
     
     // 使用现有的 JavaScriptExecutor
+    // 工作区ID = taskId，必须正确获取
     if (this.runtime._jsExecutor) {
-      return await this.runtime._jsExecutor.execute(args, messageId, agentId);
+      const workspaceId = agentId ? this.runtime._getAgentTaskId(agentId) : null;
+      
+      if (!workspaceId) {
+        const errorMsg = `Node模式: 无法获取工作区ID: agentId=${agentId}`;
+        safeLog(this.runtime, "error", errorMsg);
+        return { error: "workspace_not_found", message: errorMsg, agentId };
+      }
+      
+      return await this.runtime._jsExecutor.execute(args, workspaceId, messageId, agentId);
     }
     
     return { error: "browser_not_available", message: "浏览器不可用且无降级执行器" };
@@ -449,6 +514,11 @@ export class BrowserJavaScriptExecutor {
    * @private
    */
   async _saveAllCanvasImages(dataUrls, canvasSizes, canvasNames, messageId, agentId) {
+    // [WORKSPACE TRACE 5/5] 保存 Canvas 图像入口
+    console.error(`[WORKSPACE TRACE] _saveAllCanvasImages: agentId=${agentId}, messageId=${messageId}`);
+    console.error(`[WORKSPACE TRACE] this.runtime exists:`, !!this.runtime);
+    console.error(`[WORKSPACE TRACE] this.runtime._getAgentTaskId exists:`, !!(this.runtime?._getAgentTaskId));
+    
     if (!dataUrls || dataUrls.length === 0) {
       return { error: "no_canvas_data" };
     }
@@ -456,9 +526,39 @@ export class BrowserJavaScriptExecutor {
     const filePaths = [];
     const errors = [];
     
-    // 获取智能体对应的工作区
-    const workspaceId = agentId || "system";
-    const workspace = await this.runtime.workspaceManager.getWorkspace(workspaceId);
+    // 工作区ID = taskId，必须正确获取，不允许回退
+    const workspaceId = agentId ? this.runtime._getAgentTaskId(agentId) : null;
+    
+    // [WORKSPACE TRACE] 计算工作区ID
+    console.error(`[WORKSPACE TRACE] agentId=${agentId}`);
+    console.error(`[WORKSPACE TRACE] _getAgentTaskId result:`, workspaceId);
+    console.error(`[WORKSPACE TRACE] this.runtime._rootTaskAgentByTaskId:`, this.runtime?._rootTaskAgentByTaskId);
+    console.error(`[WORKSPACE TRACE] this.runtime._agentMetaById:`, this.runtime?._agentMetaById);
+    
+    if (!workspaceId) {
+      const errorMsg = `无法获取工作区ID: agentId=${agentId}, _getAgentTaskId 返回 ${workspaceId}`;
+      console.error(`[WORKSPACE TRACE ERROR] ${errorMsg}`);
+      safeLog(this.runtime, "error", errorMsg);
+      return { error: "workspace_not_found", message: errorMsg, agentId };
+    }
+    
+    // 记录关键参数
+    console.error(`[WORKSPACE TRACE] 最终 workspaceId=${workspaceId}`);
+    safeLog(this.runtime, "info", "开始保存 Canvas 图像", {
+      workspaceId,
+      agentId: agentId ?? null,
+      messageId: messageId ?? null,
+      canvasCount: dataUrls.length
+    });
+    
+    let workspace;
+    try {
+      workspace = await this.runtime.workspaceManager.getWorkspace(workspaceId);
+    } catch (wsErr) {
+      const message = wsErr?.message ?? String(wsErr);
+      safeLog(this.runtime, "error", "获取工作区失败", { workspaceId, error: message });
+      return { error: "workspace_error", message: `无法获取工作区 ${workspaceId}: ${message}` };
+    }
 
     for (let i = 0; i < dataUrls.length; i++) {
       const dataUrl = dataUrls[i];
@@ -487,8 +587,16 @@ export class BrowserJavaScriptExecutor {
         const sanitizedName = name.trim().replace(/[<>:"/\\|?*]/g, '_');
         const fileName = `canvas/${sanitizedName}.png`;
         
+        // 检查 writeFile 必需的参数
+        if (!agentId) {
+          throw new Error("缺少 agentId，无法确定操作者");
+        }
+        if (!messageId) {
+          throw new Error("缺少 messageId，无法记录操作来源");
+        }
+        
         // 写入文件到工作区
-        await workspace.writeFile(fileName, pngBuffer, {
+        const writeResult = await workspace.writeFile(fileName, pngBuffer, {
           mimeType: "image/png",
           operator: agentId,
           messageId: messageId,
@@ -503,33 +611,47 @@ export class BrowserJavaScriptExecutor {
         
         filePaths.push(fileName);
         
-        this.runtime.log?.info?.("保存浏览器 Canvas 图像", {
+        safeLog(this.runtime, "info", "保存浏览器 Canvas 图像成功", {
           workspaceId,
           path: fileName,
+          fullPath: writeResult?.path ?? fileName,
           userName: name.trim(),
           width: canvasSize.width,
           height: canvasSize.height,
+          size: pngBuffer.length,
           index: i,
           total: dataUrls.length
         });
       } catch (err) {
         const message = err?.message ?? String(err);
-        errors.push({ index: i, error: message });
-        this.runtime.log?.error?.("保存浏览器 Canvas 图像失败", {
+        errors.push({ index: i, name: name.trim(), error: message });
+        safeLog(this.runtime, "error", "保存浏览器 Canvas 图像失败", {
+          workspaceId,
           index: i,
-          error: message
+          name: name.trim(),
+          error: message,
+          hasAgentId: !!agentId,
+          hasMessageId: !!messageId
         });
       }
     }
 
     if (filePaths.length === 0 && errors.length > 0) {
-      return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
+      return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", workspaceId, errors };
     }
 
-    const response = { filePaths };
+    const response = { filePaths, workspaceId };
     if (errors.length > 0) {
       response.partialErrors = errors;
     }
+    
+    safeLog(this.runtime, "info", "Canvas 图像保存完成", {
+      workspaceId,
+      savedCount: filePaths.length,
+      errorCount: errors.length,
+      files: filePaths
+    });
+    
     return response;
   }
 

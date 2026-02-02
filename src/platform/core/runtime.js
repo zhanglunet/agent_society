@@ -1145,7 +1145,7 @@ export class Runtime {
       }
     }
     
-    // 追溯父链，找到入口智能体
+    // 追溯父链，找到组织根智能体（直接挂在 root 下的那个）
     let currentId = agentId;
     const visited = new Set();
     
@@ -1161,9 +1161,15 @@ export class Runtime {
       
       // 获取父智能体
       const meta = this._agentMetaById.get(currentId);
-      if (!meta || !meta.parentAgentId || meta.parentAgentId === "root") {
+      if (!meta || !meta.parentAgentId) {
         break;
       }
+      
+      // 如果父智能体是 root，当前智能体就是组织根
+      if (meta.parentAgentId === "root") {
+        return currentId;
+      }
+      
       currentId = meta.parentAgentId;
     }
     
@@ -1427,6 +1433,10 @@ export class Runtime {
   }
 
   async _runJavaScriptTool(args, messageId = null, agentId = null) {
+    // [WORKSPACE TRACE 2/5] Runtime 入口
+    console.error(`[WORKSPACE TRACE] runtime._runJavaScriptTool: agentId=${agentId}, messageId=${messageId}`);
+    console.error(`[WORKSPACE TRACE] _browserJsExecutor exists:`, !!this._browserJsExecutor);
+    
     // 使用浏览器 JavaScript 执行器
     // 浏览器执行器会自动处理：
     // - 代码验证

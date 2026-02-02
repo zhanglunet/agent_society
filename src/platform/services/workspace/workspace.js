@@ -105,6 +105,14 @@ export class Workspace {
       throw new Error("path_traversal_blocked");
     }
 
+    // 先检查必需参数，避免文件写入后才发现参数缺失
+    if (!options.operator) {
+      throw new Error(`writeFile_missing_operator: ${relativePath}`);
+    }
+    if (!options.messageId) {
+      throw new Error(`writeFile_missing_messageId: ${relativePath}`);
+    }
+
     const fullPath = path.resolve(this.rootPath, relativePath);
     const parentDir = path.dirname(fullPath);
     
@@ -127,13 +135,6 @@ export class Workspace {
       mimeType,
       deleted: false
     };
-
-    if (!options.operator) {
-      throw new Error(`writeFile_missing_operator: ${relativePath}`);
-    }
-    if (!options.messageId) {
-      throw new Error(`writeFile_missing_messageId: ${relativePath}`);
-    }
 
     const record = {
       operator: options.operator,

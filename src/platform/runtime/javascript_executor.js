@@ -37,6 +37,33 @@ import { randomUUID } from "node:crypto";
 import { WorkspaceManager } from "../services/workspace/workspace_manager.js";
 
 /**
+ * 安全的日志记录函数
+ * 当 runtime.log 不可用时，回退到 console
+ * @param {object} runtime - Runtime 实例
+ * @param {string} level - 日志级别: debug, info, warn, error
+ * @param {string} message - 日志消息
+ * @param {object} [meta] - 元数据
+ */
+function safeLog(runtime, level, message, meta = {}) {
+  // 尝试使用 runtime 日志系统（需要保持 this 上下文）
+  const logger = runtime?.log;
+  const logMethod = logger?.[level];
+  if (typeof logMethod === "function") {
+    try {
+      logMethod.call(logger, message, meta);
+      return;
+    } catch (e) {
+      // 日志系统出错，回退到 console
+    }
+  }
+  
+  // 回退到 console
+  const consoleMethod = console[level] || console.log;
+  const timestamp = new Date().toISOString();
+  consoleMethod(`[${timestamp}] [${level.toUpperCase()}] ${message}`, meta);
+}
+
+/**
  * JavaScript 执行器类
  * 
  * 提供安全的 JavaScript 代码执行环境，支持 Canvas 绘图。
@@ -233,7 +260,7 @@ export class JavaScriptExecutor {
           
           imagePaths.push(fileName);
           
-          void this.runtime.log?.info?.("保存 Canvas 图像到工作区", {
+          safeLog(this.runtime, "info", "保存 Canvas 图像到工作区", {
             workspaceId,
             fileName,
             userName: canvas._name.trim(),
@@ -245,7 +272,7 @@ export class JavaScriptExecutor {
         } catch (exportErr) {
           const exportMessage = exportErr && typeof exportErr.message === "string" ? exportErr.message : String(exportErr ?? "unknown error");
           errors.push({ index: i, error: exportMessage });
-          void this.runtime.log?.error?.("保存 Canvas 图像失败", {
+          safeLog(this.runtime, "error", "保存 Canvas 图像失败", {
             workspaceId,
             index: i,
             error: exportMessage
@@ -253,16 +280,21 @@ export class JavaScriptExecutor {
         }
       }
     } catch (wsErr) {
-      return { result, error: "workspace_error", message: wsErr.message };
+      const message = wsErr && typeof wsErr.message === "string" ? wsErr.message : String(wsErr ?? "unknown error");
+      safeLog(this.runtime, "error", "获取工作区失败", { workspaceId, error: message });
+      return { result, error: "workspace_error", message: `无法获取工作区 ${workspaceId}: ${message}` };
     }
 
     if (imagePaths.length === 0 && errors.length > 0) {
-      return { result, error: "canvas_export_failed", message: "所有 Canvas 导出均失败", errors };
+      const errorMessage = "所有 Canvas 导出均失败: " + JSON.stringify(errors);
+      safeLog(this.runtime, "error", "Canvas 导出完全失败", { workspaceId, errors });
+      return { result, error: "canvas_export_failed", message: errorMessage, errors };
     }
 
     const response = { result, paths: imagePaths };
     if (errors.length > 0) {
       response.partialErrors = errors;
+      safeLog(this.runtime, "warn", "部分 Canvas 导出失败", { workspaceId, errorCount: errors.length, errors });
     }
     return response;
   }

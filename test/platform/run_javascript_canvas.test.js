@@ -6,20 +6,20 @@ import path from "path";
 
 const TEST_DIR = "./test/.tmp/canvas_test_runtime";
 
-// 共享�?runtime 实例，避免每个测试都启动/关闭浏览�?
+// 共享)?runtime 实例，避免每个测试都启动/关闭浏览)?
 let sharedRuntime = null;
 
 describe("run_javascript Canvas 功能", () => {
   let runtime;
 
   beforeAll(async () => {
-    // 只初始化一�?runtime
+    // 只初始化一)?runtime
     sharedRuntime = new Runtime({ configPath: "config/app.json" });
     await sharedRuntime.init();
   });
 
   afterAll(async () => {
-    // 测试结束后关�?runtime
+    // 测试结束后关)?runtime
     if (sharedRuntime) {
       await sharedRuntime.shutdown();
       sharedRuntime = null;
@@ -45,11 +45,11 @@ describe("run_javascript Canvas 功能", () => {
         return typeof getCanvas === 'function';
       `;
       const result = await runtime._runJavaScriptTool({ code });
-      // 如果使用�?getCanvas，结果会是对象；如果只是检查类型，返回布尔�?
+      // 如果使用)?getCanvas，结果会是对象；如果只是检查类型，返回布尔)?
       expect(result).toBe(true);
     });
 
-    test("getCanvas 默认尺寸�?800x600", async () => {
+    test("getCanvas 默认尺寸)?800x600", async () => {
       const code = `
         const canvas = getCanvas();
         return { width: canvas.width, height: canvas.height };
@@ -60,7 +60,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds.length).toBe(1);
     });
 
-    test("getCanvas 支持自定义尺�?, async () => {
+    test("getCanvas 支持自定义尺寸", async () => {
       const code = `
         const canvas = getCanvas(400, 300);
         return { width: canvas.width, height: canvas.height };
@@ -69,10 +69,10 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.result).toEqual({ width: 400, height: 300 });
     });
 
-    test("getCanvas 多次调用返回不同实例（每次创建新 canvas�?, async () => {
+    test("getCanvas 多次调用返回不同实例（每次创建新 canvas）", async () => {
       const code = `
         const canvas1 = getCanvas(200, 200);
-        const canvas2 = getCanvas(400, 400); // 第二次调用应返回新实�?
+        const canvas2 = getCanvas(400, 400); // 第二次调用应返回新实)?
         return {
           sameInstance: canvas1 === canvas2,
           width1: canvas1.width,
@@ -82,14 +82,14 @@ describe("run_javascript Canvas 功能", () => {
         };
       `;
       const result = await runtime._runJavaScriptTool({ code });
-      expect(result.result.sameInstance).toBe(false); // 应该是不同实�?
+      expect(result.result.sameInstance).toBe(false); // 应该是不同实)?
       expect(result.result.width1).toBe(200);
       expect(result.result.height1).toBe(200);
       expect(result.result.width2).toBe(400);
       expect(result.result.height2).toBe(400);
     });
 
-    test("getCanvas 返回�?Canvas 支持 getContext('2d')", async () => {
+    test("getCanvas 返回)?Canvas 支持 getContext('2d')", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -101,7 +101,7 @@ describe("run_javascript Canvas 功能", () => {
   });
 
   describe("6.2 自动导出测试", () => {
-    test("使用 Canvas 后结果包�?artifactIds 数组", async () => {
+    test("使用 Canvas 后结果包)?artifactIds 数组", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -117,7 +117,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds[0]).toMatch(/^[0-9a-f-]+$/); // UUID格式
     });
 
-    test("不使�?Canvas 时保持原有行为（�?artifactIds 字段�?, async () => {
+    test("不使用 Canvas 时保持原有行为（无 artifactIds 字段）", async () => {
       const code = `
         return 1 + 2;
       `;
@@ -126,7 +126,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result).not.toHaveProperty('artifactIds');
     });
 
-    test("PNG 文件正确保存�?artifacts 目录", async () => {
+    test("PNG 文件正确保存)?artifacts 目录", async () => {
       const code = `
         const canvas = getCanvas(50, 50);
         const ctx = canvas.getContext('2d');
@@ -142,7 +142,7 @@ describe("run_javascript Canvas 功能", () => {
       const filePath = path.join(TEST_DIR, fileName);
       expect(existsSync(filePath)).toBe(true);
       
-      // 验证�?PNG 文件（检查魔数）
+      // 验证)?PNG 文件（检查魔数）
       const buffer = await readFile(filePath);
       // PNG 魔数: 89 50 4E 47 0D 0A 1A 0A
       expect(buffer[0]).toBe(0x89);
@@ -187,7 +187,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.result).toBe('three canvases');
       expect(result.artifactIds).toBeDefined();
       expect(Array.isArray(result.artifactIds)).toBe(true);
-      expect(result.artifactIds.length).toBe(3); // 应该生成 3 个图像文�?
+      expect(result.artifactIds.length).toBe(3); // 应该生成 3 个图像文)?
       
       // 验证所有文件都存在
       for (const artifactId of result.artifactIds) {
@@ -203,7 +203,7 @@ describe("run_javascript Canvas 功能", () => {
   });
 
   describe("6.3 绘制图形测试", () => {
-    test("绘制矩形（fillRect�?, async () => {
+    test("绘制矩形（fillRect）", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -215,14 +215,14 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.result).toBe('rect');
       expect(result.artifactIds.length).toBe(1);
       
-      // 验证文件存在且大小合�?
+      // 验证文件存在且大小合)?
       const fileName = `${result.artifactIds[0]}.png`;
       const filePath = path.join(TEST_DIR, fileName);
       const buffer = await readFile(filePath);
-      expect(buffer.length).toBeGreaterThan(100); // PNG 文件应该有一定大�?
+      expect(buffer.length).toBeGreaterThan(100); // PNG 文件应该有一定大小
     });
 
-    test("绘制矩形边框（strokeRect�?, async () => {
+    test("绘制矩形边框（strokeRect）", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -236,7 +236,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds.length).toBe(1);
     });
 
-    test("绘制圆形（arc + fill�?, async () => {
+    test("绘制圆形（arc + fill）", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -251,7 +251,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds.length).toBe(1);
     });
 
-    test("绘制文本（fillText�?, async () => {
+    test("绘制文本（fillText）", async () => {
       const code = `
         const canvas = getCanvas(200, 100);
         const ctx = canvas.getContext('2d');
@@ -265,7 +265,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds.length).toBe(1);
     });
 
-    test("绘制路径（moveTo + lineTo + stroke�?, async () => {
+    test("绘制路径（moveTo + lineTo + stroke）", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -322,7 +322,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.artifactIds.length).toBe(1);
     });
 
-    test("颜色和样式设�?, async () => {
+    test("颜色和样式设置", async () => {
       const code = `
         const canvas = getCanvas(100, 100);
         const ctx = canvas.getContext('2d');
@@ -378,7 +378,7 @@ describe("run_javascript Canvas 功能", () => {
       expect(result.message).toContain('Error after canvas');
     });
 
-    test("不使�?Canvas 的脚本行为与修改前一�?, async () => {
+    test("不使用 Canvas 的脚本行为与修改前一致", async () => {
       // 测试各种原有功能
       const tests = [
         { code: 'return 42;', expected: 42 },
@@ -407,7 +407,7 @@ describe("run_javascript Canvas 功能", () => {
 
 
 // ============================================================================
-// 任务 7: 属性测�?
+// 任务 7: 属性测)?
 // ============================================================================
 
 import fc from "fast-check";
@@ -415,17 +415,17 @@ import fc from "fast-check";
 // 属性测试共享的 runtime 实例
 let propTestRuntime = null;
 
-describe("run_javascript Canvas 属性测�?, () => {
+describe("run_javascript Canvas 属性测试", () => {
   let runtime;
 
   beforeAll(async () => {
-    // 只初始化一�?runtime
+    // 只初始化一)?runtime
     propTestRuntime = new Runtime({ configPath: "config/app.json" });
     await propTestRuntime.init();
   });
 
   afterAll(async () => {
-    // 测试结束后关�?runtime
+    // 测试结束后关)?runtime
     if (propTestRuntime) {
       await propTestRuntime.shutdown();
       propTestRuntime = null;
@@ -445,7 +445,7 @@ describe("run_javascript Canvas 属性测�?, () => {
     }
   });
 
-  describe("7.1 属�?1: Canvas 尺寸正确�?, () => {
+  describe("7.1 属性1: Canvas 尺寸正确性", () => {
     test("对于任意有效尺寸，Canvas 应具有指定的尺寸", async () => {
       await fc.assert(
         fc.asyncProperty(
@@ -467,18 +467,18 @@ describe("run_javascript Canvas 属性测�?, () => {
             expect(result.artifactIds.length).toBe(1);
           }
         ),
-        { numRuns: 20 } // 减少运行次数以加快测�?
+        { numRuns: 20 } // 减少运行次数以加快测)?
       );
     });
   });
 
-  describe("7.2 属�?2: Canvas 多实例�?, () => {
-    test("对于任意调用次数，多次调�?getCanvas 应返回不同实�?, async () => {
+  describe("7.2 属性2: Canvas 多实例性", () => {
+    test("对于任意调用次数，多次调用 getCanvas 应返回不同实例", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 2, max: 10 }),
           async (callCount) => {
-            // 生成多次调用 getCanvas 的代�?
+            // 生成多次调用 getCanvas 的代)?
             const calls = Array.from({ length: callCount }, (_, i) => `canvas${i}`);
             const code = `
               ${calls.map((name, i) => `const ${name} = getCanvas(100, 100);`).join('\n')}
@@ -487,7 +487,7 @@ describe("run_javascript Canvas 属性测�?, () => {
             `;
             const result = await runtime._runJavaScriptTool({ code });
             
-            // 验证所有调用返回不同实�?
+            // 验证所有调用返回不同实)?
             expect(result.result.allDifferent).toBe(true);
             // 验证生成了对应数量的图像
             expect(result.artifactIds.length).toBe(callCount);
@@ -498,7 +498,7 @@ describe("run_javascript Canvas 属性测�?, () => {
     });
   });
 
-  describe("7.3 属�?3: 自动导出触发", () => {
+  describe("7.3 属性3: 自动导出触发", () => {
     test("调用 getCanvas 的脚本结果应包含 images 数组", async () => {
       await fc.assert(
         fc.asyncProperty(
@@ -525,7 +525,7 @@ describe("run_javascript Canvas 属性测�?, () => {
       );
     });
 
-    test("未调�?getCanvas 的脚本结果不应包�?images 字段", async () => {
+    test("未调)?getCanvas 的脚本结果不应包)?images 字段", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: -1000, max: 1000 }),
@@ -545,8 +545,8 @@ describe("run_javascript Canvas 属性测�?, () => {
     });
   });
 
-  describe("7.4 属�?4: 向后兼容�?, () => {
-    test("不使�?getCanvas 的脚本行为应与修改前完全一�?, async () => {
+  describe("7.4 属性4: 向后兼容性", () => {
+    test("不使用 getCanvas 的脚本行为应与修改前完全一致", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(fc.integer({ min: -100, max: 100 }), { minLength: 1, maxLength: 10 }),
@@ -566,7 +566,7 @@ describe("run_javascript Canvas 属性测�?, () => {
       );
     });
 
-    test("对象和数组返回值保�?JSON 序列化行�?, async () => {
+    test("对象和数组返回值保持 JSON 序列化行为", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.record({
@@ -585,7 +585,7 @@ describe("run_javascript Canvas 属性测�?, () => {
       );
     });
 
-    test("Promise 返回值正确等待解�?, async () => {
+    test("Promise 返回值正确等待解析", async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 0, max: 100 }),

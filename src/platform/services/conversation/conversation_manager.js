@@ -376,11 +376,19 @@ export class ConversationManager {
    * @param {{promptTokens:number, completionTokens:number, totalTokens:number}} usage
    */
   updateTokenUsage(agentId, usage) {
-    this._tokenUsage.set(agentId, {
+    const tokenUsage = {
       promptTokens: usage.promptTokens ?? 0,
       completionTokens: usage.completionTokens ?? 0,
       totalTokens: usage.totalTokens ?? 0,
       updatedAt: Date.now()
+    };
+    this._tokenUsage.set(agentId, tokenUsage);
+
+    // 调试日志
+    safeLog(this.runtime, "info", "updateTokenUsage 被调用", {
+      agentId,
+      input: usage,
+      saved: tokenUsage
     });
   }
 
