@@ -55,10 +55,10 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
     fileInfo = {
       mimeType: content.mimeType,
       size: content.size,
-      hasViewMode: content.mimeType === 'text/markdown' || 
-                   content.mimeType === 'text/html' || 
-                   ext === 'md' || 
-                   ext === 'html' || 
+      hasViewMode: content.mimeType === 'text/markdown' ||
+                   content.mimeType === 'text/html' ||
+                   ext === 'md' ||
+                   ext === 'html' ||
                    ext === 'htm'
     };
   } catch {
@@ -68,7 +68,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
   // 创建共享的 viewMode - 放在 dialog 数据中
   const viewMode = ref<'preview' | 'source'>('preview');
 
-  return dialog.open(FileViewer, {
+  const dialogInstance = dialog.open(FileViewer, {
     props: {
       header: '', // 使用自定义 header
       style: {
@@ -111,11 +111,64 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
     templates: {
       // 使用自定义 header
       header: (dialogProps: any) => {
+        console.log('[index.ts] header called, dialogProps:', dialogProps);
+
         // 从 dialog 实例获取最新的数据
         const instance = dialogProps?.instance;
         const data = instance?.data;
         const sharedViewMode = data?.viewMode || viewMode;
-        
+
+        // 创建控制方法
+        const handleMaximize = () => {
+          console.log('[index.ts] === handleMaximize ===');
+          console.log('[index.ts] dialogInstance:', dialogInstance);
+          console.log('[index.ts] dialogInstance keys:', dialogInstance ? Object.keys(dialogInstance) : 'N/A');
+          console.log('[index.ts] dialogProps:', dialogProps);
+          console.log('[index.ts] dialogProps keys:', dialogProps ? Object.keys(dialogProps) : 'N/A');
+
+          // 尝试不同的方式来访问 dialog 方法
+          const instance = dialogInstance as any;
+          console.log('[index.ts] instance.maximize:', typeof instance?.maximize);
+          console.log('[index.ts] instance.toggleMaximize:', typeof instance?.toggleMaximize);
+          console.log('[index.ts] dialogProps.maximize:', typeof dialogProps?.maximize);
+          console.log('[index.ts] dialogProps.toggleMaximize:', typeof (dialogProps as any)?.toggleMaximize);
+          console.log('[index.ts] dialogProps.maximizable:', (dialogProps as any)?.maximizable);
+          console.log('[index.ts] dialogProps.maximized:', (dialogProps as any)?.maximized);
+
+          if (typeof instance?.maximize === 'function') {
+            instance.maximize();
+          } else if (typeof instance?.toggleMaximize === 'function') {
+            instance.toggleMaximize();
+          } else if (typeof dialogProps?.maximize === 'function') {
+            dialogProps.maximize();
+          } else if (typeof (dialogProps as any)?.toggleMaximize === 'function') {
+            (dialogProps as any).toggleMaximize();
+          } else {
+            // 尝试通过 state 属性来切换最大化状态
+            const currentState = (dialogProps as any)?.state?.maximized;
+            console.log('[index.ts] 当前 maximized 状态:', currentState);
+            // 可能需要通过设置 state 来切换
+            if ((dialogProps as any)?.state) {
+              (dialogProps as any).state.maximized = !currentState;
+            } else {
+              console.error('[index.ts] 无法找到 maximize 方法');
+            }
+          }
+        };
+
+        const handleClose = () => {
+          console.log('[index.ts] handleClose called, dialogInstance:', dialogInstance);
+
+          const instance = dialogInstance as any;
+          if (typeof instance?.close === 'function') {
+            instance.close();
+          } else if (typeof dialogProps?.close === 'function') {
+            dialogProps.close();
+          } else {
+            console.error('[index.ts] 无法找到 close 方法');
+          }
+        };
+
         return h(FileViewerHeader, {
           fileName,
           workspaceId,
@@ -125,20 +178,14 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           hasViewMode: fileInfo.hasViewMode,
           viewMode: sharedViewMode,
           maximized: dialogProps?.state?.maximized,
-          onMaximize: () => {
-            if (dialogProps?.maximize) {
-              dialogProps.maximize();
-            }
-          },
-          onClose: () => {
-            if (dialogProps?.close) {
-              dialogProps.close();
-            }
-          }
+          onMaximize: handleMaximize,
+          onClose: handleClose
         });
       }
     }
   });
+
+  return dialogInstance;
 }
 
 export { default as FileViewer } from './FileViewer.vue';

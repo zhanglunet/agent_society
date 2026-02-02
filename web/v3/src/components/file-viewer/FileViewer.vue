@@ -25,13 +25,53 @@ const fileName = ref(dialogData?.fileName || '');
 // viewMode - 使用 toRef 保持引用，避免自动解包
 const viewMode = dialogData ? toRef(dialogData, 'viewMode') : ref<'preview' | 'source'>('preview');
 
-console.log('[FileViewer] dialogData:', dialogData);
-console.log('[FileViewer] viewMode:', viewMode);
-console.log('[FileViewer] Is Ref?', typeof viewMode === 'object' && viewMode !== null && 'value' in viewMode);
-console.log('[FileViewer] viewMode.value:', viewMode.value);
-
 // 提供给子组件
 provide(ViewModeKey, viewMode);
+
+// Dialog 控制方法 - 提供给子组件使用
+const maximized = computed(() => {
+  // 尝试从 dialogRef 获取 maximized 状态
+  const dialog = dialogRef?.value;
+  return dialog?.maximized || dialog?.state?.maximized || false;
+});
+
+const dialogContext = {
+  maximized,
+  maximize: () => {
+    console.log('[FileViewer] maximize called, dialogRef:', dialogRef);
+    const dialog = dialogRef?.value;
+    console.log('[FileViewer] dialog:', dialog);
+    console.log('[FileViewer] dialog keys:', dialog ? Object.keys(dialog) : 'N/A');
+
+    if (typeof dialog?.maximize === 'function') {
+      dialog.maximize();
+    } else if (typeof (dialog as any)?.toggleMaximize === 'function') {
+      (dialog as any).toggleMaximize();
+    } else if (dialog?.$parent) {
+      console.log('[FileViewer] trying through $parent');
+      const parentDialog = dialog.$parent;
+      console.log('[FileViewer] parentDialog:', parentDialog);
+      if (typeof (parentDialog as any)?.maximize === 'function') {
+        (parentDialog as any).maximize();
+      } else if (typeof (parentDialog as any)?.toggleMaximize === 'function') {
+        (parentDialog as any).toggleMaximize();
+      }
+    }
+  },
+  close: () => {
+    console.log('[FileViewer] close called, dialogRef:', dialogRef);
+    const dialog = dialogRef?.value;
+
+    if (typeof dialog?.close === 'function') {
+      dialog.close();
+    } else {
+      console.error('[FileViewer] 无法找到 close 方法');
+    }
+  }
+};
+
+// 提供对话框控制方法
+provide('dialogContext', dialogContext);
 
 // 组件状态
 const loading = ref(false);

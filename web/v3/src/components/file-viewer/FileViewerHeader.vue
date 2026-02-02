@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 文件查看器自定义标题栏
- * 
+ *
  * 包含：文件名 | 类型·大小 | [预览|源码] | 下载 | 全屏 | 关闭
  */
 import { computed } from 'vue';
@@ -62,10 +62,12 @@ const downloadFile = () => {
 };
 
 const handleMaximize = () => {
+  console.log('[FileViewerHeader] handleMaximize called');
   emit('maximize');
 };
 
 const handleClose = () => {
+  console.log('[FileViewerHeader] handleClose called');
   emit('close');
 };
 </script>
