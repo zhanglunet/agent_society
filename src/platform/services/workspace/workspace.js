@@ -391,29 +391,42 @@ export class Workspace {
       const stats = await stat(fullPath);
       // 统一使用正斜杠作为 key
       const key = f.replace(/\\/g, "/");
-      const mimeType = this._detectMimeType(key);
-      newFiles[key] = {
-        type: 'file',
-        size: stats.size,
-        mimeType,
-        updatedAt: stats.mtime.toISOString(),
-        // 尝试从文件级元数据中恢复最后的操作者信息
-        lastOperator: null,
-        lastMessageId: null
-      };
+      
+      // 尝试从文件级元数据中读取 mimeType 和其他信息
+      let mimeType = null;
+      let lastOperator = null;
+      let lastMessageId = null;
       
       try {
         const fileMetaPath = path.join(this.metaDir, key);
         if (existsSync(fileMetaPath)) {
           const metaContent = await readFile(fileMetaPath, "utf8");
           const fileMeta = JSON.parse(metaContent);
+          // 优先使用元数据中存储的 mimeType
+          if (fileMeta.mimeType) {
+            mimeType = fileMeta.mimeType;
+          }
           const lastRecord = fileMeta.history?.[fileMeta.history.length - 1];
           if (lastRecord) {
-            newFiles[key].lastOperator = lastRecord.operator;
-            newFiles[key].lastMessageId = lastRecord.messageId;
+            lastOperator = lastRecord.operator;
+            lastMessageId = lastRecord.messageId;
           }
         }
       } catch (e) { /* ignore recovery failure */ }
+      
+      // 如果元数据中没有 mimeType，则通过扩展名检测
+      if (!mimeType) {
+        mimeType = this._detectMimeType(key);
+      }
+      
+      newFiles[key] = {
+        type: 'file',
+        size: stats.size,
+        mimeType,
+        updatedAt: stats.mtime.toISOString(),
+        lastOperator,
+        lastMessageId
+      };
     }
 
     const meta = {
