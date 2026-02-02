@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
  * HTML 渲染器
- * 
+ *
  * @module components/file-viewer/renderers/HtmlRenderer
  */
 import { computed, inject } from 'vue';
-import { AlertTriangle } from 'lucide-vue-next';
 import { ViewModeKey } from '../index';
+import { fileViewerService } from '../services/fileViewerService';
 import type { RendererProps } from '../types';
 
 const props = defineProps<RendererProps>();
@@ -35,38 +35,21 @@ const htmlContent = computed(() => {
 });
 
 /**
- * 安全的预览 HTML
+ * 获取文件 URL
  */
-const sandboxedHtml = computed(() => {
-  const styles = `
-    <style>
-      body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
-      img { max-width: 100%; height: auto; }
-      pre { background: #f5f5f5; padding: 15px; overflow-x: auto; border-radius: 4px; }
-      code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
-    </style>
-  `;
-  return styles + htmlContent.value;
+const fileUrl = computed(() => {
+  return fileViewerService.getRawFileUrl(props.workspaceId, props.filePath);
 });
 </script>
 
 <template>
-  <div class="html-renderer flex flex-col h-full bg-[var(--bg)] relative">
-    <div 
-      v-if="viewMode === 'preview'" 
-      class="absolute bottom-3 left-3 z-10 flex items-center gap-1 text-xs text-amber-600 bg-amber-50/90 px-2 py-1 rounded-full"
-    >
-      <AlertTriangle class="w-3 h-3" />
-      <span>沙箱模式</span>
-    </div>
-
+  <div class="html-renderer flex flex-col h-full bg-[var(--bg)]">
     <div class="flex-1 overflow-auto">
       <pre v-if="viewMode === 'source'" class="p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap">{{ htmlContent }}</pre>
       <iframe
         v-else
-        :srcdoc="sandboxedHtml"
+        :src="fileUrl"
         class="w-full h-full border-0"
-        sandbox="allow-scripts"
         title="HTML Preview"
       />
     </div>
