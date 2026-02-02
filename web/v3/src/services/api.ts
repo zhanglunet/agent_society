@@ -296,4 +296,53 @@ export const apiService = {
     const data = await request<{ agents: any[] }>('/agents');
     return data.agents;
   },
+
+  /**
+   * 获取最近的事件（错误和重试）
+   * @param since 可选的时间戳，只返回此时间之后的事件
+   */
+  async getRecentEvents(since?: string): Promise<{ errors: ErrorEvent[], retries: RetryEvent[] }> {
+    const query = since ? `?since=${encodeURIComponent(since)}` : '';
+    return request<{ errors: ErrorEvent[], retries: RetryEvent[] }>(`/events${query}`);
+  },
 };
+
+/**
+ * 错误事件类型
+ */
+export interface ErrorEvent {
+  agentId: string;
+  errorType: string;
+  errorCategory: 'network' | 'auth' | 'rate_limit' | 'context_length' | 'server' | 'unknown';
+  timestamp: string;
+  userMessage: string;
+  technicalInfo: {
+    detailedMessage: string;
+    originalError: string;
+    errorName: string;
+    technicalDetails: {
+      status?: number;
+      code?: string;
+      type?: string;
+      stack?: string;
+    };
+    originalMessageId: string | null;
+    taskId: string | null;
+  };
+  agentContext: {
+    agentName: string;
+    roleId: string | null;
+  };
+}
+
+/**
+ * 重试事件类型
+ */
+export interface RetryEvent {
+  agentId: string;
+  attempt: number;
+  maxRetries: number;
+  delayMs: number;
+  errorMessage: string;
+  timestamp: string;
+}

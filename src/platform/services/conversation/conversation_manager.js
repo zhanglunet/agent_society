@@ -376,6 +376,23 @@ export class ConversationManager {
    * @param {{promptTokens:number, completionTokens:number, totalTokens:number}} usage
    */
   updateTokenUsage(agentId, usage) {
+    console.log("[ConversationManager.updateTokenUsage] 方法被调用", {
+      timestamp: new Date().toISOString(),
+      agentId,
+      usageInput: usage,
+      usageKeys: usage ? Object.keys(usage) : null
+    });
+
+    if (!agentId) {
+      console.error("[ConversationManager.updateTokenUsage] agentId 为空！");
+      return;
+    }
+
+    if (!usage) {
+      console.error("[ConversationManager.updateTokenUsage] usage 为空！", { agentId });
+      return;
+    }
+
     const tokenUsage = {
       promptTokens: usage.promptTokens ?? 0,
       completionTokens: usage.completionTokens ?? 0,
@@ -384,12 +401,24 @@ export class ConversationManager {
     };
     this._tokenUsage.set(agentId, tokenUsage);
 
-    // 调试日志
-    safeLog(this.runtime, "info", "updateTokenUsage 被调用", {
+    console.log("[ConversationManager.updateTokenUsage] 已保存 token 使用统计", {
       agentId,
-      input: usage,
-      saved: tokenUsage
+      saved: tokenUsage,
+      allStoredKeys: Array.from(this._tokenUsage.keys())
     });
+
+    // 同时尝试使用 logger（如果可用）
+    if (this._logger && typeof this._logger.info === 'function') {
+      try {
+        this._logger.info("updateTokenUsage 被调用", {
+          agentId,
+          input: usage,
+          saved: tokenUsage
+        });
+      } catch (logErr) {
+        console.error("[ConversationManager.updateTokenUsage] logger.info 失败:", logErr);
+      }
+    }
   }
 
   /**

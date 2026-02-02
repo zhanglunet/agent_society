@@ -258,6 +258,30 @@ export class OrgPrimitives {
     this._terminations = [];
     this._contactRegistries = {}; // agentId -> ContactEntry[]
     this.log = options.logger ?? createNoopModuleLogger();
+    this._dataChangeListeners = new Set();
+  }
+
+  /**
+   * 注册数据变更监听器
+   * @param {Function} listener 
+   */
+  onDataChange(listener) {
+    this._dataChangeListeners.add(listener);
+  }
+
+  /**
+   * 触发数据变更事件
+   * @param {string} type 变更类型
+   * @param {any} data 变更数据
+   */
+  _emitDataChange(type, data) {
+    for (const listener of this._dataChangeListeners) {
+      try {
+        listener(type, data);
+      } catch (err) {
+        void this.log.error("数据变更监听器执行失败", { error: err.message });
+      }
+    }
   }
 
   /**
@@ -397,6 +421,7 @@ export class OrgPrimitives {
     };
     this._roles.set(id, role);
     await this.persist();
+    this._emitDataChange("role_created", role);
     void this.log.info("创建岗位", { id, name: role.name, createdBy: role.createdBy, llmServiceId: role.llmServiceId, toolGroups: role.toolGroups });
     return role;
   }
@@ -445,6 +470,7 @@ export class OrgPrimitives {
     role.updatedAt = formatLocalTimestamp();
     
     await this.persist();
+    this._emitDataChange("role_updated", role);
     void this.log.info("更新岗位", { id: roleId, name: role.name, llmServiceId: role.llmServiceId, toolGroups: role.toolGroups });
     return role;
   }
@@ -481,6 +507,7 @@ export class OrgPrimitives {
     };
     this._agents.set(id, agent);
     await this.persist();
+    this._emitDataChange("agent_created", agent);
     void this.log.info("创建智能体元数据", { id, roleId: agent.roleId, parentAgentId: agent.parentAgentId, status: agent.status, name: agent.name });
     return agent;
   }
@@ -506,6 +533,7 @@ export class OrgPrimitives {
     }
     
     await this.persist();
+    this._emitDataChange("agent_updated", agent);
     void this.log.info("更新智能体姓名", { agentId, name: agent.name });
     return agent;
   }
@@ -584,6 +612,7 @@ export class OrgPrimitives {
     }
     
     await this.persist();
+    this._emitDataChange("termination_recorded", { agentId, cascadeCount: cascadeTerminated.length });
     void this.log.info("记录智能体终止", { agentId, terminatedBy, reason: reason ?? null, cascadeCount: cascadeTerminated.length });
     return termination;
   }
@@ -657,6 +686,7 @@ export class OrgPrimitives {
     affectedRoles.push(roleId);
 
     await this.persist();
+    this._emitDataChange("role_deleted", { roleId, affectedAgentsCount: affectedAgents.length, affectedRolesCount: affectedRoles.length });
     void this.log.info("删除岗位", { 
       roleId, 
       roleName: role.name, 

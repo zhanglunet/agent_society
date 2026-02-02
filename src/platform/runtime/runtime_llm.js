@@ -139,6 +139,13 @@ export class RuntimeLlm {
         };
 
         try {
+          void this.runtime.log.info("准备调用 LLM", {
+            agentId,
+            round: i + 1,
+            conversationLength: conv.length,
+            llmMeta
+          });
+
           if (agentId) {
             const preSlideResult = this.runtime._conversationManager.slideWindowIfNeededByEstimate(agentId, { keepRatio: 0.7, maxLoops: 3 });
             if (preSlideResult.ok && preSlideResult.slid) {
@@ -155,9 +162,38 @@ export class RuntimeLlm {
           const convSnapshot = conv.slice();
           msg = await llmClient.chat({ messages: conv, tools, meta: llmMeta });
 
+          void this.runtime.log.info("LLM 响应返回", {
+            agentId,
+            round: i + 1,
+            msgType: typeof msg,
+            msgIsNull: msg === null,
+            msgIsUndef: msg === undefined,
+            msgKeys: msg ? Object.keys(msg) : null,
+            hasContent: !!msg?.content,
+            hasToolCalls: !!msg?.tool_calls,
+            hasUsage: !!msg?._usage,
+            usage: msg?._usage
+          });
+
+          // 调试：LLM 响应返回
+          void this.runtime.log.info("LLM 响应已返回", {
+            agentId,
+            hasMsg: !!msg,
+            msgKeys: msg ? Object.keys(msg) : null,
+            hasUsage: !!msg?._usage,
+            usage: msg?._usage
+          });
+
           if (agentId && msg?._usage?.promptTokens) {
             const estimatorResult = this.runtime._conversationManager.updatePromptTokenEstimator(agentId, convSnapshot, msg._usage.promptTokens);
             void this.runtime.log.debug("已更新 prompt token 估算器", { agentId, estimatorResult });
+          } else {
+            void this.runtime.log.info("跳过更新 prompt token 估算器", {
+              agentId,
+              hasAgentId: !!agentId,
+              hasUsage: !!msg?._usage,
+              hasPromptTokens: !!msg?._usage?.promptTokens
+            });
           }
 
           if (cancelScope && this.runtime._cancelManager.getEpoch(agentId) !== cancelScope.epoch) {
@@ -170,9 +206,15 @@ export class RuntimeLlm {
             this.runtime._state.setAgentComputeStatus(agentId, 'idle');
             return;
           }
-          
+
           // 检查智能体状态：如果已被停止或正在停止，丢弃响应
           const statusAfterLlm = this.runtime._state.getAgentComputeStatus(agentId);
+          void this.runtime.log.info("检查智能体状态", {
+            agentId,
+            status: statusAfterLlm,
+            willDiscard: statusAfterLlm === 'stopped' || statusAfterLlm === 'stopping' || statusAfterLlm === 'terminating'
+          });
+
           if (statusAfterLlm === 'stopped' || statusAfterLlm === 'stopping' || statusAfterLlm === 'terminating') {
             void this.runtime.log.info("智能体已停止，丢弃 LLM 响应", {
               agentId,
@@ -236,11 +278,24 @@ export class RuntimeLlm {
             willContinueProcessing: true
           });
           
+          // 分类错误并生成用户友好的提示
+          const errorCategory = this._classifyLlmError(err, errorType);
+          const userFriendlyMessage = this._getUserFriendlyErrorMessage(errorCategory, text);
+          
           await this.sendErrorNotificationToParent(agentId, message, {
             errorType: "llm_call_failed",
-            message: `LLM 调用失败: ${text}`,
+            errorCategory, // 错误分类：network, auth, rate_limit, context_length, server, unknown
+            message: userFriendlyMessage, // 用户友好的简短提示
+            detailedMessage: `LLM 调用失败: ${text}`, // 详细的技术信息
             originalError: text,
-            errorName: errorType
+            errorName: errorType,
+            // 附加技术详情
+            technicalDetails: {
+              status: err?.status ?? err?.response?.status ?? null,
+              code: err?.error?.code ?? err?.code ?? null,
+              type: err?.error?.type ?? err?.type ?? null,
+              stack: err?.stack ?? null
+            }
           });
           
           return;
@@ -251,34 +306,50 @@ export class RuntimeLlm {
         return;
       }
 
-      // 调试：检查 msg._usage
-      void this.runtime.log.debug("检查 token 使用信息", {
+      // 调试：检查 msg._usage（使用 INFO 级别确保能看到）
+      void this.runtime.log.info("检查 token 使用信息", {
         agentId,
         hasUsage: !!msg._usage,
         usage: msg._usage,
-        msgKeys: Object.keys(msg)
+        msgKeys: msg ? Object.keys(msg) : null,
+        fullMsg: msg
       });
 
       // 更新 token 使用统计（基于 LLM 返回的实际值）
       if (agentId && msg._usage) {
-        void this.runtime.log.debug("准备更新 token 使用统计", {
+        void this.runtime.log.info("准备更新 token 使用统计", {
           agentId,
           promptTokens: msg._usage.promptTokens,
-          completionTokens: msg._usage.completionTokens
+          completionTokens: msg._usage.completionTokens,
+          totalTokens: msg._usage.totalTokens
         });
 
         this.runtime._conversationManager.updateTokenUsage(agentId, msg._usage);
-        const status = this.runtime._conversationManager.getContextStatus(agentId);
-        void this.runtime.log.debug("更新上下文 token 使用统计", {
+
+        void this.runtime.log.info("已调用 updateTokenUsage，现在读取回统计信息", {
           agentId,
+          storedUsage: this.runtime._conversationManager.getTokenUsage(agentId)
+        });
+        const status = this.runtime._conversationManager.getContextStatus(agentId);
+        void this.runtime.log.info("获取上下文状态成功", {
+          agentId,
+          status,
           promptTokens: msg._usage.promptTokens,
           completionTokens: msg._usage.completionTokens,
           totalTokens: msg._usage.totalTokens,
           usagePercent: (status.usagePercent * 100).toFixed(1) + '%',
-          status: status.status
+          statusCode: status.status
         });
-        
+
         // 如果更新后超过硬性限制，记录警告（下次调用时会被拒绝）
+        void this.runtime.log.info("上下文状态检查完成", {
+          agentId,
+          isExceeded: status.status === 'exceeded',
+          usagePercent: (status.usagePercent * 100).toFixed(1) + '%',
+          usedTokens: status.usedTokens,
+          maxTokens: status.maxTokens
+        });
+
         if (status.status === 'exceeded') {
           void this.runtime.log.warn("上下文已超过硬性限制，将在下一次调用前自动滑动窗口", {
             agentId,
@@ -288,9 +359,10 @@ export class RuntimeLlm {
           });
         }
       } else {
-        void this.runtime.log.warn("无法更新 token 使用统计 - 条件不满足", {
+        void this.runtime.log.info("无法更新 token 使用统计 - 条件不满足", {
           hasAgentId: !!agentId,
           hasUsage: !!msg._usage,
+          agentId: agentId,
           usage: msg._usage
         });
       }
@@ -341,18 +413,22 @@ export class RuntimeLlm {
           // 没有调用 send_message 的回复默认发给 user
           const targetId = "user";
           const currentTaskId = ctx.currentMessage?.taskId ?? null;
-          
+
+          const usageToSend = msg._usage ?? null;
+
           void this.runtime.log.info("LLM 返回纯文本无 tool_calls，自动发送消息", {
             agentId: currentAgentId,
             targetId,
-            contentPreview: content.substring(0, 100)
+            contentPreview: content.substring(0, 100),
+            hasUsage: !!usageToSend,
+            usage: usageToSend
           });
-          
+
           const sendResult = ctx.tools.sendMessage({
             to: targetId,
             from: currentAgentId,
             taskId: currentTaskId,
-            payload: { text: content.trim(), usage: msg._usage ?? null }
+            payload: { text: content.trim(), usage: usageToSend }
           });
           
           // 记录智能体发送消息的生命周期事件
@@ -469,6 +545,14 @@ export class RuntimeLlm {
         }
         
         // 触发工具调用事件
+        const toolCallUsage = msg._usage ?? null;
+        console.log("[RuntimeLlm.doLlmProcessing] 准备触发工具调用事件", {
+          agentId: ctx.agent?.id ?? null,
+          toolName,
+          hasUsage: !!toolCallUsage,
+          usage: toolCallUsage
+        });
+
         this.runtime._emitToolCall({
           agentId: ctx.agent?.id ?? null,
           toolName,
@@ -478,7 +562,7 @@ export class RuntimeLlm {
           callId: call.id,
           timestamp: new Date().toISOString(),
           reasoningContent: msg.reasoning_content ?? null,
-          usage: msg._usage ?? null
+          usage: toolCallUsage
         });
         
         conv.push({
@@ -522,6 +606,40 @@ export class RuntimeLlm {
     if (!agentId) return;
     
     const timestamp = new Date().toISOString();
+    
+    // 构建结构化的错误事件
+    // 区分面向用户的消息和面向开发者的详细技术信息
+    const errorEvent = {
+      // 基本信息
+      agentId,
+      errorType: errorInfo.errorType,
+      errorCategory: errorInfo.errorCategory || "unknown",
+      timestamp,
+      
+      // 用户友好的信息（面向最终用户）
+      userMessage: errorInfo.message || "发生未知错误",
+      
+      // 详细技术信息（面向开发者）
+      technicalInfo: {
+        detailedMessage: errorInfo.detailedMessage || errorInfo.message,
+        originalError: errorInfo.originalError,
+        errorName: errorInfo.errorName,
+        technicalDetails: errorInfo.technicalDetails || {},
+        originalMessageId: originalMessage?.id ?? null,
+        taskId: originalMessage?.taskId ?? null
+      },
+      
+      // 智能体上下文信息
+      agentContext: {
+        agentName: this.runtime._agentMetaById.get(agentId)?.name || agentId,
+        roleId: this.runtime._agentMetaById.get(agentId)?.roleId || null
+      }
+    };
+    
+    // 触发全局错误事件（用于前端显示）
+    this.runtime._emitError(errorEvent);
+    
+    // 构建存储到聊天记录的错误消息（保持向后兼容）
     const errorPayload = {
       kind: "error",
       errorType: errorInfo.errorType,
@@ -532,17 +650,6 @@ export class RuntimeLlm {
       timestamp,
       ...errorInfo
     };
-    
-    // 触发全局错误事件（用于前端显示）
-    this.runtime._emitError({
-      agentId,
-      errorType: errorInfo.errorType,
-      message: errorInfo.message,
-      originalMessageId: originalMessage?.id ?? null,
-      taskId: originalMessage?.taskId ?? null,
-      timestamp,
-      ...errorInfo
-    });
 
     // 1. 直接存储错误消息到聊天记录（不通过 bus.send，避免触发消息处理）
     const errorMessageId = randomUUID();
@@ -848,5 +955,87 @@ export class RuntimeLlm {
       return true;
     }
     return false;
+  }
+
+  /**
+   * 对 LLM 错误进行分类
+   * 将错误归类为网络、认证、速率限制、上下文长度、服务器错误等
+   * 
+   * @param {any} err - 原始错误对象
+   * @param {string} errorType - 错误类型名称
+   * @returns {string} 错误分类: network | auth | rate_limit | context_length | server | unknown
+   * @private
+   */
+  _classifyLlmError(err, errorType) {
+    const status = err?.status ?? err?.response?.status ?? null;
+    const code = err?.error?.code ?? err?.code ?? null;
+    const type = err?.error?.type ?? err?.type ?? null;
+    const message = err && typeof err.message === "string" ? err.message : String(err ?? "");
+    const messageLower = message.toLowerCase();
+
+    // 认证错误
+    if (status === 401 || code === "invalid_api_key" || code === "authentication_error" ||
+        messageLower.includes("api key") || messageLower.includes("authentication") ||
+        messageLower.includes("unauthorized") || messageLower.includes("认证") || messageLower.includes("密钥")) {
+      return "auth";
+    }
+
+    // 速率限制
+    if (status === 429 || code === "rate_limit_exceeded" || type === "rate_limit_exceeded" ||
+        messageLower.includes("rate limit") || messageLower.includes("too many requests") ||
+        messageLower.includes("限速") || messageLower.includes("频率")) {
+      return "rate_limit";
+    }
+
+    // 上下文长度超限
+    if (this.isContextLengthExceededError(err)) {
+      return "context_length";
+    }
+
+    // 网络错误
+    if (errorType === "AbortError" || messageLower.includes("timeout") ||
+        messageLower.includes("network") || messageLower.includes("econnreset") ||
+        messageLower.includes("enotfound") || messageLower.includes("socket") ||
+        messageLower.includes("网络") || messageLower.includes("连接") ||
+        messageLower.includes("超时")) {
+      return "network";
+    }
+
+    // 服务器错误
+    if ((status >= 500 && status < 600) || code === "internal_error" ||
+        messageLower.includes("internal server error") || messageLower.includes("服务")) {
+      return "server";
+    }
+
+    return "unknown";
+  }
+
+  /**
+   * 根据错误分类生成用户友好的错误消息
+   * 
+   * @param {string} category - 错误分类
+   * @param {string} originalMessage - 原始错误消息
+   * @returns {string} 用户友好的简短提示
+   * @private
+   */
+  _getUserFriendlyErrorMessage(category, originalMessage) {
+    const messages = {
+      auth: "大模型 API 密钥无效或已过期，请检查配置",
+      rate_limit: "请求过于频繁，已达到速率限制，请稍后再试",
+      context_length: "对话内容过长，已超出模型上下文限制",
+      network: "网络连接异常，无法连接到 AI 服务，请检查网络",
+      server: "AI 服务暂时不可用，请稍后再试",
+      unknown: "调用大模型时发生错误"
+    };
+
+    // 对于未知错误，如果原始消息较短且可读，附加到提示中
+    const baseMessage = messages[category] || messages.unknown;
+    
+    // 如果原始消息很短（少于50字符），可能是用户可读的，可以附加
+    if (category === "unknown" && originalMessage && originalMessage.length < 50) {
+      return `${baseMessage}: ${originalMessage}`;
+    }
+
+    return baseMessage;
   }
 }

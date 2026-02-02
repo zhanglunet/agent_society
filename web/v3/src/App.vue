@@ -15,6 +15,7 @@ import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
 import SettingsDialog from './components/settings/SettingsDialog.vue';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
+import ErrorToast from './components/error/ErrorToast.vue';
 import Button from 'primevue/button';
 import { Sun, Moon, AlertCircle } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
@@ -24,6 +25,7 @@ import { useOrgStore } from './stores/org';
 import DynamicDialog from 'primevue/dynamicdialog';
 import { useDialog } from 'primevue/usedialog';
 import { configApi } from './services/configApi';
+import { errorNotificationService } from './services/errorNotification';
 
 
 const appStore = useAppStore();
@@ -132,6 +134,9 @@ onMounted(() => {
     
     // 检查配置状态（首次运行检测）
     checkConfigStatus();
+    
+    // 初始化错误通知服务
+    errorNotificationService.init();
 });
 
 onUnmounted(stopGlobalSync);
@@ -174,6 +179,8 @@ onUnmounted(stopGlobalSync);
 
     <ConfirmDialog />
     <Toast />
+    <!-- 错误通知 Toast（自定义模板） -->
+    <ErrorToast />
   </div>
 </template>
 

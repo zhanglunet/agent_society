@@ -81,7 +81,6 @@ export class WorkspaceManager {
     
     const fullPath = path.join(this.workspacesDir, workspaceId);
     const exists = existsSync(fullPath);
-    console.error(`Checking workspace ${workspaceId} at ${fullPath}: ${exists}`);
     return exists;
   }
 

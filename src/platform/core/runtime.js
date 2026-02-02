@@ -493,6 +493,13 @@ export class Runtime {
     this.prompts = new PromptLoader({ promptsDir: this.config.promptsDir, logger: this.loggerRoot.forModule("prompts") });
     this.org = new OrgPrimitives({ runtimeDir: this.config.runtimeDir, logger: this.loggerRoot.forModule("org") });
     await this.org.loadIfExists();
+
+    // 监听组织数据变更，同步刷新内存状态
+    this.org.onDataChange((type, data) => {
+      void this.log.debug("检测到组织数据变更，正在同步内存状态", { type });
+      this._refreshInMemoryState(type, data);
+    });
+
     this.orgTemplates = new OrgTemplateRepository({ baseDir: path.resolve(process.cwd(), "org"), logger: this.loggerRoot.forModule("org_templates") });
     this.systemBasePrompt = await this.prompts.loadSystemPromptFile("base.txt");
     this.systemComposeTemplate = await this.prompts.loadSystemPromptFile("compose.txt");
@@ -651,6 +658,40 @@ export class Runtime {
       agents: this._agents.size,
       browserJsExecutorAvailable: this._browserJsExecutor.isBrowserAvailable()
     });
+  }
+
+  /**
+   * 刷新内存中的状态（当组织数据变更时触发）。
+   * @param {string} type - 变更类型
+   * @param {any} data - 变更数据
+   * @private
+   */
+  _refreshInMemoryState(type, data) {
+    if (type === "role_updated") {
+      const updatedRole = data;
+      // 更新所有具有该 roleId 的内存智能体实例的 Prompt
+      for (const agent of this._agents.values()) {
+        if (agent.roleId === updatedRole.id) {
+          agent.rolePrompt = updatedRole.rolePrompt;
+          void this.log.debug("同步更新智能体 Prompt", { agentId: agent.id, roleId: updatedRole.id });
+        }
+      }
+    } else if (type === "agent_updated") {
+      const updatedAgentMeta = data;
+      const agent = this._agents.get(updatedAgentMeta.id);
+      if (agent) {
+        // 如果名字有变化，可能需要更新（Agent 类目前没有 name 属性，但 meta 中有）
+        // 主要是确保 meta 同步
+        this._agentMetaById.set(updatedAgentMeta.id, {
+          id: updatedAgentMeta.id,
+          roleId: updatedAgentMeta.roleId,
+          parentAgentId: updatedAgentMeta.parentAgentId ?? null
+        });
+        void this.log.debug("同步更新智能体元数据", { agentId: updatedAgentMeta.id });
+      }
+    }
+    // 其他类型（如 created/deleted）通常由 lifecycle 的相应方法处理，
+    // 这里主要处理由外部（如 HTTP）直接修改数据导致的同步问题。
   }
 
   /**

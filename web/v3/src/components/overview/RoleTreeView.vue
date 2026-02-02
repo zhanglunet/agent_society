@@ -329,9 +329,13 @@ const fetchData = async () => {
             apiService.getAllAgentsRaw()
         ]);
 
-        totalRoles.value = roles.length;
-        totalAgents.value = agents.length;
-        totalActiveAgents.value = agents.filter((a: any) => a.status === 'active' || a.computeStatus !== 'stopped').length;
+        // 过滤掉名为 root 或 user 的特殊智能体和岗位，与 buildTree 保持一致
+        const filteredAgents = agents.filter((a: any) => a.id !== 'root' && a.id !== 'user');
+        const filteredRoles = roles.filter((r: any) => r.name !== 'root' && r.name !== 'user' && r.id !== 'root' && r.id !== 'user');
+
+        totalRoles.value = filteredRoles.length;
+        totalAgents.value = filteredAgents.length;
+        totalActiveAgents.value = filteredAgents.filter((a: any) => a.status === 'active' || a.computeStatus !== 'stopped').length;
         roleTree.value = buildTree(roles, agents);
         centerChart();
     } catch (error) {

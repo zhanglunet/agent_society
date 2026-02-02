@@ -156,6 +156,17 @@ export class LlmClient {
         const latencyMs = Date.now() - startTime;
         const msg = resp.choices?.[0]?.message ?? null;
 
+        console.log("[LlmClient._chatWithRetry] LLM API 响应成功", {
+          timestamp: new Date().toISOString(),
+          meta,
+          hasResp: !!resp,
+          hasChoices: !!resp?.choices,
+          choicesCount: resp?.choices?.length,
+          hasMsg: !!msg,
+          hasUsage: !!resp?.usage,
+          usage: resp?.usage
+        });
+
         // 提取token使用信息
         const usage = resp.usage ?? {};
         const promptTokens = usage.prompt_tokens ?? undefined;
@@ -171,7 +182,14 @@ export class LlmClient {
           totalTokens,
           hasUsage: !!resp.usage
         });
-        
+
+        console.log("[LlmClient._chatWithRetry] 准备将 _usage 附加到消息", {
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          willAttach: !!msg
+        });
+
         await this.log.info("LLM 响应内容", { meta, message: msg });
         
         // 记录LLM调用指标
@@ -191,6 +209,12 @@ export class LlmClient {
             completionTokens: completionTokens ?? 0,
             totalTokens: totalTokens ?? 0
           };
+          console.log("[LlmClient._chatWithRetry] 已将 _usage 附加到消息", {
+            msgKeys: Object.keys(msg),
+            _usage: msg._usage
+          });
+        } else {
+          console.warn("[LlmClient._chatWithRetry] msg 为空，无法附加 _usage！");
         }
         
         return msg;
