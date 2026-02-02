@@ -34,7 +34,7 @@ import { WorkspaceManager } from "../workspace/workspace_manager.js";
  * - DELETE /api/config/llm-services/:serviceId - 删除 LLM 服务
  * - GET /api/workspaces - 获取工作空间列表
  * - GET /api/workspaces/:workspaceId - 获取工作空间文件列表
- * - GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件内容
+ * - GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件元数据
  * - GET /api/workspaces/:workspaceId/meta - 获取工作空间元信息
  * - GET /web/* - 静态文件服务
  * - GET /workspace-files/:workspaceId/:filePath - 工作空间文件服务
@@ -982,12 +982,10 @@ export class HTTPServer {
             });
           }
         } else if (parts[1] === "file") {
-          // 获取工作空间文件内容: GET /api/workspaces/:workspaceId/file?path=xxx
+          // 获取工作空间文件元数据: GET /api/workspaces/:workspaceId/file?path=xxx
           const filePath = url.searchParams.get("path") || "";
           if (method === "GET") {
-            const offset = parseInt(url.searchParams.get("offset") || "0");
-            const length = parseInt(url.searchParams.get("length") || "5000");
-            this._handleGetWorkspaceFile(workspaceId, filePath, offset, length, res).catch(err => {
+            this._handleGetWorkspaceFile(workspaceId, filePath, res).catch(err => {
               void this.log.error("处理工作空间文件内容请求失败", { workspaceId, filePath, error: err.message, stack: err.stack });
               this._sendJson(res, 500, { error: "internal_error", message: err.message });
             });
@@ -3061,27 +3059,27 @@ export class HTTPServer {
   }
 
   /**
-   * 处理 GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件内容。
+   * 处理 GET /api/workspaces/:workspaceId/file?path=xxx - 获取工作空间文件元数据。
    * @param {string} workspaceId
    * @param {string} filePath
-   * @param {number} offset
-   * @param {number} length
    * @param {import("node:http").ServerResponse} res
    */
-  async _handleGetWorkspaceFile(workspaceId, filePath, offset, length, res) {
+  async _handleGetWorkspaceFile(workspaceId, filePath, res) {
     try {
       const ws = await this._workspaceManager.getWorkspace(workspaceId);
-      const result = await ws.readFile(filePath, { offset, length });
+      const fileInfo = await ws.getFileInfo(filePath);
 
-      void this.log.debug("HTTP读取工作空间文件", { workspaceId, filePath, offset, length });
+      void this.log.debug("HTTP获取工作空间文件元数据", { workspaceId, filePath });
       this._sendJson(res, 200, {
         workspaceId,
         path: filePath,
         name: path.basename(filePath),
-        ...result
+        mimeType: fileInfo.mimeType,
+        size: fileInfo.size,
+        mtime: fileInfo.mtime
       });
     } catch (err) {
-      void this.log.error("读取工作空间文件失败", { workspaceId, filePath, error: err.message });
+      void this.log.error("获取工作空间文件元数据失败", { workspaceId, filePath, error: err.message });
       const statusCode = err.message === "file_not_found" ? 404 : (err.message === "path_traversal_blocked" ? 403 : 500);
       this._sendJson(res, statusCode, { error: err.message });
     }

@@ -133,14 +133,17 @@ const postResponse = await client.request({
 ```
 
 ### GET /api/workspaces/:workspaceId/file?path=xxx
-获取文件内容
+获取文件元数据（不包含文件内容，文件内容请使用 `/workspace-files/:workspaceId/:filePath`）
 
 **响应**：
 ```json
 {
-  "content": "文件内容",
-  "mimeType": "text/plain",
-  "total": 100
+  "workspaceId": "workspace-123",
+  "path": "documents/readme.md",
+  "name": "readme.md",
+  "mimeType": "text/markdown",
+  "size": 1024,
+  "mtime": "2024-01-15T10:30:00.000Z"
 }
 ```
 

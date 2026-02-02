@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { FileCode, Folder, Loader2 } from 'lucide-vue-next';
+import { FileCode, Folder, Loader2, ExternalLink } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import { ref, inject, onMounted, computed } from 'vue';
+import { useDialog } from 'primevue/usedialog';
 import FileTreeNode from './FileTreeNode.vue';
+import { openFileViewer } from '../file-viewer';
 
 const dialogRef = inject<any>('dialogRef');
+const dialog = useDialog();
 const orgId = ref<string | undefined>();
 const files = ref<any[]>([]);
 const loading = ref(false);
@@ -170,6 +173,24 @@ const formatTime = (ts: string) => {
   if (!ts) return '';
   return new Date(ts).toLocaleString();
 };
+
+/**
+ * 在文件查看器中打开文件
+ */
+const openInFileViewer = (file: any) => {
+  if (!orgId.value) return;
+  
+  // API 路径需要去掉 'root/' 前缀
+  const apiPath = file.path.replace(/^root\//, '');
+  
+  openFileViewer({
+    dialog,
+    workspaceId: orgId.value,
+    filePath: apiPath,
+    width: '85vw',
+    height: '80vh'
+  });
+};
 </script>
 
 <template>
@@ -289,7 +310,18 @@ const formatTime = (ts: string) => {
                       <FileCode class="w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" />
                     </td>
                     <td class="py-2.5 px-2 min-w-0">
-                      <span class="text-sm font-medium text-[var(--text-1)] truncate block">{{ item.name }}</span>
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-[var(--text-1)] truncate">{{ item.name }}</span>
+                        <Button
+                          variant="text"
+                          size="small"
+                          class="!p-1 !h-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          v-tooltip.top="'在新窗口打开'"
+                          @click.stop="openInFileViewer(item)"
+                        >
+                          <ExternalLink class="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </td>
                     <td class="py-2.5 px-4">
                       <span class="text-xs text-[var(--text-3)]">
