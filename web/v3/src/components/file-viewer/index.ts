@@ -68,6 +68,14 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
   // 创建共享的 viewMode - 放在 dialog 数据中
   const viewMode = ref<'preview' | 'source'>('preview');
 
+  // 保存原始尺寸，用于还原
+  const originalSize = {
+    width: maximized ? width : width,  // 如果初始就是最大化，保存的应该是非最大化的尺寸
+    height: maximized ? height : height,
+    maxWidth: '100vw',
+    maxHeight: '100vh'
+  };
+
   const dialogInstance = dialog.open(FileViewer, {
     props: {
       header: '', // 使用自定义 header
@@ -121,7 +129,6 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
         // 创建控制方法
         const handleMaximize = () => {
           console.log('[index.ts] === handleMaximize ===');
-          const instance = dialogInstance as any;
 
           // 找到最新的 dialog（最后创建的）
           const allDialogs = Array.from(document.querySelectorAll('.p-dialog')) as HTMLElement[];
@@ -132,26 +139,35 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           console.log('[index.ts] targetDialog:', targetDialog);
 
           if (targetDialog) {
-            // 检查实际的样式来判断是否最大化，而不是只看 class
-            const actualWidth = targetDialog.style.width;
-            const isMaximized = actualWidth === '100vw';
-            console.log('[index.ts] 当前实际宽度:', actualWidth, ', 是否最大化:', isMaximized);
+            // 获取计算后的实际宽度来判断是否最大化
+            const computedStyle = window.getComputedStyle(targetDialog);
+            const actualWidth = computedStyle.width;
+            const viewportWidth = window.innerWidth;
+            // 如果实际宽度接近视口宽度（允许5px误差），则认为是最大化状态
+            const isMaximized = Math.abs(parseFloat(actualWidth) - viewportWidth) < 5;
+
+            console.log('[index.ts] 实际宽度:', actualWidth, ', 视口宽度:', viewportWidth, ', 是否最大化:', isMaximized);
 
             if (isMaximized) {
               // 还原
+              console.log('[index.ts] 还原到原始尺寸:', originalSize);
               targetDialog.classList.remove('maximized');
-              targetDialog.style.width = instance.options.props.style.width;
-              targetDialog.style.height = instance.options.props.style.height;
-              targetDialog.style.maxWidth = instance.options.props.style.maxWidth;
-              targetDialog.style.maxHeight = instance.options.props.style.maxHeight;
+              targetDialog.style.width = originalSize.width;
+              targetDialog.style.height = originalSize.height;
+              targetDialog.style.maxWidth = originalSize.maxWidth;
+              targetDialog.style.maxHeight = originalSize.maxHeight;
+              targetDialog.style.margin = '';
             } else {
               // 最大化
+              console.log('[index.ts] 最大化 dialog');
               targetDialog.classList.add('maximized');
               targetDialog.style.width = '100vw';
               targetDialog.style.height = '100vh';
               targetDialog.style.maxWidth = '100vw';
               targetDialog.style.maxHeight = '100vh';
               targetDialog.style.margin = '0';
+              targetDialog.style.top = '0';
+              targetDialog.style.left = '0';
             }
           } else {
             console.error('[index.ts] 无法找到 dialog 元素');

@@ -312,7 +312,8 @@ export class TurnEngine {
       taskId: turn.message?.taskId ?? null,
       callId: executing.callId,
       timestamp: new Date().toISOString(),
-      reasoningContent: turn.llmMsg?.reasoning_content ?? null
+      reasoningContent: turn.llmMsg?.reasoning_content ?? null,
+      usage: turn.llmMsg?._usage ?? null
     });
 
     turn.conv.push({

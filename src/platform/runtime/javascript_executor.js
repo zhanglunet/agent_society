@@ -214,8 +214,8 @@ export class JavaScriptExecutor {
         
         try {
           const pngBuffer = await canvas.toBuffer("image/png");
-          // 保留中文、字母、数字，其他字符替换为下划线
-          const safeName = canvas._name.trim().replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').toLowerCase();
+          // 只排除非法文件名字符：< > : " / \ | ? *
+          const safeName = canvas._name.trim().replace(/[<>:"/\\|?*]/g, '_');
           const fileName = `canvas/${safeName}.png`;
           
           // 写入文件到工作区

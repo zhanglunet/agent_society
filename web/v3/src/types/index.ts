@@ -26,6 +26,12 @@ export interface Agent {
   lastSeen?: number;
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface Message {
   id: string;
   agentId: string;
@@ -44,6 +50,7 @@ export interface Message {
     args: any;
     result: any;
   };
+  usage?: TokenUsage; // Token 使用量
 }
 
 export interface Tab {

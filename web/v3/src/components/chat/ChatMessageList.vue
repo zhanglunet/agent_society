@@ -320,6 +320,13 @@ const formatTime = (timestamp: number) => {
               <div v-if="item.payload && !item.content && !item.toolCall" class="mt-2">
                 <pre class="text-xs font-mono text-[var(--text-3)] bg-[var(--surface-1)] p-2 rounded border border-[var(--border)] overflow-x-auto">{{ typeof item.payload === 'object' ? JSON.stringify(item.payload, null, 2) : item.payload }}</pre>
               </div>
+
+              <!-- Token 使用量 -->
+              <div v-if="item.usage && item.usage.totalTokens > 0" class="mt-2 flex items-center space-x-2 text-[10px] text-[var(--text-3)] opacity-70">
+                <span class="px-1.5 py-0.5 bg-[var(--surface-3)] rounded border border-[var(--border)]">↑ {{ item.usage.promptTokens }}</span>
+                <span class="px-1.5 py-0.5 bg-[var(--surface-3)] rounded border border-[var(--border)]">↓ {{ item.usage.completionTokens }}</span>
+                <span class="px-1.5 py-0.5 bg-[var(--surface-2)] rounded border border-[var(--border)] font-medium">Σ {{ item.usage.totalTokens }}</span>
+              </div>
             </div>
           </div>
         </div>

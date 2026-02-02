@@ -532,11 +532,11 @@ export class HTTPServer {
 
   /**
    * 存储工具调用记录。
-   * @param {{agentId: string, toolName: string, args: object, result: any, taskId: string|null, callId: string, timestamp: string}} event
+   * @param {{agentId: string, toolName: string, args: object, result: any, taskId: string|null, callId: string, timestamp: string, usage?: {promptTokens: number, completionTokens: number, totalTokens: number}}} event
    * @returns {Promise<void>}
    */
   async _storeToolCall(event) {
-    const { agentId, toolName, args, result, taskId, callId, timestamp, reasoningContent } = event;
+    const { agentId, toolName, args, result, taskId, callId, timestamp, reasoningContent, usage } = event;
     if (!agentId) return;
 
     // send_message 已经作为消息显示，不需要重复显示为工具调用
@@ -562,7 +562,8 @@ export class HTTPServer {
       payload: {
         toolName,
         args,
-        result
+        result,
+        usage: usage ?? null
       },
       createdAt: timestamp
     };

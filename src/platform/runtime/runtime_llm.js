@@ -457,7 +457,8 @@ export class RuntimeLlm {
           taskId: message?.taskId ?? null,
           callId: call.id,
           timestamp: new Date().toISOString(),
-          reasoningContent: msg.reasoning_content ?? null
+          reasoningContent: msg.reasoning_content ?? null,
+          usage: msg._usage ?? null
         });
         
         conv.push({

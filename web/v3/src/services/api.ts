@@ -203,6 +203,7 @@ export const apiService = {
       // 处理 payload 中的内容
       let content = '';
       let toolCall = undefined;
+      let usage = undefined;
       
       // 尝试解析 payload (如果是字符串)
       let payload = msg.payload;
@@ -221,10 +222,26 @@ export const apiService = {
           result: payload?.result
         };
         content = `调用工具: ${toolCall.name}`;
+        // 工具调用消息也可能包含 token 使用量
+        if (payload?.usage) {
+          usage = {
+            promptTokens: payload.usage.promptTokens ?? 0,
+            completionTokens: payload.usage.completionTokens ?? 0,
+            totalTokens: payload.usage.totalTokens ?? 0
+          };
+        }
       } else if (payload) {
         // 如果 payload 是对象，且包含 text 或 content 字段
         const rawContent = payload.text || payload.content || payload;
         content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent, null, 2);
+        // 提取 token 使用量
+        if (payload.usage) {
+          usage = {
+            promptTokens: payload.usage.promptTokens ?? 0,
+            completionTokens: payload.usage.completionTokens ?? 0,
+            totalTokens: payload.usage.totalTokens ?? 0
+          };
+        }
       } else {
         const rawContent = msg.content || msg.message || '';
         content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent, null, 2);
@@ -244,7 +261,8 @@ export const apiService = {
           ? msg.reasoning_content 
           : (msg.reasoning_content ? JSON.stringify(msg.reasoning_content, null, 2) : undefined),
         toolCall: toolCall,
-        taskId: msg.taskId
+        taskId: msg.taskId,
+        usage: usage
       };
     });
   },

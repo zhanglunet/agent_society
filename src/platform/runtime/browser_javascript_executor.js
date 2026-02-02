@@ -482,8 +482,9 @@ export class BrowserJavaScriptExecutor {
         const base64Data = matches[1];
         const pngBuffer = Buffer.from(base64Data, "base64");
         
-        // 生成文件名：canvas/名称_时间戳.png
-        const sanitizedName = name.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        // 生成文件名：canvas/名称.png
+        // 只排除非法文件名字符：< > : " / \ | ? *
+        const sanitizedName = name.trim().replace(/[<>:"/\\|?*]/g, '_');
         const fileName = `canvas/${sanitizedName}.png`;
         
         // 写入文件到工作区
