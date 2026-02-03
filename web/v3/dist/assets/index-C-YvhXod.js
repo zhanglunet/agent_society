@@ -13256,6 +13256,15 @@ const Network = createLucideIcon("network", [
   ["path", { d: "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3", key: "1jsf9p" }],
   ["path", { d: "M12 12V8", key: "2874zd" }]
 ]);
+const Play = createLucideIcon("play", [
+  [
+    "path",
+    {
+      d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
+      key: "10ikf1"
+    }
+  ]
+]);
 const Plus = createLucideIcon("plus", [
   ["path", { d: "M5 12h14", key: "1ays0h" }],
   ["path", { d: "M12 5v14", key: "s699le" }]
@@ -14763,8 +14772,8 @@ const _hoisted_6$g = {
   key: 1,
   class: "flex flex-col items-center text-[var(--text-3)]"
 };
-const _hoisted_7$d = { class: "text-sm" };
-const _hoisted_8$c = ["src", "alt"];
+const _hoisted_7$e = { class: "text-sm" };
+const _hoisted_8$d = ["src", "alt"];
 const _sfc_main$o = /* @__PURE__ */ defineComponent({
   __name: "ImageRenderer",
   props: {
@@ -14884,7 +14893,7 @@ const _sfc_main$o = /* @__PURE__ */ defineComponent({
             createBaseVNode("div", { class: "animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full" }, null, -1)
           ])])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_6$g, [
             createVNode(unref(CircleAlert), { class: "w-12 h-12 mb-2" }),
-            createBaseVNode("p", _hoisted_7$d, toDisplayString(error.value), 1)
+            createBaseVNode("p", _hoisted_7$e, toDisplayString(error.value), 1)
           ])) : (openBlock(), createElementBlock("img", {
             key: 2,
             src: imageUrl.value,
@@ -14893,7 +14902,7 @@ const _sfc_main$o = /* @__PURE__ */ defineComponent({
             style: normalizeStyle(imageStyle.value),
             onLoad: _cache[2] || (_cache[2] = ($event) => loading.value = false),
             onError: _cache[3] || (_cache[3] = ($event) => error.value = "图片加载失败")
-          }, null, 44, _hoisted_8$c))
+          }, null, 44, _hoisted_8$d))
         ])
       ]);
     };
@@ -14952,7 +14961,7 @@ const _hoisted_3$u = {
 const _hoisted_4$r = { class: "text-sm" };
 const _hoisted_5$k = { class: "w-24 h-24 rounded-full bg-[var(--surface-2)] flex items-center justify-center mb-6" };
 const _hoisted_6$f = { class: "text-sm text-[var(--text-3)] mb-6" };
-const _hoisted_7$c = ["src", "type"];
+const _hoisted_7$d = ["src", "type"];
 const _sfc_main$m = /* @__PURE__ */ defineComponent({
   __name: "AudioRenderer",
   props: {
@@ -14985,7 +14994,7 @@ const _sfc_main$m = /* @__PURE__ */ defineComponent({
               controls: "",
               class: "w-full max-w-md",
               type: __props.content.mimeType
-            }, " 您的浏览器不支持音频播放 ", 8, _hoisted_7$c)
+            }, " 您的浏览器不支持音频播放 ", 8, _hoisted_7$d)
           ], 64)) : createCommentVNode("", true)
         ])
       ]);
@@ -15095,8 +15104,8 @@ const _hoisted_4$p = {
 };
 const _hoisted_5$j = { class: "absolute top-3 right-3 z-10" };
 const _hoisted_6$e = { class: "flex-1 overflow-auto" };
-const _hoisted_7$b = { class: "p-4 pt-12 text-sm font-mono" };
-const _hoisted_8$b = { class: "json" };
+const _hoisted_7$c = { class: "p-4 pt-12 text-sm font-mono" };
+const _hoisted_8$c = { class: "json" };
 const _sfc_main$j = /* @__PURE__ */ defineComponent({
   __name: "JsonRenderer",
   props: {
@@ -15179,8 +15188,8 @@ const _sfc_main$j = /* @__PURE__ */ defineComponent({
           ])
         ]),
         createBaseVNode("div", _hoisted_6$e, [
-          createBaseVNode("pre", _hoisted_7$b, [
-            createBaseVNode("code", _hoisted_8$b, toDisplayString(formattedJson.value), 1)
+          createBaseVNode("pre", _hoisted_7$c, [
+            createBaseVNode("code", _hoisted_8$c, toDisplayString(formattedJson.value), 1)
           ])
         ])
       ]);
@@ -15674,6 +15683,19 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
         console.log("[FileViewer] dialogData is null");
       }
     };
+    const getFileContent = () => {
+      if (fileContent.value) {
+        const data16 = fileContent.value.data;
+        if (typeof data16 === "string") {
+          return data16;
+        }
+        if (data16 instanceof ArrayBuffer) {
+          const decoder = new TextDecoder("utf-8");
+          return decoder.decode(data16);
+        }
+      }
+      return "";
+    };
     provide(CopyFunctionKey, {
       setCopyFunction,
       copied
@@ -15738,6 +15760,13 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
         fileContent.value = content;
         const renderer2 = mimeTypeRegistry.getRenderer(content.mimeType, fileExtension.value);
         rendererComponent.value = renderer2;
+        if (dialogData) {
+          const rawDialogData = /* @__PURE__ */ toRaw(dialogData);
+          const gfc = rawDialogData?.getFileContent;
+          if (gfc && typeof gfc === "object" && "value" in gfc) {
+            gfc.value = getFileContent;
+          }
+        }
       } catch (err) {
         error.value = err instanceof Error ? err.message : "加载文件失败";
       } finally {
@@ -15772,11 +15801,1414 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const FileViewer = /* @__PURE__ */ _export_sfc(_sfc_main$f, [["__scopeId", "data-v-34a5f859"]]);
-const _hoisted_1$o = { class: "flex items-center justify-between w-full px-2" };
-const _hoisted_2$m = { class: "flex items-center gap-2 min-w-0 flex-1" };
-const _hoisted_3$m = ["title"];
-const _hoisted_4$k = {
+const FileViewer = /* @__PURE__ */ _export_sfc(_sfc_main$f, [["__scopeId", "data-v-ffa557aa"]]);
+var script$x = {
+  name: "TimesIcon",
+  "extends": script$G
+};
+function _toConsumableArray$g(r2) {
+  return _arrayWithoutHoles$g(r2) || _iterableToArray$g(r2) || _unsupportedIterableToArray$g(r2) || _nonIterableSpread$g();
+}
+function _nonIterableSpread$g() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$g(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$g(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$g(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$g(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$g(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$g(r2);
+}
+function _arrayLikeToArray$g(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$w(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$g(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M8.01186 7.00933L12.27 2.75116C12.341 2.68501 12.398 2.60524 12.4375 2.51661C12.4769 2.42798 12.4982 2.3323 12.4999 2.23529C12.5016 2.13827 12.4838 2.0419 12.4474 1.95194C12.4111 1.86197 12.357 1.78024 12.2884 1.71163C12.2198 1.64302 12.138 1.58893 12.0481 1.55259C11.9581 1.51625 11.8617 1.4984 11.7647 1.50011C11.6677 1.50182 11.572 1.52306 11.4834 1.56255C11.3948 1.60204 11.315 1.65898 11.2488 1.72997L6.99067 5.98814L2.7325 1.72997C2.59553 1.60234 2.41437 1.53286 2.22718 1.53616C2.03999 1.53946 1.8614 1.61529 1.72901 1.74767C1.59663 1.88006 1.5208 2.05865 1.5175 2.24584C1.5142 2.43303 1.58368 2.61419 1.71131 2.75116L5.96948 7.00933L1.71131 11.2675C1.576 11.403 1.5 11.5866 1.5 11.7781C1.5 11.9696 1.576 12.1532 1.71131 12.2887C1.84679 12.424 2.03043 12.5 2.2219 12.5C2.41338 12.5 2.59702 12.424 2.7325 12.2887L6.99067 8.03052L11.2488 12.2887C11.3843 12.424 11.568 12.5 11.7594 12.5C11.9509 12.5 12.1346 12.424 12.27 12.2887C12.4053 12.1532 12.4813 11.9696 12.4813 11.7781C12.4813 11.5866 12.4053 11.403 12.27 11.2675L8.01186 7.00933Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
+script$x.render = render$w;
+var script$w = {
+  name: "WindowMaximizeIcon",
+  "extends": script$G
+};
+function _toConsumableArray$f(r2) {
+  return _arrayWithoutHoles$f(r2) || _iterableToArray$f(r2) || _unsupportedIterableToArray$f(r2) || _nonIterableSpread$f();
+}
+function _nonIterableSpread$f() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$f(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$f(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$f(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$f(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$f(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$f(r2);
+}
+function _arrayLikeToArray$f(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$v(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$f(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    "fill-rule": "evenodd",
+    "clip-rule": "evenodd",
+    d: "M7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14ZM9.77805 7.42192C9.89013 7.534 10.0415 7.59788 10.2 7.59995C10.3585 7.59788 10.5099 7.534 10.622 7.42192C10.7341 7.30985 10.798 7.15844 10.8 6.99995V3.94242C10.8066 3.90505 10.8096 3.86689 10.8089 3.82843C10.8079 3.77159 10.7988 3.7157 10.7824 3.6623C10.756 3.55552 10.701 3.45698 10.622 3.37798C10.5099 3.2659 10.3585 3.20202 10.2 3.19995H7.00002C6.84089 3.19995 6.68828 3.26317 6.57576 3.37569C6.46324 3.48821 6.40002 3.64082 6.40002 3.79995C6.40002 3.95908 6.46324 4.11169 6.57576 4.22422C6.68828 4.33674 6.84089 4.39995 7.00002 4.39995H8.80006L6.19997 7.00005C6.10158 7.11005 6.04718 7.25246 6.04718 7.40005C6.04718 7.54763 6.10158 7.69004 6.19997 7.80005C6.30202 7.91645 6.44561 7.98824 6.59997 8.00005C6.75432 7.98824 6.89791 7.91645 6.99997 7.80005L9.60002 5.26841V6.99995C9.6021 7.15844 9.66598 7.30985 9.77805 7.42192ZM1.4 14H3.8C4.17066 13.9979 4.52553 13.8498 4.78763 13.5877C5.04973 13.3256 5.1979 12.9707 5.2 12.6V10.2C5.1979 9.82939 5.04973 9.47452 4.78763 9.21242C4.52553 8.95032 4.17066 8.80215 3.8 8.80005H1.4C1.02934 8.80215 0.674468 8.95032 0.412371 9.21242C0.150274 9.47452 0.00210008 9.82939 0 10.2V12.6C0.00210008 12.9707 0.150274 13.3256 0.412371 13.5877C0.674468 13.8498 1.02934 13.9979 1.4 14ZM1.25858 10.0586C1.29609 10.0211 1.34696 10 1.4 10H3.8C3.85304 10 3.90391 10.0211 3.94142 10.0586C3.97893 10.0961 4 10.147 4 10.2V12.6C4 12.6531 3.97893 12.704 3.94142 12.7415C3.90391 12.779 3.85304 12.8 3.8 12.8H1.4C1.34696 12.8 1.29609 12.779 1.25858 12.7415C1.22107 12.704 1.2 12.6531 1.2 12.6V10.2C1.2 10.147 1.22107 10.0961 1.25858 10.0586Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
+script$w.render = render$v;
+var script$v = {
+  name: "WindowMinimizeIcon",
+  "extends": script$G
+};
+function _toConsumableArray$e(r2) {
+  return _arrayWithoutHoles$e(r2) || _iterableToArray$e(r2) || _unsupportedIterableToArray$e(r2) || _nonIterableSpread$e();
+}
+function _nonIterableSpread$e() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$e(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$e(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$e(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$e(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$e(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$e(r2);
+}
+function _arrayLikeToArray$e(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$u(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$e(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    "fill-rule": "evenodd",
+    "clip-rule": "evenodd",
+    d: "M11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0ZM6.368 7.952C6.44137 7.98326 6.52025 7.99958 6.6 8H9.8C9.95913 8 10.1117 7.93678 10.2243 7.82426C10.3368 7.71174 10.4 7.55913 10.4 7.4C10.4 7.24087 10.3368 7.08826 10.2243 6.97574C10.1117 6.86321 9.95913 6.8 9.8 6.8H8.048L10.624 4.224C10.73 4.11026 10.7877 3.95982 10.7849 3.80438C10.7822 3.64894 10.7192 3.50063 10.6093 3.3907C10.4994 3.28077 10.3511 3.2178 10.1956 3.21506C10.0402 3.21232 9.88974 3.27002 9.776 3.376L7.2 5.952V4.2C7.2 4.04087 7.13679 3.88826 7.02426 3.77574C6.91174 3.66321 6.75913 3.6 6.6 3.6C6.44087 3.6 6.28826 3.66321 6.17574 3.77574C6.06321 3.88826 6 4.04087 6 4.2V7.4C6.00042 7.47975 6.01674 7.55862 6.048 7.632C6.07656 7.70442 6.11971 7.7702 6.17475 7.82524C6.2298 7.88029 6.29558 7.92344 6.368 7.952ZM1.4 8.80005H3.8C4.17066 8.80215 4.52553 8.95032 4.78763 9.21242C5.04973 9.47452 5.1979 9.82939 5.2 10.2V12.6C5.1979 12.9707 5.04973 13.3256 4.78763 13.5877C4.52553 13.8498 4.17066 13.9979 3.8 14H1.4C1.02934 13.9979 0.674468 13.8498 0.412371 13.5877C0.150274 13.3256 0.00210008 12.9707 0 12.6V10.2C0.00210008 9.82939 0.150274 9.47452 0.412371 9.21242C0.674468 8.95032 1.02934 8.80215 1.4 8.80005ZM3.94142 12.7415C3.97893 12.704 4 12.6531 4 12.6V10.2C4 10.147 3.97893 10.0961 3.94142 10.0586C3.90391 10.0211 3.85304 10 3.8 10H1.4C1.34696 10 1.29609 10.0211 1.25858 10.0586C1.22107 10.0961 1.2 10.147 1.2 10.2V12.6C1.2 12.6531 1.22107 12.704 1.25858 12.7415C1.29609 12.779 1.34696 12.8 1.4 12.8H3.8C3.85304 12.8 3.90391 12.779 3.94142 12.7415Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
+script$v.render = render$u;
+var FocusTrapStyle = BaseStyle.extend({
+  name: "focustrap-directive"
+});
+var BaseFocusTrap = BaseDirective.extend({
+  style: FocusTrapStyle
+});
+function _typeof$b(o2) {
+  "@babel/helpers - typeof";
+  return _typeof$b = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
+    return typeof o3;
+  } : function(o3) {
+    return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
+  }, _typeof$b(o2);
+}
+function ownKeys$6(e2, r2) {
+  var t2 = Object.keys(e2);
+  if (Object.getOwnPropertySymbols) {
+    var o2 = Object.getOwnPropertySymbols(e2);
+    r2 && (o2 = o2.filter(function(r3) {
+      return Object.getOwnPropertyDescriptor(e2, r3).enumerable;
+    })), t2.push.apply(t2, o2);
+  }
+  return t2;
+}
+function _objectSpread$6(e2) {
+  for (var r2 = 1; r2 < arguments.length; r2++) {
+    var t2 = null != arguments[r2] ? arguments[r2] : {};
+    r2 % 2 ? ownKeys$6(Object(t2), true).forEach(function(r3) {
+      _defineProperty$b(e2, r3, t2[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$6(Object(t2)).forEach(function(r3) {
+      Object.defineProperty(e2, r3, Object.getOwnPropertyDescriptor(t2, r3));
+    });
+  }
+  return e2;
+}
+function _defineProperty$b(e2, r2, t2) {
+  return (r2 = _toPropertyKey$b(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
+}
+function _toPropertyKey$b(t2) {
+  var i2 = _toPrimitive$b(t2, "string");
+  return "symbol" == _typeof$b(i2) ? i2 : i2 + "";
+}
+function _toPrimitive$b(t2, r2) {
+  if ("object" != _typeof$b(t2) || !t2) return t2;
+  var e2 = t2[Symbol.toPrimitive];
+  if (void 0 !== e2) {
+    var i2 = e2.call(t2, r2);
+    if ("object" != _typeof$b(i2)) return i2;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r2 ? String : Number)(t2);
+}
+var FocusTrap = BaseFocusTrap.extend("focustrap", {
+  mounted: function mounted3(el, binding) {
+    var _ref = binding.value || {}, disabled2 = _ref.disabled;
+    if (!disabled2) {
+      this.createHiddenFocusableElements(el, binding);
+      this.bind(el, binding);
+      this.autoElementFocus(el, binding);
+    }
+    el.setAttribute("data-pd-focustrap", true);
+    this.$el = el;
+  },
+  updated: function updated3(el, binding) {
+    var _ref2 = binding.value || {}, disabled2 = _ref2.disabled;
+    disabled2 && this.unbind(el);
+  },
+  unmounted: function unmounted4(el) {
+    this.unbind(el);
+  },
+  methods: {
+    getComputedSelector: function getComputedSelector(selector) {
+      return ':not(.p-hidden-focusable):not([data-p-hidden-focusable="true"])'.concat(selector !== null && selector !== void 0 ? selector : "");
+    },
+    bind: function bind(el, binding) {
+      var _this = this;
+      var _ref3 = binding.value || {}, onFocusIn = _ref3.onFocusIn, onFocusOut = _ref3.onFocusOut;
+      el.$_pfocustrap_mutationobserver = new MutationObserver(function(mutationList) {
+        mutationList.forEach(function(mutation) {
+          if (mutation.type === "childList" && !el.contains(document.activeElement)) {
+            var _findNextFocusableElement = function findNextFocusableElement(_el) {
+              var focusableElement = It(_el) ? It(_el, _this.getComputedSelector(el.$_pfocustrap_focusableselector)) ? _el : vt(el, _this.getComputedSelector(el.$_pfocustrap_focusableselector)) : vt(_el);
+              return s$c(focusableElement) ? focusableElement : _el.nextSibling && _findNextFocusableElement(_el.nextSibling);
+            };
+            bt(_findNextFocusableElement(mutation.nextSibling));
+          }
+        });
+      });
+      el.$_pfocustrap_mutationobserver.disconnect();
+      el.$_pfocustrap_mutationobserver.observe(el, {
+        childList: true
+      });
+      el.$_pfocustrap_focusinlistener = function(event) {
+        return onFocusIn && onFocusIn(event);
+      };
+      el.$_pfocustrap_focusoutlistener = function(event) {
+        return onFocusOut && onFocusOut(event);
+      };
+      el.addEventListener("focusin", el.$_pfocustrap_focusinlistener);
+      el.addEventListener("focusout", el.$_pfocustrap_focusoutlistener);
+    },
+    unbind: function unbind(el) {
+      el.$_pfocustrap_mutationobserver && el.$_pfocustrap_mutationobserver.disconnect();
+      el.$_pfocustrap_focusinlistener && el.removeEventListener("focusin", el.$_pfocustrap_focusinlistener) && (el.$_pfocustrap_focusinlistener = null);
+      el.$_pfocustrap_focusoutlistener && el.removeEventListener("focusout", el.$_pfocustrap_focusoutlistener) && (el.$_pfocustrap_focusoutlistener = null);
+    },
+    autoFocus: function autoFocus(options) {
+      this.autoElementFocus(this.$el, {
+        value: _objectSpread$6(_objectSpread$6({}, options), {}, {
+          autoFocus: true
+        })
+      });
+    },
+    autoElementFocus: function autoElementFocus(el, binding) {
+      var _ref4 = binding.value || {}, _ref4$autoFocusSelect = _ref4.autoFocusSelector, autoFocusSelector = _ref4$autoFocusSelect === void 0 ? "" : _ref4$autoFocusSelect, _ref4$firstFocusableS = _ref4.firstFocusableSelector, firstFocusableSelector = _ref4$firstFocusableS === void 0 ? "" : _ref4$firstFocusableS, _ref4$autoFocus = _ref4.autoFocus, autoFocus2 = _ref4$autoFocus === void 0 ? false : _ref4$autoFocus;
+      var focusableElement = vt(el, "[autofocus]".concat(this.getComputedSelector(autoFocusSelector)));
+      autoFocus2 && !focusableElement && (focusableElement = vt(el, this.getComputedSelector(firstFocusableSelector)));
+      bt(focusableElement);
+    },
+    onFirstHiddenElementFocus: function onFirstHiddenElementFocus(event) {
+      var _this$$el;
+      var currentTarget = event.currentTarget, relatedTarget = event.relatedTarget;
+      var focusableElement = relatedTarget === currentTarget.$_pfocustrap_lasthiddenfocusableelement || !((_this$$el = this.$el) !== null && _this$$el !== void 0 && _this$$el.contains(relatedTarget)) ? vt(currentTarget.parentElement, this.getComputedSelector(currentTarget.$_pfocustrap_focusableselector)) : currentTarget.$_pfocustrap_lasthiddenfocusableelement;
+      bt(focusableElement);
+    },
+    onLastHiddenElementFocus: function onLastHiddenElementFocus(event) {
+      var _this$$el2;
+      var currentTarget = event.currentTarget, relatedTarget = event.relatedTarget;
+      var focusableElement = relatedTarget === currentTarget.$_pfocustrap_firsthiddenfocusableelement || !((_this$$el2 = this.$el) !== null && _this$$el2 !== void 0 && _this$$el2.contains(relatedTarget)) ? Lt(currentTarget.parentElement, this.getComputedSelector(currentTarget.$_pfocustrap_focusableselector)) : currentTarget.$_pfocustrap_firsthiddenfocusableelement;
+      bt(focusableElement);
+    },
+    createHiddenFocusableElements: function createHiddenFocusableElements(el, binding) {
+      var _this2 = this;
+      var _ref5 = binding.value || {}, _ref5$tabIndex = _ref5.tabIndex, tabIndex = _ref5$tabIndex === void 0 ? 0 : _ref5$tabIndex, _ref5$firstFocusableS = _ref5.firstFocusableSelector, firstFocusableSelector = _ref5$firstFocusableS === void 0 ? "" : _ref5$firstFocusableS, _ref5$lastFocusableSe = _ref5.lastFocusableSelector, lastFocusableSelector = _ref5$lastFocusableSe === void 0 ? "" : _ref5$lastFocusableSe;
+      var createFocusableElement = function createFocusableElement2(onFocus4) {
+        return U("span", {
+          "class": "p-hidden-accessible p-hidden-focusable",
+          tabIndex,
+          role: "presentation",
+          "aria-hidden": true,
+          "data-p-hidden-accessible": true,
+          "data-p-hidden-focusable": true,
+          onFocus: onFocus4 === null || onFocus4 === void 0 ? void 0 : onFocus4.bind(_this2)
+        });
+      };
+      var firstFocusableElement = createFocusableElement(this.onFirstHiddenElementFocus);
+      var lastFocusableElement = createFocusableElement(this.onLastHiddenElementFocus);
+      firstFocusableElement.$_pfocustrap_lasthiddenfocusableelement = lastFocusableElement;
+      firstFocusableElement.$_pfocustrap_focusableselector = firstFocusableSelector;
+      firstFocusableElement.setAttribute("data-pc-section", "firstfocusableelement");
+      lastFocusableElement.$_pfocustrap_firsthiddenfocusableelement = firstFocusableElement;
+      lastFocusableElement.$_pfocustrap_focusableselector = lastFocusableSelector;
+      lastFocusableElement.setAttribute("data-pc-section", "lastfocusableelement");
+      el.prepend(firstFocusableElement);
+      el.append(lastFocusableElement);
+    }
+  }
+});
+var script$u = {
+  name: "Portal",
+  props: {
+    appendTo: {
+      type: [String, Object],
+      "default": "body"
+    },
+    disabled: {
+      type: Boolean,
+      "default": false
+    }
+  },
+  data: function data4() {
+    return {
+      mounted: false
+    };
+  },
+  mounted: function mounted4() {
+    this.mounted = tt();
+  },
+  computed: {
+    inline: function inline() {
+      return this.disabled || this.appendTo === "self";
+    }
+  }
+};
+function render$t(_ctx, _cache, $props, $setup, $data, $options) {
+  return $options.inline ? renderSlot(_ctx.$slots, "default", {
+    key: 0
+  }) : $data.mounted ? (openBlock(), createBlock(Teleport, {
+    key: 1,
+    to: $props.appendTo
+  }, [renderSlot(_ctx.$slots, "default")], 8, ["to"])) : createCommentVNode("", true);
+}
+script$u.render = render$t;
+function blockBodyScroll() {
+  st$1({
+    variableName: rr("scrollbar.width").name
+  });
+}
+function unblockBodyScroll() {
+  dt$1({
+    variableName: rr("scrollbar.width").name
+  });
+}
+var style$b = "\n    .p-dialog {\n        max-height: 90%;\n        transform: scale(1);\n        border-radius: dt('dialog.border.radius');\n        box-shadow: dt('dialog.shadow');\n        background: dt('dialog.background');\n        border: 1px solid dt('dialog.border.color');\n        color: dt('dialog.color');\n        will-change: transform;\n    }\n\n    .p-dialog-content {\n        overflow-y: auto;\n        padding: dt('dialog.content.padding');\n        flex-grow: 1;\n    }\n\n    .p-dialog-header {\n        display: flex;\n        align-items: center;\n        justify-content: space-between;\n        flex-shrink: 0;\n        padding: dt('dialog.header.padding');\n    }\n\n    .p-dialog-title {\n        font-weight: dt('dialog.title.font.weight');\n        font-size: dt('dialog.title.font.size');\n    }\n\n    .p-dialog-footer {\n        flex-shrink: 0;\n        padding: dt('dialog.footer.padding');\n        display: flex;\n        justify-content: flex-end;\n        gap: dt('dialog.footer.gap');\n    }\n\n    .p-dialog-header-actions {\n        display: flex;\n        align-items: center;\n        gap: dt('dialog.header.gap');\n    }\n\n    .p-dialog-top .p-dialog,\n    .p-dialog-bottom .p-dialog,\n    .p-dialog-left .p-dialog,\n    .p-dialog-right .p-dialog,\n    .p-dialog-topleft .p-dialog,\n    .p-dialog-topright .p-dialog,\n    .p-dialog-bottomleft .p-dialog,\n    .p-dialog-bottomright .p-dialog {\n        margin: 1rem;\n    }\n\n    .p-dialog-maximized {\n        width: 100vw !important;\n        height: 100vh !important;\n        top: 0px !important;\n        left: 0px !important;\n        max-height: 100%;\n        height: 100%;\n        border-radius: 0;\n    }\n\n    .p-dialog .p-resizable-handle {\n        position: absolute;\n        font-size: 0.1px;\n        display: block;\n        cursor: se-resize;\n        width: 12px;\n        height: 12px;\n        right: 1px;\n        bottom: 1px;\n    }\n\n    .p-dialog-enter-active {\n        animation: p-animate-dialog-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-dialog-leave-active {\n        animation: p-animate-dialog-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-dialog-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-dialog-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
+var inlineStyles$1 = {
+  mask: function mask(_ref) {
+    var position2 = _ref.position, modal2 = _ref.modal;
+    return {
+      position: "fixed",
+      height: "100%",
+      width: "100%",
+      left: 0,
+      top: 0,
+      display: "flex",
+      justifyContent: position2 === "left" || position2 === "topleft" || position2 === "bottomleft" ? "flex-start" : position2 === "right" || position2 === "topright" || position2 === "bottomright" ? "flex-end" : "center",
+      alignItems: position2 === "top" || position2 === "topleft" || position2 === "topright" ? "flex-start" : position2 === "bottom" || position2 === "bottomleft" || position2 === "bottomright" ? "flex-end" : "center",
+      pointerEvents: modal2 ? "auto" : "none"
+    };
+  },
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    pointerEvents: "auto"
+  }
+};
+var classes$f = {
+  mask: function mask2(_ref2) {
+    var props = _ref2.props;
+    var positions = ["left", "right", "top", "topleft", "topright", "bottom", "bottomleft", "bottomright"];
+    var pos = positions.find(function(item) {
+      return item === props.position;
+    });
+    return ["p-dialog-mask", {
+      "p-overlay-mask p-overlay-mask-enter-active": props.modal
+    }, pos ? "p-dialog-".concat(pos) : ""];
+  },
+  root: function root6(_ref3) {
+    var props = _ref3.props, instance = _ref3.instance;
+    return ["p-dialog p-component", {
+      "p-dialog-maximized": props.maximizable && instance.maximized
+    }];
+  },
+  header: "p-dialog-header",
+  title: "p-dialog-title",
+  headerActions: "p-dialog-header-actions",
+  pcMaximizeButton: "p-dialog-maximize-button",
+  pcCloseButton: "p-dialog-close-button",
+  content: "p-dialog-content",
+  footer: "p-dialog-footer"
+};
+var DialogStyle = BaseStyle.extend({
+  name: "dialog",
+  style: style$b,
+  classes: classes$f,
+  inlineStyles: inlineStyles$1
+});
+var script$1$g = {
+  name: "BaseDialog",
+  "extends": script$H,
+  props: {
+    header: {
+      type: null,
+      "default": null
+    },
+    footer: {
+      type: null,
+      "default": null
+    },
+    visible: {
+      type: Boolean,
+      "default": false
+    },
+    modal: {
+      type: Boolean,
+      "default": null
+    },
+    contentStyle: {
+      type: null,
+      "default": null
+    },
+    contentClass: {
+      type: String,
+      "default": null
+    },
+    contentProps: {
+      type: null,
+      "default": null
+    },
+    maximizable: {
+      type: Boolean,
+      "default": false
+    },
+    dismissableMask: {
+      type: Boolean,
+      "default": false
+    },
+    closable: {
+      type: Boolean,
+      "default": true
+    },
+    closeOnEscape: {
+      type: Boolean,
+      "default": true
+    },
+    showHeader: {
+      type: Boolean,
+      "default": true
+    },
+    blockScroll: {
+      type: Boolean,
+      "default": false
+    },
+    baseZIndex: {
+      type: Number,
+      "default": 0
+    },
+    autoZIndex: {
+      type: Boolean,
+      "default": true
+    },
+    position: {
+      type: String,
+      "default": "center"
+    },
+    breakpoints: {
+      type: Object,
+      "default": null
+    },
+    draggable: {
+      type: Boolean,
+      "default": true
+    },
+    keepInViewport: {
+      type: Boolean,
+      "default": true
+    },
+    minX: {
+      type: Number,
+      "default": 0
+    },
+    minY: {
+      type: Number,
+      "default": 0
+    },
+    appendTo: {
+      type: [String, Object],
+      "default": "body"
+    },
+    closeIcon: {
+      type: String,
+      "default": void 0
+    },
+    maximizeIcon: {
+      type: String,
+      "default": void 0
+    },
+    minimizeIcon: {
+      type: String,
+      "default": void 0
+    },
+    closeButtonProps: {
+      type: Object,
+      "default": function _default() {
+        return {
+          severity: "secondary",
+          text: true,
+          rounded: true
+        };
+      }
+    },
+    maximizeButtonProps: {
+      type: Object,
+      "default": function _default2() {
+        return {
+          severity: "secondary",
+          text: true,
+          rounded: true
+        };
+      }
+    },
+    _instance: null
+  },
+  style: DialogStyle,
+  provide: function provide8() {
+    return {
+      $pcDialog: this,
+      $parentInstance: this
+    };
+  }
+};
+var script$t = {
+  name: "Dialog",
+  "extends": script$1$g,
+  inheritAttrs: false,
+  emits: ["update:visible", "show", "hide", "after-hide", "maximize", "unmaximize", "dragstart", "dragend"],
+  provide: function provide9() {
+    var _this = this;
+    return {
+      dialogRef: computed(function() {
+        return _this._instance;
+      })
+    };
+  },
+  data: function data5() {
+    return {
+      containerVisible: this.visible,
+      maximized: false,
+      focusableMax: null,
+      focusableClose: null,
+      target: null
+    };
+  },
+  documentKeydownListener: null,
+  container: null,
+  mask: null,
+  content: null,
+  headerContainer: null,
+  footerContainer: null,
+  maximizableButton: null,
+  closeButton: null,
+  styleElement: null,
+  dragging: null,
+  documentDragListener: null,
+  documentDragEndListener: null,
+  lastPageX: null,
+  lastPageY: null,
+  maskMouseDownTarget: null,
+  updated: function updated4() {
+    if (this.visible) {
+      this.containerVisible = this.visible;
+    }
+  },
+  beforeUnmount: function beforeUnmount3() {
+    this.unbindDocumentState();
+    this.unbindGlobalListeners();
+    this.destroyStyle();
+    if (this.mask && this.autoZIndex) {
+      x.clear(this.mask);
+    }
+    this.container = null;
+    this.mask = null;
+  },
+  mounted: function mounted5() {
+    if (this.breakpoints) {
+      this.createStyle();
+    }
+  },
+  methods: {
+    close: function close() {
+      this.$emit("update:visible", false);
+    },
+    onEnter: function onEnter() {
+      this.$emit("show");
+      this.target = document.activeElement;
+      this.enableDocumentSettings();
+      this.bindGlobalListeners();
+      if (this.autoZIndex) {
+        x.set("modal", this.mask, this.baseZIndex + this.$primevue.config.zIndex.modal);
+      }
+    },
+    onAfterEnter: function onAfterEnter() {
+      this.focus();
+    },
+    onBeforeLeave: function onBeforeLeave() {
+      if (this.modal) {
+        !this.isUnstyled && W(this.mask, "p-overlay-mask-leave-active");
+      }
+      if (this.dragging && this.documentDragEndListener) {
+        this.documentDragEndListener();
+      }
+    },
+    onLeave: function onLeave() {
+      this.$emit("hide");
+      bt(this.target);
+      this.target = null;
+      this.focusableClose = null;
+      this.focusableMax = null;
+    },
+    onAfterLeave: function onAfterLeave() {
+      if (this.autoZIndex) {
+        x.clear(this.mask);
+      }
+      this.containerVisible = false;
+      this.unbindDocumentState();
+      this.unbindGlobalListeners();
+      this.$emit("after-hide");
+    },
+    onMaskMouseDown: function onMaskMouseDown(event) {
+      this.maskMouseDownTarget = event.target;
+    },
+    onMaskMouseUp: function onMaskMouseUp() {
+      if (this.dismissableMask && this.modal && this.mask === this.maskMouseDownTarget) {
+        this.close();
+      }
+    },
+    focus: function focus$1() {
+      var findFocusableElement = function findFocusableElement2(container) {
+        return container && container.querySelector("[autofocus]");
+      };
+      var focusTarget = this.$slots.footer && findFocusableElement(this.footerContainer);
+      if (!focusTarget) {
+        focusTarget = this.$slots.header && findFocusableElement(this.headerContainer);
+        if (!focusTarget) {
+          focusTarget = this.$slots["default"] && findFocusableElement(this.content);
+          if (!focusTarget) {
+            if (this.maximizable) {
+              this.focusableMax = true;
+              focusTarget = this.maximizableButton;
+            } else {
+              this.focusableClose = true;
+              focusTarget = this.closeButton;
+            }
+          }
+        }
+      }
+      if (focusTarget) {
+        bt(focusTarget, {
+          focusVisible: true
+        });
+      }
+    },
+    maximize: function maximize(event) {
+      if (this.maximized) {
+        this.maximized = false;
+        this.$emit("unmaximize", event);
+      } else {
+        this.maximized = true;
+        this.$emit("maximize", event);
+      }
+      if (!this.modal) {
+        this.maximized ? blockBodyScroll() : unblockBodyScroll();
+      }
+    },
+    enableDocumentSettings: function enableDocumentSettings() {
+      if (this.modal || !this.modal && this.blockScroll || this.maximizable && this.maximized) {
+        blockBodyScroll();
+      }
+    },
+    unbindDocumentState: function unbindDocumentState() {
+      if (this.modal || !this.modal && this.blockScroll || this.maximizable && this.maximized) {
+        unblockBodyScroll();
+      }
+    },
+    onKeyDown: function onKeyDown(event) {
+      if (event.code === "Escape" && this.closeOnEscape) {
+        this.close();
+      }
+    },
+    bindDocumentKeyDownListener: function bindDocumentKeyDownListener() {
+      if (!this.documentKeydownListener) {
+        this.documentKeydownListener = this.onKeyDown.bind(this);
+        window.document.addEventListener("keydown", this.documentKeydownListener);
+      }
+    },
+    unbindDocumentKeyDownListener: function unbindDocumentKeyDownListener() {
+      if (this.documentKeydownListener) {
+        window.document.removeEventListener("keydown", this.documentKeydownListener);
+        this.documentKeydownListener = null;
+      }
+    },
+    containerRef: function containerRef(el) {
+      this.container = el;
+    },
+    maskRef: function maskRef(el) {
+      this.mask = el;
+    },
+    contentRef: function contentRef(el) {
+      this.content = el;
+    },
+    headerContainerRef: function headerContainerRef(el) {
+      this.headerContainer = el;
+    },
+    footerContainerRef: function footerContainerRef(el) {
+      this.footerContainer = el;
+    },
+    maximizableRef: function maximizableRef(el) {
+      this.maximizableButton = el ? el.$el : void 0;
+    },
+    closeButtonRef: function closeButtonRef(el) {
+      this.closeButton = el ? el.$el : void 0;
+    },
+    createStyle: function createStyle() {
+      if (!this.styleElement && !this.isUnstyled) {
+        var _this$$primevue;
+        this.styleElement = document.createElement("style");
+        this.styleElement.type = "text/css";
+        _t(this.styleElement, "nonce", (_this$$primevue = this.$primevue) === null || _this$$primevue === void 0 || (_this$$primevue = _this$$primevue.config) === null || _this$$primevue === void 0 || (_this$$primevue = _this$$primevue.csp) === null || _this$$primevue === void 0 ? void 0 : _this$$primevue.nonce);
+        document.head.appendChild(this.styleElement);
+        var innerHTML = "";
+        for (var breakpoint in this.breakpoints) {
+          innerHTML += "\n                        @media screen and (max-width: ".concat(breakpoint, ") {\n                            .p-dialog[").concat(this.$attrSelector, "] {\n                                width: ").concat(this.breakpoints[breakpoint], " !important;\n                            }\n                        }\n                    ");
+        }
+        this.styleElement.innerHTML = innerHTML;
+      }
+    },
+    destroyStyle: function destroyStyle() {
+      if (this.styleElement) {
+        document.head.removeChild(this.styleElement);
+        this.styleElement = null;
+      }
+    },
+    initDrag: function initDrag(event) {
+      if (event.target.closest("div").getAttribute("data-pc-section") === "headeractions") {
+        return;
+      }
+      if (this.draggable) {
+        this.dragging = true;
+        this.lastPageX = event.pageX;
+        this.lastPageY = event.pageY;
+        this.container.style.margin = "0";
+        document.body.setAttribute("data-p-unselectable-text", "true");
+        !this.isUnstyled && S$1(document.body, {
+          "user-select": "none"
+        });
+        this.$emit("dragstart", event);
+      }
+    },
+    bindGlobalListeners: function bindGlobalListeners() {
+      if (this.draggable) {
+        this.bindDocumentDragListener();
+        this.bindDocumentDragEndListener();
+      }
+      if (this.closeOnEscape) {
+        this.bindDocumentKeyDownListener();
+      }
+    },
+    unbindGlobalListeners: function unbindGlobalListeners() {
+      this.unbindDocumentDragListener();
+      this.unbindDocumentDragEndListener();
+      this.unbindDocumentKeyDownListener();
+    },
+    bindDocumentDragListener: function bindDocumentDragListener() {
+      var _this2 = this;
+      this.documentDragListener = function(event) {
+        if (_this2.dragging) {
+          var width = v$3(_this2.container);
+          var height = C$1(_this2.container);
+          var deltaX = event.pageX - _this2.lastPageX;
+          var deltaY = event.pageY - _this2.lastPageY;
+          var offset = _this2.container.getBoundingClientRect();
+          var leftPos = offset.left + deltaX;
+          var topPos = offset.top + deltaY;
+          var viewport = h$5();
+          var containerComputedStyle = getComputedStyle(_this2.container);
+          var marginLeft = parseFloat(containerComputedStyle.marginLeft);
+          var marginTop = parseFloat(containerComputedStyle.marginTop);
+          _this2.container.style.position = "fixed";
+          if (_this2.keepInViewport) {
+            if (leftPos >= _this2.minX && leftPos + width < viewport.width) {
+              _this2.lastPageX = event.pageX;
+              _this2.container.style.left = leftPos - marginLeft + "px";
+            }
+            if (topPos >= _this2.minY && topPos + height < viewport.height) {
+              _this2.lastPageY = event.pageY;
+              _this2.container.style.top = topPos - marginTop + "px";
+            }
+          } else {
+            _this2.lastPageX = event.pageX;
+            _this2.container.style.left = leftPos - marginLeft + "px";
+            _this2.lastPageY = event.pageY;
+            _this2.container.style.top = topPos - marginTop + "px";
+          }
+        }
+      };
+      window.document.addEventListener("mousemove", this.documentDragListener);
+    },
+    unbindDocumentDragListener: function unbindDocumentDragListener() {
+      if (this.documentDragListener) {
+        window.document.removeEventListener("mousemove", this.documentDragListener);
+        this.documentDragListener = null;
+      }
+    },
+    bindDocumentDragEndListener: function bindDocumentDragEndListener() {
+      var _this3 = this;
+      this.documentDragEndListener = function(event) {
+        if (_this3.dragging) {
+          _this3.dragging = false;
+          document.body.removeAttribute("data-p-unselectable-text");
+          !_this3.isUnstyled && (document.body.style["user-select"] = "");
+          _this3.$emit("dragend", event);
+        }
+      };
+      window.document.addEventListener("mouseup", this.documentDragEndListener);
+    },
+    unbindDocumentDragEndListener: function unbindDocumentDragEndListener() {
+      if (this.documentDragEndListener) {
+        window.document.removeEventListener("mouseup", this.documentDragEndListener);
+        this.documentDragEndListener = null;
+      }
+    }
+  },
+  computed: {
+    maximizeIconComponent: function maximizeIconComponent() {
+      return this.maximized ? this.minimizeIcon ? "span" : "WindowMinimizeIcon" : this.maximizeIcon ? "span" : "WindowMaximizeIcon";
+    },
+    ariaLabelledById: function ariaLabelledById() {
+      return this.header != null || this.$attrs["aria-labelledby"] !== null ? this.$id + "_header" : null;
+    },
+    closeAriaLabel: function closeAriaLabel() {
+      return this.$primevue.config.locale.aria ? this.$primevue.config.locale.aria.close : void 0;
+    },
+    dataP: function dataP5() {
+      return f$a({
+        maximized: this.maximized,
+        modal: this.modal
+      });
+    }
+  },
+  directives: {
+    ripple: Ripple,
+    focustrap: FocusTrap
+  },
+  components: {
+    Button: script$D,
+    Portal: script$u,
+    WindowMinimizeIcon: script$v,
+    WindowMaximizeIcon: script$w,
+    TimesIcon: script$x
+  }
+};
+function _typeof$a(o2) {
+  "@babel/helpers - typeof";
+  return _typeof$a = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
+    return typeof o3;
+  } : function(o3) {
+    return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
+  }, _typeof$a(o2);
+}
+function ownKeys$5(e2, r2) {
+  var t2 = Object.keys(e2);
+  if (Object.getOwnPropertySymbols) {
+    var o2 = Object.getOwnPropertySymbols(e2);
+    r2 && (o2 = o2.filter(function(r3) {
+      return Object.getOwnPropertyDescriptor(e2, r3).enumerable;
+    })), t2.push.apply(t2, o2);
+  }
+  return t2;
+}
+function _objectSpread$5(e2) {
+  for (var r2 = 1; r2 < arguments.length; r2++) {
+    var t2 = null != arguments[r2] ? arguments[r2] : {};
+    r2 % 2 ? ownKeys$5(Object(t2), true).forEach(function(r3) {
+      _defineProperty$a(e2, r3, t2[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$5(Object(t2)).forEach(function(r3) {
+      Object.defineProperty(e2, r3, Object.getOwnPropertyDescriptor(t2, r3));
+    });
+  }
+  return e2;
+}
+function _defineProperty$a(e2, r2, t2) {
+  return (r2 = _toPropertyKey$a(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
+}
+function _toPropertyKey$a(t2) {
+  var i2 = _toPrimitive$a(t2, "string");
+  return "symbol" == _typeof$a(i2) ? i2 : i2 + "";
+}
+function _toPrimitive$a(t2, r2) {
+  if ("object" != _typeof$a(t2) || !t2) return t2;
+  var e2 = t2[Symbol.toPrimitive];
+  if (void 0 !== e2) {
+    var i2 = e2.call(t2, r2);
+    if ("object" != _typeof$a(i2)) return i2;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r2 ? String : Number)(t2);
+}
+var _hoisted_1$o = ["data-p"];
+var _hoisted_2$m = ["aria-labelledby", "aria-modal", "data-p"];
+var _hoisted_3$m = ["id"];
+var _hoisted_4$k = ["data-p"];
+function render$s(_ctx, _cache, $props, $setup, $data, $options) {
+  var _component_Button = resolveComponent("Button");
+  var _component_Portal = resolveComponent("Portal");
+  var _directive_focustrap = resolveDirective("focustrap");
+  return openBlock(), createBlock(_component_Portal, {
+    appendTo: _ctx.appendTo
+  }, {
+    "default": withCtx(function() {
+      return [$data.containerVisible ? (openBlock(), createElementBlock("div", mergeProps({
+        key: 0,
+        ref: $options.maskRef,
+        "class": _ctx.cx("mask"),
+        style: _ctx.sx("mask", true, {
+          position: _ctx.position,
+          modal: _ctx.modal
+        }),
+        onMousedown: _cache[1] || (_cache[1] = function() {
+          return $options.onMaskMouseDown && $options.onMaskMouseDown.apply($options, arguments);
+        }),
+        onMouseup: _cache[2] || (_cache[2] = function() {
+          return $options.onMaskMouseUp && $options.onMaskMouseUp.apply($options, arguments);
+        }),
+        "data-p": $options.dataP
+      }, _ctx.ptm("mask")), [createVNode(Transition, mergeProps({
+        name: "p-dialog",
+        onEnter: $options.onEnter,
+        onAfterEnter: $options.onAfterEnter,
+        onBeforeLeave: $options.onBeforeLeave,
+        onLeave: $options.onLeave,
+        onAfterLeave: $options.onAfterLeave,
+        appear: ""
+      }, _ctx.ptm("transition")), {
+        "default": withCtx(function() {
+          return [_ctx.visible ? withDirectives((openBlock(), createElementBlock("div", mergeProps({
+            key: 0,
+            ref: $options.containerRef,
+            "class": _ctx.cx("root"),
+            style: _ctx.sx("root"),
+            role: "dialog",
+            "aria-labelledby": $options.ariaLabelledById,
+            "aria-modal": _ctx.modal,
+            "data-p": $options.dataP
+          }, _ctx.ptmi("root")), [_ctx.$slots.container ? renderSlot(_ctx.$slots, "container", {
+            key: 0,
+            closeCallback: $options.close,
+            maximizeCallback: function maximizeCallback(event) {
+              return $options.maximize(event);
+            },
+            initDragCallback: $options.initDrag
+          }) : (openBlock(), createElementBlock(Fragment, {
+            key: 1
+          }, [_ctx.showHeader ? (openBlock(), createElementBlock("div", mergeProps({
+            key: 0,
+            ref: $options.headerContainerRef,
+            "class": _ctx.cx("header"),
+            onMousedown: _cache[0] || (_cache[0] = function() {
+              return $options.initDrag && $options.initDrag.apply($options, arguments);
+            })
+          }, _ctx.ptm("header")), [renderSlot(_ctx.$slots, "header", {
+            "class": normalizeClass(_ctx.cx("title"))
+          }, function() {
+            return [_ctx.header ? (openBlock(), createElementBlock("span", mergeProps({
+              key: 0,
+              id: $options.ariaLabelledById,
+              "class": _ctx.cx("title")
+            }, _ctx.ptm("title")), toDisplayString(_ctx.header), 17, _hoisted_3$m)) : createCommentVNode("", true)];
+          }), createBaseVNode("div", mergeProps({
+            "class": _ctx.cx("headerActions")
+          }, _ctx.ptm("headerActions")), [_ctx.maximizable ? renderSlot(_ctx.$slots, "maximizebutton", {
+            key: 0,
+            maximized: $data.maximized,
+            maximizeCallback: function maximizeCallback(event) {
+              return $options.maximize(event);
+            }
+          }, function() {
+            return [createVNode(_component_Button, mergeProps({
+              ref: $options.maximizableRef,
+              autofocus: $data.focusableMax,
+              "class": _ctx.cx("pcMaximizeButton"),
+              onClick: $options.maximize,
+              tabindex: _ctx.maximizable ? "0" : "-1",
+              unstyled: _ctx.unstyled
+            }, _ctx.maximizeButtonProps, {
+              pt: _ctx.ptm("pcMaximizeButton"),
+              "data-pc-group-section": "headericon"
+            }), {
+              icon: withCtx(function(slotProps) {
+                return [renderSlot(_ctx.$slots, "maximizeicon", {
+                  maximized: $data.maximized
+                }, function() {
+                  return [(openBlock(), createBlock(resolveDynamicComponent($options.maximizeIconComponent), mergeProps({
+                    "class": [slotProps["class"], $data.maximized ? _ctx.minimizeIcon : _ctx.maximizeIcon]
+                  }, _ctx.ptm("pcMaximizeButton")["icon"]), null, 16, ["class"]))];
+                })];
+              }),
+              _: 3
+            }, 16, ["autofocus", "class", "onClick", "tabindex", "unstyled", "pt"])];
+          }) : createCommentVNode("", true), _ctx.closable ? renderSlot(_ctx.$slots, "closebutton", {
+            key: 1,
+            closeCallback: $options.close
+          }, function() {
+            return [createVNode(_component_Button, mergeProps({
+              ref: $options.closeButtonRef,
+              autofocus: $data.focusableClose,
+              "class": _ctx.cx("pcCloseButton"),
+              onClick: $options.close,
+              "aria-label": $options.closeAriaLabel,
+              unstyled: _ctx.unstyled
+            }, _ctx.closeButtonProps, {
+              pt: _ctx.ptm("pcCloseButton"),
+              "data-pc-group-section": "headericon"
+            }), {
+              icon: withCtx(function(slotProps) {
+                return [renderSlot(_ctx.$slots, "closeicon", {}, function() {
+                  return [(openBlock(), createBlock(resolveDynamicComponent(_ctx.closeIcon ? "span" : "TimesIcon"), mergeProps({
+                    "class": [_ctx.closeIcon, slotProps["class"]]
+                  }, _ctx.ptm("pcCloseButton")["icon"]), null, 16, ["class"]))];
+                })];
+              }),
+              _: 3
+            }, 16, ["autofocus", "class", "onClick", "aria-label", "unstyled", "pt"])];
+          }) : createCommentVNode("", true)], 16)], 16)) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
+            ref: $options.contentRef,
+            "class": [_ctx.cx("content"), _ctx.contentClass],
+            style: _ctx.contentStyle,
+            "data-p": $options.dataP
+          }, _objectSpread$5(_objectSpread$5({}, _ctx.contentProps), _ctx.ptm("content"))), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_4$k), _ctx.footer || _ctx.$slots.footer ? (openBlock(), createElementBlock("div", mergeProps({
+            key: 1,
+            ref: $options.footerContainerRef,
+            "class": _ctx.cx("footer")
+          }, _ctx.ptm("footer")), [renderSlot(_ctx.$slots, "footer", {}, function() {
+            return [createTextVNode(toDisplayString(_ctx.footer), 1)];
+          })], 16)) : createCommentVNode("", true)], 64))], 16, _hoisted_2$m)), [[_directive_focustrap, {
+            disabled: !_ctx.modal
+          }]]) : createCommentVNode("", true)];
+        }),
+        _: 3
+      }, 16, ["onEnter", "onAfterEnter", "onBeforeLeave", "onLeave", "onAfterLeave"])], 16, _hoisted_1$o)) : createCommentVNode("", true)];
+    }),
+    _: 3
+  }, 8, ["appendTo"]);
+}
+script$t.render = render$s;
+class UiCommandService {
+  clientId;
+  isRunning = false;
+  abortController = null;
+  POLL_TIMEOUT = 25e3;
+  // 25秒长轮询
+  POLL_INTERVAL = 1e3;
+  // 正常轮询间隔
+  constructor() {
+    this.clientId = this.generateClientId();
+  }
+  /**
+   * 生成唯一客户端 ID
+   */
+  generateClientId() {
+    const random = Math.random().toString(36).substring(2, 15);
+    const timestamp = Date.now().toString(36);
+    return `v3-${timestamp}-${random}`;
+  }
+  /**
+   * 启动命令轮询
+   */
+  start() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+    this.abortController = new AbortController();
+    console.log("[UiCommandService] 启动，客户端 ID:", this.clientId);
+    this.pollLoop();
+  }
+  /**
+   * 停止命令轮询
+   */
+  stop() {
+    this.isRunning = false;
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    console.log("[UiCommandService] 已停止");
+  }
+  /**
+   * 轮询循环
+   */
+  async pollLoop() {
+    while (this.isRunning) {
+      try {
+        const command = await this.fetchCommand();
+        if (command) {
+          console.log("[UiCommandService] 收到命令:", command.type, command.id);
+          const result = await this.executeCommand(command);
+          await this.sendResult(command.id, result);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        console.error("[UiCommandService] 轮询错误:", err);
+        await this.sleep(this.POLL_INTERVAL);
+      }
+    }
+  }
+  /**
+   * 获取待执行命令
+   */
+  async fetchCommand() {
+    const url = `/api/ui-commands/poll?clientId=${encodeURIComponent(this.clientId)}&timeoutMs=${this.POLL_TIMEOUT}`;
+    const response = await fetch(url, {
+      method: "GET",
+      signal: this.abortController?.signal,
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data16 = await response.json();
+    if (!data16.ok) {
+      throw new Error(data16.error || "Unknown error");
+    }
+    return data16.command;
+  }
+  /**
+   * 执行命令
+   */
+  async executeCommand(command) {
+    try {
+      switch (command.type) {
+        case "eval_js":
+          return this.executeEvalJs(command.payload);
+        case "get_content":
+          return this.executeGetContent(command.payload);
+        case "dom_patch":
+          return this.executeDomPatch(command.payload);
+        default:
+          return { ok: false, error: `Unknown command type: ${command.type}` };
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      console.error("[UiCommandService] 命令执行失败:", command.type, error);
+      return { ok: false, error };
+    }
+  }
+  /**
+   * 执行 JavaScript 代码
+   * 
+   * 在页面上下文中执行，具有完整的 window/document 访问权限
+   */
+  executeEvalJs(payload) {
+    const script2 = payload?.script;
+    if (typeof script2 !== "string") {
+      return { ok: false, error: "Missing or invalid script parameter" };
+    }
+    const fn = new Function("window", "document", `
+            "use strict";
+            return (async () => {
+                ${script2}
+            })();
+        `);
+    const result = fn(window, document);
+    if (result && typeof result === "object" && typeof result.then === "function") {
+      return result.then(
+        (value2) => ({ ok: true, result: this.serializeResult(value2) }),
+        (err) => ({ ok: false, error: String(err) })
+      );
+    }
+    return { ok: true, result: this.serializeResult(result) };
+  }
+  /**
+   * 获取页面内容
+   */
+  executeGetContent(payload) {
+    const selector = payload?.selector;
+    const format = payload?.format || "summary";
+    const maxChars = payload?.maxChars || 2e4;
+    let element = document;
+    if (selector) {
+      element = document.querySelector(selector);
+      if (!element) {
+        return { ok: false, error: `Element not found: ${selector}` };
+      }
+    }
+    let content;
+    switch (format) {
+      case "html":
+        content = element instanceof Document ? element.documentElement.outerHTML : element.outerHTML;
+        break;
+      case "text":
+        content = element instanceof Document ? element.body.innerText : element.textContent || "";
+        break;
+      case "summary":
+        content = this.generateContentSummary(element, maxChars);
+        break;
+      default:
+        return { ok: false, error: `Unknown format: ${format}` };
+    }
+    if (content.length > maxChars) {
+      content = content.substring(0, maxChars) + "\n... (truncated)";
+    }
+    return { ok: true, result: content };
+  }
+  /**
+   * 生成内容摘要
+   */
+  generateContentSummary(element, maxChars) {
+    const parts = [];
+    const elements = element.querySelectorAll("*");
+    let charCount = 0;
+    for (const el of Array.from(elements)) {
+      if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(el.tagName)) continue;
+      const style2 = window.getComputedStyle(el);
+      if (style2.display === "none" || style2.visibility === "hidden") continue;
+      const tagName = el.tagName.toLowerCase();
+      const id3 = el.id ? `#${el.id}` : "";
+      const classes2 = el.className && typeof el.className === "string" ? el.className.split(" ").filter((c2) => c2).map((c2) => `.${c2}`).join("") : "";
+      if (["button", "a", "input", "textarea", "select"].includes(tagName) || el.onclick) {
+        const text = el.textContent?.trim() || "";
+        const href = el.href;
+        const type = el.type;
+        let desc = `<${tagName}${id3}${classes2}>`;
+        if (text) desc += ` text="${text.substring(0, 50)}"`;
+        if (href) desc += ` href="${href}"`;
+        if (type) desc += ` type="${type}"`;
+        if (charCount + desc.length > maxChars) break;
+        parts.push(desc);
+        charCount += desc.length;
+      }
+    }
+    return parts.join("\n");
+  }
+  /**
+   * 执行 DOM 补丁
+   */
+  executeDomPatch(payload) {
+    const operations = payload?.operations;
+    if (!Array.isArray(operations)) {
+      return { ok: false, error: "Missing or invalid operations parameter" };
+    }
+    const results = [];
+    for (let i2 = 0; i2 < operations.length; i2++) {
+      const op = operations[i2];
+      if (!op) continue;
+      try {
+        this.applyDomOperation(op);
+        results.push({ index: i2, success: true });
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        results.push({ index: i2, success: false, error });
+      }
+    }
+    const hasError = results.some((r2) => !r2.success);
+    return {
+      ok: !hasError,
+      result: results,
+      error: hasError ? "Some operations failed" : void 0
+    };
+  }
+  /**
+   * 应用单个 DOM 操作
+   */
+  applyDomOperation(op) {
+    const { op: operation, selector, name, value: value2, position: position2 } = op;
+    switch (operation) {
+      case "setText": {
+        const el = this.getElement(selector);
+        el.textContent = value2 || "";
+        break;
+      }
+      case "setHtml": {
+        const el = this.getElement(selector);
+        el.innerHTML = value2 || "";
+        break;
+      }
+      case "setAttr": {
+        const el = this.getElement(selector);
+        if (!name) throw new Error("setAttr requires name parameter");
+        el.setAttribute(name, value2 || "");
+        break;
+      }
+      case "remove": {
+        const el = this.getElement(selector);
+        el.remove();
+        break;
+      }
+      case "insertAdjacentHtml": {
+        const el = this.getElement(selector);
+        if (!position2) throw new Error("insertAdjacentHtml requires position parameter");
+        el.insertAdjacentHTML(position2, value2 || "");
+        break;
+      }
+      case "addClass": {
+        const el = this.getElement(selector);
+        if (!value2) throw new Error("addClass requires value parameter");
+        el.classList.add(value2);
+        break;
+      }
+      case "removeClass": {
+        const el = this.getElement(selector);
+        if (!value2) throw new Error("removeClass requires value parameter");
+        el.classList.remove(value2);
+        break;
+      }
+      case "injectCss": {
+        if (!value2) throw new Error("injectCss requires value parameter");
+        const style2 = document.createElement("style");
+        style2.textContent = value2;
+        document.head.appendChild(style2);
+        break;
+      }
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
+  }
+  /**
+   * 获取元素
+   */
+  getElement(selector) {
+    if (!selector) throw new Error("Missing selector parameter");
+    const el = document.querySelector(selector);
+    if (!el) throw new Error(`Element not found: ${selector}`);
+    return el;
+  }
+  /**
+   * 执行 JavaScript 代码（公开方法，供文件查看器等组件调用）
+   * @param script 要执行的 JavaScript 代码
+   * @returns 执行结果
+   */
+  executeScript(script2) {
+    const commandResult = this.executeEvalJs({ script: script2 });
+    if (commandResult instanceof Promise) {
+      return commandResult;
+    }
+    return Promise.resolve(commandResult);
+  }
+  /**
+   * 发送执行结果
+   */
+  async sendResult(commandId, result) {
+    const url = "/api/ui-commands/result";
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        commandId,
+        ok: result.ok,
+        result: result.result,
+        error: result.error
+      }),
+      signal: this.abortController?.signal
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to send result: HTTP ${response.status}`);
+    }
+  }
+  /**
+   * 序列化执行结果
+   * 处理循环引用和不可序列化的值
+   */
+  serializeResult(value2) {
+    if (value2 === void 0) return null;
+    if (value2 === null) return null;
+    const type = typeof value2;
+    if (type === "string" || type === "number" || type === "boolean") {
+      return value2;
+    }
+    if (value2 instanceof Date) {
+      return value2.toISOString();
+    }
+    if (value2 instanceof Element) {
+      return {
+        __type: "Element",
+        tagName: value2.tagName,
+        id: value2.id,
+        className: value2.className
+      };
+    }
+    if (Array.isArray(value2)) {
+      return value2.map((item) => this.serializeResult(item));
+    }
+    if (type === "object") {
+      const result = {};
+      for (const key of Object.keys(value2)) {
+        try {
+          result[key] = this.serializeResult(value2[key]);
+        } catch {
+          result[key] = "[unserializable]";
+        }
+      }
+      return result;
+    }
+    return String(value2);
+  }
+  /**
+   * 休眠指定时间
+   */
+  sleep(ms) {
+    return new Promise((resolve2) => setTimeout(resolve2, ms));
+  }
+}
+const uiCommandService = new UiCommandService();
+const _hoisted_1$n = { class: "flex items-center justify-between w-full px-2" };
+const _hoisted_2$l = { class: "flex items-center gap-2 min-w-0 flex-1" };
+const _hoisted_3$l = ["title"];
+const _hoisted_4$j = {
   key: 0,
   class: "text-xs text-[var(--text-3)]"
 };
@@ -15785,6 +17217,25 @@ const _hoisted_6$c = {
   key: 0,
   class: "flex items-center gap-0.5 mr-2"
 };
+const _hoisted_7$b = {
+  key: 1,
+  class: "w-4 h-4 animate-spin border-2 border-current border-t-transparent rounded-full"
+};
+const _hoisted_8$b = {
+  key: 0,
+  class: "text-red-500"
+};
+const _hoisted_9$b = { class: "bg-red-50 p-3 rounded text-sm overflow-auto max-h-96" };
+const _hoisted_10$b = {
+  key: 1,
+  class: "text-green-600"
+};
+const _hoisted_11$b = { class: "bg-green-50 p-3 rounded text-sm overflow-auto max-h-96" };
+const _hoisted_12$b = {
+  key: 0,
+  class: "mt-3 text-sm"
+};
+const _hoisted_13$a = { class: "list-disc list-inside" };
 const _sfc_main$e = /* @__PURE__ */ defineComponent({
   __name: "FileViewerHeader",
   props: {
@@ -15796,6 +17247,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
     hasViewMode: { type: Boolean },
     viewMode: {},
     copyFunction: {},
+    getFileContent: {},
     maximized: { type: Boolean }
   },
   emits: ["close", "maximize"],
@@ -15845,6 +17297,48 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
       console.log("[FileViewerHeader] showCopyButton computed, cfValue:", cfValue, "hasCopy:", hasCopy);
       return hasCopy;
     });
+    const isJavaScript = computed(() => {
+      const mimeType = props.mimeType || "";
+      const fileName = props.fileName || "";
+      const ext = fileName.split(".").pop()?.toLowerCase() || "";
+      return mimeType === "text/javascript" || mimeType === "application/javascript" || mimeType === "application/x-javascript" || ext === "js" || ext === "mjs" || ext === "cjs";
+    });
+    const running = /* @__PURE__ */ ref(false);
+    const runResult = /* @__PURE__ */ ref(null);
+    const runError = /* @__PURE__ */ ref(null);
+    const showResult = /* @__PURE__ */ ref(false);
+    const handleRun = async () => {
+      if (!props.getFileContent?.value) {
+        console.error("[FileViewerHeader] getFileContent not available");
+        return;
+      }
+      const code = props.getFileContent.value();
+      if (!code) {
+        console.error("[FileViewerHeader] No code content available");
+        return;
+      }
+      running.value = true;
+      runError.value = null;
+      runResult.value = null;
+      try {
+        const result = await uiCommandService.executeScript(code);
+        console.log("[FileViewerHeader] Run result:", result);
+        if (result.ok) {
+          runResult.value = result.result;
+          showResult.value = true;
+        } else {
+          runError.value = result.error || "运行失败";
+          showResult.value = true;
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        runError.value = error;
+        showResult.value = true;
+        console.error("[FileViewerHeader] Run error:", error);
+      } finally {
+        running.value = false;
+      }
+    };
     const copiedState = computed(() => {
       const cfValue = props.copyFunction?.value;
       if (!cfValue) return false;
@@ -15863,129 +17357,191 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
     };
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$o, [
-        createBaseVNode("div", _hoisted_2$m, [
-          createBaseVNode("span", {
-            class: "font-medium text-sm truncate",
-            title: __props.fileName
-          }, toDisplayString(__props.fileName), 9, _hoisted_3$m),
-          __props.mimeType ? (openBlock(), createElementBlock("span", _hoisted_4$k, toDisplayString(__props.mimeType) + " · " + toDisplayString(formatSize(__props.size)), 1)) : createCommentVNode("", true)
-        ]),
-        createBaseVNode("div", _hoisted_5$f, [
-          __props.hasViewMode && __props.viewMode ? (openBlock(), createElementBlock("div", _hoisted_6$c, [
-            createVNode(unref(script$D), {
-              variant: currentMode.value === "preview" ? "primary" : "text",
-              size: "small",
-              class: "!px-2 !py-1",
-              onClick: setPreview
-            }, {
-              default: withCtx(() => [
-                createVNode(unref(Eye), { class: "w-3.5 h-3.5 mr-1" }),
-                _cache[0] || (_cache[0] = createTextVNode(" 预览 ", -1))
-              ]),
-              _: 1
-            }, 8, ["variant"]),
-            createVNode(unref(script$D), {
-              variant: currentMode.value === "source" ? "primary" : "text",
-              size: "small",
-              class: "!px-2 !py-1",
-              onClick: setSource
-            }, {
-              default: withCtx(() => [
-                createVNode(unref(Code), { class: "w-3.5 h-3.5 mr-1" }),
-                _cache[1] || (_cache[1] = createTextVNode(" 源码 ", -1))
-              ]),
-              _: 1
-            }, 8, ["variant"])
-          ])) : createCommentVNode("", true),
-          showCopyButton.value ? withDirectives((openBlock(), createBlock(unref(script$D), {
-            key: 1,
-            variant: "text",
-            size: "small",
-            onClick: handleCopy,
-            class: "!w-8 !h-8"
-          }, {
-            default: withCtx(() => [
-              copiedState.value ? (openBlock(), createBlock(unref(Check), {
-                key: 0,
-                class: "w-4 h-4 text-green-500"
-              })) : (openBlock(), createBlock(unref(Copy), {
-                key: 1,
-                class: "w-4 h-4"
-              }))
-            ]),
-            _: 1
-          })), [
-            [
-              _directive_tooltip,
-              copiedState.value ? "已复制" : "复制代码",
-              void 0,
-              { bottom: true }
-            ]
-          ]) : createCommentVNode("", true),
-          isDownloadable.value ? withDirectives((openBlock(), createBlock(unref(script$D), {
-            key: 2,
-            variant: "text",
-            size: "small",
-            onClick: downloadFile,
-            class: "!w-8 !h-8"
-          }, {
-            default: withCtx(() => [
-              createVNode(unref(Download), { class: "w-4 h-4" })
-            ]),
-            _: 1
-          })), [
-            [
-              _directive_tooltip,
-              "下载",
-              void 0,
-              { bottom: true }
-            ]
-          ]) : createCommentVNode("", true),
-          withDirectives((openBlock(), createBlock(unref(script$D), {
-            variant: "text",
-            size: "small",
-            onClick: handleMaximize,
-            class: "!w-8 !h-8"
-          }, {
-            default: withCtx(() => [
-              __props.maximized ? (openBlock(), createBlock(unref(Minimize2), {
-                key: 0,
-                class: "w-4 h-4"
-              })) : (openBlock(), createBlock(unref(Maximize2), {
-                key: 1,
-                class: "w-4 h-4"
-              }))
-            ]),
-            _: 1
-          })), [
-            [
-              _directive_tooltip,
-              __props.maximized ? "还原" : "全屏",
-              void 0,
-              { bottom: true }
-            ]
+      return openBlock(), createElementBlock(Fragment, null, [
+        createBaseVNode("div", _hoisted_1$n, [
+          createBaseVNode("div", _hoisted_2$l, [
+            createBaseVNode("span", {
+              class: "font-medium text-sm truncate",
+              title: __props.fileName
+            }, toDisplayString(__props.fileName), 9, _hoisted_3$l),
+            __props.mimeType ? (openBlock(), createElementBlock("span", _hoisted_4$j, toDisplayString(__props.mimeType) + " · " + toDisplayString(formatSize(__props.size)), 1)) : createCommentVNode("", true)
           ]),
-          withDirectives((openBlock(), createBlock(unref(script$D), {
-            variant: "text",
-            size: "small",
-            onClick: handleClose,
-            class: "!w-8 !h-8"
-          }, {
-            default: withCtx(() => [
-              createVNode(unref(X), { class: "w-4 h-4" })
+          createBaseVNode("div", _hoisted_5$f, [
+            __props.hasViewMode && __props.viewMode ? (openBlock(), createElementBlock("div", _hoisted_6$c, [
+              createVNode(unref(script$D), {
+                variant: currentMode.value === "preview" ? "primary" : "text",
+                size: "small",
+                class: "!px-2 !py-1",
+                onClick: setPreview
+              }, {
+                default: withCtx(() => [
+                  createVNode(unref(Eye), { class: "w-3.5 h-3.5 mr-1" }),
+                  _cache[2] || (_cache[2] = createTextVNode(" 预览 ", -1))
+                ]),
+                _: 1
+              }, 8, ["variant"]),
+              createVNode(unref(script$D), {
+                variant: currentMode.value === "source" ? "primary" : "text",
+                size: "small",
+                class: "!px-2 !py-1",
+                onClick: setSource
+              }, {
+                default: withCtx(() => [
+                  createVNode(unref(Code), { class: "w-3.5 h-3.5 mr-1" }),
+                  _cache[3] || (_cache[3] = createTextVNode(" 源码 ", -1))
+                ]),
+                _: 1
+              }, 8, ["variant"])
+            ])) : createCommentVNode("", true),
+            isJavaScript.value ? withDirectives((openBlock(), createBlock(unref(script$D), {
+              key: 1,
+              variant: "text",
+              size: "small",
+              onClick: handleRun,
+              disabled: running.value,
+              class: "!w-8 !h-8"
+            }, {
+              default: withCtx(() => [
+                !running.value ? (openBlock(), createBlock(unref(Play), {
+                  key: 0,
+                  class: "w-4 h-4"
+                })) : (openBlock(), createElementBlock("div", _hoisted_7$b))
+              ]),
+              _: 1
+            }, 8, ["disabled"])), [
+              [
+                _directive_tooltip,
+                "运行代码",
+                void 0,
+                { bottom: true }
+              ]
+            ]) : createCommentVNode("", true),
+            showCopyButton.value ? withDirectives((openBlock(), createBlock(unref(script$D), {
+              key: 2,
+              variant: "text",
+              size: "small",
+              onClick: handleCopy,
+              class: "!w-8 !h-8"
+            }, {
+              default: withCtx(() => [
+                copiedState.value ? (openBlock(), createBlock(unref(Check), {
+                  key: 0,
+                  class: "w-4 h-4 text-green-500"
+                })) : (openBlock(), createBlock(unref(Copy), {
+                  key: 1,
+                  class: "w-4 h-4"
+                }))
+              ]),
+              _: 1
+            })), [
+              [
+                _directive_tooltip,
+                copiedState.value ? "已复制" : "复制代码",
+                void 0,
+                { bottom: true }
+              ]
+            ]) : createCommentVNode("", true),
+            isDownloadable.value ? withDirectives((openBlock(), createBlock(unref(script$D), {
+              key: 3,
+              variant: "text",
+              size: "small",
+              onClick: downloadFile,
+              class: "!w-8 !h-8"
+            }, {
+              default: withCtx(() => [
+                createVNode(unref(Download), { class: "w-4 h-4" })
+              ]),
+              _: 1
+            })), [
+              [
+                _directive_tooltip,
+                "下载",
+                void 0,
+                { bottom: true }
+              ]
+            ]) : createCommentVNode("", true),
+            withDirectives((openBlock(), createBlock(unref(script$D), {
+              variant: "text",
+              size: "small",
+              onClick: handleMaximize,
+              class: "!w-8 !h-8"
+            }, {
+              default: withCtx(() => [
+                __props.maximized ? (openBlock(), createBlock(unref(Minimize2), {
+                  key: 0,
+                  class: "w-4 h-4"
+                })) : (openBlock(), createBlock(unref(Maximize2), {
+                  key: 1,
+                  class: "w-4 h-4"
+                }))
+              ]),
+              _: 1
+            })), [
+              [
+                _directive_tooltip,
+                __props.maximized ? "还原" : "全屏",
+                void 0,
+                { bottom: true }
+              ]
             ]),
-            _: 1
-          })), [
-            [
-              _directive_tooltip,
-              "关闭",
-              void 0,
-              { bottom: true }
-            ]
+            withDirectives((openBlock(), createBlock(unref(script$D), {
+              variant: "text",
+              size: "small",
+              onClick: handleClose,
+              class: "!w-8 !h-8"
+            }, {
+              default: withCtx(() => [
+                createVNode(unref(X), { class: "w-4 h-4" })
+              ]),
+              _: 1
+            })), [
+              [
+                _directive_tooltip,
+                "关闭",
+                void 0,
+                { bottom: true }
+              ]
+            ])
           ])
-        ])
-      ]);
+        ]),
+        createVNode(unref(script$t), {
+          visible: showResult.value,
+          "onUpdate:visible": _cache[1] || (_cache[1] = ($event) => showResult.value = $event),
+          modal: "",
+          header: "运行结果",
+          style: { width: "600px" },
+          dismissableMask: false,
+          closeOnEscape: false
+        }, {
+          footer: withCtx(() => [
+            createVNode(unref(script$D), {
+              label: "关闭",
+              onClick: _cache[0] || (_cache[0] = ($event) => showResult.value = false),
+              variant: "text"
+            })
+          ]),
+          default: withCtx(() => [
+            runError.value ? (openBlock(), createElementBlock("div", _hoisted_8$b, [
+              _cache[4] || (_cache[4] = createBaseVNode("p", { class: "font-medium mb-2" }, "运行出错：", -1)),
+              createBaseVNode("pre", _hoisted_9$b, toDisplayString(runError.value), 1)
+            ])) : runResult.value ? (openBlock(), createElementBlock("div", _hoisted_10$b, [
+              _cache[5] || (_cache[5] = createBaseVNode("p", { class: "font-medium mb-2" }, "运行成功：", -1)),
+              createBaseVNode("pre", _hoisted_11$b, toDisplayString(JSON.stringify(runResult.value.result || runResult.value.output || "无返回值", null, 2)), 1),
+              runResult.value.files && runResult.value.files.length > 0 ? (openBlock(), createElementBlock("p", _hoisted_12$b, [
+                createTextVNode(" 生成了 " + toDisplayString(runResult.value.files.length) + " 个文件： ", 1),
+                createBaseVNode("ul", _hoisted_13$a, [
+                  (openBlock(true), createElementBlock(Fragment, null, renderList(runResult.value.files, (file) => {
+                    return openBlock(), createElementBlock("li", {
+                      key: file.path
+                    }, toDisplayString(file.path), 1);
+                  }), 128))
+                ])
+              ])) : createCommentVNode("", true)
+            ])) : createCommentVNode("", true)
+          ]),
+          _: 1
+        }, 8, ["visible"])
+      ], 64);
     };
   }
 });
@@ -16017,6 +17573,7 @@ async function openFileViewer(params) {
   }
   const viewMode = /* @__PURE__ */ ref("preview");
   const copyFunction = /* @__PURE__ */ ref(null);
+  const getFileContent = /* @__PURE__ */ ref(null);
   const originalSize = {
     width: maximized ? width : width,
     // 如果初始就是最大化，保存的应该是非最大化的尺寸
@@ -16065,6 +17622,8 @@ async function openFileViewer(params) {
       // 共享的 viewMode
       copyFunction,
       // 共享的复制功能
+      getFileContent,
+      // 共享的获取文件内容函数
       mimeType: fileInfo.mimeType,
       size: fileInfo.size,
       hasViewMode: fileInfo.hasViewMode,
@@ -16133,6 +17692,7 @@ async function openFileViewer(params) {
           hasViewMode: fileInfo.hasViewMode,
           viewMode: sharedViewMode,
           copyFunction,
+          getFileContent,
           maximized: dialogProps?.state?.maximized,
           onMaximize: handleMaximize,
           onClose: handleClose
@@ -16142,10 +17702,10 @@ async function openFileViewer(params) {
   });
   return dialogInstance;
 }
-const _hoisted_1$n = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
-const _hoisted_2$l = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0" };
-const _hoisted_3$l = { class: "flex flex-col" };
-const _hoisted_4$j = { class: "text-xs font-bold text-[var(--text-3)] uppercase tracking-wider" };
+const _hoisted_1$m = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
+const _hoisted_2$k = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0" };
+const _hoisted_3$k = { class: "flex flex-col" };
+const _hoisted_4$i = { class: "text-xs font-bold text-[var(--text-3)] uppercase tracking-wider" };
 const _hoisted_5$e = {
   key: 0,
   class: "text-[10px] text-[var(--text-3)] opacity-70 mt-0.5"
@@ -16314,7 +17874,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
       return new Date(ts).toLocaleString();
     };
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$n, [
+      return openBlock(), createElementBlock("div", _hoisted_1$m, [
         createVNode(unref(script$z), { class: "flex-grow border-none" }, {
           default: withCtx(() => [
             createVNode(unref(script$y), {
@@ -16323,9 +17883,9 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
               class: "flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)] relative"
             }, {
               default: withCtx(() => [
-                createBaseVNode("div", _hoisted_2$l, [
-                  createBaseVNode("div", _hoisted_3$l, [
-                    createBaseVNode("span", _hoisted_4$j, "项目工作区 (" + toDisplayString(files.value.length) + ")", 1),
+                createBaseVNode("div", _hoisted_2$k, [
+                  createBaseVNode("div", _hoisted_3$k, [
+                    createBaseVNode("span", _hoisted_4$i, "项目工作区 (" + toDisplayString(files.value.length) + ")", 1),
                     orgId.value ? (openBlock(), createElementBlock("span", _hoisted_5$e, "组织: " + toDisplayString(orgId.value), 1)) : createCommentVNode("", true)
                   ])
                 ]),
@@ -16417,9 +17977,9 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
     };
   }
 });
-var style$b = "\n    .p-tabs {\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-tablist {\n        display: flex;\n        position: relative;\n        overflow: hidden;\n        background: dt('tabs.tablist.background');\n    }\n\n    .p-tablist-viewport {\n        overflow-x: auto;\n        overflow-y: hidden;\n        scroll-behavior: smooth;\n        scrollbar-width: none;\n        overscroll-behavior: contain auto;\n    }\n\n    .p-tablist-viewport::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-tablist-tab-list {\n        position: relative;\n        display: flex;\n        border-style: solid;\n        border-color: dt('tabs.tablist.border.color');\n        border-width: dt('tabs.tablist.border.width');\n    }\n\n    .p-tablist-content {\n        flex-grow: 1;\n    }\n\n    .p-tablist-nav-button {\n        all: unset;\n        position: absolute !important;\n        flex-shrink: 0;\n        inset-block-start: 0;\n        z-index: 2;\n        height: 100%;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        background: dt('tabs.nav.button.background');\n        color: dt('tabs.nav.button.color');\n        width: dt('tabs.nav.button.width');\n        transition:\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        box-shadow: dt('tabs.nav.button.shadow');\n        outline-color: transparent;\n        cursor: pointer;\n    }\n\n    .p-tablist-nav-button:focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.nav.button.focus.ring.shadow');\n        outline: dt('tabs.nav.button.focus.ring.width') dt('tabs.nav.button.focus.ring.style') dt('tabs.nav.button.focus.ring.color');\n        outline-offset: dt('tabs.nav.button.focus.ring.offset');\n    }\n\n    .p-tablist-nav-button:hover {\n        color: dt('tabs.nav.button.hover.color');\n    }\n\n    .p-tablist-prev-button {\n        inset-inline-start: 0;\n    }\n\n    .p-tablist-next-button {\n        inset-inline-end: 0;\n    }\n\n    .p-tablist-prev-button:dir(rtl),\n    .p-tablist-next-button:dir(rtl) {\n        transform: rotate(180deg);\n    }\n\n    .p-tab {\n        flex-shrink: 0;\n        cursor: pointer;\n        user-select: none;\n        position: relative;\n        border-style: solid;\n        white-space: nowrap;\n        gap: dt('tabs.tab.gap');\n        background: dt('tabs.tab.background');\n        border-width: dt('tabs.tab.border.width');\n        border-color: dt('tabs.tab.border.color');\n        color: dt('tabs.tab.color');\n        padding: dt('tabs.tab.padding');\n        font-weight: dt('tabs.tab.font.weight');\n        transition:\n            background dt('tabs.transition.duration'),\n            border-color dt('tabs.transition.duration'),\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        margin: dt('tabs.tab.margin');\n        outline-color: transparent;\n    }\n\n    .p-tab:not(.p-disabled):focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.tab.focus.ring.shadow');\n        outline: dt('tabs.tab.focus.ring.width') dt('tabs.tab.focus.ring.style') dt('tabs.tab.focus.ring.color');\n        outline-offset: dt('tabs.tab.focus.ring.offset');\n    }\n\n    .p-tab:not(.p-tab-active):not(.p-disabled):hover {\n        background: dt('tabs.tab.hover.background');\n        border-color: dt('tabs.tab.hover.border.color');\n        color: dt('tabs.tab.hover.color');\n    }\n\n    .p-tab-active {\n        background: dt('tabs.tab.active.background');\n        border-color: dt('tabs.tab.active.border.color');\n        color: dt('tabs.tab.active.color');\n    }\n\n    .p-tabpanels {\n        background: dt('tabs.tabpanel.background');\n        color: dt('tabs.tabpanel.color');\n        padding: dt('tabs.tabpanel.padding');\n        outline: 0 none;\n    }\n\n    .p-tabpanel:focus-visible {\n        box-shadow: dt('tabs.tabpanel.focus.ring.shadow');\n        outline: dt('tabs.tabpanel.focus.ring.width') dt('tabs.tabpanel.focus.ring.style') dt('tabs.tabpanel.focus.ring.color');\n        outline-offset: dt('tabs.tabpanel.focus.ring.offset');\n    }\n\n    .p-tablist-active-bar {\n        z-index: 1;\n        display: block;\n        position: absolute;\n        inset-block-end: dt('tabs.active.bar.bottom');\n        height: dt('tabs.active.bar.height');\n        background: dt('tabs.active.bar.background');\n        transition: 250ms cubic-bezier(0.35, 0, 0.25, 1);\n    }\n";
-var classes$f = {
-  root: function root6(_ref) {
+var style$a = "\n    .p-tabs {\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-tablist {\n        display: flex;\n        position: relative;\n        overflow: hidden;\n        background: dt('tabs.tablist.background');\n    }\n\n    .p-tablist-viewport {\n        overflow-x: auto;\n        overflow-y: hidden;\n        scroll-behavior: smooth;\n        scrollbar-width: none;\n        overscroll-behavior: contain auto;\n    }\n\n    .p-tablist-viewport::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-tablist-tab-list {\n        position: relative;\n        display: flex;\n        border-style: solid;\n        border-color: dt('tabs.tablist.border.color');\n        border-width: dt('tabs.tablist.border.width');\n    }\n\n    .p-tablist-content {\n        flex-grow: 1;\n    }\n\n    .p-tablist-nav-button {\n        all: unset;\n        position: absolute !important;\n        flex-shrink: 0;\n        inset-block-start: 0;\n        z-index: 2;\n        height: 100%;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        background: dt('tabs.nav.button.background');\n        color: dt('tabs.nav.button.color');\n        width: dt('tabs.nav.button.width');\n        transition:\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        box-shadow: dt('tabs.nav.button.shadow');\n        outline-color: transparent;\n        cursor: pointer;\n    }\n\n    .p-tablist-nav-button:focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.nav.button.focus.ring.shadow');\n        outline: dt('tabs.nav.button.focus.ring.width') dt('tabs.nav.button.focus.ring.style') dt('tabs.nav.button.focus.ring.color');\n        outline-offset: dt('tabs.nav.button.focus.ring.offset');\n    }\n\n    .p-tablist-nav-button:hover {\n        color: dt('tabs.nav.button.hover.color');\n    }\n\n    .p-tablist-prev-button {\n        inset-inline-start: 0;\n    }\n\n    .p-tablist-next-button {\n        inset-inline-end: 0;\n    }\n\n    .p-tablist-prev-button:dir(rtl),\n    .p-tablist-next-button:dir(rtl) {\n        transform: rotate(180deg);\n    }\n\n    .p-tab {\n        flex-shrink: 0;\n        cursor: pointer;\n        user-select: none;\n        position: relative;\n        border-style: solid;\n        white-space: nowrap;\n        gap: dt('tabs.tab.gap');\n        background: dt('tabs.tab.background');\n        border-width: dt('tabs.tab.border.width');\n        border-color: dt('tabs.tab.border.color');\n        color: dt('tabs.tab.color');\n        padding: dt('tabs.tab.padding');\n        font-weight: dt('tabs.tab.font.weight');\n        transition:\n            background dt('tabs.transition.duration'),\n            border-color dt('tabs.transition.duration'),\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        margin: dt('tabs.tab.margin');\n        outline-color: transparent;\n    }\n\n    .p-tab:not(.p-disabled):focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.tab.focus.ring.shadow');\n        outline: dt('tabs.tab.focus.ring.width') dt('tabs.tab.focus.ring.style') dt('tabs.tab.focus.ring.color');\n        outline-offset: dt('tabs.tab.focus.ring.offset');\n    }\n\n    .p-tab:not(.p-tab-active):not(.p-disabled):hover {\n        background: dt('tabs.tab.hover.background');\n        border-color: dt('tabs.tab.hover.border.color');\n        color: dt('tabs.tab.hover.color');\n    }\n\n    .p-tab-active {\n        background: dt('tabs.tab.active.background');\n        border-color: dt('tabs.tab.active.border.color');\n        color: dt('tabs.tab.active.color');\n    }\n\n    .p-tabpanels {\n        background: dt('tabs.tabpanel.background');\n        color: dt('tabs.tabpanel.color');\n        padding: dt('tabs.tabpanel.padding');\n        outline: 0 none;\n    }\n\n    .p-tabpanel:focus-visible {\n        box-shadow: dt('tabs.tabpanel.focus.ring.shadow');\n        outline: dt('tabs.tabpanel.focus.ring.width') dt('tabs.tabpanel.focus.ring.style') dt('tabs.tabpanel.focus.ring.color');\n        outline-offset: dt('tabs.tabpanel.focus.ring.offset');\n    }\n\n    .p-tablist-active-bar {\n        z-index: 1;\n        display: block;\n        position: absolute;\n        inset-block-end: dt('tabs.active.bar.bottom');\n        height: dt('tabs.active.bar.height');\n        background: dt('tabs.active.bar.background');\n        transition: 250ms cubic-bezier(0.35, 0, 0.25, 1);\n    }\n";
+var classes$e = {
+  root: function root7(_ref) {
     var props = _ref.props;
     return ["p-tabs p-component", {
       "p-tabs-scrollable": props.scrollable
@@ -16428,10 +17988,10 @@ var classes$f = {
 };
 var TabsStyle = BaseStyle.extend({
   name: "tabs",
-  style: style$b,
-  classes: classes$f
+  style: style$a,
+  classes: classes$e
 });
-var script$1$g = {
+var script$1$f = {
   name: "BaseTabs",
   "extends": script$H,
   props: {
@@ -16461,19 +18021,19 @@ var script$1$g = {
     }
   },
   style: TabsStyle,
-  provide: function provide8() {
+  provide: function provide10() {
     return {
       $pcTabs: this,
       $parentInstance: this
     };
   }
 };
-var script$x = {
+var script$s = {
   name: "Tabs",
-  "extends": script$1$g,
+  "extends": script$1$f,
   inheritAttrs: false,
   emits: ["update:value"],
-  data: function data4() {
+  data: function data6() {
     return {
       d_value: this.value
     };
@@ -16495,95 +18055,95 @@ var script$x = {
     }
   }
 };
-function render$w(_ctx, _cache, $props, $setup, $data, $options) {
+function render$r(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root")
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$x.render = render$w;
-var script$w = {
+script$s.render = render$r;
+var script$r = {
   name: "ChevronLeftIcon",
   "extends": script$G
 };
-function _toConsumableArray$g(r2) {
-  return _arrayWithoutHoles$g(r2) || _iterableToArray$g(r2) || _unsupportedIterableToArray$g(r2) || _nonIterableSpread$g();
+function _toConsumableArray$d(r2) {
+  return _arrayWithoutHoles$d(r2) || _iterableToArray$d(r2) || _unsupportedIterableToArray$d(r2) || _nonIterableSpread$d();
 }
-function _nonIterableSpread$g() {
+function _nonIterableSpread$d() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$g(r2, a2) {
+function _unsupportedIterableToArray$d(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$g(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$d(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$g(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$d(r2, a2) : void 0;
   }
 }
-function _iterableToArray$g(r2) {
+function _iterableToArray$d(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$g(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$g(r2);
+function _arrayWithoutHoles$d(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$d(r2);
 }
-function _arrayLikeToArray$g(r2, a2) {
+function _arrayLikeToArray$d(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$v(_ctx, _cache, $props, $setup, $data, $options) {
+function render$q(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$g(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$d(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M9.61296 13C9.50997 13.0005 9.40792 12.9804 9.3128 12.9409C9.21767 12.9014 9.13139 12.8433 9.05902 12.7701L3.83313 7.54416C3.68634 7.39718 3.60388 7.19795 3.60388 6.99022C3.60388 6.78249 3.68634 6.58325 3.83313 6.43628L9.05902 1.21039C9.20762 1.07192 9.40416 0.996539 9.60724 1.00012C9.81032 1.00371 10.0041 1.08597 10.1477 1.22959C10.2913 1.37322 10.3736 1.56698 10.3772 1.77005C10.3808 1.97313 10.3054 2.16968 10.1669 2.31827L5.49496 6.99022L10.1669 11.6622C10.3137 11.8091 10.3962 12.0084 10.3962 12.2161C10.3962 12.4238 10.3137 12.6231 10.1669 12.7701C10.0945 12.8433 10.0083 12.9014 9.91313 12.9409C9.81801 12.9804 9.71596 13.0005 9.61296 13Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$w.render = render$v;
-var script$v = {
+script$r.render = render$q;
+var script$q = {
   name: "ChevronRightIcon",
   "extends": script$G
 };
-function _toConsumableArray$f(r2) {
-  return _arrayWithoutHoles$f(r2) || _iterableToArray$f(r2) || _unsupportedIterableToArray$f(r2) || _nonIterableSpread$f();
+function _toConsumableArray$c(r2) {
+  return _arrayWithoutHoles$c(r2) || _iterableToArray$c(r2) || _unsupportedIterableToArray$c(r2) || _nonIterableSpread$c();
 }
-function _nonIterableSpread$f() {
+function _nonIterableSpread$c() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$f(r2, a2) {
+function _unsupportedIterableToArray$c(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$f(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$c(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$f(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$c(r2, a2) : void 0;
   }
 }
-function _iterableToArray$f(r2) {
+function _iterableToArray$c(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$f(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$f(r2);
+function _arrayWithoutHoles$c(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$c(r2);
 }
-function _arrayLikeToArray$f(r2, a2) {
+function _arrayLikeToArray$c(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$u(_ctx, _cache, $props, $setup, $data, $options) {
+function render$p(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$f(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$c(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M4.38708 13C4.28408 13.0005 4.18203 12.9804 4.08691 12.9409C3.99178 12.9014 3.9055 12.8433 3.83313 12.7701C3.68634 12.6231 3.60388 12.4238 3.60388 12.2161C3.60388 12.0084 3.68634 11.8091 3.83313 11.6622L8.50507 6.99022L3.83313 2.31827C3.69467 2.16968 3.61928 1.97313 3.62287 1.77005C3.62645 1.56698 3.70872 1.37322 3.85234 1.22959C3.99596 1.08597 4.18972 1.00371 4.3928 1.00012C4.59588 0.996539 4.79242 1.07192 4.94102 1.21039L10.1669 6.43628C10.3137 6.58325 10.3962 6.78249 10.3962 6.99022C10.3962 7.19795 10.3137 7.39718 10.1669 7.54416L4.94102 12.7701C4.86865 12.8433 4.78237 12.9014 4.68724 12.9409C4.59212 12.9804 4.49007 13.0005 4.38708 13Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$v.render = render$u;
-var classes$e = {
+script$q.render = render$p;
+var classes$d = {
   root: "p-tablist",
   content: "p-tablist-content p-tablist-viewport",
   tabList: "p-tablist-tab-list",
@@ -16593,26 +18153,26 @@ var classes$e = {
 };
 var TabListStyle = BaseStyle.extend({
   name: "tablist",
-  classes: classes$e
+  classes: classes$d
 });
-var script$1$f = {
+var script$1$e = {
   name: "BaseTabList",
   "extends": script$H,
   props: {},
   style: TabListStyle,
-  provide: function provide9() {
+  provide: function provide11() {
     return {
       $pcTabList: this,
       $parentInstance: this
     };
   }
 };
-var script$u = {
+var script$p = {
   name: "TabList",
-  "extends": script$1$f,
+  "extends": script$1$e,
   inheritAttrs: false,
   inject: ["$pcTabs"],
-  data: function data5() {
+  data: function data7() {
     return {
       isPrevButtonEnabled: false,
       isNextButtonEnabled: true
@@ -16630,7 +18190,7 @@ var script$u = {
       }
     }
   },
-  mounted: function mounted3() {
+  mounted: function mounted6() {
     var _this = this;
     setTimeout(function() {
       _this.updateInkBar();
@@ -16640,10 +18200,10 @@ var script$u = {
       this.bindResizeObserver();
     }
   },
-  updated: function updated3() {
+  updated: function updated5() {
     this.showNavigators && this.updateButtonState();
   },
-  beforeUnmount: function beforeUnmount3() {
+  beforeUnmount: function beforeUnmount4() {
     this.unbindResizeObserver();
   },
   methods: {
@@ -16734,26 +18294,26 @@ var script$u = {
     nextButtonAriaLabel: function nextButtonAriaLabel() {
       return this.$primevue.config.locale.aria ? this.$primevue.config.locale.aria.next : void 0;
     },
-    dataP: function dataP5() {
+    dataP: function dataP6() {
       return f$a({
         scrollable: this.$pcTabs.scrollable
       });
     }
   },
   components: {
-    ChevronLeftIcon: script$w,
-    ChevronRightIcon: script$v
+    ChevronLeftIcon: script$r,
+    ChevronRightIcon: script$q
   },
   directives: {
     ripple: Ripple
   }
 };
-var _hoisted_1$m = ["data-p"];
-var _hoisted_2$k = ["aria-label", "tabindex"];
-var _hoisted_3$k = ["data-p"];
-var _hoisted_4$i = ["aria-orientation"];
+var _hoisted_1$l = ["data-p"];
+var _hoisted_2$j = ["aria-label", "tabindex"];
+var _hoisted_3$j = ["data-p"];
+var _hoisted_4$h = ["aria-orientation"];
 var _hoisted_5$d = ["aria-label", "tabindex"];
-function render$t(_ctx, _cache, $props, $setup, $data, $options) {
+function render$o(_ctx, _cache, $props, $setup, $data, $options) {
   var _directive_ripple = resolveDirective("ripple");
   return openBlock(), createElementBlock("div", mergeProps({
     ref: "list",
@@ -16773,7 +18333,7 @@ function render$t(_ctx, _cache, $props, $setup, $data, $options) {
     "data-pc-group-section": "navigator"
   }), [(openBlock(), createBlock(resolveDynamicComponent($options.templates.previcon || "ChevronLeftIcon"), mergeProps({
     "aria-hidden": "true"
-  }, _ctx.ptm("prevIcon")), null, 16))], 16, _hoisted_2$k)), [[_directive_ripple]]) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
+  }, _ctx.ptm("prevIcon")), null, 16))], 16, _hoisted_2$j)), [[_directive_ripple]]) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
     ref: "content",
     "class": _ctx.cx("content"),
     onScroll: _cache[1] || (_cache[1] = function() {
@@ -16790,7 +18350,7 @@ function render$t(_ctx, _cache, $props, $setup, $data, $options) {
     "class": _ctx.cx("activeBar"),
     role: "presentation",
     "aria-hidden": "true"
-  }, _ctx.ptm("activeBar")), null, 16)], 16, _hoisted_4$i)], 16, _hoisted_3$k), $options.showNavigators && $data.isNextButtonEnabled ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
+  }, _ctx.ptm("activeBar")), null, 16)], 16, _hoisted_4$h)], 16, _hoisted_3$j), $options.showNavigators && $data.isNextButtonEnabled ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
     key: 1,
     ref: "nextButton",
     type: "button",
@@ -16804,11 +18364,11 @@ function render$t(_ctx, _cache, $props, $setup, $data, $options) {
     "data-pc-group-section": "navigator"
   }), [(openBlock(), createBlock(resolveDynamicComponent($options.templates.nexticon || "ChevronRightIcon"), mergeProps({
     "aria-hidden": "true"
-  }, _ctx.ptm("nextIcon")), null, 16))], 16, _hoisted_5$d)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_1$m);
+  }, _ctx.ptm("nextIcon")), null, 16))], 16, _hoisted_5$d)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_1$l);
 }
-script$u.render = render$t;
-var classes$d = {
-  root: function root7(_ref) {
+script$p.render = render$o;
+var classes$c = {
+  root: function root8(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-tab", {
       "p-tab-active": instance.active,
@@ -16818,9 +18378,9 @@ var classes$d = {
 };
 var TabStyle = BaseStyle.extend({
   name: "tab",
-  classes: classes$d
+  classes: classes$c
 });
-var script$1$e = {
+var script$1$d = {
   name: "BaseTab",
   "extends": script$H,
   props: {
@@ -16842,16 +18402,16 @@ var script$1$e = {
     }
   },
   style: TabStyle,
-  provide: function provide10() {
+  provide: function provide12() {
     return {
       $pcTab: this,
       $parentInstance: this
     };
   }
 };
-var script$t = {
+var script$o = {
   name: "Tab",
-  "extends": script$1$e,
+  "extends": script$1$d,
   inheritAttrs: false,
   inject: ["$pcTabs", "$pcTabList"],
   methods: {
@@ -16992,7 +18552,7 @@ var script$t = {
         }
       };
     },
-    dataP: function dataP6() {
+    dataP: function dataP7() {
       return f$a({
         active: this.active
       });
@@ -17002,7 +18562,7 @@ var script$t = {
     ripple: Ripple
   }
 };
-function render$s(_ctx, _cache, $props, $setup, $data, $options) {
+function render$n(_ctx, _cache, $props, $setup, $data, $options) {
   var _directive_ripple = resolveDirective("ripple");
   return !_ctx.asChild ? withDirectives((openBlock(), createBlock(resolveDynamicComponent(_ctx.as), mergeProps({
     key: 0,
@@ -17023,40 +18583,40 @@ function render$s(_ctx, _cache, $props, $setup, $data, $options) {
     onClick: $options.onClick
   });
 }
-script$t.render = render$s;
-var classes$c = {
+script$o.render = render$n;
+var classes$b = {
   root: "p-tabpanels"
 };
 var TabPanelsStyle = BaseStyle.extend({
   name: "tabpanels",
-  classes: classes$c
+  classes: classes$b
 });
-var script$1$d = {
+var script$1$c = {
   name: "BaseTabPanels",
   "extends": script$H,
   props: {},
   style: TabPanelsStyle,
-  provide: function provide11() {
+  provide: function provide13() {
     return {
       $pcTabPanels: this,
       $parentInstance: this
     };
   }
 };
-var script$s = {
+var script$n = {
   name: "TabPanels",
-  "extends": script$1$d,
+  "extends": script$1$c,
   inheritAttrs: false
 };
-function render$r(_ctx, _cache, $props, $setup, $data, $options) {
+function render$m(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root"),
     role: "presentation"
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$s.render = render$r;
-var classes$b = {
-  root: function root8(_ref) {
+script$n.render = render$m;
+var classes$a = {
+  root: function root9(_ref) {
     var instance = _ref.instance;
     return ["p-tabpanel", {
       "p-tabpanel-active": instance.active
@@ -17065,9 +18625,9 @@ var classes$b = {
 };
 var TabPanelStyle = BaseStyle.extend({
   name: "tabpanel",
-  classes: classes$b
+  classes: classes$a
 });
-var script$1$c = {
+var script$1$b = {
   name: "BaseTabPanel",
   "extends": script$H,
   props: {
@@ -17096,16 +18656,16 @@ var script$1$c = {
     disabled: Boolean
   },
   style: TabPanelStyle,
-  provide: function provide12() {
+  provide: function provide14() {
     return {
       $pcTabPanel: this,
       $parentInstance: this
     };
   }
 };
-var script$r = {
+var script$m = {
   name: "TabPanel",
-  "extends": script$1$c,
+  "extends": script$1$b,
   inheritAttrs: false,
   inject: ["$pcTabs"],
   computed: {
@@ -17144,7 +18704,7 @@ var script$r = {
     }
   }
 };
-function render$q(_ctx, _cache, $props, $setup, $data, $options) {
+function render$l(_ctx, _cache, $props, $setup, $data, $options) {
   var _$options$$pcTabs, _$options$$pcTabs2;
   return !$options.$pcTabs ? renderSlot(_ctx.$slots, "default", {
     key: 0
@@ -17167,133 +18727,92 @@ function render$q(_ctx, _cache, $props, $setup, $data, $options) {
     a11yAttrs: $options.a11yAttrs
   })], 64));
 }
-script$r.render = render$q;
-var script$q = {
+script$m.render = render$l;
+var script$l = {
   name: "AngleDownIcon",
   "extends": script$G
 };
-function _toConsumableArray$e(r2) {
-  return _arrayWithoutHoles$e(r2) || _iterableToArray$e(r2) || _unsupportedIterableToArray$e(r2) || _nonIterableSpread$e();
+function _toConsumableArray$b(r2) {
+  return _arrayWithoutHoles$b(r2) || _iterableToArray$b(r2) || _unsupportedIterableToArray$b(r2) || _nonIterableSpread$b();
 }
-function _nonIterableSpread$e() {
+function _nonIterableSpread$b() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$e(r2, a2) {
+function _unsupportedIterableToArray$b(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$e(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$b(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$e(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$b(r2, a2) : void 0;
   }
 }
-function _iterableToArray$e(r2) {
+function _iterableToArray$b(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$e(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$e(r2);
+function _arrayWithoutHoles$b(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$b(r2);
 }
-function _arrayLikeToArray$e(r2, a2) {
+function _arrayLikeToArray$b(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$p(_ctx, _cache, $props, $setup, $data, $options) {
+function render$k(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$e(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$b(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M3.58659 4.5007C3.68513 4.50023 3.78277 4.51945 3.87379 4.55723C3.9648 4.59501 4.04735 4.65058 4.11659 4.7207L7.11659 7.7207L10.1166 4.7207C10.2619 4.65055 10.4259 4.62911 10.5843 4.65956C10.7427 4.69002 10.8871 4.77074 10.996 4.88976C11.1049 5.00877 11.1726 5.15973 11.1889 5.32022C11.2052 5.48072 11.1693 5.6422 11.0866 5.7807L7.58659 9.2807C7.44597 9.42115 7.25534 9.50004 7.05659 9.50004C6.85784 9.50004 6.66722 9.42115 6.52659 9.2807L3.02659 5.7807C2.88614 5.64007 2.80725 5.44945 2.80725 5.2507C2.80725 5.05195 2.88614 4.86132 3.02659 4.7207C3.09932 4.64685 3.18675 4.58911 3.28322 4.55121C3.37969 4.51331 3.48305 4.4961 3.58659 4.5007Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$q.render = render$p;
-var script$p = {
+script$l.render = render$k;
+var script$k = {
   name: "AngleUpIcon",
   "extends": script$G
 };
-function _toConsumableArray$d(r2) {
-  return _arrayWithoutHoles$d(r2) || _iterableToArray$d(r2) || _unsupportedIterableToArray$d(r2) || _nonIterableSpread$d();
+function _toConsumableArray$a(r2) {
+  return _arrayWithoutHoles$a(r2) || _iterableToArray$a(r2) || _unsupportedIterableToArray$a(r2) || _nonIterableSpread$a();
 }
-function _nonIterableSpread$d() {
+function _nonIterableSpread$a() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$d(r2, a2) {
+function _unsupportedIterableToArray$a(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$d(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$a(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$d(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$a(r2, a2) : void 0;
   }
 }
-function _iterableToArray$d(r2) {
+function _iterableToArray$a(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$d(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$d(r2);
+function _arrayWithoutHoles$a(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$a(r2);
 }
-function _arrayLikeToArray$d(r2, a2) {
+function _arrayLikeToArray$a(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$o(_ctx, _cache, $props, $setup, $data, $options) {
+function render$j(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$d(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$a(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M10.4134 9.49931C10.3148 9.49977 10.2172 9.48055 10.1262 9.44278C10.0352 9.405 9.95263 9.34942 9.88338 9.27931L6.88338 6.27931L3.88338 9.27931C3.73811 9.34946 3.57409 9.3709 3.41567 9.34044C3.25724 9.30999 3.11286 9.22926 3.00395 9.11025C2.89504 8.99124 2.82741 8.84028 2.8111 8.67978C2.79478 8.51928 2.83065 8.35781 2.91338 8.21931L6.41338 4.71931C6.55401 4.57886 6.74463 4.49997 6.94338 4.49997C7.14213 4.49997 7.33276 4.57886 7.47338 4.71931L10.9734 8.21931C11.1138 8.35994 11.1927 8.55056 11.1927 8.74931C11.1927 8.94806 11.1138 9.13868 10.9734 9.27931C10.9007 9.35315 10.8132 9.41089 10.7168 9.44879C10.6203 9.48669 10.5169 9.5039 10.4134 9.49931Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$p.render = render$o;
-var script$o = {
-  name: "TimesIcon",
-  "extends": script$G
-};
-function _toConsumableArray$c(r2) {
-  return _arrayWithoutHoles$c(r2) || _iterableToArray$c(r2) || _unsupportedIterableToArray$c(r2) || _nonIterableSpread$c();
-}
-function _nonIterableSpread$c() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$c(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$c(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$c(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$c(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$c(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$c(r2);
-}
-function _arrayLikeToArray$c(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$n(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$c(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M8.01186 7.00933L12.27 2.75116C12.341 2.68501 12.398 2.60524 12.4375 2.51661C12.4769 2.42798 12.4982 2.3323 12.4999 2.23529C12.5016 2.13827 12.4838 2.0419 12.4474 1.95194C12.4111 1.86197 12.357 1.78024 12.2884 1.71163C12.2198 1.64302 12.138 1.58893 12.0481 1.55259C11.9581 1.51625 11.8617 1.4984 11.7647 1.50011C11.6677 1.50182 11.572 1.52306 11.4834 1.56255C11.3948 1.60204 11.315 1.65898 11.2488 1.72997L6.99067 5.98814L2.7325 1.72997C2.59553 1.60234 2.41437 1.53286 2.22718 1.53616C2.03999 1.53946 1.8614 1.61529 1.72901 1.74767C1.59663 1.88006 1.5208 2.05865 1.5175 2.24584C1.5142 2.43303 1.58368 2.61419 1.71131 2.75116L5.96948 7.00933L1.71131 11.2675C1.576 11.403 1.5 11.5866 1.5 11.7781C1.5 11.9696 1.576 12.1532 1.71131 12.2887C1.84679 12.424 2.03043 12.5 2.2219 12.5C2.41338 12.5 2.59702 12.424 2.7325 12.2887L6.99067 8.03052L11.2488 12.2887C11.3843 12.424 11.568 12.5 11.7594 12.5C11.9509 12.5 12.1346 12.424 12.27 12.2887C12.4053 12.1532 12.4813 11.9696 12.4813 11.7781C12.4813 11.5866 12.4053 11.403 12.27 11.2675L8.01186 7.00933Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$o.render = render$n;
-var style$a = "\n    .p-inputnumber {\n        display: inline-flex;\n        position: relative;\n    }\n\n    .p-inputnumber-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex: 0 0 auto;\n        cursor: pointer;\n        background: dt('inputnumber.button.background');\n        color: dt('inputnumber.button.color');\n        width: dt('inputnumber.button.width');\n        transition:\n            background dt('inputnumber.transition.duration'),\n            color dt('inputnumber.transition.duration'),\n            border-color dt('inputnumber.transition.duration'),\n            outline-color dt('inputnumber.transition.duration');\n    }\n\n    .p-inputnumber-button:disabled {\n        cursor: auto;\n    }\n\n    .p-inputnumber-button:not(:disabled):hover {\n        background: dt('inputnumber.button.hover.background');\n        color: dt('inputnumber.button.hover.color');\n    }\n\n    .p-inputnumber-button:not(:disabled):active {\n        background: dt('inputnumber.button.active.background');\n        color: dt('inputnumber.button.active.color');\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button {\n        position: relative;\n        flex: 1 1 auto;\n        border: 0 none;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button-group {\n        display: flex;\n        flex-direction: column;\n        position: absolute;\n        inset-block-start: 1px;\n        inset-inline-end: 1px;\n        height: calc(100% - 2px);\n        z-index: 1;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-increment-button {\n        padding: 0;\n        border-start-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-decrement-button {\n        padding: 0;\n        border-end-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-increment-button {\n        order: 3;\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        border-inline-start: 0 none;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-decrement-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-inline-end: 0 none;\n    }\n\n    .p-floatlabel:has(.p-inputnumber-horizontal) label {\n        margin-inline-start: dt('inputnumber.button.width');\n    }\n\n    .p-inputnumber-vertical {\n        flex-direction: column;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n        padding: dt('inputnumber.button.vertical.padding');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-increment-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-end: 0 none;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n        text-align: center;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-decrement-button {\n        order: 3;\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-start: 0 none;\n    }\n\n    .p-inputnumber-input {\n        flex: 1 1 auto;\n    }\n\n    .p-inputnumber-fluid {\n        width: 100%;\n    }\n\n    .p-inputnumber-fluid .p-inputnumber-input {\n        width: 1%;\n    }\n\n    .p-inputnumber-fluid.p-inputnumber-vertical .p-inputnumber-input {\n        width: 100%;\n    }\n\n    .p-inputnumber:has(.p-inputtext-sm) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n    }\n\n    .p-inputnumber:has(.p-inputtext-lg) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n    }\n\n    .p-inputnumber-clear-icon {\n        position: absolute;\n        top: 50%;\n        margin-top: -0.5rem;\n        cursor: pointer;\n        inset-inline-end: dt('form.field.padding.x');\n        color: dt('form.field.icon.color');\n    }\n\n    .p-inputnumber:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-stacked:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + (dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n";
-var classes$a = {
-  root: function root9(_ref) {
+script$k.render = render$j;
+var style$9 = "\n    .p-inputnumber {\n        display: inline-flex;\n        position: relative;\n    }\n\n    .p-inputnumber-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex: 0 0 auto;\n        cursor: pointer;\n        background: dt('inputnumber.button.background');\n        color: dt('inputnumber.button.color');\n        width: dt('inputnumber.button.width');\n        transition:\n            background dt('inputnumber.transition.duration'),\n            color dt('inputnumber.transition.duration'),\n            border-color dt('inputnumber.transition.duration'),\n            outline-color dt('inputnumber.transition.duration');\n    }\n\n    .p-inputnumber-button:disabled {\n        cursor: auto;\n    }\n\n    .p-inputnumber-button:not(:disabled):hover {\n        background: dt('inputnumber.button.hover.background');\n        color: dt('inputnumber.button.hover.color');\n    }\n\n    .p-inputnumber-button:not(:disabled):active {\n        background: dt('inputnumber.button.active.background');\n        color: dt('inputnumber.button.active.color');\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button {\n        position: relative;\n        flex: 1 1 auto;\n        border: 0 none;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button-group {\n        display: flex;\n        flex-direction: column;\n        position: absolute;\n        inset-block-start: 1px;\n        inset-inline-end: 1px;\n        height: calc(100% - 2px);\n        z-index: 1;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-increment-button {\n        padding: 0;\n        border-start-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-decrement-button {\n        padding: 0;\n        border-end-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-increment-button {\n        order: 3;\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        border-inline-start: 0 none;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-decrement-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-inline-end: 0 none;\n    }\n\n    .p-floatlabel:has(.p-inputnumber-horizontal) label {\n        margin-inline-start: dt('inputnumber.button.width');\n    }\n\n    .p-inputnumber-vertical {\n        flex-direction: column;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n        padding: dt('inputnumber.button.vertical.padding');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-increment-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-end: 0 none;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n        text-align: center;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-decrement-button {\n        order: 3;\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-start: 0 none;\n    }\n\n    .p-inputnumber-input {\n        flex: 1 1 auto;\n    }\n\n    .p-inputnumber-fluid {\n        width: 100%;\n    }\n\n    .p-inputnumber-fluid .p-inputnumber-input {\n        width: 1%;\n    }\n\n    .p-inputnumber-fluid.p-inputnumber-vertical .p-inputnumber-input {\n        width: 100%;\n    }\n\n    .p-inputnumber:has(.p-inputtext-sm) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n    }\n\n    .p-inputnumber:has(.p-inputtext-lg) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n    }\n\n    .p-inputnumber-clear-icon {\n        position: absolute;\n        top: 50%;\n        margin-top: -0.5rem;\n        cursor: pointer;\n        inset-inline-end: dt('form.field.padding.x');\n        color: dt('form.field.icon.color');\n    }\n\n    .p-inputnumber:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-stacked:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + (dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n";
+var classes$9 = {
+  root: function root10(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-inputnumber p-component p-inputwrapper", {
       "p-invalid": instance.$invalid,
@@ -17323,10 +18842,10 @@ var classes$a = {
 };
 var InputNumberStyle = BaseStyle.extend({
   name: "inputnumber",
-  style: style$a,
-  classes: classes$a
+  style: style$9,
+  classes: classes$9
 });
-var script$1$b = {
+var script$1$a = {
   name: "BaseInputNumber",
   "extends": script$B,
   props: {
@@ -17471,22 +18990,22 @@ var script$1$b = {
     }
   },
   style: InputNumberStyle,
-  provide: function provide13() {
+  provide: function provide15() {
     return {
       $pcInputNumber: this,
       $parentInstance: this
     };
   }
 };
-function _typeof$b(o2) {
+function _typeof$9(o2) {
   "@babel/helpers - typeof";
-  return _typeof$b = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
+  return _typeof$9 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
     return typeof o3;
   } : function(o3) {
     return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
-  }, _typeof$b(o2);
+  }, _typeof$9(o2);
 }
-function ownKeys$6(e2, r2) {
+function ownKeys$4(e2, r2) {
   var t2 = Object.keys(e2);
   if (Object.getOwnPropertySymbols) {
     var o2 = Object.getOwnPropertySymbols(e2);
@@ -17496,61 +19015,61 @@ function ownKeys$6(e2, r2) {
   }
   return t2;
 }
-function _objectSpread$6(e2) {
+function _objectSpread$4(e2) {
   for (var r2 = 1; r2 < arguments.length; r2++) {
     var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys$6(Object(t2), true).forEach(function(r3) {
-      _defineProperty$b(e2, r3, t2[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$6(Object(t2)).forEach(function(r3) {
+    r2 % 2 ? ownKeys$4(Object(t2), true).forEach(function(r3) {
+      _defineProperty$9(e2, r3, t2[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$4(Object(t2)).forEach(function(r3) {
       Object.defineProperty(e2, r3, Object.getOwnPropertyDescriptor(t2, r3));
     });
   }
   return e2;
 }
-function _defineProperty$b(e2, r2, t2) {
-  return (r2 = _toPropertyKey$b(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
+function _defineProperty$9(e2, r2, t2) {
+  return (r2 = _toPropertyKey$9(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
 }
-function _toPropertyKey$b(t2) {
-  var i2 = _toPrimitive$b(t2, "string");
-  return "symbol" == _typeof$b(i2) ? i2 : i2 + "";
+function _toPropertyKey$9(t2) {
+  var i2 = _toPrimitive$9(t2, "string");
+  return "symbol" == _typeof$9(i2) ? i2 : i2 + "";
 }
-function _toPrimitive$b(t2, r2) {
-  if ("object" != _typeof$b(t2) || !t2) return t2;
+function _toPrimitive$9(t2, r2) {
+  if ("object" != _typeof$9(t2) || !t2) return t2;
   var e2 = t2[Symbol.toPrimitive];
   if (void 0 !== e2) {
     var i2 = e2.call(t2, r2);
-    if ("object" != _typeof$b(i2)) return i2;
+    if ("object" != _typeof$9(i2)) return i2;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-function _toConsumableArray$b(r2) {
-  return _arrayWithoutHoles$b(r2) || _iterableToArray$b(r2) || _unsupportedIterableToArray$b(r2) || _nonIterableSpread$b();
+function _toConsumableArray$9(r2) {
+  return _arrayWithoutHoles$9(r2) || _iterableToArray$9(r2) || _unsupportedIterableToArray$9(r2) || _nonIterableSpread$9();
 }
-function _nonIterableSpread$b() {
+function _nonIterableSpread$9() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$b(r2, a2) {
+function _unsupportedIterableToArray$9(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$b(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$9(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$b(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$9(r2, a2) : void 0;
   }
 }
-function _iterableToArray$b(r2) {
+function _iterableToArray$9(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$b(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$b(r2);
+function _arrayWithoutHoles$9(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$9(r2);
 }
-function _arrayLikeToArray$b(r2, a2) {
+function _arrayLikeToArray$9(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-var script$n = {
+var script$j = {
   name: "InputNumber",
-  "extends": script$1$b,
+  "extends": script$1$a,
   inheritAttrs: false,
   emits: ["input", "focus", "blur"],
   inject: {
@@ -17572,7 +19091,7 @@ var script$n = {
   prefixChar: null,
   suffixChar: null,
   timer: null,
-  data: function data6() {
+  data: function data8() {
     return {
       // @deprecated
       d_modelValue: this.d_value,
@@ -17624,7 +19143,7 @@ var script$n = {
   created: function created2() {
     this.constructParser();
   },
-  mounted: function mounted4() {
+  mounted: function mounted7() {
     var _this$$refs$clearIcon2;
     if ((_this$$refs$clearIcon2 = this.$refs.clearIcon) !== null && _this$$refs$clearIcon2 !== void 0 && (_this$$refs$clearIcon2 = _this$$refs$clearIcon2.$el) !== null && _this$$refs$clearIcon2 !== void 0 && _this$$refs$clearIcon2.style) {
       this.$refs.clearIcon.$el.style.display = !this.$filled ? "none" : "block";
@@ -17645,7 +19164,7 @@ var script$n = {
     },
     constructParser: function constructParser() {
       this.numberFormat = new Intl.NumberFormat(this.locale, this.getOptions());
-      var numerals = _toConsumableArray$b(new Intl.NumberFormat(this.locale, {
+      var numerals = _toConsumableArray$9(new Intl.NumberFormat(this.locale, {
         useGrouping: false
       }).format(9876543210)).reverse();
       var index2 = new Map(numerals.map(function(d2, i2) {
@@ -17671,7 +19190,7 @@ var script$n = {
       return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
     },
     getDecimalExpression: function getDecimalExpression() {
-      var formatter = new Intl.NumberFormat(this.locale, _objectSpread$6(_objectSpread$6({}, this.getOptions()), {}, {
+      var formatter = new Intl.NumberFormat(this.locale, _objectSpread$4(_objectSpread$4({}, this.getOptions()), {}, {
         useGrouping: false
       }));
       return new RegExp("[".concat(formatter.format(1.1).replace(this._currency, "").trim().replace(this._numeral, ""), "]"), "g");
@@ -18428,8 +19947,8 @@ var script$n = {
     getFormatter: function getFormatter() {
       return this.numberFormat;
     },
-    dataP: function dataP7() {
-      return f$a(_defineProperty$b(_defineProperty$b({
+    dataP: function dataP8() {
+      return f$a(_defineProperty$9(_defineProperty$9({
         invalid: this.$invalid,
         fluid: this.$fluid,
         filled: this.$variant === "filled"
@@ -18438,18 +19957,18 @@ var script$n = {
   },
   components: {
     InputText: script$A,
-    AngleUpIcon: script$p,
-    AngleDownIcon: script$q,
-    TimesIcon: script$o
+    AngleUpIcon: script$k,
+    AngleDownIcon: script$l,
+    TimesIcon: script$x
   }
 };
-var _hoisted_1$l = ["data-p"];
-var _hoisted_2$j = ["data-p"];
-var _hoisted_3$j = ["disabled", "data-p"];
-var _hoisted_4$h = ["disabled", "data-p"];
+var _hoisted_1$k = ["data-p"];
+var _hoisted_2$i = ["data-p"];
+var _hoisted_3$i = ["disabled", "data-p"];
+var _hoisted_4$g = ["disabled", "data-p"];
 var _hoisted_5$c = ["disabled", "data-p"];
 var _hoisted_6$a = ["disabled", "data-p"];
-function render$m(_ctx, _cache, $props, $setup, $data, $options) {
+function render$i(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_InputText = resolveComponent("InputText");
   var _component_TimesIcon = resolveComponent("TimesIcon");
   return openBlock(), createElementBlock("span", mergeProps({
@@ -18520,7 +20039,7 @@ function render$m(_ctx, _cache, $props, $setup, $data, $options) {
       }, _ctx.ptm("incrementIcon"), {
         "data-pc-section": "incrementicon"
       }), null, 16, ["class"]))];
-    })], 16, _hoisted_3$j)];
+    })], 16, _hoisted_3$i)];
   }), renderSlot(_ctx.$slots, "decrementbutton", {
     listeners: $options.downButtonListeners
   }, function() {
@@ -18539,8 +20058,8 @@ function render$m(_ctx, _cache, $props, $setup, $data, $options) {
       }, _ctx.ptm("decrementIcon"), {
         "data-pc-section": "decrementicon"
       }), null, 16, ["class"]))];
-    })], 16, _hoisted_4$h)];
-  })], 16, _hoisted_2$j)) : createCommentVNode("", true), renderSlot(_ctx.$slots, "incrementbutton", {
+    })], 16, _hoisted_4$g)];
+  })], 16, _hoisted_2$i)) : createCommentVNode("", true), renderSlot(_ctx.$slots, "incrementbutton", {
     listeners: $options.upButtonListeners
   }, function() {
     return [_ctx.showButtons && _ctx.buttonLayout !== "stacked" ? (openBlock(), createElementBlock("button", mergeProps({
@@ -18580,12 +20099,12 @@ function render$m(_ctx, _cache, $props, $setup, $data, $options) {
         "data-pc-section": "decrementicon"
       }), null, 16, ["class"]))];
     })], 16, _hoisted_6$a)) : createCommentVNode("", true)];
-  })], 16, _hoisted_1$l);
+  })], 16, _hoisted_1$k);
 }
-script$n.render = render$m;
-var style$9 = "\n    .p-message {\n        display: grid;\n        grid-template-rows: 1fr;\n        border-radius: dt('message.border.radius');\n        outline-width: dt('message.border.width');\n        outline-style: solid;\n    }\n\n    .p-message-content-wrapper {\n        min-height: 0;\n    }\n\n    .p-message-content {\n        display: flex;\n        align-items: center;\n        padding: dt('message.content.padding');\n        gap: dt('message.content.gap');\n    }\n\n    .p-message-icon {\n        flex-shrink: 0;\n    }\n\n    .p-message-close-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        margin-inline-start: auto;\n        overflow: hidden;\n        position: relative;\n        width: dt('message.close.button.width');\n        height: dt('message.close.button.height');\n        border-radius: dt('message.close.button.border.radius');\n        background: transparent;\n        transition:\n            background dt('message.transition.duration'),\n            color dt('message.transition.duration'),\n            outline-color dt('message.transition.duration'),\n            box-shadow dt('message.transition.duration'),\n            opacity 0.3s;\n        outline-color: transparent;\n        color: inherit;\n        padding: 0;\n        border: none;\n        cursor: pointer;\n        user-select: none;\n    }\n\n    .p-message-close-icon {\n        font-size: dt('message.close.icon.size');\n        width: dt('message.close.icon.size');\n        height: dt('message.close.icon.size');\n    }\n\n    .p-message-close-button:focus-visible {\n        outline-width: dt('message.close.button.focus.ring.width');\n        outline-style: dt('message.close.button.focus.ring.style');\n        outline-offset: dt('message.close.button.focus.ring.offset');\n    }\n\n    .p-message-info {\n        background: dt('message.info.background');\n        outline-color: dt('message.info.border.color');\n        color: dt('message.info.color');\n        box-shadow: dt('message.info.shadow');\n    }\n\n    .p-message-info .p-message-close-button:focus-visible {\n        outline-color: dt('message.info.close.button.focus.ring.color');\n        box-shadow: dt('message.info.close.button.focus.ring.shadow');\n    }\n\n    .p-message-info .p-message-close-button:hover {\n        background: dt('message.info.close.button.hover.background');\n    }\n\n    .p-message-info.p-message-outlined {\n        color: dt('message.info.outlined.color');\n        outline-color: dt('message.info.outlined.border.color');\n    }\n\n    .p-message-info.p-message-simple {\n        color: dt('message.info.simple.color');\n    }\n\n    .p-message-success {\n        background: dt('message.success.background');\n        outline-color: dt('message.success.border.color');\n        color: dt('message.success.color');\n        box-shadow: dt('message.success.shadow');\n    }\n\n    .p-message-success .p-message-close-button:focus-visible {\n        outline-color: dt('message.success.close.button.focus.ring.color');\n        box-shadow: dt('message.success.close.button.focus.ring.shadow');\n    }\n\n    .p-message-success .p-message-close-button:hover {\n        background: dt('message.success.close.button.hover.background');\n    }\n\n    .p-message-success.p-message-outlined {\n        color: dt('message.success.outlined.color');\n        outline-color: dt('message.success.outlined.border.color');\n    }\n\n    .p-message-success.p-message-simple {\n        color: dt('message.success.simple.color');\n    }\n\n    .p-message-warn {\n        background: dt('message.warn.background');\n        outline-color: dt('message.warn.border.color');\n        color: dt('message.warn.color');\n        box-shadow: dt('message.warn.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:focus-visible {\n        outline-color: dt('message.warn.close.button.focus.ring.color');\n        box-shadow: dt('message.warn.close.button.focus.ring.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:hover {\n        background: dt('message.warn.close.button.hover.background');\n    }\n\n    .p-message-warn.p-message-outlined {\n        color: dt('message.warn.outlined.color');\n        outline-color: dt('message.warn.outlined.border.color');\n    }\n\n    .p-message-warn.p-message-simple {\n        color: dt('message.warn.simple.color');\n    }\n\n    .p-message-error {\n        background: dt('message.error.background');\n        outline-color: dt('message.error.border.color');\n        color: dt('message.error.color');\n        box-shadow: dt('message.error.shadow');\n    }\n\n    .p-message-error .p-message-close-button:focus-visible {\n        outline-color: dt('message.error.close.button.focus.ring.color');\n        box-shadow: dt('message.error.close.button.focus.ring.shadow');\n    }\n\n    .p-message-error .p-message-close-button:hover {\n        background: dt('message.error.close.button.hover.background');\n    }\n\n    .p-message-error.p-message-outlined {\n        color: dt('message.error.outlined.color');\n        outline-color: dt('message.error.outlined.border.color');\n    }\n\n    .p-message-error.p-message-simple {\n        color: dt('message.error.simple.color');\n    }\n\n    .p-message-secondary {\n        background: dt('message.secondary.background');\n        outline-color: dt('message.secondary.border.color');\n        color: dt('message.secondary.color');\n        box-shadow: dt('message.secondary.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:focus-visible {\n        outline-color: dt('message.secondary.close.button.focus.ring.color');\n        box-shadow: dt('message.secondary.close.button.focus.ring.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:hover {\n        background: dt('message.secondary.close.button.hover.background');\n    }\n\n    .p-message-secondary.p-message-outlined {\n        color: dt('message.secondary.outlined.color');\n        outline-color: dt('message.secondary.outlined.border.color');\n    }\n\n    .p-message-secondary.p-message-simple {\n        color: dt('message.secondary.simple.color');\n    }\n\n    .p-message-contrast {\n        background: dt('message.contrast.background');\n        outline-color: dt('message.contrast.border.color');\n        color: dt('message.contrast.color');\n        box-shadow: dt('message.contrast.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:focus-visible {\n        outline-color: dt('message.contrast.close.button.focus.ring.color');\n        box-shadow: dt('message.contrast.close.button.focus.ring.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:hover {\n        background: dt('message.contrast.close.button.hover.background');\n    }\n\n    .p-message-contrast.p-message-outlined {\n        color: dt('message.contrast.outlined.color');\n        outline-color: dt('message.contrast.outlined.border.color');\n    }\n\n    .p-message-contrast.p-message-simple {\n        color: dt('message.contrast.simple.color');\n    }\n\n    .p-message-text {\n        font-size: dt('message.text.font.size');\n        font-weight: dt('message.text.font.weight');\n    }\n\n    .p-message-icon {\n        font-size: dt('message.icon.size');\n        width: dt('message.icon.size');\n        height: dt('message.icon.size');\n    }\n\n    .p-message-sm .p-message-content {\n        padding: dt('message.content.sm.padding');\n    }\n\n    .p-message-sm .p-message-text {\n        font-size: dt('message.text.sm.font.size');\n    }\n\n    .p-message-sm .p-message-icon {\n        font-size: dt('message.icon.sm.size');\n        width: dt('message.icon.sm.size');\n        height: dt('message.icon.sm.size');\n    }\n\n    .p-message-sm .p-message-close-icon {\n        font-size: dt('message.close.icon.sm.size');\n        width: dt('message.close.icon.sm.size');\n        height: dt('message.close.icon.sm.size');\n    }\n\n    .p-message-lg .p-message-content {\n        padding: dt('message.content.lg.padding');\n    }\n\n    .p-message-lg .p-message-text {\n        font-size: dt('message.text.lg.font.size');\n    }\n\n    .p-message-lg .p-message-icon {\n        font-size: dt('message.icon.lg.size');\n        width: dt('message.icon.lg.size');\n        height: dt('message.icon.lg.size');\n    }\n\n    .p-message-lg .p-message-close-icon {\n        font-size: dt('message.close.icon.lg.size');\n        width: dt('message.close.icon.lg.size');\n        height: dt('message.close.icon.lg.size');\n    }\n\n    .p-message-outlined {\n        background: transparent;\n        outline-width: dt('message.outlined.border.width');\n    }\n\n    .p-message-simple {\n        background: transparent;\n        outline-color: transparent;\n        box-shadow: none;\n    }\n\n    .p-message-simple .p-message-content {\n        padding: dt('message.simple.content.padding');\n    }\n\n    .p-message-outlined .p-message-close-button:hover,\n    .p-message-simple .p-message-close-button:hover {\n        background: transparent;\n    }\n\n    .p-message-enter-active {\n        animation: p-animate-message-enter 0.3s ease-out forwards;\n        overflow: hidden;\n    }\n\n    .p-message-leave-active {\n        animation: p-animate-message-leave 0.15s ease-in forwards;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-message-enter {\n        from {\n            opacity: 0;\n            grid-template-rows: 0fr;\n        }\n        to {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-message-leave {\n        from {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n        to {\n            opacity: 0;\n            margin: 0;\n            grid-template-rows: 0fr;\n        }\n    }\n";
-var classes$9 = {
-  root: function root10(_ref) {
+script$j.render = render$i;
+var style$8 = "\n    .p-message {\n        display: grid;\n        grid-template-rows: 1fr;\n        border-radius: dt('message.border.radius');\n        outline-width: dt('message.border.width');\n        outline-style: solid;\n    }\n\n    .p-message-content-wrapper {\n        min-height: 0;\n    }\n\n    .p-message-content {\n        display: flex;\n        align-items: center;\n        padding: dt('message.content.padding');\n        gap: dt('message.content.gap');\n    }\n\n    .p-message-icon {\n        flex-shrink: 0;\n    }\n\n    .p-message-close-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        margin-inline-start: auto;\n        overflow: hidden;\n        position: relative;\n        width: dt('message.close.button.width');\n        height: dt('message.close.button.height');\n        border-radius: dt('message.close.button.border.radius');\n        background: transparent;\n        transition:\n            background dt('message.transition.duration'),\n            color dt('message.transition.duration'),\n            outline-color dt('message.transition.duration'),\n            box-shadow dt('message.transition.duration'),\n            opacity 0.3s;\n        outline-color: transparent;\n        color: inherit;\n        padding: 0;\n        border: none;\n        cursor: pointer;\n        user-select: none;\n    }\n\n    .p-message-close-icon {\n        font-size: dt('message.close.icon.size');\n        width: dt('message.close.icon.size');\n        height: dt('message.close.icon.size');\n    }\n\n    .p-message-close-button:focus-visible {\n        outline-width: dt('message.close.button.focus.ring.width');\n        outline-style: dt('message.close.button.focus.ring.style');\n        outline-offset: dt('message.close.button.focus.ring.offset');\n    }\n\n    .p-message-info {\n        background: dt('message.info.background');\n        outline-color: dt('message.info.border.color');\n        color: dt('message.info.color');\n        box-shadow: dt('message.info.shadow');\n    }\n\n    .p-message-info .p-message-close-button:focus-visible {\n        outline-color: dt('message.info.close.button.focus.ring.color');\n        box-shadow: dt('message.info.close.button.focus.ring.shadow');\n    }\n\n    .p-message-info .p-message-close-button:hover {\n        background: dt('message.info.close.button.hover.background');\n    }\n\n    .p-message-info.p-message-outlined {\n        color: dt('message.info.outlined.color');\n        outline-color: dt('message.info.outlined.border.color');\n    }\n\n    .p-message-info.p-message-simple {\n        color: dt('message.info.simple.color');\n    }\n\n    .p-message-success {\n        background: dt('message.success.background');\n        outline-color: dt('message.success.border.color');\n        color: dt('message.success.color');\n        box-shadow: dt('message.success.shadow');\n    }\n\n    .p-message-success .p-message-close-button:focus-visible {\n        outline-color: dt('message.success.close.button.focus.ring.color');\n        box-shadow: dt('message.success.close.button.focus.ring.shadow');\n    }\n\n    .p-message-success .p-message-close-button:hover {\n        background: dt('message.success.close.button.hover.background');\n    }\n\n    .p-message-success.p-message-outlined {\n        color: dt('message.success.outlined.color');\n        outline-color: dt('message.success.outlined.border.color');\n    }\n\n    .p-message-success.p-message-simple {\n        color: dt('message.success.simple.color');\n    }\n\n    .p-message-warn {\n        background: dt('message.warn.background');\n        outline-color: dt('message.warn.border.color');\n        color: dt('message.warn.color');\n        box-shadow: dt('message.warn.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:focus-visible {\n        outline-color: dt('message.warn.close.button.focus.ring.color');\n        box-shadow: dt('message.warn.close.button.focus.ring.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:hover {\n        background: dt('message.warn.close.button.hover.background');\n    }\n\n    .p-message-warn.p-message-outlined {\n        color: dt('message.warn.outlined.color');\n        outline-color: dt('message.warn.outlined.border.color');\n    }\n\n    .p-message-warn.p-message-simple {\n        color: dt('message.warn.simple.color');\n    }\n\n    .p-message-error {\n        background: dt('message.error.background');\n        outline-color: dt('message.error.border.color');\n        color: dt('message.error.color');\n        box-shadow: dt('message.error.shadow');\n    }\n\n    .p-message-error .p-message-close-button:focus-visible {\n        outline-color: dt('message.error.close.button.focus.ring.color');\n        box-shadow: dt('message.error.close.button.focus.ring.shadow');\n    }\n\n    .p-message-error .p-message-close-button:hover {\n        background: dt('message.error.close.button.hover.background');\n    }\n\n    .p-message-error.p-message-outlined {\n        color: dt('message.error.outlined.color');\n        outline-color: dt('message.error.outlined.border.color');\n    }\n\n    .p-message-error.p-message-simple {\n        color: dt('message.error.simple.color');\n    }\n\n    .p-message-secondary {\n        background: dt('message.secondary.background');\n        outline-color: dt('message.secondary.border.color');\n        color: dt('message.secondary.color');\n        box-shadow: dt('message.secondary.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:focus-visible {\n        outline-color: dt('message.secondary.close.button.focus.ring.color');\n        box-shadow: dt('message.secondary.close.button.focus.ring.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:hover {\n        background: dt('message.secondary.close.button.hover.background');\n    }\n\n    .p-message-secondary.p-message-outlined {\n        color: dt('message.secondary.outlined.color');\n        outline-color: dt('message.secondary.outlined.border.color');\n    }\n\n    .p-message-secondary.p-message-simple {\n        color: dt('message.secondary.simple.color');\n    }\n\n    .p-message-contrast {\n        background: dt('message.contrast.background');\n        outline-color: dt('message.contrast.border.color');\n        color: dt('message.contrast.color');\n        box-shadow: dt('message.contrast.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:focus-visible {\n        outline-color: dt('message.contrast.close.button.focus.ring.color');\n        box-shadow: dt('message.contrast.close.button.focus.ring.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:hover {\n        background: dt('message.contrast.close.button.hover.background');\n    }\n\n    .p-message-contrast.p-message-outlined {\n        color: dt('message.contrast.outlined.color');\n        outline-color: dt('message.contrast.outlined.border.color');\n    }\n\n    .p-message-contrast.p-message-simple {\n        color: dt('message.contrast.simple.color');\n    }\n\n    .p-message-text {\n        font-size: dt('message.text.font.size');\n        font-weight: dt('message.text.font.weight');\n    }\n\n    .p-message-icon {\n        font-size: dt('message.icon.size');\n        width: dt('message.icon.size');\n        height: dt('message.icon.size');\n    }\n\n    .p-message-sm .p-message-content {\n        padding: dt('message.content.sm.padding');\n    }\n\n    .p-message-sm .p-message-text {\n        font-size: dt('message.text.sm.font.size');\n    }\n\n    .p-message-sm .p-message-icon {\n        font-size: dt('message.icon.sm.size');\n        width: dt('message.icon.sm.size');\n        height: dt('message.icon.sm.size');\n    }\n\n    .p-message-sm .p-message-close-icon {\n        font-size: dt('message.close.icon.sm.size');\n        width: dt('message.close.icon.sm.size');\n        height: dt('message.close.icon.sm.size');\n    }\n\n    .p-message-lg .p-message-content {\n        padding: dt('message.content.lg.padding');\n    }\n\n    .p-message-lg .p-message-text {\n        font-size: dt('message.text.lg.font.size');\n    }\n\n    .p-message-lg .p-message-icon {\n        font-size: dt('message.icon.lg.size');\n        width: dt('message.icon.lg.size');\n        height: dt('message.icon.lg.size');\n    }\n\n    .p-message-lg .p-message-close-icon {\n        font-size: dt('message.close.icon.lg.size');\n        width: dt('message.close.icon.lg.size');\n        height: dt('message.close.icon.lg.size');\n    }\n\n    .p-message-outlined {\n        background: transparent;\n        outline-width: dt('message.outlined.border.width');\n    }\n\n    .p-message-simple {\n        background: transparent;\n        outline-color: transparent;\n        box-shadow: none;\n    }\n\n    .p-message-simple .p-message-content {\n        padding: dt('message.simple.content.padding');\n    }\n\n    .p-message-outlined .p-message-close-button:hover,\n    .p-message-simple .p-message-close-button:hover {\n        background: transparent;\n    }\n\n    .p-message-enter-active {\n        animation: p-animate-message-enter 0.3s ease-out forwards;\n        overflow: hidden;\n    }\n\n    .p-message-leave-active {\n        animation: p-animate-message-leave 0.15s ease-in forwards;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-message-enter {\n        from {\n            opacity: 0;\n            grid-template-rows: 0fr;\n        }\n        to {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-message-leave {\n        from {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n        to {\n            opacity: 0;\n            margin: 0;\n            grid-template-rows: 0fr;\n        }\n    }\n";
+var classes$8 = {
+  root: function root11(_ref) {
     var props = _ref.props;
     return ["p-message p-component p-message-" + props.severity, {
       "p-message-outlined": props.variant === "outlined",
@@ -18603,10 +20122,10 @@ var classes$9 = {
 };
 var MessageStyle = BaseStyle.extend({
   name: "message",
-  style: style$9,
-  classes: classes$9
+  style: style$8,
+  classes: classes$8
 });
-var script$1$a = {
+var script$1$9 = {
   name: "BaseMessage",
   "extends": script$H,
   props: {
@@ -18644,7 +20163,7 @@ var script$1$a = {
     }
   },
   style: MessageStyle,
-  provide: function provide14() {
+  provide: function provide16() {
     return {
       $pcMessage: this,
       $parentInstance: this
@@ -18676,18 +20195,18 @@ function _toPrimitive$1$1(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$m = {
+var script$i = {
   name: "Message",
-  "extends": script$1$a,
+  "extends": script$1$9,
   inheritAttrs: false,
   emits: ["close", "life-end"],
   timeout: null,
-  data: function data7() {
+  data: function data9() {
     return {
       visible: true
     };
   },
-  mounted: function mounted5() {
+  mounted: function mounted8() {
     var _this = this;
     if (this.life) {
       setTimeout(function() {
@@ -18697,16 +20216,16 @@ var script$m = {
     }
   },
   methods: {
-    close: function close(event) {
+    close: function close2(event) {
       this.visible = false;
       this.$emit("close", event);
     }
   },
   computed: {
-    closeAriaLabel: function closeAriaLabel() {
+    closeAriaLabel: function closeAriaLabel2() {
       return this.$primevue.config.locale.aria ? this.$primevue.config.locale.aria.close : void 0;
     },
-    dataP: function dataP8() {
+    dataP: function dataP9() {
       return f$a(_defineProperty$1$1(_defineProperty$1$1({
         outlined: this.variant === "outlined",
         simple: this.variant === "simple"
@@ -18717,924 +20236,7 @@ var script$m = {
     ripple: Ripple
   },
   components: {
-    TimesIcon: script$o
-  }
-};
-function _typeof$a(o2) {
-  "@babel/helpers - typeof";
-  return _typeof$a = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
-    return typeof o3;
-  } : function(o3) {
-    return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
-  }, _typeof$a(o2);
-}
-function ownKeys$5(e2, r2) {
-  var t2 = Object.keys(e2);
-  if (Object.getOwnPropertySymbols) {
-    var o2 = Object.getOwnPropertySymbols(e2);
-    r2 && (o2 = o2.filter(function(r3) {
-      return Object.getOwnPropertyDescriptor(e2, r3).enumerable;
-    })), t2.push.apply(t2, o2);
-  }
-  return t2;
-}
-function _objectSpread$5(e2) {
-  for (var r2 = 1; r2 < arguments.length; r2++) {
-    var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys$5(Object(t2), true).forEach(function(r3) {
-      _defineProperty$a(e2, r3, t2[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$5(Object(t2)).forEach(function(r3) {
-      Object.defineProperty(e2, r3, Object.getOwnPropertyDescriptor(t2, r3));
-    });
-  }
-  return e2;
-}
-function _defineProperty$a(e2, r2, t2) {
-  return (r2 = _toPropertyKey$a(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
-}
-function _toPropertyKey$a(t2) {
-  var i2 = _toPrimitive$a(t2, "string");
-  return "symbol" == _typeof$a(i2) ? i2 : i2 + "";
-}
-function _toPrimitive$a(t2, r2) {
-  if ("object" != _typeof$a(t2) || !t2) return t2;
-  var e2 = t2[Symbol.toPrimitive];
-  if (void 0 !== e2) {
-    var i2 = e2.call(t2, r2);
-    if ("object" != _typeof$a(i2)) return i2;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return ("string" === r2 ? String : Number)(t2);
-}
-var _hoisted_1$k = ["data-p"];
-var _hoisted_2$i = ["data-p"];
-var _hoisted_3$i = ["data-p"];
-var _hoisted_4$g = ["aria-label", "data-p"];
-var _hoisted_5$b = ["data-p"];
-function render$l(_ctx, _cache, $props, $setup, $data, $options) {
-  var _component_TimesIcon = resolveComponent("TimesIcon");
-  var _directive_ripple = resolveDirective("ripple");
-  return openBlock(), createBlock(Transition, mergeProps({
-    name: "p-message",
-    appear: ""
-  }, _ctx.ptmi("transition")), {
-    "default": withCtx(function() {
-      return [$data.visible ? (openBlock(), createElementBlock("div", mergeProps({
-        key: 0,
-        "class": _ctx.cx("root"),
-        role: "alert",
-        "aria-live": "assertive",
-        "aria-atomic": "true",
-        "data-p": $options.dataP
-      }, _ctx.ptm("root")), [createBaseVNode("div", mergeProps({
-        "class": _ctx.cx("contentWrapper")
-      }, _ctx.ptm("contentWrapper")), [_ctx.$slots.container ? renderSlot(_ctx.$slots, "container", {
-        key: 0,
-        closeCallback: $options.close
-      }) : (openBlock(), createElementBlock("div", mergeProps({
-        key: 1,
-        "class": _ctx.cx("content"),
-        "data-p": $options.dataP
-      }, _ctx.ptm("content")), [renderSlot(_ctx.$slots, "icon", {
-        "class": normalizeClass(_ctx.cx("icon"))
-      }, function() {
-        return [(openBlock(), createBlock(resolveDynamicComponent(_ctx.icon ? "span" : null), mergeProps({
-          "class": [_ctx.cx("icon"), _ctx.icon],
-          "data-p": $options.dataP
-        }, _ctx.ptm("icon")), null, 16, ["class", "data-p"]))];
-      }), _ctx.$slots["default"] ? (openBlock(), createElementBlock("div", mergeProps({
-        key: 0,
-        "class": _ctx.cx("text"),
-        "data-p": $options.dataP
-      }, _ctx.ptm("text")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_3$i)) : createCommentVNode("", true), _ctx.closable ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
-        key: 1,
-        "class": _ctx.cx("closeButton"),
-        "aria-label": $options.closeAriaLabel,
-        type: "button",
-        onClick: _cache[0] || (_cache[0] = function($event) {
-          return $options.close($event);
-        }),
-        "data-p": $options.dataP
-      }, _objectSpread$5(_objectSpread$5({}, _ctx.closeButtonProps), _ctx.ptm("closeButton"))), [renderSlot(_ctx.$slots, "closeicon", {}, function() {
-        return [_ctx.closeIcon ? (openBlock(), createElementBlock("i", mergeProps({
-          key: 0,
-          "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
-          "data-p": $options.dataP
-        }, _ctx.ptm("closeIcon")), null, 16, _hoisted_5$b)) : (openBlock(), createBlock(_component_TimesIcon, mergeProps({
-          key: 1,
-          "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
-          "data-p": $options.dataP
-        }, _ctx.ptm("closeIcon")), null, 16, ["class", "data-p"]))];
-      })], 16, _hoisted_4$g)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_2$i))], 16)], 16, _hoisted_1$k)) : createCommentVNode("", true)];
-    }),
-    _: 3
-  }, 16);
-}
-script$m.render = render$l;
-var script$l = {
-  name: "WindowMaximizeIcon",
-  "extends": script$G
-};
-function _toConsumableArray$a(r2) {
-  return _arrayWithoutHoles$a(r2) || _iterableToArray$a(r2) || _unsupportedIterableToArray$a(r2) || _nonIterableSpread$a();
-}
-function _nonIterableSpread$a() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$a(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$a(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$a(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$a(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$a(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$a(r2);
-}
-function _arrayLikeToArray$a(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$k(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$a(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    "fill-rule": "evenodd",
-    "clip-rule": "evenodd",
-    d: "M7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14ZM9.77805 7.42192C9.89013 7.534 10.0415 7.59788 10.2 7.59995C10.3585 7.59788 10.5099 7.534 10.622 7.42192C10.7341 7.30985 10.798 7.15844 10.8 6.99995V3.94242C10.8066 3.90505 10.8096 3.86689 10.8089 3.82843C10.8079 3.77159 10.7988 3.7157 10.7824 3.6623C10.756 3.55552 10.701 3.45698 10.622 3.37798C10.5099 3.2659 10.3585 3.20202 10.2 3.19995H7.00002C6.84089 3.19995 6.68828 3.26317 6.57576 3.37569C6.46324 3.48821 6.40002 3.64082 6.40002 3.79995C6.40002 3.95908 6.46324 4.11169 6.57576 4.22422C6.68828 4.33674 6.84089 4.39995 7.00002 4.39995H8.80006L6.19997 7.00005C6.10158 7.11005 6.04718 7.25246 6.04718 7.40005C6.04718 7.54763 6.10158 7.69004 6.19997 7.80005C6.30202 7.91645 6.44561 7.98824 6.59997 8.00005C6.75432 7.98824 6.89791 7.91645 6.99997 7.80005L9.60002 5.26841V6.99995C9.6021 7.15844 9.66598 7.30985 9.77805 7.42192ZM1.4 14H3.8C4.17066 13.9979 4.52553 13.8498 4.78763 13.5877C5.04973 13.3256 5.1979 12.9707 5.2 12.6V10.2C5.1979 9.82939 5.04973 9.47452 4.78763 9.21242C4.52553 8.95032 4.17066 8.80215 3.8 8.80005H1.4C1.02934 8.80215 0.674468 8.95032 0.412371 9.21242C0.150274 9.47452 0.00210008 9.82939 0 10.2V12.6C0.00210008 12.9707 0.150274 13.3256 0.412371 13.5877C0.674468 13.8498 1.02934 13.9979 1.4 14ZM1.25858 10.0586C1.29609 10.0211 1.34696 10 1.4 10H3.8C3.85304 10 3.90391 10.0211 3.94142 10.0586C3.97893 10.0961 4 10.147 4 10.2V12.6C4 12.6531 3.97893 12.704 3.94142 12.7415C3.90391 12.779 3.85304 12.8 3.8 12.8H1.4C1.34696 12.8 1.29609 12.779 1.25858 12.7415C1.22107 12.704 1.2 12.6531 1.2 12.6V10.2C1.2 10.147 1.22107 10.0961 1.25858 10.0586Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$l.render = render$k;
-var script$k = {
-  name: "WindowMinimizeIcon",
-  "extends": script$G
-};
-function _toConsumableArray$9(r2) {
-  return _arrayWithoutHoles$9(r2) || _iterableToArray$9(r2) || _unsupportedIterableToArray$9(r2) || _nonIterableSpread$9();
-}
-function _nonIterableSpread$9() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$9(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$9(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$9(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$9(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$9(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$9(r2);
-}
-function _arrayLikeToArray$9(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$j(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$9(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    "fill-rule": "evenodd",
-    "clip-rule": "evenodd",
-    d: "M11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0ZM6.368 7.952C6.44137 7.98326 6.52025 7.99958 6.6 8H9.8C9.95913 8 10.1117 7.93678 10.2243 7.82426C10.3368 7.71174 10.4 7.55913 10.4 7.4C10.4 7.24087 10.3368 7.08826 10.2243 6.97574C10.1117 6.86321 9.95913 6.8 9.8 6.8H8.048L10.624 4.224C10.73 4.11026 10.7877 3.95982 10.7849 3.80438C10.7822 3.64894 10.7192 3.50063 10.6093 3.3907C10.4994 3.28077 10.3511 3.2178 10.1956 3.21506C10.0402 3.21232 9.88974 3.27002 9.776 3.376L7.2 5.952V4.2C7.2 4.04087 7.13679 3.88826 7.02426 3.77574C6.91174 3.66321 6.75913 3.6 6.6 3.6C6.44087 3.6 6.28826 3.66321 6.17574 3.77574C6.06321 3.88826 6 4.04087 6 4.2V7.4C6.00042 7.47975 6.01674 7.55862 6.048 7.632C6.07656 7.70442 6.11971 7.7702 6.17475 7.82524C6.2298 7.88029 6.29558 7.92344 6.368 7.952ZM1.4 8.80005H3.8C4.17066 8.80215 4.52553 8.95032 4.78763 9.21242C5.04973 9.47452 5.1979 9.82939 5.2 10.2V12.6C5.1979 12.9707 5.04973 13.3256 4.78763 13.5877C4.52553 13.8498 4.17066 13.9979 3.8 14H1.4C1.02934 13.9979 0.674468 13.8498 0.412371 13.5877C0.150274 13.3256 0.00210008 12.9707 0 12.6V10.2C0.00210008 9.82939 0.150274 9.47452 0.412371 9.21242C0.674468 8.95032 1.02934 8.80215 1.4 8.80005ZM3.94142 12.7415C3.97893 12.704 4 12.6531 4 12.6V10.2C4 10.147 3.97893 10.0961 3.94142 10.0586C3.90391 10.0211 3.85304 10 3.8 10H1.4C1.34696 10 1.29609 10.0211 1.25858 10.0586C1.22107 10.0961 1.2 10.147 1.2 10.2V12.6C1.2 12.6531 1.22107 12.704 1.25858 12.7415C1.29609 12.779 1.34696 12.8 1.4 12.8H3.8C3.85304 12.8 3.90391 12.779 3.94142 12.7415Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$k.render = render$j;
-var FocusTrapStyle = BaseStyle.extend({
-  name: "focustrap-directive"
-});
-var BaseFocusTrap = BaseDirective.extend({
-  style: FocusTrapStyle
-});
-function _typeof$9(o2) {
-  "@babel/helpers - typeof";
-  return _typeof$9 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
-    return typeof o3;
-  } : function(o3) {
-    return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
-  }, _typeof$9(o2);
-}
-function ownKeys$4(e2, r2) {
-  var t2 = Object.keys(e2);
-  if (Object.getOwnPropertySymbols) {
-    var o2 = Object.getOwnPropertySymbols(e2);
-    r2 && (o2 = o2.filter(function(r3) {
-      return Object.getOwnPropertyDescriptor(e2, r3).enumerable;
-    })), t2.push.apply(t2, o2);
-  }
-  return t2;
-}
-function _objectSpread$4(e2) {
-  for (var r2 = 1; r2 < arguments.length; r2++) {
-    var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys$4(Object(t2), true).forEach(function(r3) {
-      _defineProperty$9(e2, r3, t2[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys$4(Object(t2)).forEach(function(r3) {
-      Object.defineProperty(e2, r3, Object.getOwnPropertyDescriptor(t2, r3));
-    });
-  }
-  return e2;
-}
-function _defineProperty$9(e2, r2, t2) {
-  return (r2 = _toPropertyKey$9(r2)) in e2 ? Object.defineProperty(e2, r2, { value: t2, enumerable: true, configurable: true, writable: true }) : e2[r2] = t2, e2;
-}
-function _toPropertyKey$9(t2) {
-  var i2 = _toPrimitive$9(t2, "string");
-  return "symbol" == _typeof$9(i2) ? i2 : i2 + "";
-}
-function _toPrimitive$9(t2, r2) {
-  if ("object" != _typeof$9(t2) || !t2) return t2;
-  var e2 = t2[Symbol.toPrimitive];
-  if (void 0 !== e2) {
-    var i2 = e2.call(t2, r2);
-    if ("object" != _typeof$9(i2)) return i2;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return ("string" === r2 ? String : Number)(t2);
-}
-var FocusTrap = BaseFocusTrap.extend("focustrap", {
-  mounted: function mounted6(el, binding) {
-    var _ref = binding.value || {}, disabled2 = _ref.disabled;
-    if (!disabled2) {
-      this.createHiddenFocusableElements(el, binding);
-      this.bind(el, binding);
-      this.autoElementFocus(el, binding);
-    }
-    el.setAttribute("data-pd-focustrap", true);
-    this.$el = el;
-  },
-  updated: function updated4(el, binding) {
-    var _ref2 = binding.value || {}, disabled2 = _ref2.disabled;
-    disabled2 && this.unbind(el);
-  },
-  unmounted: function unmounted4(el) {
-    this.unbind(el);
-  },
-  methods: {
-    getComputedSelector: function getComputedSelector(selector) {
-      return ':not(.p-hidden-focusable):not([data-p-hidden-focusable="true"])'.concat(selector !== null && selector !== void 0 ? selector : "");
-    },
-    bind: function bind(el, binding) {
-      var _this = this;
-      var _ref3 = binding.value || {}, onFocusIn = _ref3.onFocusIn, onFocusOut = _ref3.onFocusOut;
-      el.$_pfocustrap_mutationobserver = new MutationObserver(function(mutationList) {
-        mutationList.forEach(function(mutation) {
-          if (mutation.type === "childList" && !el.contains(document.activeElement)) {
-            var _findNextFocusableElement = function findNextFocusableElement(_el) {
-              var focusableElement = It(_el) ? It(_el, _this.getComputedSelector(el.$_pfocustrap_focusableselector)) ? _el : vt(el, _this.getComputedSelector(el.$_pfocustrap_focusableselector)) : vt(_el);
-              return s$c(focusableElement) ? focusableElement : _el.nextSibling && _findNextFocusableElement(_el.nextSibling);
-            };
-            bt(_findNextFocusableElement(mutation.nextSibling));
-          }
-        });
-      });
-      el.$_pfocustrap_mutationobserver.disconnect();
-      el.$_pfocustrap_mutationobserver.observe(el, {
-        childList: true
-      });
-      el.$_pfocustrap_focusinlistener = function(event) {
-        return onFocusIn && onFocusIn(event);
-      };
-      el.$_pfocustrap_focusoutlistener = function(event) {
-        return onFocusOut && onFocusOut(event);
-      };
-      el.addEventListener("focusin", el.$_pfocustrap_focusinlistener);
-      el.addEventListener("focusout", el.$_pfocustrap_focusoutlistener);
-    },
-    unbind: function unbind(el) {
-      el.$_pfocustrap_mutationobserver && el.$_pfocustrap_mutationobserver.disconnect();
-      el.$_pfocustrap_focusinlistener && el.removeEventListener("focusin", el.$_pfocustrap_focusinlistener) && (el.$_pfocustrap_focusinlistener = null);
-      el.$_pfocustrap_focusoutlistener && el.removeEventListener("focusout", el.$_pfocustrap_focusoutlistener) && (el.$_pfocustrap_focusoutlistener = null);
-    },
-    autoFocus: function autoFocus(options) {
-      this.autoElementFocus(this.$el, {
-        value: _objectSpread$4(_objectSpread$4({}, options), {}, {
-          autoFocus: true
-        })
-      });
-    },
-    autoElementFocus: function autoElementFocus(el, binding) {
-      var _ref4 = binding.value || {}, _ref4$autoFocusSelect = _ref4.autoFocusSelector, autoFocusSelector = _ref4$autoFocusSelect === void 0 ? "" : _ref4$autoFocusSelect, _ref4$firstFocusableS = _ref4.firstFocusableSelector, firstFocusableSelector = _ref4$firstFocusableS === void 0 ? "" : _ref4$firstFocusableS, _ref4$autoFocus = _ref4.autoFocus, autoFocus2 = _ref4$autoFocus === void 0 ? false : _ref4$autoFocus;
-      var focusableElement = vt(el, "[autofocus]".concat(this.getComputedSelector(autoFocusSelector)));
-      autoFocus2 && !focusableElement && (focusableElement = vt(el, this.getComputedSelector(firstFocusableSelector)));
-      bt(focusableElement);
-    },
-    onFirstHiddenElementFocus: function onFirstHiddenElementFocus(event) {
-      var _this$$el;
-      var currentTarget = event.currentTarget, relatedTarget = event.relatedTarget;
-      var focusableElement = relatedTarget === currentTarget.$_pfocustrap_lasthiddenfocusableelement || !((_this$$el = this.$el) !== null && _this$$el !== void 0 && _this$$el.contains(relatedTarget)) ? vt(currentTarget.parentElement, this.getComputedSelector(currentTarget.$_pfocustrap_focusableselector)) : currentTarget.$_pfocustrap_lasthiddenfocusableelement;
-      bt(focusableElement);
-    },
-    onLastHiddenElementFocus: function onLastHiddenElementFocus(event) {
-      var _this$$el2;
-      var currentTarget = event.currentTarget, relatedTarget = event.relatedTarget;
-      var focusableElement = relatedTarget === currentTarget.$_pfocustrap_firsthiddenfocusableelement || !((_this$$el2 = this.$el) !== null && _this$$el2 !== void 0 && _this$$el2.contains(relatedTarget)) ? Lt(currentTarget.parentElement, this.getComputedSelector(currentTarget.$_pfocustrap_focusableselector)) : currentTarget.$_pfocustrap_firsthiddenfocusableelement;
-      bt(focusableElement);
-    },
-    createHiddenFocusableElements: function createHiddenFocusableElements(el, binding) {
-      var _this2 = this;
-      var _ref5 = binding.value || {}, _ref5$tabIndex = _ref5.tabIndex, tabIndex = _ref5$tabIndex === void 0 ? 0 : _ref5$tabIndex, _ref5$firstFocusableS = _ref5.firstFocusableSelector, firstFocusableSelector = _ref5$firstFocusableS === void 0 ? "" : _ref5$firstFocusableS, _ref5$lastFocusableSe = _ref5.lastFocusableSelector, lastFocusableSelector = _ref5$lastFocusableSe === void 0 ? "" : _ref5$lastFocusableSe;
-      var createFocusableElement = function createFocusableElement2(onFocus4) {
-        return U("span", {
-          "class": "p-hidden-accessible p-hidden-focusable",
-          tabIndex,
-          role: "presentation",
-          "aria-hidden": true,
-          "data-p-hidden-accessible": true,
-          "data-p-hidden-focusable": true,
-          onFocus: onFocus4 === null || onFocus4 === void 0 ? void 0 : onFocus4.bind(_this2)
-        });
-      };
-      var firstFocusableElement = createFocusableElement(this.onFirstHiddenElementFocus);
-      var lastFocusableElement = createFocusableElement(this.onLastHiddenElementFocus);
-      firstFocusableElement.$_pfocustrap_lasthiddenfocusableelement = lastFocusableElement;
-      firstFocusableElement.$_pfocustrap_focusableselector = firstFocusableSelector;
-      firstFocusableElement.setAttribute("data-pc-section", "firstfocusableelement");
-      lastFocusableElement.$_pfocustrap_firsthiddenfocusableelement = firstFocusableElement;
-      lastFocusableElement.$_pfocustrap_focusableselector = lastFocusableSelector;
-      lastFocusableElement.setAttribute("data-pc-section", "lastfocusableelement");
-      el.prepend(firstFocusableElement);
-      el.append(lastFocusableElement);
-    }
-  }
-});
-var script$j = {
-  name: "Portal",
-  props: {
-    appendTo: {
-      type: [String, Object],
-      "default": "body"
-    },
-    disabled: {
-      type: Boolean,
-      "default": false
-    }
-  },
-  data: function data8() {
-    return {
-      mounted: false
-    };
-  },
-  mounted: function mounted7() {
-    this.mounted = tt();
-  },
-  computed: {
-    inline: function inline() {
-      return this.disabled || this.appendTo === "self";
-    }
-  }
-};
-function render$i(_ctx, _cache, $props, $setup, $data, $options) {
-  return $options.inline ? renderSlot(_ctx.$slots, "default", {
-    key: 0
-  }) : $data.mounted ? (openBlock(), createBlock(Teleport, {
-    key: 1,
-    to: $props.appendTo
-  }, [renderSlot(_ctx.$slots, "default")], 8, ["to"])) : createCommentVNode("", true);
-}
-script$j.render = render$i;
-function blockBodyScroll() {
-  st$1({
-    variableName: rr("scrollbar.width").name
-  });
-}
-function unblockBodyScroll() {
-  dt$1({
-    variableName: rr("scrollbar.width").name
-  });
-}
-var style$8 = "\n    .p-dialog {\n        max-height: 90%;\n        transform: scale(1);\n        border-radius: dt('dialog.border.radius');\n        box-shadow: dt('dialog.shadow');\n        background: dt('dialog.background');\n        border: 1px solid dt('dialog.border.color');\n        color: dt('dialog.color');\n        will-change: transform;\n    }\n\n    .p-dialog-content {\n        overflow-y: auto;\n        padding: dt('dialog.content.padding');\n        flex-grow: 1;\n    }\n\n    .p-dialog-header {\n        display: flex;\n        align-items: center;\n        justify-content: space-between;\n        flex-shrink: 0;\n        padding: dt('dialog.header.padding');\n    }\n\n    .p-dialog-title {\n        font-weight: dt('dialog.title.font.weight');\n        font-size: dt('dialog.title.font.size');\n    }\n\n    .p-dialog-footer {\n        flex-shrink: 0;\n        padding: dt('dialog.footer.padding');\n        display: flex;\n        justify-content: flex-end;\n        gap: dt('dialog.footer.gap');\n    }\n\n    .p-dialog-header-actions {\n        display: flex;\n        align-items: center;\n        gap: dt('dialog.header.gap');\n    }\n\n    .p-dialog-top .p-dialog,\n    .p-dialog-bottom .p-dialog,\n    .p-dialog-left .p-dialog,\n    .p-dialog-right .p-dialog,\n    .p-dialog-topleft .p-dialog,\n    .p-dialog-topright .p-dialog,\n    .p-dialog-bottomleft .p-dialog,\n    .p-dialog-bottomright .p-dialog {\n        margin: 1rem;\n    }\n\n    .p-dialog-maximized {\n        width: 100vw !important;\n        height: 100vh !important;\n        top: 0px !important;\n        left: 0px !important;\n        max-height: 100%;\n        height: 100%;\n        border-radius: 0;\n    }\n\n    .p-dialog .p-resizable-handle {\n        position: absolute;\n        font-size: 0.1px;\n        display: block;\n        cursor: se-resize;\n        width: 12px;\n        height: 12px;\n        right: 1px;\n        bottom: 1px;\n    }\n\n    .p-dialog-enter-active {\n        animation: p-animate-dialog-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-dialog-leave-active {\n        animation: p-animate-dialog-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-dialog-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-dialog-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
-var inlineStyles$1 = {
-  mask: function mask(_ref) {
-    var position2 = _ref.position, modal2 = _ref.modal;
-    return {
-      position: "fixed",
-      height: "100%",
-      width: "100%",
-      left: 0,
-      top: 0,
-      display: "flex",
-      justifyContent: position2 === "left" || position2 === "topleft" || position2 === "bottomleft" ? "flex-start" : position2 === "right" || position2 === "topright" || position2 === "bottomright" ? "flex-end" : "center",
-      alignItems: position2 === "top" || position2 === "topleft" || position2 === "topright" ? "flex-start" : position2 === "bottom" || position2 === "bottomleft" || position2 === "bottomright" ? "flex-end" : "center",
-      pointerEvents: modal2 ? "auto" : "none"
-    };
-  },
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    pointerEvents: "auto"
-  }
-};
-var classes$8 = {
-  mask: function mask2(_ref2) {
-    var props = _ref2.props;
-    var positions = ["left", "right", "top", "topleft", "topright", "bottom", "bottomleft", "bottomright"];
-    var pos = positions.find(function(item) {
-      return item === props.position;
-    });
-    return ["p-dialog-mask", {
-      "p-overlay-mask p-overlay-mask-enter-active": props.modal
-    }, pos ? "p-dialog-".concat(pos) : ""];
-  },
-  root: function root11(_ref3) {
-    var props = _ref3.props, instance = _ref3.instance;
-    return ["p-dialog p-component", {
-      "p-dialog-maximized": props.maximizable && instance.maximized
-    }];
-  },
-  header: "p-dialog-header",
-  title: "p-dialog-title",
-  headerActions: "p-dialog-header-actions",
-  pcMaximizeButton: "p-dialog-maximize-button",
-  pcCloseButton: "p-dialog-close-button",
-  content: "p-dialog-content",
-  footer: "p-dialog-footer"
-};
-var DialogStyle = BaseStyle.extend({
-  name: "dialog",
-  style: style$8,
-  classes: classes$8,
-  inlineStyles: inlineStyles$1
-});
-var script$1$9 = {
-  name: "BaseDialog",
-  "extends": script$H,
-  props: {
-    header: {
-      type: null,
-      "default": null
-    },
-    footer: {
-      type: null,
-      "default": null
-    },
-    visible: {
-      type: Boolean,
-      "default": false
-    },
-    modal: {
-      type: Boolean,
-      "default": null
-    },
-    contentStyle: {
-      type: null,
-      "default": null
-    },
-    contentClass: {
-      type: String,
-      "default": null
-    },
-    contentProps: {
-      type: null,
-      "default": null
-    },
-    maximizable: {
-      type: Boolean,
-      "default": false
-    },
-    dismissableMask: {
-      type: Boolean,
-      "default": false
-    },
-    closable: {
-      type: Boolean,
-      "default": true
-    },
-    closeOnEscape: {
-      type: Boolean,
-      "default": true
-    },
-    showHeader: {
-      type: Boolean,
-      "default": true
-    },
-    blockScroll: {
-      type: Boolean,
-      "default": false
-    },
-    baseZIndex: {
-      type: Number,
-      "default": 0
-    },
-    autoZIndex: {
-      type: Boolean,
-      "default": true
-    },
-    position: {
-      type: String,
-      "default": "center"
-    },
-    breakpoints: {
-      type: Object,
-      "default": null
-    },
-    draggable: {
-      type: Boolean,
-      "default": true
-    },
-    keepInViewport: {
-      type: Boolean,
-      "default": true
-    },
-    minX: {
-      type: Number,
-      "default": 0
-    },
-    minY: {
-      type: Number,
-      "default": 0
-    },
-    appendTo: {
-      type: [String, Object],
-      "default": "body"
-    },
-    closeIcon: {
-      type: String,
-      "default": void 0
-    },
-    maximizeIcon: {
-      type: String,
-      "default": void 0
-    },
-    minimizeIcon: {
-      type: String,
-      "default": void 0
-    },
-    closeButtonProps: {
-      type: Object,
-      "default": function _default() {
-        return {
-          severity: "secondary",
-          text: true,
-          rounded: true
-        };
-      }
-    },
-    maximizeButtonProps: {
-      type: Object,
-      "default": function _default2() {
-        return {
-          severity: "secondary",
-          text: true,
-          rounded: true
-        };
-      }
-    },
-    _instance: null
-  },
-  style: DialogStyle,
-  provide: function provide15() {
-    return {
-      $pcDialog: this,
-      $parentInstance: this
-    };
-  }
-};
-var script$i = {
-  name: "Dialog",
-  "extends": script$1$9,
-  inheritAttrs: false,
-  emits: ["update:visible", "show", "hide", "after-hide", "maximize", "unmaximize", "dragstart", "dragend"],
-  provide: function provide16() {
-    var _this = this;
-    return {
-      dialogRef: computed(function() {
-        return _this._instance;
-      })
-    };
-  },
-  data: function data9() {
-    return {
-      containerVisible: this.visible,
-      maximized: false,
-      focusableMax: null,
-      focusableClose: null,
-      target: null
-    };
-  },
-  documentKeydownListener: null,
-  container: null,
-  mask: null,
-  content: null,
-  headerContainer: null,
-  footerContainer: null,
-  maximizableButton: null,
-  closeButton: null,
-  styleElement: null,
-  dragging: null,
-  documentDragListener: null,
-  documentDragEndListener: null,
-  lastPageX: null,
-  lastPageY: null,
-  maskMouseDownTarget: null,
-  updated: function updated5() {
-    if (this.visible) {
-      this.containerVisible = this.visible;
-    }
-  },
-  beforeUnmount: function beforeUnmount4() {
-    this.unbindDocumentState();
-    this.unbindGlobalListeners();
-    this.destroyStyle();
-    if (this.mask && this.autoZIndex) {
-      x.clear(this.mask);
-    }
-    this.container = null;
-    this.mask = null;
-  },
-  mounted: function mounted8() {
-    if (this.breakpoints) {
-      this.createStyle();
-    }
-  },
-  methods: {
-    close: function close2() {
-      this.$emit("update:visible", false);
-    },
-    onEnter: function onEnter() {
-      this.$emit("show");
-      this.target = document.activeElement;
-      this.enableDocumentSettings();
-      this.bindGlobalListeners();
-      if (this.autoZIndex) {
-        x.set("modal", this.mask, this.baseZIndex + this.$primevue.config.zIndex.modal);
-      }
-    },
-    onAfterEnter: function onAfterEnter() {
-      this.focus();
-    },
-    onBeforeLeave: function onBeforeLeave() {
-      if (this.modal) {
-        !this.isUnstyled && W(this.mask, "p-overlay-mask-leave-active");
-      }
-      if (this.dragging && this.documentDragEndListener) {
-        this.documentDragEndListener();
-      }
-    },
-    onLeave: function onLeave() {
-      this.$emit("hide");
-      bt(this.target);
-      this.target = null;
-      this.focusableClose = null;
-      this.focusableMax = null;
-    },
-    onAfterLeave: function onAfterLeave() {
-      if (this.autoZIndex) {
-        x.clear(this.mask);
-      }
-      this.containerVisible = false;
-      this.unbindDocumentState();
-      this.unbindGlobalListeners();
-      this.$emit("after-hide");
-    },
-    onMaskMouseDown: function onMaskMouseDown(event) {
-      this.maskMouseDownTarget = event.target;
-    },
-    onMaskMouseUp: function onMaskMouseUp() {
-      if (this.dismissableMask && this.modal && this.mask === this.maskMouseDownTarget) {
-        this.close();
-      }
-    },
-    focus: function focus$1() {
-      var findFocusableElement = function findFocusableElement2(container) {
-        return container && container.querySelector("[autofocus]");
-      };
-      var focusTarget = this.$slots.footer && findFocusableElement(this.footerContainer);
-      if (!focusTarget) {
-        focusTarget = this.$slots.header && findFocusableElement(this.headerContainer);
-        if (!focusTarget) {
-          focusTarget = this.$slots["default"] && findFocusableElement(this.content);
-          if (!focusTarget) {
-            if (this.maximizable) {
-              this.focusableMax = true;
-              focusTarget = this.maximizableButton;
-            } else {
-              this.focusableClose = true;
-              focusTarget = this.closeButton;
-            }
-          }
-        }
-      }
-      if (focusTarget) {
-        bt(focusTarget, {
-          focusVisible: true
-        });
-      }
-    },
-    maximize: function maximize(event) {
-      if (this.maximized) {
-        this.maximized = false;
-        this.$emit("unmaximize", event);
-      } else {
-        this.maximized = true;
-        this.$emit("maximize", event);
-      }
-      if (!this.modal) {
-        this.maximized ? blockBodyScroll() : unblockBodyScroll();
-      }
-    },
-    enableDocumentSettings: function enableDocumentSettings() {
-      if (this.modal || !this.modal && this.blockScroll || this.maximizable && this.maximized) {
-        blockBodyScroll();
-      }
-    },
-    unbindDocumentState: function unbindDocumentState() {
-      if (this.modal || !this.modal && this.blockScroll || this.maximizable && this.maximized) {
-        unblockBodyScroll();
-      }
-    },
-    onKeyDown: function onKeyDown(event) {
-      if (event.code === "Escape" && this.closeOnEscape) {
-        this.close();
-      }
-    },
-    bindDocumentKeyDownListener: function bindDocumentKeyDownListener() {
-      if (!this.documentKeydownListener) {
-        this.documentKeydownListener = this.onKeyDown.bind(this);
-        window.document.addEventListener("keydown", this.documentKeydownListener);
-      }
-    },
-    unbindDocumentKeyDownListener: function unbindDocumentKeyDownListener() {
-      if (this.documentKeydownListener) {
-        window.document.removeEventListener("keydown", this.documentKeydownListener);
-        this.documentKeydownListener = null;
-      }
-    },
-    containerRef: function containerRef(el) {
-      this.container = el;
-    },
-    maskRef: function maskRef(el) {
-      this.mask = el;
-    },
-    contentRef: function contentRef(el) {
-      this.content = el;
-    },
-    headerContainerRef: function headerContainerRef(el) {
-      this.headerContainer = el;
-    },
-    footerContainerRef: function footerContainerRef(el) {
-      this.footerContainer = el;
-    },
-    maximizableRef: function maximizableRef(el) {
-      this.maximizableButton = el ? el.$el : void 0;
-    },
-    closeButtonRef: function closeButtonRef(el) {
-      this.closeButton = el ? el.$el : void 0;
-    },
-    createStyle: function createStyle() {
-      if (!this.styleElement && !this.isUnstyled) {
-        var _this$$primevue;
-        this.styleElement = document.createElement("style");
-        this.styleElement.type = "text/css";
-        _t(this.styleElement, "nonce", (_this$$primevue = this.$primevue) === null || _this$$primevue === void 0 || (_this$$primevue = _this$$primevue.config) === null || _this$$primevue === void 0 || (_this$$primevue = _this$$primevue.csp) === null || _this$$primevue === void 0 ? void 0 : _this$$primevue.nonce);
-        document.head.appendChild(this.styleElement);
-        var innerHTML = "";
-        for (var breakpoint in this.breakpoints) {
-          innerHTML += "\n                        @media screen and (max-width: ".concat(breakpoint, ") {\n                            .p-dialog[").concat(this.$attrSelector, "] {\n                                width: ").concat(this.breakpoints[breakpoint], " !important;\n                            }\n                        }\n                    ");
-        }
-        this.styleElement.innerHTML = innerHTML;
-      }
-    },
-    destroyStyle: function destroyStyle() {
-      if (this.styleElement) {
-        document.head.removeChild(this.styleElement);
-        this.styleElement = null;
-      }
-    },
-    initDrag: function initDrag(event) {
-      if (event.target.closest("div").getAttribute("data-pc-section") === "headeractions") {
-        return;
-      }
-      if (this.draggable) {
-        this.dragging = true;
-        this.lastPageX = event.pageX;
-        this.lastPageY = event.pageY;
-        this.container.style.margin = "0";
-        document.body.setAttribute("data-p-unselectable-text", "true");
-        !this.isUnstyled && S$1(document.body, {
-          "user-select": "none"
-        });
-        this.$emit("dragstart", event);
-      }
-    },
-    bindGlobalListeners: function bindGlobalListeners() {
-      if (this.draggable) {
-        this.bindDocumentDragListener();
-        this.bindDocumentDragEndListener();
-      }
-      if (this.closeOnEscape) {
-        this.bindDocumentKeyDownListener();
-      }
-    },
-    unbindGlobalListeners: function unbindGlobalListeners() {
-      this.unbindDocumentDragListener();
-      this.unbindDocumentDragEndListener();
-      this.unbindDocumentKeyDownListener();
-    },
-    bindDocumentDragListener: function bindDocumentDragListener() {
-      var _this2 = this;
-      this.documentDragListener = function(event) {
-        if (_this2.dragging) {
-          var width = v$3(_this2.container);
-          var height = C$1(_this2.container);
-          var deltaX = event.pageX - _this2.lastPageX;
-          var deltaY = event.pageY - _this2.lastPageY;
-          var offset = _this2.container.getBoundingClientRect();
-          var leftPos = offset.left + deltaX;
-          var topPos = offset.top + deltaY;
-          var viewport = h$5();
-          var containerComputedStyle = getComputedStyle(_this2.container);
-          var marginLeft = parseFloat(containerComputedStyle.marginLeft);
-          var marginTop = parseFloat(containerComputedStyle.marginTop);
-          _this2.container.style.position = "fixed";
-          if (_this2.keepInViewport) {
-            if (leftPos >= _this2.minX && leftPos + width < viewport.width) {
-              _this2.lastPageX = event.pageX;
-              _this2.container.style.left = leftPos - marginLeft + "px";
-            }
-            if (topPos >= _this2.minY && topPos + height < viewport.height) {
-              _this2.lastPageY = event.pageY;
-              _this2.container.style.top = topPos - marginTop + "px";
-            }
-          } else {
-            _this2.lastPageX = event.pageX;
-            _this2.container.style.left = leftPos - marginLeft + "px";
-            _this2.lastPageY = event.pageY;
-            _this2.container.style.top = topPos - marginTop + "px";
-          }
-        }
-      };
-      window.document.addEventListener("mousemove", this.documentDragListener);
-    },
-    unbindDocumentDragListener: function unbindDocumentDragListener() {
-      if (this.documentDragListener) {
-        window.document.removeEventListener("mousemove", this.documentDragListener);
-        this.documentDragListener = null;
-      }
-    },
-    bindDocumentDragEndListener: function bindDocumentDragEndListener() {
-      var _this3 = this;
-      this.documentDragEndListener = function(event) {
-        if (_this3.dragging) {
-          _this3.dragging = false;
-          document.body.removeAttribute("data-p-unselectable-text");
-          !_this3.isUnstyled && (document.body.style["user-select"] = "");
-          _this3.$emit("dragend", event);
-        }
-      };
-      window.document.addEventListener("mouseup", this.documentDragEndListener);
-    },
-    unbindDocumentDragEndListener: function unbindDocumentDragEndListener() {
-      if (this.documentDragEndListener) {
-        window.document.removeEventListener("mouseup", this.documentDragEndListener);
-        this.documentDragEndListener = null;
-      }
-    }
-  },
-  computed: {
-    maximizeIconComponent: function maximizeIconComponent() {
-      return this.maximized ? this.minimizeIcon ? "span" : "WindowMinimizeIcon" : this.maximizeIcon ? "span" : "WindowMaximizeIcon";
-    },
-    ariaLabelledById: function ariaLabelledById() {
-      return this.header != null || this.$attrs["aria-labelledby"] !== null ? this.$id + "_header" : null;
-    },
-    closeAriaLabel: function closeAriaLabel2() {
-      return this.$primevue.config.locale.aria ? this.$primevue.config.locale.aria.close : void 0;
-    },
-    dataP: function dataP9() {
-      return f$a({
-        maximized: this.maximized,
-        modal: this.modal
-      });
-    }
-  },
-  directives: {
-    ripple: Ripple,
-    focustrap: FocusTrap
-  },
-  components: {
-    Button: script$D,
-    Portal: script$j,
-    WindowMinimizeIcon: script$k,
-    WindowMaximizeIcon: script$l,
-    TimesIcon: script$o
+    TimesIcon: script$x
   }
 };
 function _typeof$8(o2) {
@@ -19684,150 +20286,68 @@ function _toPrimitive$8(t2, r2) {
   return ("string" === r2 ? String : Number)(t2);
 }
 var _hoisted_1$j = ["data-p"];
-var _hoisted_2$h = ["aria-labelledby", "aria-modal", "data-p"];
-var _hoisted_3$h = ["id"];
-var _hoisted_4$f = ["data-p"];
+var _hoisted_2$h = ["data-p"];
+var _hoisted_3$h = ["data-p"];
+var _hoisted_4$f = ["aria-label", "data-p"];
+var _hoisted_5$b = ["data-p"];
 function render$h(_ctx, _cache, $props, $setup, $data, $options) {
-  var _component_Button = resolveComponent("Button");
-  var _component_Portal = resolveComponent("Portal");
-  var _directive_focustrap = resolveDirective("focustrap");
-  return openBlock(), createBlock(_component_Portal, {
-    appendTo: _ctx.appendTo
-  }, {
+  var _component_TimesIcon = resolveComponent("TimesIcon");
+  var _directive_ripple = resolveDirective("ripple");
+  return openBlock(), createBlock(Transition, mergeProps({
+    name: "p-message",
+    appear: ""
+  }, _ctx.ptmi("transition")), {
     "default": withCtx(function() {
-      return [$data.containerVisible ? (openBlock(), createElementBlock("div", mergeProps({
+      return [$data.visible ? (openBlock(), createElementBlock("div", mergeProps({
         key: 0,
-        ref: $options.maskRef,
-        "class": _ctx.cx("mask"),
-        style: _ctx.sx("mask", true, {
-          position: _ctx.position,
-          modal: _ctx.modal
-        }),
-        onMousedown: _cache[1] || (_cache[1] = function() {
-          return $options.onMaskMouseDown && $options.onMaskMouseDown.apply($options, arguments);
-        }),
-        onMouseup: _cache[2] || (_cache[2] = function() {
-          return $options.onMaskMouseUp && $options.onMaskMouseUp.apply($options, arguments);
+        "class": _ctx.cx("root"),
+        role: "alert",
+        "aria-live": "assertive",
+        "aria-atomic": "true",
+        "data-p": $options.dataP
+      }, _ctx.ptm("root")), [createBaseVNode("div", mergeProps({
+        "class": _ctx.cx("contentWrapper")
+      }, _ctx.ptm("contentWrapper")), [_ctx.$slots.container ? renderSlot(_ctx.$slots, "container", {
+        key: 0,
+        closeCallback: $options.close
+      }) : (openBlock(), createElementBlock("div", mergeProps({
+        key: 1,
+        "class": _ctx.cx("content"),
+        "data-p": $options.dataP
+      }, _ctx.ptm("content")), [renderSlot(_ctx.$slots, "icon", {
+        "class": normalizeClass(_ctx.cx("icon"))
+      }, function() {
+        return [(openBlock(), createBlock(resolveDynamicComponent(_ctx.icon ? "span" : null), mergeProps({
+          "class": [_ctx.cx("icon"), _ctx.icon],
+          "data-p": $options.dataP
+        }, _ctx.ptm("icon")), null, 16, ["class", "data-p"]))];
+      }), _ctx.$slots["default"] ? (openBlock(), createElementBlock("div", mergeProps({
+        key: 0,
+        "class": _ctx.cx("text"),
+        "data-p": $options.dataP
+      }, _ctx.ptm("text")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_3$h)) : createCommentVNode("", true), _ctx.closable ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
+        key: 1,
+        "class": _ctx.cx("closeButton"),
+        "aria-label": $options.closeAriaLabel,
+        type: "button",
+        onClick: _cache[0] || (_cache[0] = function($event) {
+          return $options.close($event);
         }),
         "data-p": $options.dataP
-      }, _ctx.ptm("mask")), [createVNode(Transition, mergeProps({
-        name: "p-dialog",
-        onEnter: $options.onEnter,
-        onAfterEnter: $options.onAfterEnter,
-        onBeforeLeave: $options.onBeforeLeave,
-        onLeave: $options.onLeave,
-        onAfterLeave: $options.onAfterLeave,
-        appear: ""
-      }, _ctx.ptm("transition")), {
-        "default": withCtx(function() {
-          return [_ctx.visible ? withDirectives((openBlock(), createElementBlock("div", mergeProps({
-            key: 0,
-            ref: $options.containerRef,
-            "class": _ctx.cx("root"),
-            style: _ctx.sx("root"),
-            role: "dialog",
-            "aria-labelledby": $options.ariaLabelledById,
-            "aria-modal": _ctx.modal,
-            "data-p": $options.dataP
-          }, _ctx.ptmi("root")), [_ctx.$slots.container ? renderSlot(_ctx.$slots, "container", {
-            key: 0,
-            closeCallback: $options.close,
-            maximizeCallback: function maximizeCallback(event) {
-              return $options.maximize(event);
-            },
-            initDragCallback: $options.initDrag
-          }) : (openBlock(), createElementBlock(Fragment, {
-            key: 1
-          }, [_ctx.showHeader ? (openBlock(), createElementBlock("div", mergeProps({
-            key: 0,
-            ref: $options.headerContainerRef,
-            "class": _ctx.cx("header"),
-            onMousedown: _cache[0] || (_cache[0] = function() {
-              return $options.initDrag && $options.initDrag.apply($options, arguments);
-            })
-          }, _ctx.ptm("header")), [renderSlot(_ctx.$slots, "header", {
-            "class": normalizeClass(_ctx.cx("title"))
-          }, function() {
-            return [_ctx.header ? (openBlock(), createElementBlock("span", mergeProps({
-              key: 0,
-              id: $options.ariaLabelledById,
-              "class": _ctx.cx("title")
-            }, _ctx.ptm("title")), toDisplayString(_ctx.header), 17, _hoisted_3$h)) : createCommentVNode("", true)];
-          }), createBaseVNode("div", mergeProps({
-            "class": _ctx.cx("headerActions")
-          }, _ctx.ptm("headerActions")), [_ctx.maximizable ? renderSlot(_ctx.$slots, "maximizebutton", {
-            key: 0,
-            maximized: $data.maximized,
-            maximizeCallback: function maximizeCallback(event) {
-              return $options.maximize(event);
-            }
-          }, function() {
-            return [createVNode(_component_Button, mergeProps({
-              ref: $options.maximizableRef,
-              autofocus: $data.focusableMax,
-              "class": _ctx.cx("pcMaximizeButton"),
-              onClick: $options.maximize,
-              tabindex: _ctx.maximizable ? "0" : "-1",
-              unstyled: _ctx.unstyled
-            }, _ctx.maximizeButtonProps, {
-              pt: _ctx.ptm("pcMaximizeButton"),
-              "data-pc-group-section": "headericon"
-            }), {
-              icon: withCtx(function(slotProps) {
-                return [renderSlot(_ctx.$slots, "maximizeicon", {
-                  maximized: $data.maximized
-                }, function() {
-                  return [(openBlock(), createBlock(resolveDynamicComponent($options.maximizeIconComponent), mergeProps({
-                    "class": [slotProps["class"], $data.maximized ? _ctx.minimizeIcon : _ctx.maximizeIcon]
-                  }, _ctx.ptm("pcMaximizeButton")["icon"]), null, 16, ["class"]))];
-                })];
-              }),
-              _: 3
-            }, 16, ["autofocus", "class", "onClick", "tabindex", "unstyled", "pt"])];
-          }) : createCommentVNode("", true), _ctx.closable ? renderSlot(_ctx.$slots, "closebutton", {
-            key: 1,
-            closeCallback: $options.close
-          }, function() {
-            return [createVNode(_component_Button, mergeProps({
-              ref: $options.closeButtonRef,
-              autofocus: $data.focusableClose,
-              "class": _ctx.cx("pcCloseButton"),
-              onClick: $options.close,
-              "aria-label": $options.closeAriaLabel,
-              unstyled: _ctx.unstyled
-            }, _ctx.closeButtonProps, {
-              pt: _ctx.ptm("pcCloseButton"),
-              "data-pc-group-section": "headericon"
-            }), {
-              icon: withCtx(function(slotProps) {
-                return [renderSlot(_ctx.$slots, "closeicon", {}, function() {
-                  return [(openBlock(), createBlock(resolveDynamicComponent(_ctx.closeIcon ? "span" : "TimesIcon"), mergeProps({
-                    "class": [_ctx.closeIcon, slotProps["class"]]
-                  }, _ctx.ptm("pcCloseButton")["icon"]), null, 16, ["class"]))];
-                })];
-              }),
-              _: 3
-            }, 16, ["autofocus", "class", "onClick", "aria-label", "unstyled", "pt"])];
-          }) : createCommentVNode("", true)], 16)], 16)) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
-            ref: $options.contentRef,
-            "class": [_ctx.cx("content"), _ctx.contentClass],
-            style: _ctx.contentStyle,
-            "data-p": $options.dataP
-          }, _objectSpread$3(_objectSpread$3({}, _ctx.contentProps), _ctx.ptm("content"))), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_4$f), _ctx.footer || _ctx.$slots.footer ? (openBlock(), createElementBlock("div", mergeProps({
-            key: 1,
-            ref: $options.footerContainerRef,
-            "class": _ctx.cx("footer")
-          }, _ctx.ptm("footer")), [renderSlot(_ctx.$slots, "footer", {}, function() {
-            return [createTextVNode(toDisplayString(_ctx.footer), 1)];
-          })], 16)) : createCommentVNode("", true)], 64))], 16, _hoisted_2$h)), [[_directive_focustrap, {
-            disabled: !_ctx.modal
-          }]]) : createCommentVNode("", true)];
-        }),
-        _: 3
-      }, 16, ["onEnter", "onAfterEnter", "onBeforeLeave", "onLeave", "onAfterLeave"])], 16, _hoisted_1$j)) : createCommentVNode("", true)];
+      }, _objectSpread$3(_objectSpread$3({}, _ctx.closeButtonProps), _ctx.ptm("closeButton"))), [renderSlot(_ctx.$slots, "closeicon", {}, function() {
+        return [_ctx.closeIcon ? (openBlock(), createElementBlock("i", mergeProps({
+          key: 0,
+          "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
+          "data-p": $options.dataP
+        }, _ctx.ptm("closeIcon")), null, 16, _hoisted_5$b)) : (openBlock(), createBlock(_component_TimesIcon, mergeProps({
+          key: 1,
+          "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
+          "data-p": $options.dataP
+        }, _ctx.ptm("closeIcon")), null, 16, ["class", "data-p"]))];
+      })], 16, _hoisted_4$f)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_2$h))], 16)], 16, _hoisted_1$j)) : createCommentVNode("", true)];
     }),
     _: 3
-  }, 8, ["appendTo"]);
+  }, 16);
 }
 script$i.render = render$h;
 var style$7 = "\n    .p-textarea {\n        font-family: inherit;\n        font-feature-settings: inherit;\n        font-size: 1rem;\n        color: dt('textarea.color');\n        background: dt('textarea.background');\n        padding-block: dt('textarea.padding.y');\n        padding-inline: dt('textarea.padding.x');\n        border: 1px solid dt('textarea.border.color');\n        transition:\n            background dt('textarea.transition.duration'),\n            color dt('textarea.transition.duration'),\n            border-color dt('textarea.transition.duration'),\n            outline-color dt('textarea.transition.duration'),\n            box-shadow dt('textarea.transition.duration');\n        appearance: none;\n        border-radius: dt('textarea.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('textarea.shadow');\n    }\n\n    .p-textarea:enabled:hover {\n        border-color: dt('textarea.hover.border.color');\n    }\n\n    .p-textarea:enabled:focus {\n        border-color: dt('textarea.focus.border.color');\n        box-shadow: dt('textarea.focus.ring.shadow');\n        outline: dt('textarea.focus.ring.width') dt('textarea.focus.ring.style') dt('textarea.focus.ring.color');\n        outline-offset: dt('textarea.focus.ring.offset');\n    }\n\n    .p-textarea.p-invalid {\n        border-color: dt('textarea.invalid.border.color');\n    }\n\n    .p-textarea.p-variant-filled {\n        background: dt('textarea.filled.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:hover {\n        background: dt('textarea.filled.hover.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:focus {\n        background: dt('textarea.filled.focus.background');\n    }\n\n    .p-textarea:disabled {\n        opacity: 1;\n        background: dt('textarea.disabled.background');\n        color: dt('textarea.disabled.color');\n    }\n\n    .p-textarea::placeholder {\n        color: dt('textarea.placeholder.color');\n    }\n\n    .p-textarea.p-invalid::placeholder {\n        color: dt('textarea.invalid.placeholder.color');\n    }\n\n    .p-textarea-fluid {\n        width: 100%;\n    }\n\n    .p-textarea-resizable {\n        overflow: hidden;\n        resize: none;\n    }\n\n    .p-textarea-sm {\n        font-size: dt('textarea.sm.font.size');\n        padding-block: dt('textarea.sm.padding.y');\n        padding-inline: dt('textarea.sm.padding.x');\n    }\n\n    .p-textarea-lg {\n        font-size: dt('textarea.lg.font.size');\n        padding-block: dt('textarea.lg.padding.y');\n        padding-inline: dt('textarea.lg.padding.x');\n    }\n";
@@ -20361,14 +20881,14 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     });
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$h, [
-        createVNode(unref(script$x), {
+        createVNode(unref(script$s), {
           value: "llm",
           class: "h-full flex flex-col"
         }, {
           default: withCtx(() => [
-            createVNode(unref(script$u), { class: "px-4 border-b border-[var(--border)]" }, {
+            createVNode(unref(script$p), { class: "px-4 border-b border-[var(--border)]" }, {
               default: withCtx(() => [
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$t), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$o), {
                   key: 0,
                   value: "general",
                   class: "flex items-center gap-2"
@@ -20379,7 +20899,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                createVNode(unref(script$t), {
+                createVNode(unref(script$o), {
                   value: "llm",
                   class: "flex items-center gap-2"
                 }, {
@@ -20389,7 +20909,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$t), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$o), {
                   key: 1,
                   value: "services",
                   class: "flex items-center gap-2"
@@ -20400,7 +20920,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$t), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$o), {
                   key: 2,
                   value: "about",
                   class: "flex items-center gap-2;"
@@ -20414,9 +20934,9 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }),
-            createVNode(unref(script$s), { class: "flex-grow overflow-y-auto !p-0" }, {
+            createVNode(unref(script$n), { class: "flex-grow overflow-y-auto !p-0" }, {
               default: withCtx(() => [
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$r), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$m), {
                   key: 0,
                   value: "general",
                   class: "p-6 space-y-8"
@@ -20453,7 +20973,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                createVNode(unref(script$r), {
+                createVNode(unref(script$m), {
                   value: "llm",
                   class: "p-6 space-y-6"
                 }, {
@@ -20465,7 +20985,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                         createBaseVNode("p", { class: "text-sm text-blue-600 mt-1" }, " 这是您第一次运行系统。请配置大模型参数后保存，系统将创建 app.local.json 配置文件。 配置保存后系统将自动连接大模型服务。 ")
                       ], -1))
                     ])) : createCommentVNode("", true),
-                    llmError.value ? (openBlock(), createBlock(unref(script$m), {
+                    llmError.value ? (openBlock(), createBlock(unref(script$i), {
                       key: 1,
                       severity: "error",
                       class: "mb-4"
@@ -20475,7 +20995,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                       ]),
                       _: 1
                     })) : createCommentVNode("", true),
-                    llmSuccess.value ? (openBlock(), createBlock(unref(script$m), {
+                    llmSuccess.value ? (openBlock(), createBlock(unref(script$i), {
                       key: 2,
                       severity: "success",
                       class: "mb-4"
@@ -20531,7 +21051,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", _hoisted_11$9, [
                         createBaseVNode("div", null, [
                           _cache[30] || (_cache[30] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 最大 Token 数 ", -1)),
-                          createVNode(unref(script$n), {
+                          createVNode(unref(script$j), {
                             modelValue: llmConfig.value.maxTokens,
                             "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => llmConfig.value.maxTokens = $event),
                             min: 1,
@@ -20541,7 +21061,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                         ]),
                         createBaseVNode("div", null, [
                           _cache[31] || (_cache[31] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 最大并发请求 ", -1)),
-                          createVNode(unref(script$n), {
+                          createVNode(unref(script$j), {
                             modelValue: llmConfig.value.maxConcurrentRequests,
                             "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => llmConfig.value.maxConcurrentRequests = $event),
                             min: 1,
@@ -20579,7 +21099,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$r), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$m), {
                   key: 1,
                   value: "services",
                   class: "p-6"
@@ -20663,7 +21183,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$r), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$m), {
                   key: 2,
                   value: "about",
                   class: "p-6 flex flex-col items-center justify-center space-y-4;"
@@ -20698,7 +21218,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
           ]),
           _: 1
         }),
-        createVNode(unref(script$i), {
+        createVNode(unref(script$t), {
           visible: serviceDialogVisible.value,
           "onUpdate:visible": _cache[15] || (_cache[15] = ($event) => serviceDialogVisible.value = $event),
           header: isEditingService.value ? "编辑服务" : "添加服务",
@@ -20735,7 +21255,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
           ]),
           default: withCtx(() => [
             createBaseVNode("div", _hoisted_28$3, [
-              serviceError.value ? (openBlock(), createBlock(unref(script$m), {
+              serviceError.value ? (openBlock(), createBlock(unref(script$i), {
                 key: 0,
                 severity: "error"
               }, {
@@ -20808,7 +21328,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
               createBaseVNode("section", _hoisted_30$2, [
                 createBaseVNode("div", null, [
                   _cache[48] || (_cache[48] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " 最大 Token 数 ", -1)),
-                  createVNode(unref(script$n), {
+                  createVNode(unref(script$j), {
                     modelValue: serviceForm.value.maxTokens,
                     "onUpdate:modelValue": _cache[10] || (_cache[10] = ($event) => serviceForm.value.maxTokens = $event),
                     min: 1,
@@ -20818,7 +21338,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                 ]),
                 createBaseVNode("div", null, [
                   _cache[49] || (_cache[49] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " 最大并发请求 ", -1)),
-                  createVNode(unref(script$n), {
+                  createVNode(unref(script$j), {
                     modelValue: serviceForm.value.maxConcurrentRequests,
                     "onUpdate:modelValue": _cache[11] || (_cache[11] = ($event) => serviceForm.value.maxConcurrentRequests = $event),
                     min: 1,
@@ -24981,20 +25501,20 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
     const appStore = useAppStore();
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$6, [
-        createVNode(unref(script$x), {
+        createVNode(unref(script$s), {
           value: unref(appStore).currentTabId,
           "onUpdate:value": _cache[0] || (_cache[0] = ($event) => unref(appStore).currentTabId = $event),
           class: "flex flex-col h-full !bg-transparent overflow-visible",
           pt: { root: { class: "bg-transparent border-none overflow-visible" } }
         }, {
           default: withCtx(() => [
-            createVNode(unref(script$u), {
+            createVNode(unref(script$p), {
               class: "px-3 py-2 !bg-[var(--bg)] gap-2 flex items-center border-b border-[var(--border)] relative z-10 [--tablist-bg:var(--bg)]",
               pt: { root: { class: "!bg-transparent border-none overflow-visible" }, content: { class: "!bg-transparent overflow-visible" } }
             }, {
               default: withCtx(() => [
                 (openBlock(true), createElementBlock(Fragment, null, renderList(unref(appStore).activeTabs, (tab) => {
-                  return openBlock(), createBlock(unref(script$t), {
+                  return openBlock(), createBlock(unref(script$o), {
                     key: tab.id,
                     value: tab.id,
                     class: "custom-tab group"
@@ -25020,7 +25540,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }),
-            createVNode(unref(script$s), { class: "!p-0 flex-grow overflow-hidden bg-transparent" }, {
+            createVNode(unref(script$n), { class: "!p-0 flex-grow overflow-hidden bg-transparent" }, {
               default: withCtx(() => [
                 unref(appStore).activeTabs.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_3$5, [
                   createBaseVNode("div", _hoisted_4$5, [
@@ -25030,7 +25550,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                   _cache[2] || (_cache[2] = createBaseVNode("p", { class: "text-sm mt-1" }, "请从侧栏选择一个组织开始工作", -1))
                 ])) : createCommentVNode("", true),
                 (openBlock(true), createElementBlock(Fragment, null, renderList(unref(appStore).activeTabs, (tab) => {
-                  return openBlock(), createBlock(unref(script$r), {
+                  return openBlock(), createBlock(unref(script$m), {
                     key: tab.id,
                     value: tab.id,
                     class: "h-full"
@@ -25231,7 +25751,7 @@ var script$b = {
     }
   },
   components: {
-    Dialog: script$i,
+    Dialog: script$t,
     Button: script$D
   }
 };
@@ -25832,7 +26352,7 @@ var script$1$3 = {
     }
   },
   components: {
-    TimesIcon: script$o,
+    TimesIcon: script$x,
     InfoCircleIcon: script$8,
     CheckIcon: script$a,
     ExclamationTriangleIcon: script$9,
@@ -26119,7 +26639,7 @@ var script$6 = {
   },
   components: {
     ToastMessage: script$1$3,
-    Portal: script$j
+    Portal: script$u
   }
 };
 function _typeof$4(o2) {
@@ -27045,7 +27565,7 @@ var script = {
     }
   },
   components: {
-    DDialog: script$i
+    DDialog: script$t
   }
 };
 function render(_ctx, _cache, $props, $setup, $data, $options) {
@@ -27102,357 +27622,6 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
   }), 128);
 }
 script.render = render;
-class UiCommandService {
-  clientId;
-  isRunning = false;
-  abortController = null;
-  POLL_TIMEOUT = 25e3;
-  // 25秒长轮询
-  POLL_INTERVAL = 1e3;
-  // 正常轮询间隔
-  constructor() {
-    this.clientId = this.generateClientId();
-  }
-  /**
-   * 生成唯一客户端 ID
-   */
-  generateClientId() {
-    const random = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now().toString(36);
-    return `v3-${timestamp}-${random}`;
-  }
-  /**
-   * 启动命令轮询
-   */
-  start() {
-    if (this.isRunning) return;
-    this.isRunning = true;
-    this.abortController = new AbortController();
-    console.log("[UiCommandService] 启动，客户端 ID:", this.clientId);
-    this.pollLoop();
-  }
-  /**
-   * 停止命令轮询
-   */
-  stop() {
-    this.isRunning = false;
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
-    console.log("[UiCommandService] 已停止");
-  }
-  /**
-   * 轮询循环
-   */
-  async pollLoop() {
-    while (this.isRunning) {
-      try {
-        const command = await this.fetchCommand();
-        if (command) {
-          console.log("[UiCommandService] 收到命令:", command.type, command.id);
-          const result = await this.executeCommand(command);
-          await this.sendResult(command.id, result);
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
-        console.error("[UiCommandService] 轮询错误:", err);
-        await this.sleep(this.POLL_INTERVAL);
-      }
-    }
-  }
-  /**
-   * 获取待执行命令
-   */
-  async fetchCommand() {
-    const url = `/api/ui-commands/poll?clientId=${encodeURIComponent(this.clientId)}&timeoutMs=${this.POLL_TIMEOUT}`;
-    const response = await fetch(url, {
-      method: "GET",
-      signal: this.abortController?.signal,
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const data16 = await response.json();
-    if (!data16.ok) {
-      throw new Error(data16.error || "Unknown error");
-    }
-    return data16.command;
-  }
-  /**
-   * 执行命令
-   */
-  async executeCommand(command) {
-    try {
-      switch (command.type) {
-        case "eval_js":
-          return this.executeEvalJs(command.payload);
-        case "get_content":
-          return this.executeGetContent(command.payload);
-        case "dom_patch":
-          return this.executeDomPatch(command.payload);
-        default:
-          return { ok: false, error: `Unknown command type: ${command.type}` };
-      }
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      console.error("[UiCommandService] 命令执行失败:", command.type, error);
-      return { ok: false, error };
-    }
-  }
-  /**
-   * 执行 JavaScript 代码
-   * 
-   * 在页面上下文中执行，具有完整的 window/document 访问权限
-   */
-  executeEvalJs(payload) {
-    const script2 = payload?.script;
-    if (typeof script2 !== "string") {
-      return { ok: false, error: "Missing or invalid script parameter" };
-    }
-    const fn = new Function("window", "document", `
-            "use strict";
-            return (async () => {
-                ${script2}
-            })();
-        `);
-    const result = fn(window, document);
-    if (result && typeof result === "object" && typeof result.then === "function") {
-      return result.then(
-        (value2) => ({ ok: true, result: this.serializeResult(value2) }),
-        (err) => ({ ok: false, error: String(err) })
-      );
-    }
-    return { ok: true, result: this.serializeResult(result) };
-  }
-  /**
-   * 获取页面内容
-   */
-  executeGetContent(payload) {
-    const selector = payload?.selector;
-    const format = payload?.format || "summary";
-    const maxChars = payload?.maxChars || 2e4;
-    let element = document;
-    if (selector) {
-      element = document.querySelector(selector);
-      if (!element) {
-        return { ok: false, error: `Element not found: ${selector}` };
-      }
-    }
-    let content;
-    switch (format) {
-      case "html":
-        content = element instanceof Document ? element.documentElement.outerHTML : element.outerHTML;
-        break;
-      case "text":
-        content = element instanceof Document ? element.body.innerText : element.textContent || "";
-        break;
-      case "summary":
-        content = this.generateContentSummary(element, maxChars);
-        break;
-      default:
-        return { ok: false, error: `Unknown format: ${format}` };
-    }
-    if (content.length > maxChars) {
-      content = content.substring(0, maxChars) + "\n... (truncated)";
-    }
-    return { ok: true, result: content };
-  }
-  /**
-   * 生成内容摘要
-   */
-  generateContentSummary(element, maxChars) {
-    const parts = [];
-    const elements = element.querySelectorAll("*");
-    let charCount = 0;
-    for (const el of Array.from(elements)) {
-      if (["SCRIPT", "STYLE", "NOSCRIPT"].includes(el.tagName)) continue;
-      const style2 = window.getComputedStyle(el);
-      if (style2.display === "none" || style2.visibility === "hidden") continue;
-      const tagName = el.tagName.toLowerCase();
-      const id3 = el.id ? `#${el.id}` : "";
-      const classes2 = el.className && typeof el.className === "string" ? el.className.split(" ").filter((c2) => c2).map((c2) => `.${c2}`).join("") : "";
-      if (["button", "a", "input", "textarea", "select"].includes(tagName) || el.onclick) {
-        const text = el.textContent?.trim() || "";
-        const href = el.href;
-        const type = el.type;
-        let desc = `<${tagName}${id3}${classes2}>`;
-        if (text) desc += ` text="${text.substring(0, 50)}"`;
-        if (href) desc += ` href="${href}"`;
-        if (type) desc += ` type="${type}"`;
-        if (charCount + desc.length > maxChars) break;
-        parts.push(desc);
-        charCount += desc.length;
-      }
-    }
-    return parts.join("\n");
-  }
-  /**
-   * 执行 DOM 补丁
-   */
-  executeDomPatch(payload) {
-    const operations = payload?.operations;
-    if (!Array.isArray(operations)) {
-      return { ok: false, error: "Missing or invalid operations parameter" };
-    }
-    const results = [];
-    for (let i2 = 0; i2 < operations.length; i2++) {
-      const op = operations[i2];
-      if (!op) continue;
-      try {
-        this.applyDomOperation(op);
-        results.push({ index: i2, success: true });
-      } catch (err) {
-        const error = err instanceof Error ? err.message : String(err);
-        results.push({ index: i2, success: false, error });
-      }
-    }
-    const hasError = results.some((r2) => !r2.success);
-    return {
-      ok: !hasError,
-      result: results,
-      error: hasError ? "Some operations failed" : void 0
-    };
-  }
-  /**
-   * 应用单个 DOM 操作
-   */
-  applyDomOperation(op) {
-    const { op: operation, selector, name, value: value2, position: position2 } = op;
-    switch (operation) {
-      case "setText": {
-        const el = this.getElement(selector);
-        el.textContent = value2 || "";
-        break;
-      }
-      case "setHtml": {
-        const el = this.getElement(selector);
-        el.innerHTML = value2 || "";
-        break;
-      }
-      case "setAttr": {
-        const el = this.getElement(selector);
-        if (!name) throw new Error("setAttr requires name parameter");
-        el.setAttribute(name, value2 || "");
-        break;
-      }
-      case "remove": {
-        const el = this.getElement(selector);
-        el.remove();
-        break;
-      }
-      case "insertAdjacentHtml": {
-        const el = this.getElement(selector);
-        if (!position2) throw new Error("insertAdjacentHtml requires position parameter");
-        el.insertAdjacentHTML(position2, value2 || "");
-        break;
-      }
-      case "addClass": {
-        const el = this.getElement(selector);
-        if (!value2) throw new Error("addClass requires value parameter");
-        el.classList.add(value2);
-        break;
-      }
-      case "removeClass": {
-        const el = this.getElement(selector);
-        if (!value2) throw new Error("removeClass requires value parameter");
-        el.classList.remove(value2);
-        break;
-      }
-      case "injectCss": {
-        if (!value2) throw new Error("injectCss requires value parameter");
-        const style2 = document.createElement("style");
-        style2.textContent = value2;
-        document.head.appendChild(style2);
-        break;
-      }
-      default:
-        throw new Error(`Unknown operation: ${operation}`);
-    }
-  }
-  /**
-   * 获取元素
-   */
-  getElement(selector) {
-    if (!selector) throw new Error("Missing selector parameter");
-    const el = document.querySelector(selector);
-    if (!el) throw new Error(`Element not found: ${selector}`);
-    return el;
-  }
-  /**
-   * 发送执行结果
-   */
-  async sendResult(commandId, result) {
-    const url = "/api/ui-commands/result";
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({
-        commandId,
-        ok: result.ok,
-        result: result.result,
-        error: result.error
-      }),
-      signal: this.abortController?.signal
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to send result: HTTP ${response.status}`);
-    }
-  }
-  /**
-   * 序列化执行结果
-   * 处理循环引用和不可序列化的值
-   */
-  serializeResult(value2) {
-    if (value2 === void 0) return null;
-    if (value2 === null) return null;
-    const type = typeof value2;
-    if (type === "string" || type === "number" || type === "boolean") {
-      return value2;
-    }
-    if (value2 instanceof Date) {
-      return value2.toISOString();
-    }
-    if (value2 instanceof Element) {
-      return {
-        __type: "Element",
-        tagName: value2.tagName,
-        id: value2.id,
-        className: value2.className
-      };
-    }
-    if (Array.isArray(value2)) {
-      return value2.map((item) => this.serializeResult(item));
-    }
-    if (type === "object") {
-      const result = {};
-      for (const key of Object.keys(value2)) {
-        try {
-          result[key] = this.serializeResult(value2[key]);
-        } catch {
-          result[key] = "[unserializable]";
-        }
-      }
-      return result;
-    }
-    return String(value2);
-  }
-  /**
-   * 休眠指定时间
-   */
-  sleep(ms) {
-    return new Promise((resolve2) => setTimeout(resolve2, ms));
-  }
-}
-const uiCommandService = new UiCommandService();
 const _hoisted_1 = { class: "flex h-screen w-screen overflow-hidden bg-[var(--bg)] text-[var(--text-1)]" };
 const _hoisted_2 = {
   key: 0,
@@ -27593,4 +27762,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-Bawr8Lkc.js.map
+//# sourceMappingURL=index-C-YvhXod.js.map

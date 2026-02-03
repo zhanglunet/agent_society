@@ -4,10 +4,12 @@
  *
  * 包含：文件名 | 类型·大小 | [预览|源码] | 复制 | 下载 | 全屏 | 关闭
  */
-import { computed, type Ref } from 'vue';
-import { X, Download, Maximize2, Minimize2, Eye, Code, Copy, Check } from 'lucide-vue-next';
+import { computed, ref, type Ref } from 'vue';
+import { X, Download, Maximize2, Minimize2, Eye, Code, Copy, Check, Play } from 'lucide-vue-next';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 import { fileViewerService } from './services/fileViewerService';
+import { uiCommandService } from '../../services/uiCommandService';
 
 const props = defineProps<{
   fileName: string;
@@ -18,6 +20,7 @@ const props = defineProps<{
   hasViewMode?: boolean;
   viewMode?: Ref<'preview' | 'source'>;
   copyFunction?: Ref<{ copy: () => void; copied: { value: boolean } } | null>;
+  getFileContent?: Ref<(() => string) | null>;
   maximized?: boolean;
 }>();
 
@@ -82,6 +85,64 @@ const showCopyButton = computed(() => {
   return hasCopy;
 });
 
+// 是否是 JavaScript 文件
+const isJavaScript = computed(() => {
+  const mimeType = props.mimeType || '';
+  const fileName = props.fileName || '';
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+  return mimeType === 'text/javascript' ||
+         mimeType === 'application/javascript' ||
+         mimeType === 'application/x-javascript' ||
+         ext === 'js' ||
+         ext === 'mjs' ||
+         ext === 'cjs';
+});
+
+// 运行状态
+const running = ref(false);
+const runResult = ref<any>(null);
+const runError = ref<string | null>(null);
+const showResult = ref(false);
+
+// 运行 JavaScript 代码
+const handleRun = async () => {
+  if (!props.getFileContent?.value) {
+    console.error('[FileViewerHeader] getFileContent not available');
+    return;
+  }
+
+  const code = props.getFileContent.value();
+  if (!code) {
+    console.error('[FileViewerHeader] No code content available');
+    return;
+  }
+
+  running.value = true;
+  runError.value = null;
+  runResult.value = null;
+
+  try {
+    const result = await uiCommandService.executeScript(code);
+    console.log('[FileViewerHeader] Run result:', result);
+
+    if (result.ok) {
+      runResult.value = result.result;
+      showResult.value = true;
+    } else {
+      runError.value = result.error || '运行失败';
+      showResult.value = true;
+    }
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    runError.value = error;
+    showResult.value = true;
+    console.error('[FileViewerHeader] Run error:', error);
+  } finally {
+    running.value = false;
+  }
+};
+
 // 复制状态
 const copiedState = computed(() => {
   const cfValue = props.copyFunction?.value;
@@ -140,6 +201,20 @@ const handleCopy = () => {
         </Button>
       </div>
 
+      <!-- 运行按钮（仅 JavaScript 文件显示） -->
+      <Button
+        v-if="isJavaScript"
+        variant="text"
+        size="small"
+        @click="handleRun"
+        :disabled="running"
+        class="!w-8 !h-8"
+        v-tooltip.bottom="'运行代码'"
+      >
+        <Play v-if="!running" class="w-4 h-4" />
+        <div v-else class="w-4 h-4 animate-spin border-2 border-current border-t-transparent rounded-full" />
+      </Button>
+
       <!-- 复制按钮（仅代码渲染器显示） -->
       <Button
         v-if="showCopyButton"
@@ -189,4 +264,32 @@ const handleCopy = () => {
       </Button>
     </div>
   </div>
+
+  <!-- 运行结果对话框 -->
+  <Dialog
+    v-model:visible="showResult"
+    modal
+    header="运行结果"
+    :style="{ width: '600px' }"
+    :dismissableMask="false"
+    :closeOnEscape="false"
+  >
+    <div v-if="runError" class="text-red-500">
+      <p class="font-medium mb-2">运行出错：</p>
+      <pre class="bg-red-50 p-3 rounded text-sm overflow-auto max-h-96">{{ runError }}</pre>
+    </div>
+    <div v-else-if="runResult" class="text-green-600">
+      <p class="font-medium mb-2">运行成功：</p>
+      <pre class="bg-green-50 p-3 rounded text-sm overflow-auto max-h-96">{{ JSON.stringify(runResult.result || runResult.output || '无返回值', null, 2) }}</pre>
+      <p v-if="runResult.files && runResult.files.length > 0" class="mt-3 text-sm">
+        生成了 {{ runResult.files.length }} 个文件：
+        <ul class="list-disc list-inside">
+          <li v-for="file in runResult.files" :key="file.path">{{ file.path }}</li>
+        </ul>
+      </p>
+    </div>
+    <template #footer>
+      <Button label="关闭" @click="showResult = false" variant="text" />
+    </template>
+  </Dialog>
 </template>

@@ -55,6 +55,21 @@ const setCopyFunction = (fn: () => void) => {
   }
 };
 
+// 获取文件内容的函数（供 Header 使用）
+const getFileContent = () => {
+  if (fileContent.value) {
+    const data = fileContent.value.data;
+    if (typeof data === 'string') {
+      return data;
+    }
+    if (data instanceof ArrayBuffer) {
+      const decoder = new TextDecoder('utf-8');
+      return decoder.decode(data);
+    }
+  }
+  return '';
+};
+
 // 提供复制功能的设置方法（给 CodeRenderer 用）
 provide(CopyFunctionKey, {
   setCopyFunction,
@@ -138,6 +153,15 @@ const loadFile = async () => {
     fileContent.value = content;
     const renderer = mimeTypeRegistry.getRenderer(content.mimeType, fileExtension.value);
     rendererComponent.value = renderer;
+
+    // 更新 dialogData 中的 getFileContent 函数
+    if (dialogData) {
+      const rawDialogData = toRaw(dialogData);
+      const gfc = rawDialogData?.getFileContent;
+      if (gfc && typeof gfc === 'object' && 'value' in gfc) {
+        gfc.value = getFileContent;
+      }
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '加载文件失败';
   } finally {

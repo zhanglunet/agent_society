@@ -384,6 +384,23 @@ class UiCommandService {
     }
 
     /**
+     * 执行 JavaScript 代码（公开方法，供文件查看器等组件调用）
+     * @param script 要执行的 JavaScript 代码
+     * @returns 执行结果
+     */
+    executeScript(script: string): Promise<{ ok: boolean; result?: any; error?: string }> {
+        const commandResult = this.executeEvalJs({ script });
+
+        // 如果返回的是 Promise（异步代码），等待其完成
+        if (commandResult instanceof Promise) {
+            return commandResult;
+        }
+
+        // 否则包装成 Promise 返回
+        return Promise.resolve(commandResult);
+    }
+
+    /**
      * 发送执行结果
      */
     private async sendResult(commandId: string, result: CommandResult): Promise<void> {

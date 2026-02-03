@@ -74,6 +74,9 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
   // 创建共享的复制功能对象
   const copyFunction = ref<{ copy: () => void; copied: { value: boolean } } | null>(null);
 
+  // 创建共享的获取文件内容函数
+  const getFileContent = ref<(() => string) | null>(null);
+
   // 保存原始尺寸，用于还原
   const originalSize = {
     width: maximized ? width : width,  // 如果初始就是最大化，保存的应该是非最大化的尺寸
@@ -119,6 +122,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
       fileName,
       viewMode, // 共享的 viewMode
       copyFunction, // 共享的复制功能
+      getFileContent, // 共享的获取文件内容函数
       mimeType: fileInfo.mimeType,
       size: fileInfo.size,
       hasViewMode: fileInfo.hasViewMode,
@@ -205,6 +209,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           hasViewMode: fileInfo.hasViewMode,
           viewMode: sharedViewMode,
           copyFunction: copyFunction,
+          getFileContent: getFileContent,
           maximized: dialogProps?.state?.maximized,
           onMaximize: handleMaximize,
           onClose: handleClose

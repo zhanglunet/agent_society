@@ -330,12 +330,12 @@ export const apiService = {
         displayName?: string;
         icon?: string;
       }>(`/modules/${encodeURIComponent(moduleName)}/web-component`);
-      
+
       // 如果有 component 字段，直接返回
       if (data.component) {
         return data.component;
       }
-      
+
       // 如果有 html 字段，构造组件对象（有 panelPath 的情况）
       if (data.html !== undefined) {
         return {
@@ -347,7 +347,7 @@ export const apiService = {
           js: data.js
         };
       }
-      
+
       return null;
     } catch {
       return null;

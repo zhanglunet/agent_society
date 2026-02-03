@@ -459,8 +459,9 @@ export class BrowserJavaScriptExecutor {
         }
 
         // 构建文件信息数组
-        const files = imageResult.filePaths.map(p => ({
-          path: p,
+        // imageResult.files 是 _saveAllCanvasImages 返回的文件列表
+        const files = (imageResult.files || []).map(f => ({
+          path: typeof f === 'string' ? f : f.path,
           mimeType: "image/png"
         }));
 
