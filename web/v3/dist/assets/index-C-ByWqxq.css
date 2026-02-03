@@ -846,10 +846,6 @@
     max-height: 280px;
   }
 
-  .max-h-\[300px\] {
-    max-height: 300px;
-  }
-
   .max-h-full {
     max-height: 100%;
   }
@@ -992,10 +988,6 @@
 
   .max-w-\[300px\] {
     max-width: 300px;
-  }
-
-  .max-w-\[320px\] {
-    max-width: 320px;
   }
 
   .max-w-\[340px\] {

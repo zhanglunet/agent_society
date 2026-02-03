@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { FileCode, Folder, Loader2 } from 'lucide-vue-next';
+import { FileCode, Folder, Loader2, Upload } from 'lucide-vue-next';
+import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import { ref, inject, onMounted, computed } from 'vue';
@@ -12,6 +13,8 @@ const dialog = useDialog();
 const orgId = ref<string | undefined>();
 const files = ref<any[]>([]);
 const loading = ref(false);
+const uploading = ref(false);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 const expandedDirs = ref<Set<string>>(new Set());
 
 // 树形结构转换
@@ -162,6 +165,71 @@ const formatTime = (ts: string) => {
   return new Date(ts).toLocaleString();
 };
 
+// 获取当前目录在 workspace 中的相对路径
+const getCurrentRelativePath = () => {
+  if (!currentDir.value || currentDir.value.path === 'root') {
+    return '';
+  }
+  // 移除开头的 'root/'
+  return currentDir.value.path.replace(/^root\//, '');
+};
+
+// 触发文件选择
+const triggerFileSelect = () => {
+  fileInputRef.value?.click();
+};
+
+// 处理文件上传
+const handleFileUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const selectedFiles = input.files;
+  
+  if (!selectedFiles || selectedFiles.length === 0) return;
+  if (!orgId.value) {
+    console.error('未找到组织ID');
+    return;
+  }
+
+  uploading.value = true;
+  const currentPath = getCurrentRelativePath();
+
+  try {
+    for (const file of Array.from(selectedFiles)) {
+      // 使用 FormData 进行二进制上传
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('workspaceId', orgId.value);
+      formData.append('path', currentPath ? `${currentPath}/${file.name}` : file.name);
+      formData.append('filename', file.name);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: '上传失败' }));
+        console.error(`上传文件 ${file.name} 失败:`, errorData);
+        continue;
+      }
+
+      const result = await response.json();
+      console.log(`上传文件 ${file.name} 成功:`, result);
+    }
+
+    // 上传完成后刷新文件列表
+    await fetchData();
+  } catch (err) {
+    console.error('上传文件失败:', err);
+  } finally {
+    uploading.value = false;
+    // 清空 input 值，允许重复选择同一文件
+    if (fileInputRef.value) {
+      fileInputRef.value.value = '';
+    }
+  }
+};
+
 </script>
 
 <template>
@@ -206,11 +274,30 @@ const formatTime = (ts: string) => {
       <!-- 右侧预览与列表 -->
       <SplitterPanel :size="70" class="flex flex-col bg-[var(--bg)]">
         <!-- 面包屑导航 -->
-        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center">
+        <div class="p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between">
           <div class="flex items-center text-xs text-[var(--text-2)] overflow-hidden">
             <Folder class="w-3.5 h-3.5 mr-2 text-[var(--primary)] opacity-70" />
             <span class="font-medium truncate">{{ currentDir ? currentDir.path : '根目录' }}</span>
           </div>
+          <!-- 上传按钮 -->
+          <Button
+            variant="text"
+            size="small"
+            class="!p-1.5"
+            :loading="uploading"
+            title="上传文件到当前目录"
+            @click="triggerFileSelect"
+          >
+            <Upload class="w-4 h-4 text-[var(--primary)]" />
+          </Button>
+          <!-- 隐藏的文件输入框 -->
+          <input
+            ref="fileInputRef"
+            type="file"
+            class="hidden"
+            multiple
+            @change="handleFileUpload"
+          />
         </div>
 
         <!-- 文件列表 -->

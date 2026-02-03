@@ -1216,8 +1216,8 @@ export class HTTPServer {
    * @param {import("node:http").ServerResponse} res
    */
   async _handleUpload(req, res) {
-    // 最大文件大小 10MB
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    // 文件大小不限制（注意：超大文件可能影响性能）
+    const MAX_FILE_SIZE = Infinity;
     
     // 检查 Content-Type
     const contentType = req.headers["content-type"] || "";
@@ -1256,25 +1256,30 @@ export class HTTPServer {
       const filename = fields.filename || file.filename || `upload_${Date.now()}`;
       const relativePath = fields.path || filename;
 
-      // 获取工作区
-      const workspace = this._workspaceManager.getWorkspace(workspaceId);
-      
-      // 保存文件到工作区
-      await workspace.writeFile(relativePath, file.buffer);
-      const metadata = workspace.getFileMetadata(relativePath);
+      // 保存文件到工作区（通过 WorkspaceManager 的 writeFile 方法，传入必需的 operator 和 messageId）
+      const writeResult = await this._workspaceManager.writeFile(
+        workspaceId,
+        relativePath,
+        file.buffer,
+        {
+          operator: fields.operator || 'user',
+          messageId: `upload_${Date.now()}`,
+          mimeType: file.mimeType
+        }
+      );
 
       void this.log.info("文件上传成功", { 
         workspaceId,
         path: relativePath, 
         filename, 
         size: file.buffer.length,
-        mimeType: metadata.mimeType
+        mimeType: file.mimeType
       });
 
       this._sendJson(res, 200, {
         ok: true,
         path: relativePath,
-        metadata
+        metadata: writeResult
       });
     } catch (err) {
       void this.log.error("文件上传失败", { error: err.message, stack: err.stack });

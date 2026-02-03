@@ -13374,6 +13374,11 @@ const Trash2 = createLucideIcon("trash-2", [
   ["path", { d: "M3 6h18", key: "d0wm0j" }],
   ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", key: "e791ji" }]
 ]);
+const Upload = createLucideIcon("upload", [
+  ["path", { d: "M12 3v12", key: "1x0j5s" }],
+  ["path", { d: "m17 8-5-5-5 5", key: "7q97r8" }],
+  ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }]
+]);
 const User = createLucideIcon("user", [
   ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
   ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
@@ -17724,7 +17729,7 @@ const _hoisted_10$a = {
   key: 2,
   class: "space-y-0.5"
 };
-const _hoisted_11$a = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center" };
+const _hoisted_11$a = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between" };
 const _hoisted_12$a = { class: "flex items-center text-xs text-[var(--text-2)] overflow-hidden" };
 const _hoisted_13$9 = { class: "font-medium truncate" };
 const _hoisted_14$9 = { class: "flex-grow overflow-hidden relative" };
@@ -17754,6 +17759,8 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
     const orgId = /* @__PURE__ */ ref();
     const files = /* @__PURE__ */ ref([]);
     const loading = /* @__PURE__ */ ref(false);
+    const uploading = /* @__PURE__ */ ref(false);
+    const fileInputRef = /* @__PURE__ */ ref(null);
     const expandedDirs = /* @__PURE__ */ ref(/* @__PURE__ */ new Set());
     const fileTree = computed(() => {
       const workspaceRoot = {
@@ -17873,6 +17880,54 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
       if (!ts) return "";
       return new Date(ts).toLocaleString();
     };
+    const getCurrentRelativePath = () => {
+      if (!currentDir.value || currentDir.value.path === "root") {
+        return "";
+      }
+      return currentDir.value.path.replace(/^root\//, "");
+    };
+    const triggerFileSelect = () => {
+      fileInputRef.value?.click();
+    };
+    const handleFileUpload = async (event) => {
+      const input = event.target;
+      const selectedFiles = input.files;
+      if (!selectedFiles || selectedFiles.length === 0) return;
+      if (!orgId.value) {
+        console.error("未找到组织ID");
+        return;
+      }
+      uploading.value = true;
+      const currentPath = getCurrentRelativePath();
+      try {
+        for (const file of Array.from(selectedFiles)) {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("workspaceId", orgId.value);
+          formData.append("path", currentPath ? `${currentPath}/${file.name}` : file.name);
+          formData.append("filename", file.name);
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: "上传失败" }));
+            console.error(`上传文件 ${file.name} 失败:`, errorData);
+            continue;
+          }
+          const result = await response.json();
+          console.log(`上传文件 ${file.name} 成功:`, result);
+        }
+        await fetchData();
+      } catch (err) {
+        console.error("上传文件失败:", err);
+      } finally {
+        uploading.value = false;
+        if (fileInputRef.value) {
+          fileInputRef.value.value = "";
+        }
+      }
+    };
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$m, [
         createVNode(unref(script$z), { class: "flex-grow border-none" }, {
@@ -17924,7 +17979,28 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                   createBaseVNode("div", _hoisted_12$a, [
                     createVNode(unref(Folder), { class: "w-3.5 h-3.5 mr-2 text-[var(--primary)] opacity-70" }),
                     createBaseVNode("span", _hoisted_13$9, toDisplayString(currentDir.value ? currentDir.value.path : "根目录"), 1)
-                  ])
+                  ]),
+                  createVNode(unref(script$D), {
+                    variant: "text",
+                    size: "small",
+                    class: "!p-1.5",
+                    loading: uploading.value,
+                    title: "上传文件到当前目录",
+                    onClick: triggerFileSelect
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(unref(Upload), { class: "w-4 h-4 text-[var(--primary)]" })
+                    ]),
+                    _: 1
+                  }, 8, ["loading"]),
+                  createBaseVNode("input", {
+                    ref_key: "fileInputRef",
+                    ref: fileInputRef,
+                    type: "file",
+                    class: "hidden",
+                    multiple: "",
+                    onChange: handleFileUpload
+                  }, null, 544)
                 ]),
                 createBaseVNode("div", _hoisted_14$9, [
                   createBaseVNode("div", _hoisted_15$9, [
@@ -27912,4 +27988,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-Cv1O3B_J.js.map
+//# sourceMappingURL=index-Fs32BbhH.js.map
