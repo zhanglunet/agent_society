@@ -190,11 +190,15 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "send_message",
-          description: "发送异步消息。from 默认使用当前智能体 id。",
+          description: "发送异步消息。from 默认使用当前智能体 id。支持单个收件人或多个收件人。",
           parameters: {
             type: "object",
             properties: {
-              to: { type: "string" },
+              to: { 
+                type: "array",
+                items: { type: "string" },
+                description: "收件人ID数组"
+              },
               payload: { type: "object" },
               delayMs: { 
                 type: "number", 
@@ -759,7 +763,18 @@ export class ToolExecutor {
   _executeSendMessage(ctx, args) {
     const runtime = this.runtime;
     const senderId = ctx.agent?.id ?? "unknown";
-    const recipientId = String(args?.to ?? "");
+    
+    // 收件人参数必须是数组
+    const recipientIds = args?.to ?? [];
+    
+    // 过滤空值并转为字符串
+    const validRecipientIds = recipientIds
+      .filter(id => id != null && id !== "")
+      .map(id => String(id));
+    
+    if (validRecipientIds.length === 0) {
+      return { error: "missing_recipients", message: "至少需要指定一个收件人" };
+    }
 
     // 检查发送者是否已终止
     if (senderId !== "root" && senderId !== "user" && senderId !== "unknown") {
@@ -769,40 +784,12 @@ export class ToolExecutor {
       }
     }
 
-    // 验证收件人
-    const isRecipientSpecial = recipientId === "root" || recipientId === "user";
-    if (!recipientId || (!isRecipientSpecial && !runtime._agents.has(recipientId))) {
-      return { error: "unknown_recipient", to: recipientId };
-    }
-
-    // 跨任务通信验证
-    const isRootOrUser = senderId === "root" || senderId === "user";
-    if (!isRootOrUser && !isRecipientSpecial) {
-      const senderTaskId = runtime._getAgentTaskId(senderId);
-      const recipientTaskId = runtime._getAgentTaskId(recipientId);
-      if (senderTaskId !== recipientTaskId) {
-        return { error: "cross_task_communication_denied" };
-      }
-    }
-
-    // 自动添加联系人
-    if (runtime.contactManager.hasRegistry(recipientId)) {
-      const recipientContact = runtime.contactManager.getContact(recipientId, senderId);
-      if (!recipientContact) {
-        runtime.contactManager.addContact(recipientId, {
-          id: senderId,
-          role: ctx.agent?.roleName ?? 'unknown',
-          source: 'first_message'
-        });
-      }
-    }
-
     // 消息验证
     const messageValidation = validateMessageFormat(args.payload);
     if (!messageValidation.valid) {
       void runtime.log?.warn?.("send_message 消息格式验证警告", {
         from: senderId,
-        to: recipientId,
+        recipientCount: validRecipientIds.length,
         errors: messageValidation.errors
       });
     }
@@ -826,21 +813,62 @@ export class ToolExecutor {
     }
 
     const currentTaskId = ctx.currentMessage?.taskId ?? null;
-    const result = ctx.tools.sendMessage({
-      to: recipientId,
-      from: senderId,
-      taskId: currentTaskId,
-      payload: finalPayload,
-      delayMs: args.delayMs  // 传递延迟参数
-    });
+    
+    // 循环处理每个收件人
+    const results = [];
+    const errors = [];
+    
+    for (const recipientId of validRecipientIds) {
+      // 验证收件人
+      const isRecipientSpecial = recipientId === "root" || recipientId === "user";
+      if (!isRecipientSpecial && !runtime._agents.has(recipientId)) {
+        errors.push({ recipient: recipientId, error: "unknown_recipient" });
+        continue;
+      }
 
-    void runtime.loggerRoot?.logAgentLifecycleEvent?.("agent_message_sent", {
-      agentId: senderId,
-      messageId: result.messageId,
-      to: recipientId,
-      taskId: currentTaskId,
-      delayMs: args.delayMs ?? null
-    });
+      // 发送消息
+      const result = ctx.tools.sendMessage({
+        to: recipientId,
+        from: senderId,
+        taskId: currentTaskId,
+        payload: finalPayload,
+        delayMs: args.delayMs
+      });
+
+      results.push({ recipient: recipientId, messageId: result.messageId });
+
+      void runtime.loggerRoot?.logAgentLifecycleEvent?.("agent_message_sent", {
+        agentId: senderId,
+        messageId: result.messageId,
+        to: recipientId,
+        taskId: currentTaskId,
+        delayMs: args.delayMs ?? null
+      });
+    }
+
+    // 返回结果
+    if (errors.length > 0 && results.length === 0) {
+      // 全部失败
+      return { 
+        error: "all_recipients_failed", 
+        errors,
+        successCount: 0,
+        failedCount: errors.length
+      };
+    }
+
+    // 部分或全部成功
+    const result = {
+      success: true,
+      messageCount: results.length,
+      recipients: results.map(r => r.recipient),
+      messageIds: results.map(r => r.messageId)
+    };
+    
+    if (errors.length > 0) {
+      result.partialErrors = errors;
+      result.failedCount = errors.length;
+    }
 
     return result;
   }
@@ -857,18 +885,15 @@ export class ToolExecutor {
       return { valid: true, quickReplies: null };
     }
     
-    // 长度检查
+    // 超过10个则截取前10个，保证业务继续执行
+    let processedQuickReplies = quickReplies;
     if (quickReplies.length > 10) {
-      return { 
-        valid: false, 
-        error: "quickReplies_too_many", 
-        message: "快速回复选项不能超过10个" 
-      };
+      processedQuickReplies = quickReplies.slice(0, 10);
     }
     
     // 元素类型检查
-    for (let i = 0; i < quickReplies.length; i++) {
-      const item = quickReplies[i];
+    for (let i = 0; i < processedQuickReplies.length; i++) {
+      const item = processedQuickReplies[i];
       if (typeof item !== "string") {
         return { 
           valid: false, 
@@ -885,7 +910,7 @@ export class ToolExecutor {
       }
     }
     
-    return { valid: true, quickReplies };
+    return { valid: true, quickReplies: processedQuickReplies };
   }
 
   async _executeTerminateAgent(ctx, args) {
