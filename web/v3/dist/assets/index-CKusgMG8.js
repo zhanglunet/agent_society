@@ -27628,7 +27628,7 @@ const _hoisted_2 = {
   class: "fixed top-0 left-0 right-0 z-[100] bg-orange-500 text-white px-4 py-2 flex items-center justify-center gap-2"
 };
 const _hoisted_3 = { class: "flex-grow flex flex-col min-w-0 relative" };
-const _hoisted_4 = { class: "absolute top-2 right-4 z-10 flex items-center gap-1" };
+const _hoisted_4 = { class: "absolute top-2 right-4 z-20 flex items-center gap-1" };
 const _sfc_main = /* @__PURE__ */ defineComponent({
   __name: "App",
   setup(__props) {
@@ -27762,4 +27762,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-C-YvhXod.js.map
+//# sourceMappingURL=index-CKusgMG8.js.map
