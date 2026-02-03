@@ -44,15 +44,19 @@ export const useAgentStore = defineStore('agent', () => {
       // 1. 获取针对该组织的智能体列表
       const fetchedAgents = await apiService.getAgents(orgId);
       
-      // 更新全局列表中的这部分智能体信息（可选，保持同步）
+      // 更新全局列表中的这部分智能体信息（使用新数组确保响应式）
+      const agentsToAdd: Agent[] = [];
+      const existingIds = new Set(allAgents.value.map(a => a.id));
+      
       fetchedAgents.forEach(agent => {
-        const index = allAgents.value.findIndex(a => a.id === agent.id);
-        if (index !== -1) {
-          allAgents.value[index] = agent;
-        } else {
-          allAgents.value.push(agent);
+        if (!existingIds.has(agent.id)) {
+          agentsToAdd.push(agent);
         }
       });
+      
+      if (agentsToAdd.length > 0) {
+        allAgents.value = [...allAgents.value, ...agentsToAdd];
+      }
       
       let result: Agent[] = [];
       if (orgId === 'home') {

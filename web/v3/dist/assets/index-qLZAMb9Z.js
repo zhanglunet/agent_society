@@ -24025,14 +24025,16 @@ const useAgentStore = /* @__PURE__ */ defineStore("agent", () => {
     if (!silent) loading.value = true;
     try {
       const fetchedAgents = await apiService.getAgents(orgId);
+      const agentsToAdd = [];
+      const existingIds = new Set(allAgents.value.map((a2) => a2.id));
       fetchedAgents.forEach((agent) => {
-        const index2 = allAgents.value.findIndex((a2) => a2.id === agent.id);
-        if (index2 !== -1) {
-          allAgents.value[index2] = agent;
-        } else {
-          allAgents.value.push(agent);
+        if (!existingIds.has(agent.id)) {
+          agentsToAdd.push(agent);
         }
       });
+      if (agentsToAdd.length > 0) {
+        allAgents.value = [...allAgents.value, ...agentsToAdd];
+      }
       let result = [];
       if (orgId === "home") {
         result = fetchedAgents.filter((a2) => a2.id === "root" || a2.id === "user");
@@ -27762,4 +27764,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-U9VJ27bj.js.map
+//# sourceMappingURL=index-qLZAMb9Z.js.map
