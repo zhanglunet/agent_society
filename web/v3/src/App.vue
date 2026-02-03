@@ -26,6 +26,7 @@ import DynamicDialog from 'primevue/dynamicdialog';
 import { useDialog } from 'primevue/usedialog';
 import { configApi } from './services/configApi';
 import { errorNotificationService } from './services/errorNotification';
+import { uiCommandService } from './services/uiCommandService';
 
 
 const appStore = useAppStore();
@@ -137,9 +138,15 @@ onMounted(() => {
     
     // 初始化错误通知服务
     errorNotificationService.init();
+    
+    // 启动 UI 命令服务（处理智能体的页面操作请求）
+    uiCommandService.start();
 });
 
-onUnmounted(stopGlobalSync);
+onUnmounted(() => {
+    stopGlobalSync();
+    uiCommandService.stop();
+});
 </script>
 
 <template>

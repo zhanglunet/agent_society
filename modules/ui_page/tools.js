@@ -4,7 +4,7 @@ export function getToolDefinitions() {
       type: "function",
       function: {
         name: "ui_page_eval_js",
-        description: "在本软件 Web UI 页面上下文执行 JavaScript，可直接访问 window/document，并返回可序列化结果。执行产生的页面改动仅存在于页面内存态，刷新会丢失。注意，这是用户正在与智能体交互的界面，修改要慎重，一定要慎重，不要随便删除内容，不要轻易覆盖内容。制作用户友好的界面，不要遮挡用户操作。最好将你要绘制的内容放在可移动的小窗口里。",
+        description: "在本软件 Web UI 页面上下文执行 JavaScript，可直接访问 window/document，并返回可序列化结果。执行产生的页面改动仅存在于页面内存态，刷新会丢失。注意，这是用户正在与智能体交互的界面，修改要慎重，一定要慎重，不要随便删除内容，不要轻易覆盖内容。制作用户友好的界面，不要遮挡用户操作。最好将你要绘制的内容放在可移动的小窗口里。对于短期的功能必须提供退出功能。",
         parameters: {
           type: "object",
           properties: {
