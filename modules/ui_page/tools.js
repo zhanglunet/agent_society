@@ -4,12 +4,12 @@ export function getToolDefinitions() {
       type: "function",
       function: {
         name: "ui_page_eval_js",
-        description: "在本软件 Web UI 页面上下文执行 JavaScript，可直接访问 window/document，并返回可序列化结果。执行产生的页面改动仅存在于页面内存态，刷新会丢失。注意，这是用户正在与智能体交互的界面，修改要慎重，一定要慎重，不要随便删除内容，不要轻易覆盖内容。制作用户友好的界面，不要遮挡用户操作。最好将你要绘制的内容放在可移动的小窗口里。对于短期的功能必须提供退出功能。",
+        description: "在本软件 Web UI 页面上下文执行 JavaScript，可直接访问 window/document，并返回可序列化结果。执行产生的页面改动仅存在于页面内存态，刷新会丢失。注意，这是用户正在与智能体交互的界面，修改要慎重，一定要慎重，不要随便删除内容，不要轻易覆盖内容。制作用户友好的界面，不要遮挡用户操作。最好将你要绘制的内容放在可移动的小窗口里。对于短期的功能必须提供退出功能。这个运行的代码，如果用户需要重复执行，可以原样保存成文件，用户可以手动执行。必须原样保存，不需要做任何修改，用户才能执行得到同样的结果。",
         parameters: {
           type: "object",
           properties: {
             script: { type: "string", description: "要执行的 JavaScript 代码，可使用 return 返回结果；可直接访问 window/document" },
-            timeoutMs: { type: "number", description: "等待前端回传结果的超时时间（毫秒），默认 10000", default: 10000 }
+            timeoutMs: { type: "number", description: "等待前端回传结果的超时时间（毫秒），默认 100000", default: 100000 }
           },
           required: ["script"]
         }

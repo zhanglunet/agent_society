@@ -826,6 +826,20 @@ export class HTTPServer {
       } else if (method === "GET" && pathname === "/api/tool-groups") {
         // 获取工具组列表
         this._handleGetToolGroups(res);
+      } else if (method === "GET" && pathname.startsWith("/api/role/") && !pathname.includes("/agents")) {
+        // 获取岗位详情: GET /api/role/:id
+        const roleId = decodeURIComponent(pathname.split("/").pop());
+        this._handleGetRole(req, roleId, res);
+      } else if (method === "GET" && pathname === "/api/debug/roles") {
+        // 调试端点：列出所有岗位ID
+        if (this.society?.runtime?.org) {
+          const allRoles = this.society.runtime.org.listRoles();
+          this._sendJson(res, 200, {
+            allRoleIds: allRoles.map(r => ({ id: r.id, name: r.name, status: r.status }))
+          });
+        } else {
+          this._sendJson(res, 500, { error: "society_not_initialized" });
+        }
       } else if (method === "POST" && pathname.startsWith("/api/role/") && pathname.endsWith("/tool-groups")) {
         // 更新岗位工具组: POST /api/role/:roleId/tool-groups
         const match = pathname.match(/^\/api\/role\/(.+)\/tool-groups$/);
@@ -1661,6 +1675,79 @@ export class HTTPServer {
       });
     } catch (err) {
       void this.log.error("查询岗位列表失败", { error: err.message, stack: err.stack });
+      this._sendJson(res, 500, { error: "internal_error", message: err.message });
+    }
+  }
+
+  /**
+   * 处理 GET /api/role/:id - 获取单个岗位的完整信息。
+   * @param {import("node:http").IncomingMessage} req
+   * @param {string} roleId - 岗位ID
+   * @param {import("node:http").ServerResponse} res
+   */
+  _handleGetRole(req, roleId, res) {
+    try {
+      void this.log.debug("HTTP查询岗位详情 - 接收到的ID", { roleId, roleIdType: typeof roleId });
+
+      if (!this.society || !this.society.runtime || !this.society.runtime.org) {
+        this._sendJson(res, 500, { error: "society_not_initialized" });
+        return;
+      }
+
+      const org = this.society.runtime.org;
+
+      // 特殊处理 root 和 user
+      if (roleId === "root") {
+        this._sendJson(res, 200, {
+          role: {
+            id: "root",
+            name: "root",
+            rolePrompt: "系统根智能体",
+            orgPrompt: null,
+            createdBy: null,
+            createdAt: null,
+            llmServiceId: null,
+            toolGroups: ["org_management"]
+          }
+        });
+        return;
+      }
+
+      if (roleId === "user") {
+        this._sendJson(res, 200, {
+          role: {
+            id: "user",
+            name: "user",
+            rolePrompt: "用户端点",
+            orgPrompt: null,
+            createdBy: null,
+            createdAt: null,
+            llmServiceId: null,
+            toolGroups: null
+          }
+        });
+        return;
+      }
+
+      const role = org.getRole(roleId);
+      void this.log.debug("HTTP查询岗位详情 - 查询结果", { roleId, found: !!role, status: role?.status });
+
+      if (!role) {
+        void this.log.warn("岗位不存在", { roleId });
+        this._sendJson(res, 404, { error: "role_not_found", message: "岗位不存在" });
+        return;
+      }
+
+      if (role.status === "deleted") {
+        void this.log.warn("岗位已删除", { roleId });
+        this._sendJson(res, 404, { error: "role_not_found", message: "岗位不存在" });
+        return;
+      }
+
+      void this.log.debug("HTTP查询岗位详情 - 返回成功", { roleId, roleName: role.name });
+      this._sendJson(res, 200, { role });
+    } catch (err) {
+      void this.log.error("查询岗位详情失败", { roleId, error: err.message, stack: err.stack });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
     }
   }

@@ -8,7 +8,10 @@ import type { Organization, Agent, Message } from '../types';
 const BASE_URL = '/api';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const url = `${BASE_URL}${endpoint}`;
+  console.log('API request:', url, options); // 添加调试日志
+
+  const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -174,6 +177,52 @@ export const apiService = {
       method: 'DELETE',
       body: JSON.stringify(options)
     });
+  },
+
+  /**
+   * 获取单个岗位详情
+   */
+  async getRole(roleId: string): Promise<any> {
+    const data = await request<{ role: any }>(`/role/${encodeURIComponent(roleId)}`);
+    return data.role;
+  },
+
+  /**
+   * 更新岗位职责提示词
+   */
+  async updateRolePrompt(roleId: string, rolePrompt: string): Promise<any> {
+    return request(`/role/${encodeURIComponent(roleId)}/prompt`, {
+      method: 'POST',
+      body: JSON.stringify({ rolePrompt })
+    });
+  },
+
+  /**
+   * 更新岗位 LLM 服务
+   */
+  async updateRoleLlmService(roleId: string, llmServiceId: string | null): Promise<any> {
+    return request(`/role/${encodeURIComponent(roleId)}/llm-service`, {
+      method: 'POST',
+      body: JSON.stringify({ llmServiceId })
+    });
+  },
+
+  /**
+   * 更新岗位工具组
+   */
+  async updateRoleToolGroups(roleId: string, toolGroups: string[] | null): Promise<any> {
+    return request(`/role/${encodeURIComponent(roleId)}/tool-groups`, {
+      method: 'POST',
+      body: JSON.stringify({ toolGroups })
+    });
+  },
+
+  /**
+   * 获取工具组列表
+   */
+  async getToolGroups(): Promise<any[]> {
+    const data = await request<{ toolGroups: any[] }>('/tool-groups');
+    return data.toolGroups || [];
   },
 
   /**

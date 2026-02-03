@@ -57,9 +57,16 @@
                                 <div class="role-node-header">
                                     <Network class="w-4 h-4 text-[var(--primary)]" />
                                     <span class="role-name">{{ slotProps.node.label }}</span>
-                                    <div v-if="!slotProps.node.data?.isVirtual" class="flex-grow flex justify-end">
-                                        <button 
-                                            class="delete-btn" 
+                                    <div v-if="!slotProps.node.data?.isVirtual" class="flex-grow flex justify-end gap-1">
+                                        <button
+                                            class="edit-btn"
+                                            @click.stop="handleEditRole(slotProps.node, slotProps.node.label)"
+                                            title="查看/编辑岗位详情"
+                                        >
+                                            <Edit class="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            class="delete-btn"
                                             @click.stop="handleDeleteRole(slotProps.node.key, slotProps.node.label)"
                                             title="删除岗位及所有子分支"
                                         >
@@ -114,15 +121,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick, onUnmounted } from 'vue';
-import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2, Trash2, Maximize2, Minimize2 } from 'lucide-vue-next';
+import { Network, Users, Activity, ZoomIn, ZoomOut, RefreshCw, Loader2, Trash2, Maximize2, Minimize2, Edit } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import OrganizationChart from 'primevue/organizationchart';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
+import { useDialog } from 'primevue/usedialog';
 import { apiService } from "../../services/api";
+import RoleDetailDialog from './RoleDetailDialog.vue';
 
 const confirm = useConfirm();
 const toast = useToast();
+const dialog = useDialog();
 const loading = ref(true);
 const containerRef = ref<HTMLElement | null>(null);
 const roleTree = ref<any>(null);
@@ -387,6 +397,44 @@ const handleDeleteRole = (roleId: string, roleName: string) => {
     });
 };
 
+const handleEditRole = (node: any, roleName: string) => {
+    // 从节点对象中获取ID
+    const roleId = node?.key || node?.data?.id;
+
+    // 验证岗位ID
+    if (!roleId || roleId === 'society-root') {
+        console.warn('无效的岗位ID:', roleId, '节点:', node);
+        toast.add({
+            severity: 'warn',
+            summary: '无法编辑',
+            detail: '该岗位不支持编辑',
+            life: 3000
+        });
+        return;
+    }
+
+    console.log('编辑岗位:', { roleId, roleName, node });
+
+    dialog.open(RoleDetailDialog, {
+        props: {
+            header: `岗位详情: ${roleName}`,
+            style: { width: '600px' },
+            modal: true,
+            closable: true,
+            dismissableMask: true,
+        },
+        data: {
+            roleId,
+            roleName
+        },
+        emits: {
+            onUpdate: async () => {
+                await fetchData();
+            }
+        }
+    });
+};
+
 onMounted(() => {
     fetchData();
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -447,6 +495,24 @@ onUnmounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100px;
+}
+
+.edit-btn {
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-3);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.edit-btn:hover {
+    color: var(--primary);
+    background: var(--primary-weak);
 }
 
 .delete-btn {
