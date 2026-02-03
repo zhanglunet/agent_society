@@ -6,14 +6,17 @@
  *
  * @module components/file-viewer/renderers/CodeRenderer
  */
-import { computed, inject, onMounted } from 'vue';
+import { computed, inject, onMounted, ref } from 'vue';
 import type { RendererProps } from '../types';
 import { CopyFunctionKey } from '../injectionKeys';
 
 const props = defineProps<RendererProps>();
 
 // 注入 FileViewer 提供的方法
-const copyContext = inject<{ setCopyFunction: (fn: () => void) => void; copied: { value: boolean } } | null>(CopyFunctionKey, null);
+const copyContext = inject<{ setCopyFunction: (fn: () => void) => void; copied?: { value: boolean } } | null>(CopyFunctionKey, null);
+
+// 状态
+const localCopied = ref(false);
 
 /**
  * 代码内容
@@ -42,14 +45,25 @@ const lines = computed(() => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(codeContent.value);
+    // 更新 copied 状态
     if (copyContext?.copied) {
-      copyContext.copied.value = true;
+      const copiedRef = (copyContext.copied as any);
+      if (typeof copiedRef === 'object' && 'value' in copiedRef) {
+        copiedRef.value = true;
+        setTimeout(() => {
+          if ((copyContext.copied as any)?.value) {
+            (copyContext.copied as any).value = false;
+          }
+        }, 2000);
+      }
+    } else {
+      // 回退到本地状态
+      localCopied.value = true;
       setTimeout(() => {
-        if (copyContext?.copied) {
-          copyContext.copied.value = false;
-        }
+        localCopied.value = false;
       }, 2000);
     }
+    console.log('[CodeRenderer] copyToClipboard success');
   } catch (err) {
     console.error('复制失败:', err);
   }

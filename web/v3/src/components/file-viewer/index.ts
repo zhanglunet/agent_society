@@ -118,6 +118,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
       filePath,
       fileName,
       viewMode, // 共享的 viewMode
+      copyFunction, // 共享的复制功能
       mimeType: fileInfo.mimeType,
       size: fileInfo.size,
       hasViewMode: fileInfo.hasViewMode,

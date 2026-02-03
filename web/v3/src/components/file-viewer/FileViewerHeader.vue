@@ -4,11 +4,10 @@
  *
  * 包含：文件名 | 类型·大小 | [预览|源码] | 复制 | 下载 | 全屏 | 关闭
  */
-import { computed, inject, type Ref } from 'vue';
+import { computed, type Ref } from 'vue';
 import { X, Download, Maximize2, Minimize2, Eye, Code, Copy, Check } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import { fileViewerService } from './services/fileViewerService';
-import { CopyFunctionKey as FileViewerCopyKey } from './index';
 
 const props = defineProps<{
   fileName: string;
@@ -18,6 +17,7 @@ const props = defineProps<{
   size?: number;
   hasViewMode?: boolean;
   viewMode?: Ref<'preview' | 'source'>;
+  copyFunction?: Ref<{ copy: () => void; copied: { value: boolean } } | null>;
   maximized?: boolean;
 }>();
 
@@ -71,14 +71,12 @@ const handleClose = () => {
   emit('close');
 };
 
-// 注入复制功能 - 不提供默认值，等待 FileViewer provide
-const copyFunction = inject<Ref<{ copy: () => void; copied: { value: boolean } } | null>>(FileViewerCopyKey);
-
-console.log('[FileViewerHeader] copyFunction injected:', copyFunction);
+// 打印日志用于调试
+console.log('[FileViewerHeader] props.copyFunction:', props.copyFunction);
 
 // 是否显示复制按钮
 const showCopyButton = computed(() => {
-  const cfValue = copyFunction?.value;
+  const cfValue = props.copyFunction?.value;
   const hasCopy = cfValue !== null && cfValue !== undefined;
   console.log('[FileViewerHeader] showCopyButton computed, cfValue:', cfValue, 'hasCopy:', hasCopy);
   return hasCopy;
@@ -86,17 +84,23 @@ const showCopyButton = computed(() => {
 
 // 复制状态
 const copiedState = computed(() => {
-  const cfValue = copyFunction?.value;
-  if (cfValue?.copied?.value !== undefined) {
-    return cfValue.copied.value;
+  const cfValue = props.copyFunction?.value;
+  if (!cfValue) return false;
+  // copied 可能是 Ref 或普通对象
+  const copied = (cfValue as any).copied;
+  if (typeof copied === 'object' && 'value' in copied) {
+    return copied.value;
+  }
+  if (typeof copied === 'boolean') {
+    return copied;
   }
   return false;
 });
 
 // 复制处理函数
 const handleCopy = () => {
-  console.log('[FileViewerHeader] handleCopy called, copyFunction?.value:', copyFunction?.value);
-  copyFunction?.value?.copy();
+  console.log('[FileViewerHeader] handleCopy called, props.copyFunction?.value:', props.copyFunction?.value);
+  props.copyFunction?.value?.copy();
 };
 </script>
 

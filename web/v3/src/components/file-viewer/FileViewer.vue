@@ -4,11 +4,11 @@
  *
  * @module components/file-viewer/FileViewer
  */
-import { ref, computed, onMounted, shallowRef, inject, provide, toRef } from 'vue';
+import { ref, computed, onMounted, shallowRef, inject, provide, toRef, toRaw } from 'vue';
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { fileViewerService } from './services/fileViewerService';
 import { mimeTypeRegistry } from './mimeTypeRegistry';
-import { ViewModeKey, CopyFunctionKey as FileViewerCopyKey } from './index';
+import { ViewModeKey } from './index';
 import { CopyFunctionKey } from './injectionKeys';
 import type { FileContent } from './types';
 
@@ -29,27 +29,36 @@ const viewMode = dialogData ? toRef(dialogData, 'viewMode') : ref<'preview' | 's
 // 提供给子组件
 provide(ViewModeKey, viewMode);
 
-// 复制功能状态 - 必须在 provide 之前创建
+// 复制功能状态
 const copied = ref(false);
-const copyFunction = ref<{ copy: () => void; copied: { value: boolean } } | null>(null);
-
-// 提供复制功能 Ref（给 Header 用）- 必须在 CodeRenderer 挂载之前提供
-provide(FileViewerCopyKey, copyFunction);
 
 // 设置复制函数（由 CodeRenderer 调用）
 const setCopyFunction = (fn: () => void) => {
-  console.log('[FileViewer] setCopyFunction called');
-  copyFunction.value = {
-    copy: fn,
-    copied: { value: copied } as any
-  };
-  console.log('[FileViewer] copyFunction.value after set:', copyFunction.value);
+  console.log('[FileViewer] setCopyFunction called, dialogData:', dialogData);
+  // 使用 toRaw 获取原始对象，避免 Vue Proxy 自动解包
+  if (dialogData) {
+    const rawDialogData = toRaw(dialogData);
+    console.log('[FileViewer] rawDialogData:', rawDialogData);
+    const cf = rawDialogData?.copyFunction;
+    console.log('[FileViewer] cf from rawDialogData:', cf, 'typeof cf:', typeof cf);
+    if (cf && typeof cf === 'object' && 'value' in cf) {
+      cf.value = {
+        copy: fn,
+        copied
+      };
+      console.log('[FileViewer] dialogData.copyFunction.value updated:', cf.value);
+    } else {
+      console.log('[FileViewer] cf is invalid, cf:', cf);
+    }
+  } else {
+    console.log('[FileViewer] dialogData is null');
+  }
 };
 
 // 提供复制功能的设置方法（给 CodeRenderer 用）
 provide(CopyFunctionKey, {
   setCopyFunction,
-  copied: { value: copied } as any
+  copied
 });
 
 // Dialog 控制方法 - 提供给子组件使用

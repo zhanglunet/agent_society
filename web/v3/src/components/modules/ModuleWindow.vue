@@ -5,13 +5,22 @@
  * 职责：
  * - 可拖拽移动的非模态窗口
  * - 左侧模块列表，右侧管理页面
- * - 可以同时与聊天等其他内容交互
+ * - 支持最大化/还原
+ * - 记忆窗口位置和尺寸
  * 
  * @author Agent Society
  */
 import { ref, onMounted, watch, computed } from 'vue';
 import { apiService, type ModuleInfo, type ModuleWebComponent } from '../../services/api';
-import { Puzzle, X, GripVertical } from 'lucide-vue-next';
+import { 
+  Puzzle, 
+  X, 
+  GripVertical, 
+  Minus, 
+  Maximize2, 
+  Minimize2,
+  RefreshCw
+} from 'lucide-vue-next';
 import Button from 'primevue/button';
 import ScrollPanel from 'primevue/scrollpanel';
 
@@ -29,12 +38,23 @@ const selectedModule = ref<ModuleInfo | null>(null);
 const panelLoading = ref(false);
 const webComponent = ref<ModuleWebComponent | null>(null);
 
-// 窗口位置
+// 窗口状态
 const windowX = ref(100);
 const windowY = ref(100);
+const windowWidth = ref(800);
+const windowHeight = ref(600);
+const isMaximized = ref(false);
 const isDragging = ref(false);
 const dragOffsetX = ref(0);
 const dragOffsetY = ref(0);
+
+// 记忆的位置（最大化前）
+const prevX = ref(100);
+const prevY = ref(100);
+const prevWidth = ref(800);
+const prevHeight = ref(600);
+
+const STORAGE_KEY = 'module-window-state';
 
 /**
  * 有管理界面的模块
@@ -42,6 +62,40 @@ const dragOffsetY = ref(0);
 const modulesWithPanel = computed(() => {
   return modules.value.filter(m => m.hasWebComponent);
 });
+
+/**
+ * 加载保存的窗口状态
+ */
+const loadWindowState = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const state = JSON.parse(saved);
+      windowX.value = state.x ?? 100;
+      windowY.value = state.y ?? 100;
+      windowWidth.value = state.width ?? 800;
+      windowHeight.value = state.height ?? 600;
+    }
+  } catch {
+    // 忽略解析错误
+  }
+};
+
+/**
+ * 保存窗口状态
+ */
+const saveWindowState = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      x: windowX.value,
+      y: windowY.value,
+      width: windowWidth.value,
+      height: windowHeight.value
+    }));
+  } catch {
+    // 忽略保存错误
+  }
+};
 
 /**
  * 加载模块列表
@@ -62,6 +116,15 @@ const loadModules = async () => {
     modules.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+/**
+ * 刷新当前模块
+ */
+const refreshCurrentModule = async () => {
+  if (selectedModule.value) {
+    await selectModule(selectedModule.value);
   }
 };
 
@@ -91,6 +154,7 @@ const selectModule = async (module: ModuleInfo) => {
  * 关闭窗口
  */
 const close = () => {
+  saveWindowState();
   emit('update:modelValue', false);
 };
 
@@ -102,12 +166,46 @@ const toggle = () => {
 };
 
 /**
+ * 最大化/还原窗口
+ */
+const toggleMaximize = () => {
+  if (isMaximized.value) {
+    // 还原
+    windowX.value = prevX.value;
+    windowY.value = prevY.value;
+    windowWidth.value = prevWidth.value;
+    windowHeight.value = prevHeight.value;
+    isMaximized.value = false;
+  } else {
+    // 保存当前状态
+    prevX.value = windowX.value;
+    prevY.value = windowY.value;
+    prevWidth.value = windowWidth.value;
+    prevHeight.value = windowHeight.value;
+    // 最大化
+    windowX.value = 0;
+    windowY.value = 0;
+    windowWidth.value = window.innerWidth;
+    windowHeight.value = window.innerHeight;
+    isMaximized.value = true;
+  }
+  saveWindowState();
+};
+
+/**
+ * 最小化窗口（暂时关闭，保留状态）
+ */
+const minimize = () => {
+  saveWindowState();
+  emit('update:modelValue', false);
+};
+
+/**
  * 开始拖拽
  */
 const startDrag = (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
-  // 只有点击标题栏才拖拽
-  if (!target.closest('.window-header')) return;
+  // 最大化时不可拖拽
+  if (isMaximized.value) return;
   
   isDragging.value = true;
   dragOffsetX.value = e.clientX - windowX.value;
@@ -126,9 +224,11 @@ const onDrag = (e: MouseEvent) => {
   windowX.value = e.clientX - dragOffsetX.value;
   windowY.value = e.clientY - dragOffsetY.value;
   
-  // 限制在视口内
-  windowX.value = Math.max(0, Math.min(windowX.value, window.innerWidth - 400));
-  windowY.value = Math.max(0, Math.min(windowY.value, window.innerHeight - 300));
+  // 限制在视口内（保留 20px 边界）
+  const maxX = window.innerWidth - 100;
+  const maxY = window.innerHeight - 50;
+  windowX.value = Math.max(20, Math.min(windowX.value, maxX));
+  windowY.value = Math.max(20, Math.min(windowY.value, maxY));
 };
 
 /**
@@ -138,6 +238,7 @@ const stopDrag = () => {
   isDragging.value = false;
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
+  saveWindowState();
 };
 
 /**
@@ -153,15 +254,32 @@ const getModuleIcon = (name: string) => {
   return icons[name] || '📦';
 };
 
-// 监听窗口打开，加载模块
+// 监听窗口打开，加载模块和状态
 watch(() => props.modelValue, (open) => {
-  if (open && modules.value.length === 0) {
-    loadModules();
+  if (open) {
+    loadWindowState();
+    if (modules.value.length === 0) {
+      loadModules();
+    }
   }
 }, { immediate: true });
 
+// 窗口大小变化时约束位置
+const handleResize = () => {
+  if (isMaximized.value) {
+    windowWidth.value = window.innerWidth;
+    windowHeight.value = window.innerHeight;
+  } else {
+    const maxX = window.innerWidth - 100;
+    const maxY = window.innerHeight - 50;
+    windowX.value = Math.max(20, Math.min(windowX.value, maxX));
+    windowY.value = Math.max(20, Math.min(windowY.value, maxY));
+  }
+};
+
 onMounted(() => {
   loadModules();
+  window.addEventListener('resize', handleResize);
 });
 
 defineExpose({
@@ -183,38 +301,77 @@ defineExpose({
     >
       <div
         v-show="modelValue"
-        class="fixed z-40 flex shadow-2xl rounded-lg overflow-hidden border border-[var(--border)]"
-        style="width: 700px; height: 500px;"
-        :style="{ left: windowX + 'px', top: windowY + 'px' }"
-        @mousedown="startDrag"
+        class="fixed z-40 flex flex-col overflow-hidden border border-[var(--border)] bg-[var(--surface-1)]"
+        :class="[
+          isDragging ? 'opacity-90' : '',
+          isMaximized ? '' : 'shadow-2xl rounded-lg'
+        ]"
+        :style="{
+          left: windowX + 'px',
+          top: windowY + 'px',
+          width: windowWidth + 'px',
+          height: windowHeight + 'px'
+        }"
       >
-        <!-- 窗口容器 -->
-        <div class="flex w-full h-full bg-[var(--surface-1)]">
+        <!-- 标题栏（可拖拽区域） -->
+        <div 
+          class="h-12 flex items-center justify-between px-3 border-b border-[var(--border)] bg-[var(--surface-2)] select-none"
+          :class="isMaximized ? '' : 'rounded-t-lg'"
+          :style="isDragging ? 'cursor: move;' : 'cursor: default;'"
+          @mousedown="startDrag"
+        >
+          <!-- 左侧：拖拽图标 + 标题 -->
+          <div class="flex items-center gap-2">
+            <GripVertical class="w-4 h-4 text-[var(--text-3)]" />
+            <span class="font-semibold text-sm text-[var(--text-1)]">模块管理</span>
+          </div>
           
-          <!-- 左侧：模块列表 -->
-          <div class="w-44 flex-shrink-0 border-r border-[var(--border)] flex flex-col">
-            <!-- 可拖拽标题栏 -->
-            <div class="window-header p-2 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-2)] cursor-move select-none">
-              <div class="flex items-center gap-1.5">
-                <GripVertical class="w-4 h-4 text-[var(--text-3)]" />
-                <span class="font-semibold text-sm text-[var(--text-1)]">模块管理</span>
-              </div>
-              <Button 
-                variant="text" 
-                rounded
-                class="!p-1"
-                @click.stop="close"
-              >
-                <X class="w-3.5 h-3.5 text-[var(--text-3)] hover:text-[var(--text-1)]" />
-              </Button>
-            </div>
+          <!-- 右侧：窗口控制按钮 -->
+          <div class="flex items-center">
+            <Button 
+              variant="text" 
+              rounded
+              class="!p-1.5 !w-8 !h-8"
+              v-tooltip.bottom="'最小化'"
+              @click.stop="minimize"
+            >
+              <Minus class="w-3.5 h-3.5 text-[var(--text-3)] hover:text-[var(--text-1)]" />
+            </Button>
+            <Button 
+              variant="text" 
+              rounded
+              class="!p-1.5 !w-8 !h-8"
+              v-tooltip.bottom="isMaximized ? '还原' : '最大化'"
+              @click.stop="toggleMaximize"
+            >
+              <component 
+                :is="isMaximized ? Minimize2 : Maximize2" 
+                class="w-3.5 h-3.5 text-[var(--text-3)] hover:text-[var(--text-1)]" 
+              />
+            </Button>
+            <Button 
+              variant="text" 
+              rounded
+              class="!p-1.5 !w-8 !h-8"
+              v-tooltip.bottom="'关闭'"
+              @click.stop="close"
+            >
+              <X class="w-3.5 h-3.5 text-[var(--text-3)] hover:text-[var(--text-1)]" />
+            </Button>
+          </div>
+        </div>
 
+        <!-- 窗口主体：左右布局 -->
+        <div class="flex flex-1 overflow-hidden">
+          
+          <!-- 左侧：模块列表（Sidebar） -->
+          <div class="w-[200px] flex-shrink-0 border-r border-[var(--border)] bg-[var(--surface-2)] flex flex-col">
             <!-- 模块列表 -->
             <ScrollPanel class="flex-1" style="width: 100%;">
-              <div class="p-1.5 space-y-0.5">
+              <div class="p-2 space-y-1">
                 <!-- 加载中 -->
                 <div v-if="loading" class="flex justify-center py-4">
-                  <div class="animate-spin w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full"></div>
+                  <div class="animate-spin w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full"></div>
                 </div>
 
                 <!-- 空状态 -->
@@ -226,49 +383,61 @@ defineExpose({
                 <button
                   v-for="module in modulesWithPanel"
                   :key="module.name"
-                  class="w-full text-left p-2 rounded transition-colors text-xs"
+                  class="w-full text-left p-3 rounded-lg transition-colors text-sm"
                   :class="[
                     selectedModule?.name === module.name 
                       ? 'bg-[var(--primary-weak)] text-[var(--primary)]' 
-                      : 'text-[var(--text-2)] hover:bg-[var(--surface-2)]'
+                      : 'text-[var(--text-2)] hover:bg-[var(--surface-3)]'
                   ]"
                   @click="selectModule(module)"
                 >
-                  <div class="flex items-center gap-1.5">
-                    <span>{{ getModuleIcon(module.name) }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-base">{{ getModuleIcon(module.name) }}</span>
                     <span class="font-medium truncate">{{ module.name }}</span>
                   </div>
-                  <p class="text-[10px] mt-0.5 truncate opacity-70">{{ module.toolGroupDescription }}</p>
+                  <p class="text-xs mt-1 truncate opacity-70 leading-tight">
+                    {{ module.toolGroupDescription }}
+                  </p>
                 </button>
               </div>
             </ScrollPanel>
           </div>
 
-          <!-- 右侧：管理页面 -->
-          <div class="flex-1 flex flex-col min-w-0">
-            <!-- 头部 -->
-            <div class="p-2 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-2)]">
+          <!-- 右侧：管理页面（Content） -->
+          <div class="flex-1 flex flex-col min-w-0 bg-[var(--surface-1)]">
+            <!-- 子标题栏 -->
+            <div class="h-12 flex items-center justify-between px-4 border-b border-[var(--border)] bg-[var(--surface-1)]">
               <span class="font-semibold text-sm text-[var(--text-1)]">
                 {{ webComponent?.displayName || selectedModule?.name || '模块详情' }}
               </span>
+              <Button 
+                variant="text" 
+                rounded
+                class="!p-1.5"
+                :loading="panelLoading"
+                v-tooltip.bottom="'刷新'"
+                @click="refreshCurrentModule"
+              >
+                <RefreshCw class="w-4 h-4 text-[var(--text-3)] hover:text-[var(--primary)]" />
+              </Button>
             </div>
 
             <!-- 内容区 -->
-            <div class="flex-1 relative overflow-hidden bg-[var(--surface-1)]">
+            <div class="flex-1 relative overflow-hidden">
               <!-- 加载中 -->
-              <div v-if="panelLoading" class="absolute inset-0 flex items-center justify-center">
-                <div class="animate-spin w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full"></div>
+              <div v-if="panelLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--surface-1)]">
+                <div class="animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full"></div>
               </div>
 
               <!-- 空状态 -->
               <div v-else-if="!webComponent" class="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-3)]">
-                <Puzzle class="w-10 h-10 mb-2 opacity-50" />
+                <Puzzle class="w-12 h-12 mb-2 opacity-50" />
                 <p class="text-sm">无法加载模块管理界面</p>
               </div>
 
               <!-- 模块面板内容 -->
               <div v-else class="absolute inset-0 overflow-auto">
-                <div class="module-panel-content p-3">
+                <div class="module-panel-content p-4">
                   <!-- 注入模块的 HTML -->
                   <div v-html="webComponent.html"></div>
                 </div>

@@ -10,6 +10,8 @@ export default defineConfig({
   ],
   base: './',
   build: {
+    minify: false,        // 禁用压缩
+    sourcemap: true,      // 生成 source map
     outDir: 'dist',
     emptyOutDir: true
   }
