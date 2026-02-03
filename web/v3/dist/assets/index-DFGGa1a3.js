@@ -24140,13 +24140,30 @@ const _sfc_main$7 = /* @__PURE__ */ defineComponent({
         }
       });
     };
-    const loadAgents = () => {
+    const loadAgents = (silent = false) => {
       if (props.orgId) {
-        agentStore.fetchAgentsByOrg(props.orgId);
+        agentStore.fetchAgentsByOrg(props.orgId, silent);
+      }
+    };
+    let pollTimer = null;
+    const startPolling = () => {
+      stopPolling();
+      pollTimer = setInterval(() => {
+        loadAgents(true);
+      }, 3e3);
+    };
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
     };
     onMounted(() => {
       loadAgents();
+      startPolling();
+    });
+    onUnmounted(() => {
+      stopPolling();
     });
     watch(() => props.orgId, () => {
       loadAgents();
@@ -24244,14 +24261,14 @@ const _sfc_main$7 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const AgentList = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["__scopeId", "data-v-5d5ac737"]]);
+const AgentList = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["__scopeId", "data-v-0ce92f97"]]);
 const _hoisted_1$9 = { class: "space-y-6" };
 const _hoisted_2$8 = ["id"];
 const _hoisted_3$8 = { class: "w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0" };
 const _hoisted_4$8 = { class: "flex items-center space-x-2 mb-1 px-1" };
 const _hoisted_5$4 = { class: "flex items-center space-x-1 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider" };
 const _hoisted_6$3 = ["onClick", "onMouseenter"];
-const _hoisted_7$3 = ["onClick", "onMouseenter"];
+const _hoisted_7$3 = ["title", "onClick", "onMouseenter"];
 const _hoisted_8$3 = { class: "text-[10px] text-[var(--text-3)]" };
 const _hoisted_9$3 = {
   key: 0,
@@ -24446,9 +24463,27 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
           return isFromOrgAgent || isToOrgAgent;
         });
       }
+      const MERGE_TIME_WINDOW = 5e3;
+      const mergedMsgs = [];
+      for (const msg of filteredMsgs) {
+        if (msg.toolCall) {
+          mergedMsgs.push(msg);
+          continue;
+        }
+        const lastMsg = mergedMsgs.length > 0 ? mergedMsgs[mergedMsgs.length - 1] : null;
+        const canMerge = lastMsg && !lastMsg.toolCall && lastMsg.senderId === msg.senderId && lastMsg.content === msg.content && lastMsg.type === msg.type && Math.abs(lastMsg.timestamp - msg.timestamp) < MERGE_TIME_WINDOW;
+        if (canMerge) {
+          if (!lastMsg._mergedReceivers) {
+            lastMsg._mergedReceivers = [lastMsg.receiverId];
+          }
+          lastMsg._mergedReceivers.push(msg.receiverId);
+        } else {
+          mergedMsgs.push(msg);
+        }
+      }
       const groupedMsgs = [];
       let currentGroup = null;
-      filteredMsgs.forEach((msg) => {
+      mergedMsgs.forEach((msg) => {
         const isToolCall = !!msg.toolCall;
         if (isToolCall) {
           if (!currentGroup) {
@@ -24489,6 +24524,17 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
       return agent ? agent.name : msg.senderId;
     };
     const getReceiverName = (msg) => {
+      if (msg._mergedReceivers && msg._mergedReceivers.length > 1) {
+        const names = msg._mergedReceivers.map((id3) => {
+          if (id3 === "user") return "我";
+          const agent2 = findAgentById(id3);
+          return agent2 ? agent2.name : id3;
+        });
+        if (names.length > 3) {
+          return names.slice(0, 3).join("、") + `等${names.length}人`;
+        }
+        return names.join("、");
+      }
       if (!msg.receiverId) return null;
       if (msg.receiverId === "user") return "我";
       const agent = findAgentById(msg.receiverId);
@@ -24582,6 +24628,7 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                         _cache[0] || (_cache[0] = createBaseVNode("span", { class: "opacity-50 mx-1" }, "→", -1)),
                         createBaseVNode("span", {
                           class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
+                          title: item._mergedReceivers ? "发给: " + item._mergedReceivers.join("、") : "",
                           onClick: ($event) => navigateToMessage(item.receiverId, item.id),
                           onMouseenter: ($event) => handleMouseEnter2($event, item.receiverId),
                           onMouseleave: handleMouseLeave2
@@ -27764,4 +27811,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-qLZAMb9Z.js.map
+//# sourceMappingURL=index-DFGGa1a3.js.map

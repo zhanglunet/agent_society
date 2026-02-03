@@ -3,7 +3,7 @@ import { useAgentStore } from '../../stores/agent';
 import { useChatStore } from '../../stores/chat';
 import { useOrgStore } from '../../stores/org';
 import { useDialog } from 'primevue/usedialog';
-import { watch, onMounted, computed } from 'vue';
+import { watch, onMounted, onUnmounted, computed } from 'vue';
 import { User, Bot, Circle, Square, Loader2, Briefcase } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import ArtifactsList from '../artifacts/ArtifactsList.vue';
@@ -46,14 +46,37 @@ const openArtifacts = () => {
 };
 
 // 当组件挂载或 orgId 改变时加载智能体
-const loadAgents = () => {
+const loadAgents = (silent = false) => {
   if (props.orgId) {
-    agentStore.fetchAgentsByOrg(props.orgId);
+    agentStore.fetchAgentsByOrg(props.orgId, silent);
+  }
+};
+
+// 定时器用于轮询刷新
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+const startPolling = () => {
+  stopPolling();
+  // 每3秒轮询一次当前组织的智能体列表
+  pollTimer = setInterval(() => {
+    loadAgents(true); // 静默刷新，不显示 loading
+  }, 3000);
+};
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
 };
 
 onMounted(() => {
   loadAgents();
+  startPolling();
+});
+
+onUnmounted(() => {
+  stopPolling();
 });
 
 watch(() => props.orgId, () => {

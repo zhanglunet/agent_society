@@ -3388,11 +3388,11 @@ iframe[data-v-2fa2d484] {
 }
 
 /* 隐藏滚动条但保留滚动功能 */
-.overflow-y-auto[data-v-5d5ac737] {
+.overflow-y-auto[data-v-0ce92f97] {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.overflow-y-auto[data-v-5d5ac737]::-webkit-scrollbar {
+.overflow-y-auto[data-v-0ce92f97]::-webkit-scrollbar {
   display: none;
 }
 

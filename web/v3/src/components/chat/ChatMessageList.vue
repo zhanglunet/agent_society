@@ -120,11 +120,44 @@ const currentMessages = computed(() => {
     });
   }
   
-  // 处理连续的函数调用折叠逻辑
+  // 第一步：合并同一发送者、同一内容、近似时间的多目标消息
+  const MERGE_TIME_WINDOW = 5000; // 5秒内的消息认为是同一批发送
+  const mergedMsgs: any[] = [];
+  
+  for (const msg of filteredMsgs) {
+    // 工具调用不合并
+    if (msg.toolCall) {
+      mergedMsgs.push(msg);
+      continue;
+    }
+    
+    // 查找是否可以合并的前一条消息
+    const lastMsg = mergedMsgs.length > 0 ? mergedMsgs[mergedMsgs.length - 1] : null;
+    const canMerge = lastMsg && 
+      !lastMsg.toolCall &&
+      lastMsg.senderId === msg.senderId &&
+      lastMsg.content === msg.content &&
+      lastMsg.type === msg.type &&
+      Math.abs(lastMsg.timestamp - msg.timestamp) < MERGE_TIME_WINDOW;
+    
+    if (canMerge) {
+      // 合并到前一条消息
+      if (!lastMsg._mergedReceivers) {
+        lastMsg._mergedReceivers = [lastMsg.receiverId];
+      }
+      lastMsg._mergedReceivers.push(msg.receiverId);
+      // 保留最早的时间戳，或者可以更新为最新的
+      // lastMsg.timestamp = msg.timestamp;
+    } else {
+      mergedMsgs.push(msg);
+    }
+  }
+  
+  // 第二步：处理连续的函数调用折叠逻辑
   const groupedMsgs: any[] = [];
   let currentGroup: any = null;
 
-  filteredMsgs.forEach((msg) => {
+  mergedMsgs.forEach((msg) => {
     const isToolCall = !!msg.toolCall;
     
     if (isToolCall) {
@@ -169,6 +202,21 @@ const getSenderName = (msg: any) => {
 };
 
 const getReceiverName = (msg: any) => {
+  // 处理合并的多目标消息
+  if (msg._mergedReceivers && msg._mergedReceivers.length > 1) {
+    const names = msg._mergedReceivers.map((id: string) => {
+      if (id === 'user') return '我';
+      const agent = findAgentById(id);
+      return agent ? agent.name : id;
+    });
+    // 如果人数太多，显示前几个 + 等多人
+    if (names.length > 3) {
+      return names.slice(0, 3).join('、') + `等${names.length}人`;
+    }
+    return names.join('、');
+  }
+  
+  // 单目标
   if (!msg.receiverId) return null;
   if (msg.receiverId === 'user') return '我';
   const agent = findAgentById(msg.receiverId);
@@ -295,6 +343,7 @@ const getGroupCompletionTokens = (messages: any[]): number => {
                   <span class="opacity-50 mx-1">→</span>
                   <span 
                     class="hover:text-[var(--primary)] cursor-pointer transition-colors"
+                    :title="item._mergedReceivers ? '发给: ' + item._mergedReceivers.join('、') : ''"
                     @click="navigateToMessage(item.receiverId, item.id)"
                     @mouseenter="handleMouseEnter($event, item.receiverId)"
                     @mouseleave="handleMouseLeave"
