@@ -100,7 +100,6 @@ export class Runtime {
     
     this.maxSteps = options.maxSteps ?? 200;
     this.maxToolRounds = options.maxToolRounds ?? 20000;
-    this.maxContextMessages = options.maxContextMessages ?? 50;
     this.idleWarningMs = options.idleWarningMs ?? 300000; // 默认5分钟
     this.dataDir = options.dataDir ?? null; // 自定义数据目录
     this._stopRequested = false;
@@ -139,8 +138,7 @@ export class Runtime {
     
     // ==================== ConversationManager ====================
     // 使用 RuntimeState 的 conversations
-    this._conversationManager = new ConversationManager({ 
-      maxContextMessages: this.maxContextMessages,
+    this._conversationManager = new ConversationManager({
       conversations: this._state.getConversations(),
       contextLimit: options.contextLimit ?? null
     });
@@ -511,8 +509,8 @@ export class Runtime {
       this.systemWorkspacePrompt = "";
       void this.log.debug("工作空间提示词文件不存在，跳过加载");
     }
-    this.llm = this.config.llm ? new LlmClient({ 
-      ...this.config.llm, 
+    this.llm = this.config.llm ? new LlmClient({
+      configService: this._configService,
       logger: this.loggerRoot.forModule("llm"),
       onRetry: (event) => this._emitLlmRetry(event)
     }) : null;
@@ -1000,54 +998,30 @@ export class Runtime {
    * @returns {Promise<LlmClient|null>} LlmClient 实例，如果服务不存在则返回 null
    */
   async getLlmClientForService(serviceId) {
-    if (!serviceId || !this.serviceRegistry) {
+    if (!serviceId) {
       return null;
     }
 
-    // 从服务注册表获取最新的服务配置
-    const serviceConfig = await this.serviceRegistry.getServiceById(serviceId);
-    if (!serviceConfig) {
-      void this.log.warn("LLM 服务不存在", { serviceId });
-      return null;
-    }
-
-    // 检查池中是否有现有的客户端且配置未发生变化
+    // 检查池中是否已有客户端（LlmClient 会自己从 configService 读取最新配置）
     const cached = this.llmClientPool.get(serviceId);
     if (cached) {
-      const { client, config } = cached;
-      // 比较关键配置项是否发生变化
-      const isSameConfig = 
-        config.baseURL === serviceConfig.baseURL &&
-        config.model === serviceConfig.model &&
-        config.apiKey === serviceConfig.apiKey &&
-        config.maxTokens === serviceConfig.maxTokens &&
-        (config.maxConcurrentRequests ?? 2) === (serviceConfig.maxConcurrentRequests ?? 2);
-
-      if (isSameConfig) {
-        return client;
-      }
-      void this.log.info("检测到服务配置变更，正在重新创建 LlmClient", { serviceId });
+      return cached;
     }
 
-    // 创建新的 LlmClient 实例
+    // 创建新的 LlmClient 实例（传递 configService 引用）
     try {
       const client = new LlmClient({
-        baseURL: serviceConfig.baseURL,
-        model: serviceConfig.model,
-        apiKey: serviceConfig.apiKey,
-        maxTokens: serviceConfig.maxTokens,
-        maxConcurrentRequests: serviceConfig.maxConcurrentRequests ?? 2,
+        configService: this._configService,
+        serviceId: serviceId,
         logger: this.loggerRoot.forModule(`llm_${serviceId}`),
         onRetry: (event) => this._emitLlmRetry(event)
       });
 
-      // 存入池中（包含配置，用于下次对比）
-      this.llmClientPool.set(serviceId, { client, config: { ...serviceConfig } });
+      // 存入池中
+      this.llmClientPool.set(serviceId, client);
 
-      void this.log.info("创建/更新 LlmClient 实例", {
+      void this.log.info("创建 LlmClient 实例", {
         serviceId,
-        serviceName: serviceConfig.name,
-        model: serviceConfig.model
       });
 
       return client;
@@ -1065,9 +1039,6 @@ export class Runtime {
    * @returns {Promise<LlmClient|null>} LlmClient 实例
    */
   async getLlmClientForAgent(agentId) {
-    // 每次获取前，先确保默认 LLM Client 是最新的
-    await this.reloadLlmClient();
-
     if (!agentId) {
       return this.llm;
     }
@@ -1166,54 +1137,14 @@ export class Runtime {
 
   /**
    * 重新加载默认 LLM Client。
-   * 从配置文件重新读取 LLM 配置并创建新的 LlmClient 实例。
+   * 注意：由于 LlmClient 现在通过 configService 引用访问配置，
+   * 配置更新会自动生效，此方法已废弃。
    * @returns {Promise<void>}
+   * @deprecated
    */
   async reloadLlmClient() {
-    try {
-      // 使用配置服务重新加载配置
-      if (!this._configService) {
-        throw new Error("配置服务未初始化，无法重新加载");
-      }
-      
-      const newConfig = await this._configService.loadApp({ dataDir: this.dataDir });
-      
-      if (!newConfig.llm) {
-        void this.log.warn("配置文件中没有 LLM 配置");
-        return;
-      }
-
-      // 创建新的 LlmClient 实例
-      const newLlmClient = new LlmClient({
-        ...newConfig.llm,
-        logger: this.loggerRoot.forModule("llm"),
-        onRetry: (event) => this._emitLlmRetry(event)
-      });
-
-      // 替换旧的 LlmClient
-      this.llm = newLlmClient;
-      
-      // 更新配置中的 llm 部分
-      this.config.llm = newConfig.llm;
-
-      // 同步更新 modelSelector
-      if (this.modelSelector) {
-        this.modelSelector.llmClient = newLlmClient;
-        void this.log.info("ModelSelector 的 LLM Client 已同步更新");
-      } else {
-        // 如果之前没有 modelSelector，尝试初始化它
-        await this._tryInitModelSelector();
-      }
-
-      void this.log.info("默认 LLM Client 已重新加载", {
-        baseURL: newConfig.llm.baseURL,
-        model: newConfig.llm.model
-      });
-    } catch (err) {
-      const message = err && typeof err.message === "string" ? err.message : String(err);
-      void this.log.error("重新加载 LLM Client 失败", { error: message });
-      throw err;
-    }
+    // 不再需要重新加载，LlmClient 会自动从 configService 读取最新配置
+    // 保留此方法仅用于向后兼容
   }
 
   /**
@@ -1620,16 +1551,6 @@ export class Runtime {
     }
 
     return result;
-  }
-
-  /**
-   * 检查智能体上下文长度并在超限时发出警告。
-   * @param {string} agentId
-   * @returns {{warning:boolean, currentCount?:number, maxCount?:number}}
-   */
-  _checkContextAndWarn(agentId) {
-    // 委托给 RuntimeLlm 处理
-    return this._llm.checkContextAndWarn(agentId);
   }
 
   /**

@@ -101,9 +101,6 @@ export class RuntimeLlm {
     
     conv.push({ role: "user", content: userContent });
 
-    // 检查上下文长度并在超限时发出警告
-    this.checkContextAndWarn(agentId);
-
     const tools = this.runtime.getToolDefinitions();
     for (let i = 0; i < this.runtime.maxToolRounds; i += 1) {
       if (cancelScope) {
@@ -905,26 +902,7 @@ export class RuntimeLlm {
   }
 
   /**
-   * 检查智能体上下文长度并在超限时发出警告。
-   * @param {string} agentId - 智能体ID
-   * @returns {{warning:boolean, currentCount?:number, maxCount?:number}}
-   */
-  checkContextAndWarn(agentId) {
-    const result = this.runtime._conversationManager.checkAndWarn(agentId);
-    
-    if (result.warning) {
-      void this.runtime.log.warn("智能体上下文超过限制", {
-        agentId,
-        currentCount: result.currentCount,
-        maxCount: result.maxCount
-      });
-    }
-
-    return result;
-  }
-
-  /**
-   * 判断错误是否可能是“上下文长度/token 超限”。\n   *
+   * 判断错误是否可能是"上下文长度/token 超限"。\n   *
    * 说明：不同 OpenAI 兼容服务的错误结构并不一致，这里采用“结构字段 + 文本关键词”混合判断。\n   *
    * @param {any} err
    * @returns {boolean}

@@ -10,10 +10,9 @@ import path from "node:path";
  */
 export class ConversationManager {
   /**
-   * @param {{maxContextMessages?:number, conversations?:Map, contextLimit?:{maxTokens:number, warningThreshold:number, criticalThreshold:number, hardLimitThreshold:number}, promptTemplates?:{contextStatus?:string, contextExceeded?:string, contextCritical?:string, contextWarning?:string}, conversationsDir?:string, logger?:object, autoCompressionManager?:object}} options
+   * @param {{conversations?:Map, contextLimit?:{maxTokens:number, warningThreshold:number, criticalThreshold:number, hardLimitThreshold:number}, promptTemplates?:{contextStatus?:string, contextExceeded?:string, contextCritical?:string, contextWarning?:string}, conversationsDir?:string, logger?:object, autoCompressionManager?:object}} options
    */
   constructor(options = {}) {
-    this.maxContextMessages = options.maxContextMessages ?? 50;
     this.conversations = options.conversations ?? new Map();
     this._conversationsDir = options.conversationsDir ?? null;
     this._logger = options.logger ?? null;
@@ -1019,29 +1018,6 @@ export class ConversationManager {
    */
   deleteConversation(agentId) {
     return this.conversations.delete(agentId);
-  }
-
-  /**
-   * 检查智能体的上下文是否超过限制，如果超过则返回警告信息。
-   * @param {string} agentId
-   * @returns {{warning:boolean, currentCount?:number, maxCount?:number}}
-   */
-  checkAndWarn(agentId) {
-    const conv = this.conversations.get(agentId);
-    
-    if (!conv) {
-      return { warning: false };
-    }
-
-    if (conv.length > this.maxContextMessages) {
-      return {
-        warning: true,
-        currentCount: conv.length,
-        maxCount: this.maxContextMessages
-      };
-    }
-
-    return { warning: false };
   }
 
   /**

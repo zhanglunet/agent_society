@@ -540,13 +540,19 @@ export class HTTPServer {
     if (!agentId) return;
 
     // send_message 已经作为消息显示，不需要重复显示为工具调用
-    // 但需要将 reasoning_content 关联到发送的消息
+    // 但需要将 reasoning_content 和 usage 关联到发送的消息
     if (toolName === "send_message") {
-      if (reasoningContent && result && result.messageId) {
-        // 更新已存储的消息，添加 reasoning_content
+      if (result && result.messageId) {
+        // 更新已存储的消息，添加 reasoning_content 和 usage
         const message = this._messagesById.get(result.messageId);
         if (message) {
-          message.reasoning_content = reasoningContent;
+          if (reasoningContent) {
+            message.reasoning_content = reasoningContent;
+          }
+          // 关联 token 使用量到消息 payload
+          if (usage && message.payload) {
+            message.payload.usage = usage;
+          }
         }
       }
       return;

@@ -103,7 +103,6 @@ export class TurnEngine {
       const userContent = formatted + contextStatusPrompt;
       turn.conv.push({ role: "user", content: userContent });
 
-      this.runtime._checkContextAndWarn?.(agentId);
       turn.phase = "need_llm";
     }
 

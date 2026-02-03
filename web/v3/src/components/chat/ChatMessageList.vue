@@ -27,6 +27,28 @@ const hoveredAgentId = ref<string | null>(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
 const tooltipTimer = ref<any>(null);
 
+// Token tooltip 状态
+const tokenTooltip = ref<{
+  show: boolean;
+  x: number;
+  y: number;
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
+}>({ show: false, x: 0, y: 0, usage: null });
+
+const showTokenTooltip = (event: MouseEvent, usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => {
+  const rect = (event.target as HTMLElement).getBoundingClientRect();
+  tokenTooltip.value = {
+    show: true,
+    x: rect.left + rect.width / 2,
+    y: rect.bottom + 4,
+    usage
+  };
+};
+
+const hideTokenTooltip = () => {
+  tokenTooltip.value.show = false;
+};
+
 const handleMouseEnter = (event: MouseEvent, agentId: string) => {
   if (agentId === 'user' || agentId === 'system') return;
   
@@ -214,6 +236,27 @@ const navigateToMessage = (agentId: string, messageId: string) => {
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
+
+/**
+ * 计算工具调用组的总 Token 数
+ */
+const getGroupTotalTokens = (messages: any[]): number => {
+  return messages.reduce((sum: number, m: any) => sum + (m.usage?.totalTokens || 0), 0);
+};
+
+/**
+ * 计算工具调用组的总输入 Token 数
+ */
+const getGroupPromptTokens = (messages: any[]): number => {
+  return messages.reduce((sum: number, m: any) => sum + (m.usage?.promptTokens || 0), 0);
+};
+
+/**
+ * 计算工具调用组的总输出 Token 数
+ */
+const getGroupCompletionTokens = (messages: any[]): number => {
+  return messages.reduce((sum: number, m: any) => sum + (m.usage?.completionTokens || 0), 0);
+};
 </script>
 
 <template>
@@ -322,10 +365,14 @@ const formatTime = (timestamp: number) => {
               </div>
 
               <!-- Token 使用量 -->
-              <div v-if="item.usage && item.usage.totalTokens > 0" class="mt-2 flex items-center space-x-2 text-[10px] text-[var(--text-3)] opacity-70">
-                <span class="px-1.5 py-0.5 bg-[var(--surface-3)] rounded border border-[var(--border)]">↑ {{ item.usage.promptTokens }}</span>
-                <span class="px-1.5 py-0.5 bg-[var(--surface-3)] rounded border border-[var(--border)]">↓ {{ item.usage.completionTokens }}</span>
-                <span class="px-1.5 py-0.5 bg-[var(--surface-2)] rounded border border-[var(--border)] font-medium">Σ {{ item.usage.totalTokens }}</span>
+              <div v-if="item.usage && item.usage.totalTokens > 0" class="mt-1">
+                <span 
+                  class="text-[10px] text-[var(--text-3)] opacity-40 hover:opacity-70 transition-opacity cursor-help"
+                  @mouseenter="showTokenTooltip($event, item.usage)"
+                  @mouseleave="hideTokenTooltip"
+                >
+                  {{ item.usage.totalTokens }} tokens
+                </span>
               </div>
             </div>
           </div>
@@ -412,8 +459,32 @@ const formatTime = (timestamp: number) => {
                       <div class="text-[10px] font-bold text-[var(--text-3)] uppercase">结果</div>
                       <pre class="text-[11px] font-mono text-[var(--text-2)] overflow-x-auto p-2 bg-[var(--surface-2)] rounded">{{ JSON.stringify(parseJson(msg.toolCall.result), null, 2) }}</pre>
                     </div>
+                    <!-- 单个工具调用的 Token 使用量 -->
+                    <div v-if="msg.usage && msg.usage.totalTokens > 0" class="pt-1 border-t border-[var(--border)]">
+                      <span 
+                        class="text-[10px] text-[var(--text-3)] opacity-40 hover:opacity-70 transition-opacity cursor-help"
+                        @mouseenter="showTokenTooltip($event, msg.usage)"
+                        @mouseleave="hideTokenTooltip"
+                      >
+                        {{ msg.usage.totalTokens }} tokens
+                      </span>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <!-- 工具调用组的总 Token 使用量 -->
+              <div v-if="getGroupTotalTokens(item.messages) > 0" class="px-4 py-1.5 bg-[var(--surface-3)] border-t border-[var(--border)] flex justify-end">
+                <span 
+                  class="text-[10px] text-[var(--text-3)] opacity-40 hover:opacity-70 transition-opacity cursor-help"
+                  @mouseenter="showTokenTooltip($event, { 
+                    promptTokens: getGroupPromptTokens(item.messages), 
+                    completionTokens: getGroupCompletionTokens(item.messages), 
+                    totalTokens: getGroupTotalTokens(item.messages) 
+                  })"
+                  @mouseleave="hideTokenTooltip"
+                >
+                  总计 {{ getGroupTotalTokens(item.messages) }} tokens
+                </span>
               </div>
             </div>
           </div>
@@ -468,6 +539,36 @@ const formatTime = (timestamp: number) => {
           
           <!-- 装饰三角形 -->
           <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[var(--border)]"></div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Token 使用量 Tooltip - 传送到 body 层级 -->
+    <Teleport to="body">
+      <div
+        v-if="tokenTooltip.show && tokenTooltip.usage"
+        class="fixed z-[9999] pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+        :style="{
+          left: tokenTooltip.x + 'px',
+          top: tokenTooltip.y + 'px',
+          transform: 'translateX(-50%)'
+        }"
+      >
+        <div class="bg-[var(--surface-4)] border border-[var(--border)] rounded-lg shadow-lg p-2 whitespace-nowrap">
+          <div class="text-[10px] text-[var(--text-3)] space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="opacity-70">输入:</span>
+              <span class="font-mono text-[var(--text-2)]">{{ tokenTooltip.usage.promptTokens }}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="opacity-70">输出:</span>
+              <span class="font-mono text-[var(--text-2)]">{{ tokenTooltip.usage.completionTokens }}</span>
+            </div>
+            <div class="border-t border-[var(--border)] pt-1 mt-1 flex items-center space-x-2">
+              <span class="opacity-70">总计:</span>
+              <span class="font-mono font-medium text-[var(--text-1)]">{{ tokenTooltip.usage.totalTokens }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>

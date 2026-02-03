@@ -44,7 +44,6 @@
 import { ConversationManager } from "./services/conversation/conversation_manager.js";
 
 const manager = new ConversationManager({
-  maxContextMessages: 50,
   conversationsDir: "data/runtime/state/conversations",
   contextLimit: {
     maxTokens: 128000,
