@@ -3589,36 +3589,36 @@ to {
   font-size: 13px;
 }
 
-.error-toast-content[data-v-3ecb9e85] {
+.error-toast-content[data-v-ccb15117] {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 4px;
   cursor: pointer;
 }
-.error-toast-header[data-v-3ecb9e85] {
+.error-toast-header[data-v-ccb15117] {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.error-summary[data-v-3ecb9e85] {
+.error-summary[data-v-ccb15117] {
   font-weight: 600;
   font-size: 14px;
   flex: 1;
 }
-.detail-btn[data-v-3ecb9e85] {
+.detail-btn[data-v-ccb15117] {
   padding: 4px;
   width: 28px;
   height: 28px;
 }
-.error-detail[data-v-3ecb9e85] {
+.error-detail[data-v-ccb15117] {
   font-size: 13px;
   line-height: 1.5;
   color: inherit;
   opacity: 0.9;
 }
-.error-hint[data-v-3ecb9e85] {
+.error-hint[data-v-ccb15117] {
   font-size: 11px;
   opacity: 0.6;
   font-style: italic;

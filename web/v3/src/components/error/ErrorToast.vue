@@ -1,17 +1,14 @@
 <template>
-  <Toast 
-    position="top-right" 
-    group="error-notification"
-    @click="onToastClick"
-  >
+  <!-- Toast 组件由 PrimeVue ToastService 管理 -->
+  <Toast position="top-right" group="error-notification">
     <template #message="slotProps">
       <div class="error-toast-content" @click="handleClick(slotProps.message)">
         <div class="error-toast-header">
           <span class="error-summary">{{ slotProps.message.summary }}</span>
-          <Button 
-            icon="pi pi-info-circle" 
-            severity="secondary" 
-            text 
+          <Button
+            icon="pi pi-info-circle"
+            severity="secondary"
+            text
             size="small"
             class="detail-btn"
             @click.stop="handleClick(slotProps.message)"
@@ -28,16 +25,23 @@
 <script setup lang="ts">
 /**
  * 错误通知 Toast 组件
- * 
- * 自定义 Toast 模板，支持点击查看详情
+ *
+ * 职责：
+ * - 监听 errorList 响应式数组
+ * - 使用 Toast 显示每个错误
+ * - 支持点击查看详情
  */
+import { watch } from 'vue';
 import Toast from 'primevue/toast';
 import Button from 'primevue/button';
 import Tooltip from 'primevue/tooltip';
+import { useToast } from 'primevue/usetoast';
 import { useDialog } from 'primevue/usedialog';
 import ErrorDetailDialog from './ErrorDetailDialog.vue';
-import { getCurrentErrorForDetail } from '../../services/errorNotification';
+import { errorList, errorNotificationService } from '../../services/errorNotification';
+import type { ErrorEvent } from '../../services/api';
 
+const toast = useToast();
 const dialog = useDialog();
 const vTooltip = Tooltip;
 
@@ -47,20 +51,63 @@ interface ErrorMessage {
 }
 
 /**
- * 处理点击事件
+ * 显示单个错误的 Toast
+ */
+const showErrorToast = (error: ErrorEvent) => {
+  const severity = errorNotificationService.getSeverity(error.errorCategory);
+  const agentName = error.agentContext?.agentName || error.agentId;
+
+  toast.add({
+    severity,
+    summary: `${agentName} - 操作失败`,
+    detail: error.userMessage,
+    life: 10000,
+    closable: true,
+    group: 'error-notification'
+  });
+};
+
+/**
+ * 监听错误列表，显示新增的错误
+ */
+let processedErrors = new Set<ErrorEvent>();
+
+watch(
+  errorList,
+  (newList) => {
+    newList.forEach((error) => {
+      if (!processedErrors.has(error)) {
+        processedErrors.add(error);
+        showErrorToast(error);
+      }
+    });
+
+    // 清理已移除的错误
+    const currentSet = new Set(newList);
+    for (const error of processedErrors) {
+      if (!currentSet.has(error)) {
+        processedErrors.delete(error);
+      }
+    }
+  },
+  { deep: true }
+);
+
+/**
+ * 处理点击事件 - 打开错误详情对话框
  */
 const handleClick = (_message: ErrorMessage) => {
-  // 从服务获取当前错误信息
-  const error = getCurrentErrorForDetail();
-  if (error) {
-    openErrorDetail(error);
+  // 获取最新的错误作为详情
+  const latestError = errorList[errorList.length - 1];
+  if (latestError) {
+    openErrorDetail(latestError);
   }
 };
 
 /**
  * 打开错误详情对话框
  */
-const openErrorDetail = (error: any) => {
+const openErrorDetail = (error: ErrorEvent) => {
   dialog.open(ErrorDetailDialog, {
     props: {
       header: '错误详情',
@@ -76,11 +123,6 @@ const openErrorDetail = (error: any) => {
       error: error
     }
   });
-};
-
-// 防止事件冒泡
-const onToastClick = () => {
-  // Toast 点击事件已处理
 };
 </script>
 

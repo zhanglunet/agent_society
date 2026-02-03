@@ -77,6 +77,10 @@ const openSettings = () => {
   });
 };
 
+const toggleModulePanel = () => {
+  showModulePanel.value = !showModulePanel.value;
+};
+
 const openTemplateManager = () => {
   // 用于存储对话框引用，以便后续关闭
   let dialogInstance: any = null;
@@ -162,12 +166,9 @@ ${content.org}
 const tools = [
   { id: 'overview', icon: LayoutGrid, label: '总览视图', action: openOverview },
   { id: 'templates', icon: Layers, label: '组织模板', action: openTemplateManager },
+  { id: 'modules', icon: Puzzle, label: '模块管理', action: toggleModulePanel },
   { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
-
-const toggleModulePanel = () => {
-  showModulePanel.value = !showModulePanel.value;
-};
 
 const handleOrgClick = (org: any) => {
   appStore.openTab({
@@ -206,21 +207,15 @@ const handleOrgClick = (org: any) => {
           variant="text" 
           rounded
           class="!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all"
+          :class="{ '!text-[var(--primary)]': tool.id === 'modules' && showModulePanel }"
           v-tooltip.bottom="tool.label"
           @click="tool.action"
         >
-          <component :is="tool.icon" class="w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" />
-        </Button>
-        <!-- 模块管理按钮 -->
-        <Button 
-          variant="text" 
-          rounded
-          class="!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all"
-          :class="{ '!text-[var(--primary)]': showModulePanel }"
-          v-tooltip.bottom="'模块管理'"
-          @click="toggleModulePanel"
-        >
-          <Puzzle class="w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" />
+          <component 
+            :is="tool.icon" 
+            class="w-4 h-4 transition-colors" 
+            :class="[tool.id === 'modules' && showModulePanel ? 'text-[var(--primary)]' : 'text-[var(--text-2)] hover:text-[var(--primary)]']"
+          />
         </Button>
       </div>
     </div>

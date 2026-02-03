@@ -72,11 +72,12 @@ export const useAgentStore = defineStore('agent', () => {
         result.push(...otherAgents);
       }
       
-      agentsMap.value[orgId] = result;
+      // 使用新对象触发 Vue 响应式更新（解决新组织键无法被追踪的问题）
+      agentsMap.value = { ...agentsMap.value, [orgId]: result };
     } catch (error) {
       console.error('加载智能体列表失败:', error);
       if (!agentsMap.value[orgId]) {
-        agentsMap.value[orgId] = [];
+        agentsMap.value = { ...agentsMap.value, [orgId]: [] };
       }
     } finally {
       if (!silent) loading.value = false;

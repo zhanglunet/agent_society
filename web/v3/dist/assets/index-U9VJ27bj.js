@@ -23789,6 +23789,9 @@ const _sfc_main$8 = /* @__PURE__ */ defineComponent({
         }
       });
     };
+    const toggleModulePanel = () => {
+      showModulePanel.value = !showModulePanel.value;
+    };
     const openTemplateManager = () => {
       let dialogInstance = null;
       const handleUseTemplate = async (template) => {
@@ -23856,11 +23859,9 @@ ${content.org}
     const tools = [
       { id: "overview", icon: LayoutGrid, label: "总览视图", action: openOverview },
       { id: "templates", icon: Layers, label: "组织模板", action: openTemplateManager },
+      { id: "modules", icon: Puzzle, label: "模块管理", action: toggleModulePanel },
       { id: "settings", icon: Settings, label: "系统设置", action: openSettings }
     ];
-    const toggleModulePanel = () => {
-      showModulePanel.value = !showModulePanel.value;
-    };
     const handleOrgClick = (org) => {
       appStore.openTab({
         id: org.id,
@@ -23898,14 +23899,16 @@ ${content.org}
                   key: tool.id,
                   variant: "text",
                   rounded: "",
-                  class: "!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all",
+                  class: normalizeClass(["!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all", { "!text-[var(--primary)]": tool.id === "modules" && showModulePanel.value }]),
                   onClick: tool.action
                 }, {
                   default: withCtx(() => [
-                    (openBlock(), createBlock(resolveDynamicComponent(tool.icon), { class: "w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" }))
+                    (openBlock(), createBlock(resolveDynamicComponent(tool.icon), {
+                      class: normalizeClass(["w-4 h-4 transition-colors", [tool.id === "modules" && showModulePanel.value ? "text-[var(--primary)]" : "text-[var(--text-2)] hover:text-[var(--primary)]"]])
+                    }, null, 8, ["class"]))
                   ]),
                   _: 2
-                }, 1032, ["onClick"]), [
+                }, 1032, ["class", "onClick"]), [
                   [
                     _directive_tooltip,
                     tool.label,
@@ -23913,25 +23916,7 @@ ${content.org}
                     { bottom: true }
                   ]
                 ]);
-              }), 64)),
-              withDirectives((openBlock(), createBlock(unref(script$D), {
-                variant: "text",
-                rounded: "",
-                class: normalizeClass(["!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all", { "!text-[var(--primary)]": showModulePanel.value }]),
-                onClick: toggleModulePanel
-              }, {
-                default: withCtx(() => [
-                  createVNode(unref(Puzzle), { class: "w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" })
-                ]),
-                _: 1
-              }, 8, ["class"])), [
-                [
-                  _directive_tooltip,
-                  "模块管理",
-                  void 0,
-                  { bottom: true }
-                ]
-              ])
+              }), 64))
             ], 2)
           ]),
           createBaseVNode("div", _hoisted_5$6, [
@@ -24057,11 +24042,11 @@ const useAgentStore = /* @__PURE__ */ defineStore("agent", () => {
         if (userAgent) result.push(userAgent);
         result.push(...otherAgents);
       }
-      agentsMap.value[orgId] = result;
+      agentsMap.value = { ...agentsMap.value, [orgId]: result };
     } catch (error) {
       console.error("加载智能体列表失败:", error);
       if (!agentsMap.value[orgId]) {
-        agentsMap.value[orgId] = [];
+        agentsMap.value = { ...agentsMap.value, [orgId]: [] };
       }
     } finally {
       if (!silent) loading.value = false;
@@ -27297,17 +27282,10 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
 });
 const ErrorDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-e32f6077"]]);
 const POLL_INTERVAL = 3e3;
-let currentErrorForDetail = null;
-function getCurrentErrorForDetail() {
-  return currentErrorForDetail;
-}
-function setCurrentErrorForDetail(error) {
-  currentErrorForDetail = error;
-}
+const errorList = /* @__PURE__ */ reactive([]);
 class ErrorNotificationService {
   timer = null;
   lastTimestamp = "";
-  toast = null;
   processedErrors = /* @__PURE__ */ new Set();
   // 防止重复显示
   /**
@@ -27315,13 +27293,6 @@ class ErrorNotificationService {
    */
   init() {
     if (this.timer) return;
-    setTimeout(() => {
-      try {
-        this.toast = useToast();
-      } catch (e2) {
-        console.warn("[ErrorNotification] Toast not available:", e2);
-      }
-    }, 0);
     this.startPolling();
     console.log("[ErrorNotification] Service initialized");
   }
@@ -27378,28 +27349,13 @@ class ErrorNotificationService {
         this.processedErrors.delete(first);
       }
     }
-    this.showToast(error);
-  }
-  /**
-   * 显示 Toast 通知
-   */
-  showToast(error) {
-    if (!this.toast) {
-      console.warn("[ErrorNotification] Toast not initialized, error:", error);
-      return;
-    }
-    const severity = this.getSeverity(error.errorCategory);
-    const agentName = error.agentContext?.agentName || error.agentId;
-    setCurrentErrorForDetail(error);
-    this.toast.add({
-      severity,
-      summary: `${agentName} - 操作失败`,
-      detail: error.userMessage,
-      life: 1e4,
-      // 10秒后自动关闭
-      closable: true,
-      group: "error-notification"
-    });
+    errorList.push(error);
+    setTimeout(() => {
+      const index2 = errorList.findIndex((e2) => e2 === error);
+      if (index2 !== -1) {
+        errorList.splice(index2, 1);
+      }
+    }, 1e4);
   }
   /**
    * 根据错误分类获取严重程度
@@ -27418,6 +27374,21 @@ class ErrorNotificationService {
         return "error";
     }
   }
+  /**
+   * 移除指定的错误
+   */
+  removeError(error) {
+    const index2 = errorList.findIndex((e2) => e2 === error);
+    if (index2 !== -1) {
+      errorList.splice(index2, 1);
+    }
+  }
+  /**
+   * 清空所有错误
+   */
+  clearAll() {
+    errorList.length = 0;
+  }
 }
 const errorNotificationService = new ErrorNotificationService();
 const _hoisted_1$1 = ["onClick"];
@@ -27427,12 +27398,44 @@ const _hoisted_4$1 = { class: "error-detail" };
 const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   __name: "ErrorToast",
   setup(__props) {
+    const toast = useToast();
     const dialog = useDialog();
     const vTooltip = Tooltip;
+    const showErrorToast = (error) => {
+      const severity = errorNotificationService.getSeverity(error.errorCategory);
+      const agentName = error.agentContext?.agentName || error.agentId;
+      toast.add({
+        severity,
+        summary: `${agentName} - 操作失败`,
+        detail: error.userMessage,
+        life: 1e4,
+        closable: true,
+        group: "error-notification"
+      });
+    };
+    let processedErrors = /* @__PURE__ */ new Set();
+    watch(
+      errorList,
+      (newList) => {
+        newList.forEach((error) => {
+          if (!processedErrors.has(error)) {
+            processedErrors.add(error);
+            showErrorToast(error);
+          }
+        });
+        const currentSet = new Set(newList);
+        for (const error of processedErrors) {
+          if (!currentSet.has(error)) {
+            processedErrors.delete(error);
+          }
+        }
+      },
+      { deep: true }
+    );
     const handleClick = (_message) => {
-      const error = getCurrentErrorForDetail();
-      if (error) {
-        openErrorDetail(error);
+      const latestError = errorList[errorList.length - 1];
+      if (latestError) {
+        openErrorDetail(latestError);
       }
     };
     const openErrorDetail = (error) => {
@@ -27452,13 +27455,10 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
         }
       });
     };
-    const onToastClick = () => {
-    };
     return (_ctx, _cache) => {
       return openBlock(), createBlock(unref(script$6), {
         position: "top-right",
-        group: "error-notification",
-        onClick: onToastClick
+        group: "error-notification"
       }, {
         message: withCtx((slotProps) => [
           createBaseVNode("div", {
@@ -27492,7 +27492,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const ErrorToast = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-3ecb9e85"]]);
+const ErrorToast = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-ccb15117"]]);
 var DynamicDialogStyle = BaseStyle.extend({
   name: "dynamicdialog"
 });
@@ -27762,4 +27762,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-CKusgMG8.js.map
+//# sourceMappingURL=index-U9VJ27bj.js.map
