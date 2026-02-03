@@ -35,6 +35,54 @@ const tokenTooltip = ref<{
   usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
 }>({ show: false, x: 0, y: 0, usage: null });
 
+// 多收件人弹窗状态
+const multiReceiverPopup = ref<{
+  show: boolean;
+  x: number;
+  y: number;
+  receivers: string[];
+}>({ show: false, x: 0, y: 0, receivers: [] });
+
+let popupHideTimer: any = null;
+let isMouseOverPopup = false;
+
+const showMultiReceiverPopup = (event: MouseEvent, receivers: string[]) => {
+  // 清除关闭定时器
+  if (popupHideTimer) {
+    clearTimeout(popupHideTimer);
+    popupHideTimer = null;
+  }
+  const rect = (event.target as HTMLElement).getBoundingClientRect();
+  multiReceiverPopup.value = {
+    show: true,
+    x: rect.left + rect.width / 2,
+    y: rect.bottom + 4,
+    receivers
+  };
+};
+
+const hideMultiReceiverPopup = () => {
+  // 延迟关闭，给鼠标移动到弹窗的时间
+  popupHideTimer = setTimeout(() => {
+    if (!isMouseOverPopup) {
+      multiReceiverPopup.value.show = false;
+    }
+  }, 100);
+};
+
+const handlePopupMouseEnter = () => {
+  isMouseOverPopup = true;
+  if (popupHideTimer) {
+    clearTimeout(popupHideTimer);
+    popupHideTimer = null;
+  }
+};
+
+const handlePopupMouseLeave = () => {
+  isMouseOverPopup = false;
+  multiReceiverPopup.value.show = false;
+};
+
 const showTokenTooltip = (event: MouseEvent, usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => {
   const rect = (event.target as HTMLElement).getBoundingClientRect();
   tokenTooltip.value = {
@@ -72,6 +120,22 @@ const handleMouseEnter = (event: MouseEvent, agentId: string) => {
 const handleMouseLeave = () => {
   if (tooltipTimer.value) clearTimeout(tooltipTimer.value);
   hoveredAgentId.value = null;
+};
+
+// 处理收件人悬停：单人显示原有 tooltip，多人显示弹窗
+const handleReceiverMouseEnter = (event: MouseEvent, item: any) => {
+  if (item._mergedReceivers && item._mergedReceivers.length > 1) {
+    // 多人情况：显示多收件人弹窗
+    showMultiReceiverPopup(event, item._mergedReceivers);
+  } else {
+    // 单人情况：使用原有 tooltip
+    handleMouseEnter(event, item.receiverId);
+  }
+};
+
+const handleReceiverMouseLeave = () => {
+  hideMultiReceiverPopup();
+  handleMouseLeave();
 };
 
 const hoveredAgent = computed(() => {
@@ -343,10 +407,9 @@ const getGroupCompletionTokens = (messages: any[]): number => {
                   <span class="opacity-50 mx-1">→</span>
                   <span 
                     class="hover:text-[var(--primary)] cursor-pointer transition-colors"
-                    :title="item._mergedReceivers ? '发给: ' + item._mergedReceivers.join('、') : ''"
                     @click="navigateToMessage(item.receiverId, item.id)"
-                    @mouseenter="handleMouseEnter($event, item.receiverId)"
-                    @mouseleave="handleMouseLeave"
+                    @mouseenter="(e) => handleReceiverMouseEnter(e, item)"
+                    @mouseleave="handleReceiverMouseLeave"
                   >{{ getReceiverName(item) }}</span>
                 </template>
               </div>
@@ -620,6 +683,55 @@ const getGroupCompletionTokens = (messages: any[]): number => {
               <span class="font-mono font-medium text-[var(--text-1)]">{{ tokenTooltip.usage.totalTokens }}</span>
             </div>
           </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 多收件人弹窗 - 传送到 body 层级 -->
+    <Teleport to="body">
+      <div
+        v-if="multiReceiverPopup.show && multiReceiverPopup.receivers.length > 0"
+        class="fixed z-[9999]"
+        :style="{
+          left: multiReceiverPopup.x + 'px',
+          top: multiReceiverPopup.y + 'px',
+          transform: 'translateX(-50%)'
+        }"
+        @mouseenter="handlePopupMouseEnter"
+        @mouseleave="handlePopupMouseLeave"
+      >
+        <div class="bg-[var(--surface-4)] border border-[var(--border)] rounded-xl shadow-xl p-4 min-w-[260px] max-w-[340px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 max-h-[280px] overflow-y-auto">
+          <div class="text-xs font-bold text-[var(--text-3)] uppercase tracking-wider mb-3">收件人 ({{ multiReceiverPopup.receivers.length }})</div>
+          <div class="space-y-2">
+            <div 
+              v-for="receiverId in multiReceiverPopup.receivers" 
+              :key="receiverId"
+              class="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-3)]/50 border border-[var(--border)] gap-2"
+            >
+              <div class="flex items-center space-x-2 min-w-0 flex-1">
+                <div class="w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <User v-if="receiverId === 'user'" class="w-4 h-4 text-[var(--text-2)]" />
+                  <Bot v-else class="w-4 h-4 text-[var(--primary)]" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-[var(--text-1)] truncate">{{ findAgentById(receiverId)?.name || receiverId }}</div>
+                  <div class="text-[10px] text-[var(--text-3)] font-mono opacity-70 truncate">{{ receiverId }}</div>
+                </div>
+              </div>
+              <div 
+                class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0"
+                :class="{
+                  'bg-green-500/10 text-green-500': findAgentById(receiverId)?.status === 'online',
+                  'bg-orange-500/10 text-orange-500': findAgentById(receiverId)?.status === 'busy',
+                  'bg-gray-500/10 text-gray-300': !findAgentById(receiverId) || findAgentById(receiverId)?.status === 'offline'
+                }"
+              >
+                {{ findAgentById(receiverId)?.status === 'online' ? '在线' : (findAgentById(receiverId)?.status === 'busy' ? '忙碍' : '离线') }}
+              </div>
+            </div>
+          </div>
+          <!-- 装饰三角形 -->
+          <div class="absolute -top-[6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[var(--border)]"></div>
         </div>
       </div>
     </Teleport>

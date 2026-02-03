@@ -24268,7 +24268,7 @@ const _hoisted_3$8 = { class: "w-8 h-8 rounded-full bg-[var(--surface-3)] border
 const _hoisted_4$8 = { class: "flex items-center space-x-2 mb-1 px-1" };
 const _hoisted_5$4 = { class: "flex items-center space-x-1 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider" };
 const _hoisted_6$3 = ["onClick", "onMouseenter"];
-const _hoisted_7$3 = ["title", "onClick", "onMouseenter"];
+const _hoisted_7$3 = ["onClick", "onMouseenter"];
 const _hoisted_8$3 = { class: "text-[10px] text-[var(--text-3)]" };
 const _hoisted_9$3 = {
   key: 0,
@@ -24383,6 +24383,14 @@ const _hoisted_70 = { class: "flex items-center space-x-2" };
 const _hoisted_71 = { class: "font-mono text-[var(--text-2)]" };
 const _hoisted_72 = { class: "border-t border-[var(--border)] pt-1 mt-1 flex items-center space-x-2" };
 const _hoisted_73 = { class: "font-mono font-medium text-[var(--text-1)]" };
+const _hoisted_74 = { class: "bg-[var(--surface-4)] border border-[var(--border)] rounded-xl shadow-xl p-4 min-w-[260px] max-w-[340px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 max-h-[280px] overflow-y-auto" };
+const _hoisted_75 = { class: "text-xs font-bold text-[var(--text-3)] uppercase tracking-wider mb-3" };
+const _hoisted_76 = { class: "space-y-2" };
+const _hoisted_77 = { class: "flex items-center space-x-2 min-w-0 flex-1" };
+const _hoisted_78 = { class: "w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0" };
+const _hoisted_79 = { class: "min-w-0 flex-1" };
+const _hoisted_80 = { class: "text-sm font-medium text-[var(--text-1)] truncate" };
+const _hoisted_81 = { class: "text-[10px] text-[var(--text-3)] font-mono opacity-70 truncate" };
 const _sfc_main$6 = /* @__PURE__ */ defineComponent({
   __name: "ChatMessageList",
   props: {
@@ -24403,6 +24411,40 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
     const tooltipPosition = /* @__PURE__ */ ref({ x: 0, y: 0 });
     const tooltipTimer = /* @__PURE__ */ ref(null);
     const tokenTooltip = /* @__PURE__ */ ref({ show: false, x: 0, y: 0, usage: null });
+    const multiReceiverPopup = /* @__PURE__ */ ref({ show: false, x: 0, y: 0, receivers: [] });
+    let popupHideTimer = null;
+    let isMouseOverPopup = false;
+    const showMultiReceiverPopup = (event, receivers) => {
+      if (popupHideTimer) {
+        clearTimeout(popupHideTimer);
+        popupHideTimer = null;
+      }
+      const rect = event.target.getBoundingClientRect();
+      multiReceiverPopup.value = {
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.bottom + 4,
+        receivers
+      };
+    };
+    const hideMultiReceiverPopup = () => {
+      popupHideTimer = setTimeout(() => {
+        if (!isMouseOverPopup) {
+          multiReceiverPopup.value.show = false;
+        }
+      }, 100);
+    };
+    const handlePopupMouseEnter = () => {
+      isMouseOverPopup = true;
+      if (popupHideTimer) {
+        clearTimeout(popupHideTimer);
+        popupHideTimer = null;
+      }
+    };
+    const handlePopupMouseLeave = () => {
+      isMouseOverPopup = false;
+      multiReceiverPopup.value.show = false;
+    };
     const showTokenTooltip = (event, usage) => {
       const rect = event.target.getBoundingClientRect();
       tokenTooltip.value = {
@@ -24430,6 +24472,17 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
     const handleMouseLeave2 = () => {
       if (tooltipTimer.value) clearTimeout(tooltipTimer.value);
       hoveredAgentId.value = null;
+    };
+    const handleReceiverMouseEnter = (event, item) => {
+      if (item._mergedReceivers && item._mergedReceivers.length > 1) {
+        showMultiReceiverPopup(event, item._mergedReceivers);
+      } else {
+        handleMouseEnter2(event, item.receiverId);
+      }
+    };
+    const handleReceiverMouseLeave = () => {
+      hideMultiReceiverPopup();
+      handleMouseLeave2();
     };
     const hoveredAgent = computed(() => {
       if (!hoveredAgentId.value) return null;
@@ -24628,10 +24681,9 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                         _cache[0] || (_cache[0] = createBaseVNode("span", { class: "opacity-50 mx-1" }, "→", -1)),
                         createBaseVNode("span", {
                           class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
-                          title: item._mergedReceivers ? "发给: " + item._mergedReceivers.join("、") : "",
                           onClick: ($event) => navigateToMessage(item.receiverId, item.id),
-                          onMouseenter: ($event) => handleMouseEnter2($event, item.receiverId),
-                          onMouseleave: handleMouseLeave2
+                          onMouseenter: (e2) => handleReceiverMouseEnter(e2, item),
+                          onMouseleave: handleReceiverMouseLeave
                         }, toDisplayString(getReceiverName(item)), 41, _hoisted_7$3)
                       ], 64)) : createCommentVNode("", true)
                     ]),
@@ -24883,6 +24935,55 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
               ])
             ])
           ], 4)) : createCommentVNode("", true)
+        ])),
+        (openBlock(), createBlock(Teleport, { to: "body" }, [
+          multiReceiverPopup.value.show && multiReceiverPopup.value.receivers.length > 0 ? (openBlock(), createElementBlock("div", {
+            key: 0,
+            class: "fixed z-[9999]",
+            style: normalizeStyle({
+              left: multiReceiverPopup.value.x + "px",
+              top: multiReceiverPopup.value.y + "px",
+              transform: "translateX(-50%)"
+            }),
+            onMouseenter: handlePopupMouseEnter,
+            onMouseleave: handlePopupMouseLeave
+          }, [
+            createBaseVNode("div", _hoisted_74, [
+              createBaseVNode("div", _hoisted_75, "收件人 (" + toDisplayString(multiReceiverPopup.value.receivers.length) + ")", 1),
+              createBaseVNode("div", _hoisted_76, [
+                (openBlock(true), createElementBlock(Fragment, null, renderList(multiReceiverPopup.value.receivers, (receiverId) => {
+                  return openBlock(), createElementBlock("div", {
+                    key: receiverId,
+                    class: "flex items-center justify-between p-2 rounded-lg bg-[var(--surface-3)]/50 border border-[var(--border)] gap-2"
+                  }, [
+                    createBaseVNode("div", _hoisted_77, [
+                      createBaseVNode("div", _hoisted_78, [
+                        receiverId === "user" ? (openBlock(), createBlock(unref(User), {
+                          key: 0,
+                          class: "w-4 h-4 text-[var(--text-2)]"
+                        })) : (openBlock(), createBlock(unref(Bot), {
+                          key: 1,
+                          class: "w-4 h-4 text-[var(--primary)]"
+                        }))
+                      ]),
+                      createBaseVNode("div", _hoisted_79, [
+                        createBaseVNode("div", _hoisted_80, toDisplayString(findAgentById(receiverId)?.name || receiverId), 1),
+                        createBaseVNode("div", _hoisted_81, toDisplayString(receiverId), 1)
+                      ])
+                    ]),
+                    createBaseVNode("div", {
+                      class: normalizeClass(["px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0", {
+                        "bg-green-500/10 text-green-500": findAgentById(receiverId)?.status === "online",
+                        "bg-orange-500/10 text-orange-500": findAgentById(receiverId)?.status === "busy",
+                        "bg-gray-500/10 text-gray-300": !findAgentById(receiverId) || findAgentById(receiverId)?.status === "offline"
+                      }])
+                    }, toDisplayString(findAgentById(receiverId)?.status === "online" ? "在线" : findAgentById(receiverId)?.status === "busy" ? "忙碍" : "离线"), 3)
+                  ]);
+                }), 128))
+              ]),
+              _cache[15] || (_cache[15] = createBaseVNode("div", { class: "absolute -top-[6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[var(--border)]" }, null, -1))
+            ])
+          ], 36)) : createCommentVNode("", true)
         ]))
       ]);
     };
@@ -27811,4 +27912,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-DFGGa1a3.js.map
+//# sourceMappingURL=index-Cv1O3B_J.js.map
