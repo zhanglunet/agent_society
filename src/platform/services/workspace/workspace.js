@@ -323,18 +323,53 @@ export class Workspace {
   }
 
   /**
-   * 列出文件
+   * 列出文件和子目录
+   * 
+   * 根据全局元数据推断指定目录下的文件和子目录列表。
+   * 子目录是通过分析文件路径中的目录层级推断出来的。
+   * 
+   * @param {string} subDir - 子目录路径，相对于工作区根目录，默认为根目录 "."
+   * @returns {Promise<Array<{name: string, type: 'file'|'directory', [key: string]: any}>>} 文件和目录列表
    */
   async listFiles(subDir = ".") {
     const globalMeta = await this._readGlobalMeta();
     const normalizedSubDir = subDir === "." ? "" : (subDir.replace(/\\/g, "/").endsWith("/") ? subDir.replace(/\\/g, "/") : subDir.replace(/\\/g, "/") + "/");
     
-    return Object.entries(globalMeta.files)
-      .filter(([path]) => path.startsWith(normalizedSubDir) && !path.slice(normalizedSubDir.length).includes("/"))
-      .map(([path, info]) => ({
-        name: path.split("/").pop(),
-        ...info
-      }));
+    const files = [];
+    const dirs = new Set();
+    
+    for (const [filePath, info] of Object.entries(globalMeta.files)) {
+      // 只处理以指定子目录开头的路径
+      if (!filePath.startsWith(normalizedSubDir)) continue;
+      
+      // 获取相对于指定子目录的剩余路径
+      const relativePath = filePath.slice(normalizedSubDir.length);
+      if (!relativePath) continue;
+      
+      // 检查是否还有子目录层级
+      const slashIndex = relativePath.indexOf("/");
+      
+      if (slashIndex === -1) {
+        // 这是直接位于指定目录下的文件
+        files.push({
+          name: relativePath,
+          ...info
+        });
+      } else {
+        // 这是位于指定目录下某个子目录中的文件，提取子目录名
+        const dirName = relativePath.slice(0, slashIndex);
+        dirs.add(dirName);
+      }
+    }
+    
+    // 构建目录结果
+    const dirResults = Array.from(dirs).map(dirName => ({
+      name: dirName,
+      type: 'directory'
+    }));
+    
+    // 合并目录和文件，按名称排序
+    return [...dirResults, ...files].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**

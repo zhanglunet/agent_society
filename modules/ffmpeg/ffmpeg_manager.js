@@ -166,6 +166,13 @@ export class FfmpegManager {
       pushBoundedLines(task.progress.lastStderrLines, `spawn_error: ${task.error}`, this.maxStderrLines);
       task.completedAt = new Date().toISOString();
       await finalizeStreams();
+      // 同步工作区，确保可能产生的部分文件被扫描到元数据中
+      try {
+        await ws.sync();
+      } catch (e) {
+        // 同步失败不影响任务状态，只记录警告
+        this.log?.warn?.("ffmpeg 错误后工作区同步失败", { error: e?.message || e });
+      }
     });
 
     child.on("close", async (code) => {
@@ -177,6 +184,13 @@ export class FfmpegManager {
         pushBoundedLines(task.progress.lastStderrLines, `exit_code: ${code}`, this.maxStderrLines);
       }
       await finalizeStreams();
+      // 同步工作区，让 ffmpeg 生成的新文件被扫描到元数据中
+      try {
+        await ws.sync();
+      } catch (e) {
+        // 同步失败不影响任务状态，只记录警告
+        this.log?.warn?.("ffmpeg 完成后工作区同步失败", { error: e?.message || e });
+      }
     });
 
     return {
