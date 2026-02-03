@@ -159,19 +159,6 @@ const currentMessages = computed(() => {
     }
   });
   
-  // 标记每条消息是否是该发送者连续消息中的最后一条（用于控制 token 显示）
-  for (let i = 0; i < groupedMsgs.length; i++) {
-    const current = groupedMsgs[i];
-    const next = groupedMsgs[i + 1];
-    
-    // 获取发送者ID（tool-group 和普通消息都兼容）
-    const currentSender = current.type === 'tool-group' ? current.senderId : current.senderId;
-    const nextSender = next ? (next.type === 'tool-group' ? next.senderId : next.senderId) : null;
-    
-    // 如果下一条不存在，或者下一条发送者不同，则是最后一条
-    current._isLastInGroup = !next || currentSender !== nextSender;
-  }
-  
   return groupedMsgs;
 });
 
@@ -379,8 +366,8 @@ const getGroupCompletionTokens = (messages: any[]): number => {
                 <pre class="text-xs font-mono text-[var(--text-3)] bg-[var(--surface-1)] p-2 rounded border border-[var(--border)] overflow-x-auto">{{ typeof item.payload === 'object' ? JSON.stringify(item.payload, null, 2) : item.payload }}</pre>
               </div>
 
-              <!-- Token 使用量 - 只在连续消息的最后一条显示 -->
-              <div v-if="item.usage && item.usage.totalTokens > 0 && item._isLastInGroup" class="mt-1">
+              <!-- Token 使用量 - 只要消息有 usage 就显示 -->
+              <div v-if="item.usage && item.usage.totalTokens > 0" class="mt-1">
                 <span 
                   class="text-[10px] text-[var(--text-3)] cursor-help"
                   @mouseenter="showTokenTooltip($event, item.usage)"
@@ -569,19 +556,19 @@ const getGroupCompletionTokens = (messages: any[]): number => {
           transform: 'translateX(-50%)'
         }"
       >
-        <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-2 whitespace-nowrap">
-          <div class="text-[10px] text-gray-600 space-y-1">
+        <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg shadow-lg p-2 whitespace-nowrap">
+          <div class="text-[10px] text-[var(--text-3)] space-y-1">
             <div class="flex items-center space-x-2">
-              <span class="text-gray-400">输入:</span>
-              <span class="font-mono text-gray-700">{{ tokenTooltip.usage.promptTokens }}</span>
+              <span class="text-[var(--text-3)] opacity-70">输入:</span>
+              <span class="font-mono text-[var(--text-2)]">{{ tokenTooltip.usage.promptTokens }}</span>
             </div>
             <div class="flex items-center space-x-2">
-              <span class="text-gray-400">输出:</span>
-              <span class="font-mono text-gray-700">{{ tokenTooltip.usage.completionTokens }}</span>
+              <span class="text-[var(--text-3)] opacity-70">输出:</span>
+              <span class="font-mono text-[var(--text-2)]">{{ tokenTooltip.usage.completionTokens }}</span>
             </div>
-            <div class="border-t border-gray-200 pt-1 mt-1 flex items-center space-x-2">
-              <span class="text-gray-400">总计:</span>
-              <span class="font-mono font-medium text-gray-900">{{ tokenTooltip.usage.totalTokens }}</span>
+            <div class="border-t border-[var(--border)] pt-1 mt-1 flex items-center space-x-2">
+              <span class="text-[var(--text-3)] opacity-70">总计:</span>
+              <span class="font-mono font-medium text-[var(--text-1)]">{{ tokenTooltip.usage.totalTokens }}</span>
             </div>
           </div>
         </div>

@@ -203,6 +203,8 @@ export class TurnEngine {
       if (typeof content === "string" && content.trim().length > 0) {
         turn.lastStepId += 1;
         turn.phase = "finished";
+        // 提取 token 使用量
+        const usage = turn.llmMsg?._usage ?? null;
         return {
           kind: "send",
           agentId,
@@ -212,7 +214,7 @@ export class TurnEngine {
             to: "user",
             from: agentId,
             taskId: turn.message?.taskId ?? null,
-            payload: { text: content.trim() }
+            payload: { text: content.trim(), usage: usage }
           }
         };
       }

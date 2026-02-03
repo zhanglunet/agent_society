@@ -1063,19 +1063,21 @@ export class ToolExecutor {
     if (!workspaceId) {
       return { error: "workspace_not_assigned", message: "当前智能体未分配工作空间" };
     }
-    
+
     const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
-    const result = await ws.writeFile(args.path, args.content, { 
+    const result = await ws.writeFile(args.path, args.content, {
       mimeType: args.mimeType,
       operator: ctx.agent?.id,
       messageId: ctx.currentMessage?.id
     });
-    
-    return { 
-      ok: true, 
-      path: args.path,
-      size: result.size,
-      mimeType: result.mimeType
+
+    return {
+      ok: true,
+      files: [{
+        path: args.path,
+        size: result.size,
+        mimeType: result.mimeType
+      }]
     };
   }
 

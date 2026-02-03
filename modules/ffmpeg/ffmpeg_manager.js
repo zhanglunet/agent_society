@@ -63,7 +63,16 @@ export class FfmpegManager {
       if (message) {
         pushBoundedLines(task.progress.lastStderrLines, String(message), this.maxStderrLines);
       }
-      return { taskId, status: task.status, error, message, logPaths: task.logPaths };
+      return {
+        taskId,
+        status: task.status,
+        error,
+        message,
+        files: Array.isArray(task.logPaths) ? task.logPaths.map(p => ({
+          path: p,
+          mimeType: "text/plain"
+        })) : []
+      };
     };
 
     const ffmpegPath = await this._resolveFfmpegPath();
@@ -189,7 +198,11 @@ export class FfmpegManager {
       exitCode: task.exitCode,
       error: task.error,
       progress: task.progress,
-      logPaths: task.logPaths
+      // 日志文件信息
+      files: Array.isArray(task.logPaths) ? task.logPaths.map(p => ({
+        path: p,
+        mimeType: "text/plain"
+      })) : []
     };
 
     if (task.status === "failed") {
@@ -214,7 +227,10 @@ export class FfmpegManager {
         completedAt: task.completedAt,
         exitCode: task.exitCode,
         error: task.error,
-        logPaths: task.logPaths
+        files: Array.isArray(task.logPaths) ? task.logPaths.map(p => ({
+          path: p,
+          mimeType: "text/plain"
+        })) : []
       });
     }
     tasks.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));

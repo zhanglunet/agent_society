@@ -449,16 +449,22 @@ export class BrowserJavaScriptExecutor {
             partialErrors: imageResult.partialErrors
           });
           
-          return { 
-            result: result.result, 
-            error: "canvas_export_failed", 
+          return {
+            result: result.result,
+            error: "canvas_export_failed",
             message: detailedMessage,
             workspaceId: imageResult.workspaceId,
             exportErrors: imageResult.errors || imageResult.partialErrors
           };
         }
-        
-        return { result: result.result, filePaths: imageResult.filePaths, workspaceId: imageResult.workspaceId };
+
+        // 构建文件信息数组
+        const files = imageResult.filePaths.map(p => ({
+          path: p,
+          mimeType: "image/png"
+        }));
+
+        return { result: result.result, files, workspaceId: imageResult.workspaceId };
       }
 
       // 转换为 JSON 安全格式
@@ -647,7 +653,13 @@ export class BrowserJavaScriptExecutor {
       return { error: "canvas_export_failed", message: "所有 Canvas 导出均失败", workspaceId, errors };
     }
 
-    const response = { filePaths, workspaceId };
+    // 构建文件信息数组
+    const files = filePaths.map(p => ({
+      path: p,
+      mimeType: "image/png"
+    }));
+
+    const response = { files, workspaceId };
     if (errors.length > 0) {
       response.partialErrors = errors;
     }

@@ -502,8 +502,13 @@ class FileTransfer {
       // 如果任务已完成，添加结果信息
       if (task.status === 'completed') {
         if (task.type === 'download') {
-          result.path = task.path;
+          // 下载任务：文件已保存到工作区
+          result.files = [{
+            path: task.path,
+            mimeType: null // 下载时无法确定原始 mimeType
+          }];
         }
+        // 上传任务：文件上传到远程，不返回工作区文件信息
         result.completedAt = task.completedAt.toISOString();
       }
 

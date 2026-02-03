@@ -168,7 +168,7 @@ export class PageActions {
         const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
         if (workspaceId) {
           const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
-          await ws.writeFile(workspacePath, screenshotBuffer, { 
+          await ws.writeFile(workspacePath, screenshotBuffer, {
             mimeType: "image/jpeg",
             operator: ctx.agent?.id,
             messageId: ctx.currentMessage?.id,
@@ -182,7 +182,10 @@ export class PageActions {
           });
           return {
             ok: true,
-            path: workspacePath,
+            files: [{
+              path: workspacePath,
+              mimeType: "image/jpeg"
+            }],
             url: page.url(),
             title: await page.title(),
             fullPage,
@@ -846,7 +849,7 @@ export class PageActions {
     this.log.info?.("保存页面资源", { tabId, count: resourceArray.length, type, workspacePath });
 
     // 统计成功和失败数量
-    const savedPaths = [];
+    const savedFiles = [];
     const errors = [];
 
     // 获取工作区
@@ -879,12 +882,12 @@ export class PageActions {
             // 处理 data URL
             const matches = resourceUrl.match(/^data:([^;]+);base64,(.+)$/);
             if (!matches) {
-              errors.push({ 
-                index: i, 
-                resourceUrl, 
-                error: "invalid_data_url" 
+              errors.push({
+                index: i,
+                resourceUrl,
+                error: "invalid_data_url"
               });
-              savedPaths.push(null);
+              savedFiles.push(null);
               continue;
             }
             mimeType = matches[1];
@@ -905,13 +908,13 @@ export class PageActions {
             });
 
             if (!response || !response.ok()) {
-              errors.push({ 
-                index: i, 
-                resourceUrl, 
-                error: "fetch_resource_failed", 
-                message: response ? `HTTP ${response.status()}` : "无响应" 
+              errors.push({
+                index: i,
+                resourceUrl,
+                error: "fetch_resource_failed",
+                message: response ? `HTTP ${response.status()}` : "无响应"
               });
-              savedPaths.push(null);
+              savedFiles.push(null);
               continue;
             }
 
@@ -949,7 +952,7 @@ export class PageActions {
             finalPath;
 
           // 保存到工作区
-          await ws.writeFile(fullPath, buffer, { 
+          await ws.writeFile(fullPath, buffer, {
             mimeType,
             operator: ctx?.agent?.id,
             messageId: ctx?.currentMessage?.id,
@@ -959,19 +962,19 @@ export class PageActions {
               type
             }
           });
-          savedPaths.push(fullPath);
+          savedFiles.push({ path: fullPath, mimeType });
 
         } catch (err) {
           const message = err?.message ?? String(err);
           this.log.error?.("保存资源失败", { index: i, resourceUrl, resourceName, error: message });
-          errors.push({ 
-            index: i, 
-            resourceUrl, 
+          errors.push({
+            index: i,
+            resourceUrl,
             resourceName,
-            error: "save_resource_failed", 
-            message 
+            error: "save_resource_failed",
+            message
           });
-          savedPaths.push(null);
+          savedFiles.push(null);
         }
       }
     } finally {
@@ -982,12 +985,15 @@ export class PageActions {
     }
 
     // 统计成功和失败数量
-    const successCount = savedPaths.filter(p => p !== null).length;
+    const successCount = savedFiles.filter(f => f !== null).length;
     const failureCount = errors.length;
+
+    // 构建文件信息数组
+    const files = savedFiles.filter(f => f !== null);
 
     return {
       ok: true,
-      paths: savedPaths,
+      files,
       successCount,
       failureCount,
       errors: errors.length > 0 ? errors : undefined,
