@@ -2376,22 +2376,35 @@ export class HTTPServer {
           return;
         }
 
-        const deleteResult = await org.deleteRole(roleId, deletedBy, reason);
+        // 调用 runtime 的 deleteRole 方法，它会处理完整的删除流程
+        const result = await this.society.runtime.deleteRole(roleId, deletedBy, reason);
+        
+        if (!result.ok) {
+          const statusCode =
+            result.error === "role_not_found" ? 404 :
+              result.error === "role_already_deleted" ? 400 :
+                result.error === "cannot_delete_system_role" ? 400 :
+                  500;
+          this._sendJson(res, statusCode, { error: result.error, message: "删除岗位失败" });
+          return;
+        }
 
         void this.log.info("删除岗位", { 
           roleId, 
           roleName: role.name,
           deletedBy, 
           reason,
-          affectedAgentsCount: deleteResult.affectedAgents.length,
-          affectedRolesCount: deleteResult.affectedRoles.length
+          affectedAgentsCount: result.deleteResult?.affectedAgents?.length ?? 0,
+          affectedRolesCount: result.deleteResult?.affectedRoles?.length ?? 0,
+          terminatedAgentsCount: result.deleteResult?.terminatedAgents?.length ?? 0,
+          failedAgentsCount: result.deleteResult?.failedAgents?.length ?? 0
         });
         
         this._sendJson(res, 200, { 
           ok: true, 
           roleId,
           roleName: role.name,
-          deleteResult
+          deleteResult: result.deleteResult
         });
       } catch (deleteErr) {
         void this.log.error("删除岗位失败", { roleId, error: deleteErr.message });
@@ -3306,9 +3319,6 @@ export class HTTPServer {
         // 保存配置
         await this._configService.saveLlm(body);
 
-        // 触发 LLM Client 重新加载
-        await this._reloadLlmClient();
-
         // 返回掩码后的配置
         const maskedLlm = {
           baseURL: body.baseURL,
@@ -3383,9 +3393,6 @@ export class HTTPServer {
         // 添加服务
         const service = await this._configService.addService(body);
 
-        // 触发 LLM Service Registry 重新加载
-        await this._reloadLlmServiceRegistry();
-
         void this.log.info("LLM 服务已添加", { serviceId: body.id });
         this._sendJson(res, 200, { ok: true, service });
       } catch (err) {
@@ -3429,9 +3436,6 @@ export class HTTPServer {
         // 更新服务
         const service = await this._configService.updateService(serviceId, body);
 
-        // 触发 LLM Service Registry 重新加载
-        await this._reloadLlmServiceRegistry();
-
         void this.log.info("LLM 服务已更新", { serviceId });
         this._sendJson(res, 200, { ok: true, service });
       } catch (err) {
@@ -3461,9 +3465,6 @@ export class HTTPServer {
       // 删除服务
       await this._configService.deleteService(serviceId);
 
-      // 触发 LLM Service Registry 重新加载
-      await this._reloadLlmServiceRegistry();
-
       void this.log.info("LLM 服务已删除", { serviceId });
       this._sendJson(res, 200, { ok: true, deletedId: serviceId });
     } catch (err) {
@@ -3474,58 +3475,6 @@ export class HTTPServer {
       }
       void this.log.error("删除 LLM 服务失败", { serviceId, error: err.message, stack: err.stack });
       this._sendJson(res, 500, { error: "internal_error", message: err.message });
-    }
-  }
-
-  /**
-   * 重新加载 LLM Client。
-   * 配置保存后调用此方法使新配置立即生效。
-   * @returns {Promise<void>}
-   */
-  async _reloadLlmClient() {
-    if (!this.society || !this.society.runtime) {
-      void this.log.warn("无法重新加载 LLM Client：society 或 runtime 未初始化");
-      return;
-    }
-
-    try {
-      const runtime = this.society.runtime;
-      if (typeof runtime.reloadLlmClient === "function") {
-        await runtime.reloadLlmClient();
-        this.setLlmStatus("connected");
-        void this.log.info("LLM Client 已重新加载");
-      } else {
-        void this.log.warn("runtime 不支持 reloadLlmClient 方法");
-      }
-    } catch (err) {
-      this.setLlmStatus("error", err.message);
-      void this.log.error("重新加载 LLM Client 失败", { error: err.message });
-      throw err;
-    }
-  }
-
-  /**
-   * 重新加载 LLM Service Registry。
-   * 服务配置变更后调用此方法使新配置立即生效。
-   * @returns {Promise<void>}
-   */
-  async _reloadLlmServiceRegistry() {
-    if (!this.society || !this.society.runtime) {
-      void this.log.warn("无法重新加载 LLM Service Registry：society 或 runtime 未初始化");
-      return;
-    }
-
-    try {
-      const runtime = this.society.runtime;
-      if (typeof runtime.reloadLlmServiceRegistry === "function") {
-        await runtime.reloadLlmServiceRegistry();
-        void this.log.info("LLM Service Registry 已重新加载");
-      } else {
-        void this.log.warn("runtime 不支持 reloadLlmServiceRegistry 方法");
-      }
-    } catch (err) {
-      void this.log.error("重新加载 LLM Service Registry 失败", { error: err.message });
-      throw err;
     }
   }
 

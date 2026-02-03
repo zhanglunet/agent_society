@@ -117,14 +117,14 @@ export class JavaScriptExecutor {
    * // Canvas 绘图
    * const result = await executor.execute({
    *   code: `
-   *     const canvas = getCanvas('my-chart', 400, 300);
+   *     const canvas = getCanvas('charts/my-chart.png', 400, 300);
    *     const ctx = canvas.getContext('2d');
    *     ctx.fillStyle = 'red';
    *     ctx.fillRect(50, 50, 100, 100);
    *     return 'done';
    *   `
    * }, 'ws-123');
-   * // result: { result: 'done', paths: ['canvas/my-chart-xxx.png'] }
+   * // result: { result: 'done', paths: ['charts/my-chart.png'] }
    */
   async execute(args, workspaceId = null, messageId = null, agentId = null) {
     const code = args?.code;
@@ -233,17 +233,21 @@ export class JavaScriptExecutor {
       for (let i = 0; i < canvasInstances.length; i++) {
         const canvas = canvasInstances[i];
         
-        // 验证 name 必须存在
+        // 验证 name 必须存在且以 .png 结尾
         if (!canvas._name || typeof canvas._name !== 'string' || canvas._name.trim() === '') {
           errors.push({ index: i, error: "Canvas 缺少必需的 name 属性" });
+          continue;
+        }
+        const trimmedName = canvas._name.trim();
+        if (!trimmedName.toLowerCase().endsWith('.png')) {
+          errors.push({ index: i, error: "Canvas 路径必须以 .png 结尾" });
           continue;
         }
         
         try {
           const pngBuffer = await canvas.toBuffer("image/png");
-          // 只排除非法文件名字符：< > : " / \ | ? *
-          const safeName = canvas._name.trim().replace(/[<>:"/\\|?*]/g, '_');
-          const fileName = `canvas/${safeName}.png`;
+          // 安全检查：只排除非法文件名字符：< > : " | ? *（保留 / 用于路径分隔，保留 \ 用于 Windows 路径）
+          const fileName = trimmedName.replace(/[<>:"|?*]/g, '_');
           
           // 写入文件到工作区
           await ws.writeFile(fileName, pngBuffer, {

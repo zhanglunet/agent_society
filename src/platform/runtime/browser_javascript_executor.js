@@ -230,16 +230,20 @@ export class BrowserJavaScriptExecutor {
       const _canvases = [];
       
       // getCanvas 函数（每次调用创建新实例）
-      window.getCanvas = function(name, width, height) {
-        if (typeof name !== 'string' || name.trim() === '') {
-          throw new Error('getCanvas: name 参数是必需的，且必须是非空字符串');
+      // path: 工作空间中的完整路径，必须以 .png 结尾，例如 'charts/bar-chart.png'
+      window.getCanvas = function(path, width, height) {
+        if (typeof path !== 'string' || path.trim() === '') {
+          throw new Error('getCanvas: path 参数是必需的，且必须是非空字符串');
+        }
+        if (!path.trim().toLowerCase().endsWith('.png')) {
+          throw new Error('getCanvas: path 参数必须以 .png 结尾');
         }
         width = width || 800;
         height = height || 600;
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        canvas._name = name.trim(); // 存储工件名称到 canvas 对象
+        canvas._name = path.trim(); // 存储路径到 canvas 对象
         document.getElementById('canvas-container').appendChild(canvas);
         _canvases.push(canvas);
         return canvas;
@@ -565,9 +569,14 @@ export class BrowserJavaScriptExecutor {
       const canvasSize = canvasSizes[i] || { width: 0, height: 0 };
       const name = canvasNames[i];
 
-      // 验证 name 必须存在
+      // 验证 name 必须存在且以 .png 结尾
       if (!name || typeof name !== 'string' || name.trim() === '') {
         errors.push({ index: i, error: "Canvas 缺少必需的 name 属性" });
+        continue;
+      }
+      const trimmedName = name.trim();
+      if (!trimmedName.toLowerCase().endsWith('.png')) {
+        errors.push({ index: i, error: "Canvas 路径必须以 .png 结尾" });
         continue;
       }
 
@@ -582,10 +591,8 @@ export class BrowserJavaScriptExecutor {
         const base64Data = matches[1];
         const pngBuffer = Buffer.from(base64Data, "base64");
         
-        // 生成文件名：canvas/名称.png
-        // 只排除非法文件名字符：< > : " / \ | ? *
-        const sanitizedName = name.trim().replace(/[<>:"/\\|?*]/g, '_');
-        const fileName = `canvas/${sanitizedName}.png`;
+        // 安全检查：只排除非法文件名字符：< > : " | ? *（保留 / 用于路径分隔，保留 \ 用于 Windows 路径）
+        const fileName = trimmedName.replace(/[<>:"|?*]/g, '_');
         
         // 检查 writeFile 必需的参数
         if (!agentId) {

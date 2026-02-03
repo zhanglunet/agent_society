@@ -223,7 +223,7 @@ export class ComputeScheduler {
     }
 
     if (outcome.kind === "need_llm") {
-      this._startLlm(agentId, outcome, cancelScope);
+      await this._startLlm(agentId, outcome, cancelScope);
       return true;
     }
 
@@ -242,8 +242,8 @@ export class ComputeScheduler {
    * @param {{epoch:number, signal:AbortSignal, assertActive:() => void}|null} cancelScope
    * @private
    */
-  _startLlm(agentId, outcome, cancelScope) {
-    const llmClient = this.runtime.getLlmClientForAgent(agentId);
+  async _startLlm(agentId, outcome, cancelScope) {
+    const llmClient = await this.runtime.getLlmClientForAgent(agentId);
     if (!llmClient) {
       this.turnEngine.onLlmError(agentId, {
         turnId: outcome.turnId,

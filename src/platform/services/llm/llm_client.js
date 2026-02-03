@@ -190,9 +190,12 @@ export class LlmClient {
           willAttach: !!msg
         });
 
+        console.log("[LlmClient._chatWithRetry] 步骤1: 准备调用 log.info LLM响应内容");
         await this.log.info("LLM 响应内容", { meta, message: msg });
-        
+        console.log("[LlmClient._chatWithRetry] 步骤2: log.info 完成");
+
         // 记录LLM调用指标
+        console.log("[LlmClient._chatWithRetry] 步骤3: 准备调用 logLlmMetrics");
         await this.log.logLlmMetrics({
           latencyMs,
           promptTokens,
@@ -201,7 +204,8 @@ export class LlmClient {
           success: true,
           model: this.model
         }, meta);
-        
+        console.log("[LlmClient._chatWithRetry] 步骤4: logLlmMetrics 完成");
+
         // 将 token 使用信息附加到消息对象上，供调用者使用
         if (msg) {
           msg._usage = {

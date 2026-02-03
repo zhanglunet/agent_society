@@ -553,9 +553,13 @@ export class Runtime {
     const configDir = this._configService?.configDir ?? "config";
     this.serviceRegistry = new LlmServiceRegistry({
       configDir: configDir,
-      logger: this.loggerRoot.forModule("llm_service_registry")
+      logger: this.loggerRoot.forModule("llm_service_registry"),
+      configService: this._configService
     });
     await this.serviceRegistry.load();
+
+    // 初始化模型选择器 (ModelSelector)
+    await this._tryInitModelSelector();
     
     // 加载模型选择提示词模板
     let modelSelectorPrompt = "";
@@ -794,6 +798,18 @@ export class Runtime {
   }
 
   /**
+   * 删除岗位及其所有子岗位和智能体。
+   * 会先停止所有相关智能体的执行，然后删除岗位数据。
+   * @param {string} roleId - 要删除的岗位ID
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @param {string} [reason] - 删除原因
+   * @returns {Promise<{ok:boolean, roleId:string, deleteResult?:object, error?:string}>}
+   */
+  async deleteRole(roleId, deletedBy, reason) {
+    return await this._lifecycle.deleteRole(roleId, deletedBy, reason);
+  }
+
+  /**
    * 启动常驻异步消息循环（不阻塞调用者）。
    * @returns {Promise<void>}
    */
@@ -981,23 +997,36 @@ export class Runtime {
    * 获取指定 LLM 服务的客户端实例。
    * 如果服务不存在或未配置，返回 null。
    * @param {string} serviceId - LLM 服务 ID
-   * @returns {LlmClient|null} LlmClient 实例，如果服务不存在则返回 null
+   * @returns {Promise<LlmClient|null>} LlmClient 实例，如果服务不存在则返回 null
    */
-  getLlmClientForService(serviceId) {
+  async getLlmClientForService(serviceId) {
     if (!serviceId || !this.serviceRegistry) {
       return null;
     }
 
-    // 检查池中是否已有该服务的客户端
-    if (this.llmClientPool.has(serviceId)) {
-      return this.llmClientPool.get(serviceId);
-    }
-
-    // 从服务注册表获取服务配置
-    const serviceConfig = this.serviceRegistry.getServiceById(serviceId);
+    // 从服务注册表获取最新的服务配置
+    const serviceConfig = await this.serviceRegistry.getServiceById(serviceId);
     if (!serviceConfig) {
       void this.log.warn("LLM 服务不存在", { serviceId });
       return null;
+    }
+
+    // 检查池中是否有现有的客户端且配置未发生变化
+    const cached = this.llmClientPool.get(serviceId);
+    if (cached) {
+      const { client, config } = cached;
+      // 比较关键配置项是否发生变化
+      const isSameConfig = 
+        config.baseURL === serviceConfig.baseURL &&
+        config.model === serviceConfig.model &&
+        config.apiKey === serviceConfig.apiKey &&
+        config.maxTokens === serviceConfig.maxTokens &&
+        (config.maxConcurrentRequests ?? 2) === (serviceConfig.maxConcurrentRequests ?? 2);
+
+      if (isSameConfig) {
+        return client;
+      }
+      void this.log.info("检测到服务配置变更，正在重新创建 LlmClient", { serviceId });
     }
 
     // 创建新的 LlmClient 实例
@@ -1012,10 +1041,10 @@ export class Runtime {
         onRetry: (event) => this._emitLlmRetry(event)
       });
 
-      // 存入池中
-      this.llmClientPool.set(serviceId, client);
+      // 存入池中（包含配置，用于下次对比）
+      this.llmClientPool.set(serviceId, { client, config: { ...serviceConfig } });
 
-      void this.log.info("创建 LlmClient 实例", {
+      void this.log.info("创建/更新 LlmClient 实例", {
         serviceId,
         serviceName: serviceConfig.name,
         model: serviceConfig.model
@@ -1033,9 +1062,12 @@ export class Runtime {
    * 获取智能体应使用的 LlmClient。
    * 根据智能体岗位的 llmServiceId 获取对应的 LlmClient，如果未指定或服务不可用则使用默认 LlmClient。
    * @param {string} agentId - 智能体ID
-   * @returns {LlmClient|null} LlmClient 实例
+   * @returns {Promise<LlmClient|null>} LlmClient 实例
    */
-  getLlmClientForAgent(agentId) {
+  async getLlmClientForAgent(agentId) {
+    // 每次获取前，先确保默认 LLM Client 是最新的
+    await this.reloadLlmClient();
+
     if (!agentId) {
       return this.llm;
     }
@@ -1053,7 +1085,7 @@ export class Runtime {
     }
 
     // 尝试获取指定服务的 LlmClient
-    const serviceClient = this.getLlmClientForService(role.llmServiceId);
+    const serviceClient = await this.getLlmClientForService(role.llmServiceId);
     if (serviceClient) {
       return serviceClient;
     }
@@ -1096,6 +1128,43 @@ export class Runtime {
   }
 
   /**
+   * 尝试初始化模型选择器。
+   * 检查是否具备初始化条件（默认 LLM 和提示词模板），如果具备且尚未初始化，则执行初始化。
+   * @private
+   * @returns {Promise<void>}
+   */
+  async _tryInitModelSelector() {
+    if (this.modelSelector) return;
+
+    try {
+      // 加载模型选择提示词模板
+      let modelSelectorPrompt = "";
+      try {
+        modelSelectorPrompt = await this.prompts.loadSystemPromptFile("model_selector.txt");
+      } catch {
+        void this.log.debug("模型选择提示词模板加载失败，暂不初始化模型选择器");
+        return;
+      }
+
+      // 初始化模型选择器（仅当有默认 LLM 和提示词模板时）
+      if (this.llm && modelSelectorPrompt) {
+        this.modelSelector = new ModelSelector({
+          llmClient: this.llm,
+          serviceRegistry: this.serviceRegistry,
+          promptTemplate: modelSelectorPrompt,
+          logger: this.loggerRoot.forModule("model_selector")
+        });
+        void this.log.info("模型选择器已延迟初始化完成", {
+          hasServices: this.serviceRegistry?.hasServices() ?? false,
+          serviceCount: this.serviceRegistry?.getServiceCount() ?? 0
+        });
+      }
+    } catch (err) {
+      void this.log.warn("尝试延迟初始化模型选择器失败", { error: err.message });
+    }
+  }
+
+  /**
    * 重新加载默认 LLM Client。
    * 从配置文件重新读取 LLM 配置并创建新的 LlmClient 实例。
    * @returns {Promise<void>}
@@ -1127,6 +1196,15 @@ export class Runtime {
       // 更新配置中的 llm 部分
       this.config.llm = newConfig.llm;
 
+      // 同步更新 modelSelector
+      if (this.modelSelector) {
+        this.modelSelector.llmClient = newLlmClient;
+        void this.log.info("ModelSelector 的 LLM Client 已同步更新");
+      } else {
+        // 如果之前没有 modelSelector，尝试初始化它
+        await this._tryInitModelSelector();
+      }
+
       void this.log.info("默认 LLM Client 已重新加载", {
         baseURL: newConfig.llm.baseURL,
         model: newConfig.llm.model
@@ -1134,35 +1212,6 @@ export class Runtime {
     } catch (err) {
       const message = err && typeof err.message === "string" ? err.message : String(err);
       void this.log.error("重新加载 LLM Client 失败", { error: message });
-      throw err;
-    }
-  }
-
-  /**
-   * 重新加载 LLM 服务注册表。
-   * 从配置文件重新读取服务配置并清空客户端池。
-   * @returns {Promise<void>}
-   */
-  async reloadLlmServiceRegistry() {
-    try {
-      // 清空现有的客户端池
-      this.llmClientPool.clear();
-      void this.log.info("LLM 客户端池已清空");
-
-      // 重新加载服务注册表
-      if (this.serviceRegistry) {
-        const result = await this.serviceRegistry.load();
-        void this.log.info("LLM 服务注册表已重新加载", {
-          loaded: result.loaded,
-          serviceCount: result.services.length,
-          errors: result.errors.length
-        });
-      } else {
-        void this.log.warn("服务注册表未初始化，跳过重新加载");
-      }
-    } catch (err) {
-      const message = err && typeof err.message === "string" ? err.message : String(err);
-      void this.log.error("重新加载 LLM 服务注册表失败", { error: message });
       throw err;
     }
   }

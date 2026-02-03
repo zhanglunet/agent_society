@@ -273,6 +273,19 @@ export class RuntimeLifecycle {
     const descendants = runtime._agentManager.collectDescendantAgents(targetId);
     const agentsToTerminate = [targetId, ...descendants];
 
+    // 收集这些智能体创建的所有岗位（用于后续删除）
+    const rolesToDelete = new Set();
+    for (const id of agentsToTerminate) {
+      const agentMeta = runtime.org?.getAgent?.(id);
+      if (agentMeta?.roleId) {
+        // 检查该岗位是否由这个智能体创建（通过 createdBy 字段）
+        const role = runtime.org?.getRole?.(agentMeta.roleId);
+        if (role?.createdBy === id) {
+          rolesToDelete.add(agentMeta.roleId);
+        }
+      }
+    }
+
     for (const id of agentsToTerminate) {
       runtime._state.setAgentComputeStatus(id, "terminating");
       runtime._cancelManager?.abort(id, { reason: "force_terminate" });
@@ -293,8 +306,153 @@ export class RuntimeLifecycle {
       runtime._cancelManager?.clear(id);
     }
 
+    // 删除这些智能体创建的岗位
+    const deletedRoles = [];
+    const failedRoles = [];
+    for (const roleId of rolesToDelete) {
+      try {
+        const role = runtime.org?.getRole?.(roleId);
+        if (role && role.status !== "deleted") {
+          // 检查岗位上是否还有其他非终止状态的智能体
+          const hasOtherAgents = Array.from(runtime._agents.values()).some(
+            a => a.roleId === roleId && !agentsToTerminate.includes(a.id)
+          );
+          if (!hasOtherAgents) {
+            await runtime.org?.deleteRole?.(roleId, targetId, `创建者智能体被删除: ${reason}`);
+            deletedRoles.push(roleId);
+          }
+        }
+      } catch (err) {
+        failedRoles.push({ roleId, error: err.message });
+      }
+    }
+
     const termination = await runtime.org.recordTermination(targetId, deletedBy, reason);
-    return { ok: true, agentId: targetId, termination };
+    return { ok: true, agentId: targetId, termination, deletedRoles, failedRoles };
+  }
+
+  /**
+   * 删除岗位及其所有子岗位和智能体。
+   * 
+   * 【删除流程】
+   * 1. 递归收集该岗位及其所有子岗位
+   * 2. 收集这些岗位上的所有智能体
+   * 3. 对每个智能体执行强制终止（停止执行、清理资源）
+   * 4. 在组织中删除岗位（软删除，标记状态）
+   * 
+   * @param {string} roleId - 要删除的岗位ID
+   * @param {string} deletedBy - 执行删除的用户或智能体ID
+   * @param {string} [reason] - 删除原因
+   * @returns {Promise<{ok:boolean, roleId:string, deleteResult?:object, error?:string}>}
+   */
+  async deleteRole(roleId, deletedBy, reason) {
+    const runtime = this.runtime;
+    const org = runtime.org;
+    
+    const role = org.getRole(roleId);
+    if (!role) {
+      return { ok: false, roleId, error: "role_not_found" };
+    }
+    
+    if (role.status === "deleted") {
+      return { ok: false, roleId, error: "role_already_deleted" };
+    }
+    
+    // 不允许删除系统岗位
+    if (roleId === "root" || roleId === "user") {
+      return { ok: false, roleId, error: "cannot_delete_system_role" };
+    }
+
+    // 1. 递归收集所有相关岗位ID（当前岗位及其所有子岗位）
+    const roleIdsToDelete = new Set([roleId]);
+    
+    /**
+     * 递归收集子岗位
+     * 通过智能体的父子关系推断岗位层级：
+     * - 找到岗位下的所有智能体
+     * - 找到这些智能体创建的子智能体
+     * - 子智能体所在的岗位就是子岗位
+     */
+    const collectChildRoles = (parentRoleId) => {
+      for (const [agentId, agent] of runtime._agents) {
+        if (agent.roleId === parentRoleId) {
+          // 找到该岗位下的智能体，然后找它们创建的子智能体
+          for (const [childAgentId, childAgent] of runtime._agents) {
+            if (childAgent.parentAgentId === agentId && childAgent.roleId !== parentRoleId) {
+              if (!roleIdsToDelete.has(childAgent.roleId)) {
+                roleIdsToDelete.add(childAgent.roleId);
+                collectChildRoles(childAgent.roleId);
+              }
+            }
+          }
+        }
+      }
+    };
+    collectChildRoles(roleId);
+
+    // 2. 收集所有需要终止的智能体
+    const agentsToTerminate = [];
+    for (const [agentId, agent] of runtime._agents) {
+      if (roleIdsToDelete.has(agent.roleId)) {
+        // 包括已经 terminated 的，因为它们可能还在 runtime 内存中
+        agentsToTerminate.push(agentId);
+      }
+    }
+
+    // 3. 先强制终止所有智能体，确保它们停止执行
+    const terminatedAgents = [];
+    const failedAgents = [];
+    
+    for (const agentId of agentsToTerminate) {
+      try {
+        // 设置终止状态
+        runtime._state.setAgentComputeStatus(agentId, "terminating");
+        runtime._cancelManager?.abort(agentId, { reason: "role_deleted" });
+        runtime.llm?.abort(agentId);
+        runtime.bus?.clearQueue?.(agentId);
+        runtime._turnEngine?.clearAgent?.(agentId);
+        
+        // 从 runtime 内存中清理
+        runtime._agents.delete(agentId);
+        runtime._conversations.delete(agentId);
+        void runtime._conversationManager?.deletePersistedConversation?.(agentId);
+        runtime._agentMetaById.delete(agentId);
+        runtime._agentLastActivityTime.delete(agentId);
+        runtime._idleWarningEmitted?.delete?.(agentId);
+        runtime._state.unmarkAgentAsActivelyProcessing(agentId);
+        runtime._state.setAgentComputeStatus(agentId, "stopped");
+        runtime._cancelManager?.clear(agentId);
+        
+        terminatedAgents.push(agentId);
+      } catch (termErr) {
+        failedAgents.push({ agentId, error: termErr.message });
+      }
+    }
+
+    // 4. 在组织中删除岗位（软删除，会标记智能体为已终止）
+    const deleteResult = await org.deleteRole(roleId, deletedBy, reason);
+
+    void runtime.log?.info?.("删除岗位完成", {
+      roleId,
+      roleName: role.name,
+      deletedBy,
+      reason: reason ?? null,
+      totalRoles: roleIdsToDelete.size,
+      totalAgents: agentsToTerminate.length,
+      terminatedAgentsCount: terminatedAgents.length,
+      failedAgentsCount: failedAgents.length
+    });
+
+    return {
+      ok: true,
+      roleId,
+      deleteResult: {
+        ...deleteResult,
+        terminatedAgents,
+        failedAgents,
+        roleIdsDeleted: Array.from(roleIdsToDelete)
+      }
+    };
   }
 
   /**

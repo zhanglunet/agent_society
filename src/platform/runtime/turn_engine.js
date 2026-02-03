@@ -244,6 +244,22 @@ export class TurnEngine {
     turn.llmMsg = input.msg ?? null;
     if (turn.llmMsg) {
       turn.conv.push(turn.llmMsg);
+
+      // 更新 token 使用统计
+      const usage = turn.llmMsg._usage ?? null;
+      if (usage && this.runtime._conversationManager) {
+        this.runtime._conversationManager.updateTokenUsage(agentId, usage);
+
+        // 调试日志
+        if (this.runtime.log) {
+          void this.runtime.log.info("更新 token 使用统计", {
+            agentId,
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens
+          });
+        }
+      }
     }
 
     const toolCalls = Array.isArray(turn.llmMsg?.tool_calls) ? turn.llmMsg.tool_calls : [];

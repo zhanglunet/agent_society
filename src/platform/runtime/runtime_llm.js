@@ -42,7 +42,7 @@ export class RuntimeLlm {
     const cancelScope = this.runtime._cancelManager?.newScope(agentId) ?? null;
 
     // 获取智能体应使用的 LlmClient
-    const llmClient = this.runtime.getLlmClientForAgent(agentId);
+    const llmClient = await this.runtime.getLlmClientForAgent(agentId);
     if (!llmClient) {
       void this.runtime.log.error("LLM客户端未配置，无法处理消息", { agentId });
       return;
@@ -767,10 +767,10 @@ export class RuntimeLlm {
   /**
    * 中断指定智能体的 LLM 调用。
    * @param {string} agentId - 智能体 ID
-   * @returns {boolean} 是否成功中断
+   * @returns {Promise<boolean>} 是否成功中断
    */
-  abort(agentId) {
-    const llmClient = this.runtime.getLlmClientForAgent(agentId);
+  async abort(agentId) {
+    const llmClient = await this.runtime.getLlmClientForAgent(agentId);
     if (!llmClient) {
       return false;
     }
@@ -835,7 +835,7 @@ export class RuntimeLlm {
       const agentId = ctx?.agent?.id;
       
       // 获取智能体关联的 LLM 服务 ID 和工作区 ID
-      const llmClient = agentId ? this.runtime.getLlmClientForAgent(agentId) : null;
+      const llmClient = agentId ? await this.runtime.getLlmClientForAgent(agentId) : null;
       const serviceId = llmClient?.serviceId || null;
       const workspaceId = agentId ? this.runtime._agentManager.findWorkspaceIdForAgent(agentId) : null;
 

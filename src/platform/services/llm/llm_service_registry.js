@@ -145,186 +145,111 @@ function validateServiceConfig(service) {
  */
 export class LlmServiceRegistry {
   /**
-   * @param {{configDir?: string, logger?: object}} options
+   * @param {{configDir?: string, logger?: object, configService?: object}} options
    */
   constructor(options = {}) {
     this.configDir = options.configDir ?? "config";
     this.log = options.logger ?? createNoopModuleLogger();
-    /** @type {Map<string, LlmServiceConfig>} */
-    this._services = new Map();
+    this._configService = options.configService;
     this._loaded = false;
   }
 
   /**
-   * 加载服务配置（优先 local 文件）
+   * 加载服务配置 (保持兼容性，但现在主要依赖 configService)
    * @returns {Promise<{loaded: boolean, services: LlmServiceConfig[], errors: string[]}>}
    */
   async load() {
-    const errors = [];
-    const localPath = path.resolve(process.cwd(), this.configDir, "llmservices.local.json");
-    const defaultPath = path.resolve(process.cwd(), this.configDir, "llmservices.json");
-    
-    let configPath = null;
-    let configSource = null;
-    
-    // 优先加载 local 配置文件
-    if (existsSync(localPath)) {
-      configPath = localPath;
-      configSource = "local";
-    } else if (existsSync(defaultPath)) {
-      configPath = defaultPath;
-      configSource = "default";
-    }
-    
-    // 如果两个文件都不存在，使用空服务列表
-    if (!configPath) {
-      void this.log.info("LLM服务配置文件不存在，使用空服务列表", {
-        localPath,
-        defaultPath
-      });
-      this._services.clear();
-      this._loaded = true;
-      return { loaded: true, services: [], errors: [] };
-    }
-    
-    try {
-      const raw = await readFile(configPath, "utf8");
-      let data;
-      
-      try {
-        data = JSON.parse(raw);
-      } catch (parseErr) {
-        void this.log.error("LLM服务配置JSON解析失败", {
-          configPath,
-          error: parseErr.message
-        });
-        this._services.clear();
-        this._loaded = true;
-        return { loaded: false, services: [], errors: ["JSON解析失败: " + parseErr.message] };
-      }
-      
-      // 验证配置结构
-      if (!data || typeof data !== "object") {
-        errors.push("配置文件根对象无效");
-        this._services.clear();
-        this._loaded = true;
-        return { loaded: false, services: [], errors };
-      }
-      
-      const servicesArray = Array.isArray(data.services) ? data.services : [];
-      
-      // 验证并加载每个服务配置
-      this._services.clear();
-      for (let i = 0; i < servicesArray.length; i++) {
-        const service = servicesArray[i];
-        const validation = validateServiceConfig(service);
-        
-        if (validation.valid) {
-          // 验证并标准化 capabilities
-          const capValidation = validateCapabilities(service.capabilities);
-          
-          // 如果 capabilities 有警告，记录日志
-          if (validation.capabilitiesWarnings && validation.capabilitiesWarnings.length > 0) {
-            void this.log.warn("服务capabilities配置有问题，使用默认值", {
-              serviceId: service.id,
-              warnings: validation.capabilitiesWarnings
-            });
-          }
-          
-          // 标准化服务配置
-          const normalizedService = {
-            id: service.id,
-            name: service.name,
-            baseURL: service.baseURL,
-            model: service.model,
-            apiKey: service.apiKey,
-            capabilityTags: service.capabilityTags,
-            capabilities: capValidation.normalized,
-            description: service.description
-          };
-          this._services.set(service.id, normalizedService);
-        } else {
-          void this.log.warn("跳过无效的服务配置条目", {
-            index: i,
-            serviceId: service?.id ?? "unknown",
-            errors: validation.errors
-          });
-          errors.push(`services[${i}]: ${validation.errors.join(", ")}`);
-        }
-      }
-      
-      this._loaded = true;
-      void this.log.info("LLM服务配置加载完成", {
-        configPath,
-        configSource,
-        totalServices: servicesArray.length,
-        validServices: this._services.size,
-        skippedServices: servicesArray.length - this._services.size
-      });
-      
-      return {
-        loaded: true,
-        services: Array.from(this._services.values()),
-        errors
-      };
-      
-    } catch (err) {
-      void this.log.error("LLM服务配置加载失败", {
-        configPath,
-        error: err.message
-      });
-      this._services.clear();
-      this._loaded = true;
-      return { loaded: false, services: [], errors: [err.message] };
-    }
+    this._loaded = true;
+    const services = await this.getServices();
+    return {
+      loaded: true,
+      services,
+      errors: []
+    };
   }
 
   /**
    * 获取所有可用服务
-   * @returns {LlmServiceConfig[]}
+   * @returns {Promise<LlmServiceConfig[]>}
    */
-  getServices() {
-    return Array.from(this._services.values());
+  async getServices() {
+    let servicesArray = [];
+
+    if (this._configService) {
+      try {
+        const result = await this._configService.getServices();
+        servicesArray = Array.isArray(result) ? result : (result.services || []);
+      } catch (err) {
+        void this.log.error("从 ConfigService 获取服务失败", { error: err.message });
+      }
+    }
+
+    if (servicesArray.length === 0) {
+      const localPath = path.resolve(process.cwd(), this.configDir, "llmservices.local.json");
+      const defaultPath = path.resolve(process.cwd(), this.configDir, "llmservices.json");
+      let configPath = existsSync(localPath) ? localPath : (existsSync(defaultPath) ? defaultPath : null);
+
+      if (configPath) {
+        try {
+          const raw = await readFile(configPath, "utf8");
+          const data = JSON.parse(raw);
+          servicesArray = Array.isArray(data.services) ? data.services : [];
+        } catch (err) {
+          void this.log.error("读取 LLM 服务配置文件失败", { configPath, error: err.message });
+        }
+      }
+    }
+
+    const validServices = [];
+    for (const service of servicesArray) {
+      const validation = validateServiceConfig(service);
+      if (validation.valid) {
+        const capValidation = validateCapabilities(service.capabilities);
+        validServices.push({
+          ...service,
+          capabilities: capValidation.normalized
+        });
+      }
+    }
+    return validServices;
   }
 
   /**
    * 根据 ID 获取服务
    * @param {string} serviceId
-   * @returns {LlmServiceConfig | null}
+   * @returns {Promise<LlmServiceConfig | null>}
    */
-  getServiceById(serviceId) {
-    return this._services.get(serviceId) ?? null;
+  async getServiceById(serviceId) {
+    const services = await this.getServices();
+    return services.find(s => s.id === serviceId) ?? null;
   }
 
   /**
    * 检查是否有可用服务
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  hasServices() {
-    return this._services.size > 0;
+  async hasServices() {
+    const services = await this.getServices();
+    return services.length > 0;
   }
 
   /**
    * 获取服务数量
-   * @returns {number}
+   * @returns {Promise<number>}
    */
-  getServiceCount() {
-    return this._services.size;
+  async getServiceCount() {
+    const services = await this.getServices();
+    return services.length;
   }
 
   /**
    * 根据能力标签查询服务
    * @param {string} tag - 能力标签
-   * @returns {LlmServiceConfig[]}
+   * @returns {Promise<LlmServiceConfig[]>}
    */
-  getServicesByCapabilityTag(tag) {
-    const result = [];
-    for (const service of this._services.values()) {
-      if (service.capabilityTags.includes(tag)) {
-        result.push(service);
-      }
-    }
-    return result;
+  async getServicesByCapabilityTag(tag) {
+    const services = await this.getServices();
+    return services.filter(s => s.capabilityTags.includes(tag));
   }
 
   /**
@@ -340,10 +265,10 @@ export class LlmServiceRegistry {
    * @param {string} serviceId - 服务ID
    * @param {string} capabilityType - 能力类型
    * @param {'input' | 'output' | 'both'} [direction='input'] - 方向
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  hasCapability(serviceId, capabilityType, direction = 'input') {
-    const service = this._services.get(serviceId);
+  async hasCapability(serviceId, capabilityType, direction = 'input') {
+    const service = await this.getServiceById(serviceId);
     if (!service || !service.capabilities) {
       return false;
     }
@@ -365,10 +290,10 @@ export class LlmServiceRegistry {
   /**
    * 获取服务的所有能力
    * @param {string} serviceId - 服务ID
-   * @returns {ModelCapabilities | null}
+   * @returns {Promise<ModelCapabilities | null>}
    */
-  getCapabilities(serviceId) {
-    const service = this._services.get(serviceId);
+  async getCapabilities(serviceId) {
+    const service = await this.getServiceById(serviceId);
     if (!service) {
       return null;
     }
@@ -379,12 +304,14 @@ export class LlmServiceRegistry {
    * 根据能力类型查询支持的服务
    * @param {string} capabilityType - 能力类型
    * @param {'input' | 'output' | 'both'} [direction='input'] - 方向
-   * @returns {LlmServiceConfig[]}
+   * @returns {Promise<LlmServiceConfig[]>}
    */
-  getServicesByCapability(capabilityType, direction = 'input') {
+  async getServicesByCapability(capabilityType, direction = 'input') {
+    const services = await this.getServices();
     const result = [];
-    for (const service of this._services.values()) {
-      if (this.hasCapability(service.id, capabilityType, direction)) {
+    for (const service of services) {
+      const hasCap = await this.hasCapability(service.id, capabilityType, direction);
+      if (hasCap) {
         result.push(service);
       }
     }
