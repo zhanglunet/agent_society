@@ -121,7 +121,7 @@ export class FfmpegManager {
 - Command: ${fullCommand}
 - FFmpeg Path: ${ffmpegPath}
 ----------------------------------------\n`;
-    appendFileSync(task.stderrLogPath, debugInfo);
+    appendFileSync(absStderrLogPath, debugInfo);
 
     const child = spawn(fullCommand, {
       cwd: ws.rootPath,
