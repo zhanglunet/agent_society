@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2, Layers } from 'lucide-vue-next';
+import { LayoutGrid, Briefcase, Settings, ChevronLeft, ChevronRight, Home, Search, X, Loader2, Layers, Puzzle } from 'lucide-vue-next';
 import { useAppStore } from '../../stores/app';
 import { useOrgStore } from '../../stores/org';
 import { useChatStore } from '../../stores/chat';
@@ -12,11 +12,13 @@ import ArtifactsList from '../artifacts/ArtifactsList.vue';
 import SettingsDialog from '../settings/SettingsDialog.vue';
 import RoleTreeView from '../overview/RoleTreeView.vue';
 import OrgTemplateManager from '../template/OrgTemplateManager.vue';
+import ModuleWindow from '../modules/ModuleWindow.vue';
 
 const appStore = useAppStore();
 const orgStore = useOrgStore();
 const chatStore = useChatStore();
 const dialog = useDialog();
+const showModulePanel = ref(false);
 
 const searchQuery = ref('');
 
@@ -163,6 +165,10 @@ const tools = [
   { id: 'settings', icon: Settings, label: '系统设置', action: openSettings },
 ];
 
+const toggleModulePanel = () => {
+  showModulePanel.value = !showModulePanel.value;
+};
+
 const handleOrgClick = (org: any) => {
   appStore.openTab({
     id: org.id,
@@ -204,6 +210,17 @@ const handleOrgClick = (org: any) => {
           @click="tool.action"
         >
           <component :is="tool.icon" class="w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" />
+        </Button>
+        <!-- 模块管理按钮 -->
+        <Button 
+          variant="text" 
+          rounded
+          class="!p-1.5 active:translate-y-[1px] active:scale-[0.98] transition-all"
+          :class="{ '!text-[var(--primary)]': showModulePanel }"
+          v-tooltip.bottom="'模块管理'"
+          @click="toggleModulePanel"
+        >
+          <Puzzle class="w-4 h-4 text-[var(--text-2)] hover:text-[var(--primary)] transition-colors" />
         </Button>
       </div>
     </div>
@@ -264,4 +281,7 @@ const handleOrgClick = (org: any) => {
           </Button>
     </div>
   </aside>
+
+  <!-- 模块管理窗口（非模态可拖拽窗口） -->
+  <ModuleWindow v-model="showModulePanel" />
 </template>

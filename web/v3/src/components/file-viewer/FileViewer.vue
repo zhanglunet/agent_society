@@ -8,7 +8,8 @@ import { ref, computed, onMounted, shallowRef, inject, provide, toRef } from 'vu
 import { AlertCircle, Loader2 } from 'lucide-vue-next';
 import { fileViewerService } from './services/fileViewerService';
 import { mimeTypeRegistry } from './mimeTypeRegistry';
-import { ViewModeKey } from './index';
+import { ViewModeKey, CopyFunctionKey as FileViewerCopyKey } from './index';
+import { CopyFunctionKey } from './injectionKeys';
 import type { FileContent } from './types';
 
 // 注入 Dialog 数据
@@ -27,6 +28,29 @@ const viewMode = dialogData ? toRef(dialogData, 'viewMode') : ref<'preview' | 's
 
 // 提供给子组件
 provide(ViewModeKey, viewMode);
+
+// 复制功能状态 - 必须在 provide 之前创建
+const copied = ref(false);
+const copyFunction = ref<{ copy: () => void; copied: { value: boolean } } | null>(null);
+
+// 提供复制功能 Ref（给 Header 用）- 必须在 CodeRenderer 挂载之前提供
+provide(FileViewerCopyKey, copyFunction);
+
+// 设置复制函数（由 CodeRenderer 调用）
+const setCopyFunction = (fn: () => void) => {
+  console.log('[FileViewer] setCopyFunction called');
+  copyFunction.value = {
+    copy: fn,
+    copied: { value: copied } as any
+  };
+  console.log('[FileViewer] copyFunction.value after set:', copyFunction.value);
+};
+
+// 提供复制功能的设置方法（给 CodeRenderer 用）
+provide(CopyFunctionKey, {
+  setCopyFunction,
+  copied: { value: copied } as any
+});
 
 // Dialog 控制方法 - 提供给子组件使用
 const maximized = computed(() => {

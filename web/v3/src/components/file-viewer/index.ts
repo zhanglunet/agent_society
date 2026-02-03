@@ -14,6 +14,9 @@ import type { FileViewerOptions } from './types';
 // 提供 viewMode 的 key
 export const ViewModeKey: InjectionKey<Ref<'preview' | 'source'>> = Symbol('viewMode');
 
+// 提供 copyFunction 的 key
+export const CopyFunctionKey: InjectionKey<Ref<{ copy: () => void; copied: { value: boolean } } | null>> = Symbol('copyFunction');
+
 /**
  * 打开文件查看器的选项
  */
@@ -67,6 +70,9 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
 
   // 创建共享的 viewMode - 放在 dialog 数据中
   const viewMode = ref<'preview' | 'source'>('preview');
+
+  // 创建共享的复制功能对象
+  const copyFunction = ref<{ copy: () => void; copied: { value: boolean } } | null>(null);
 
   // 保存原始尺寸，用于还原
   const originalSize = {
@@ -188,6 +194,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           }
         };
 
+        console.log('[index.ts] Rendering FileViewerHeader, copyFunction:', copyFunction);
         return h(FileViewerHeader, {
           fileName,
           workspaceId,
@@ -196,6 +203,7 @@ export async function openFileViewer(params: OpenFileViewerOptions) {
           size: fileInfo.size,
           hasViewMode: fileInfo.hasViewMode,
           viewMode: sharedViewMode,
+          copyFunction: copyFunction,
           maximized: dialogProps?.state?.maximized,
           onMaximize: handleMaximize,
           onClose: handleClose

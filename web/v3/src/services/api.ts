@@ -305,6 +305,54 @@ export const apiService = {
     const query = since ? `?since=${encodeURIComponent(since)}` : '';
     return request<{ errors: ErrorEvent[], retries: RetryEvent[] }>(`/events${query}`);
   },
+
+  /**
+   * 获取所有已加载模块列表
+   */
+  async getModules(): Promise<ModuleInfo[]> {
+    const data = await request<{ ok: boolean; modules: ModuleInfo[]; count: number }>('/modules');
+    return data.modules || [];
+  },
+
+  /**
+   * 获取指定模块的 Web 组件定义
+   * @param moduleName 模块名称
+   */
+  async getModuleWebComponent(moduleName: string): Promise<ModuleWebComponent | null> {
+    try {
+      const data = await request<{
+        ok: boolean;
+        component?: ModuleWebComponent;
+        html?: string;
+        css?: string;
+        js?: string;
+        moduleName?: string;
+        displayName?: string;
+        icon?: string;
+      }>(`/modules/${encodeURIComponent(moduleName)}/web-component`);
+      
+      // 如果有 component 字段，直接返回
+      if (data.component) {
+        return data.component;
+      }
+      
+      // 如果有 html 字段，构造组件对象（有 panelPath 的情况）
+      if (data.html !== undefined) {
+        return {
+          moduleName: data.moduleName || moduleName,
+          displayName: data.displayName || moduleName,
+          icon: data.icon || '📦',
+          html: data.html,
+          css: data.css,
+          js: data.js
+        };
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  },
 };
 
 /**
@@ -345,4 +393,27 @@ export interface RetryEvent {
   delayMs: number;
   errorMessage: string;
   timestamp: string;
+}
+
+/**
+ * 模块信息
+ */
+export interface ModuleInfo {
+  name: string;
+  toolGroupId: string;
+  toolGroupDescription: string;
+  hasWebComponent: boolean;
+  hasHttpHandler: boolean;
+}
+
+/**
+ * 模块 Web 组件定义
+ */
+export interface ModuleWebComponent {
+  moduleName: string;
+  displayName: string;
+  icon: string;
+  html: string;
+  css?: string;
+  js?: string;
 }

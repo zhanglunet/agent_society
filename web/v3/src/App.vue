@@ -167,8 +167,12 @@ onUnmounted(() => {
 
     <!-- 主容器 -->
     <main class="flex-grow flex flex-col min-w-0 relative">
-      <!-- 顶部临时控制区 (后续会集成到各组件中) -->
-      <div class="absolute top-2 right-4 z-50">
+      <!-- 顶部工具栏 -->
+      <div class="absolute top-2 right-4 z-50 flex items-center gap-1">
+        <!-- 模块管理 -->
+        <ModuleManager ref="moduleManagerRef" />
+        
+        <!-- 主题切换 -->
         <Button 
           variant="text" 
           rounded 

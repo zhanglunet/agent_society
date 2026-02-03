@@ -1,20 +1,19 @@
 <script setup lang="ts">
 /**
  * 代码渲染器
- * 
+ *
  * 支持多种编程语言语法高亮
- * 
+ *
  * @module components/file-viewer/renderers/CodeRenderer
  */
-import { computed, ref } from 'vue';
-import { Copy, Check } from 'lucide-vue-next';
-import Button from 'primevue/button';
+import { computed, inject, onMounted } from 'vue';
 import type { RendererProps } from '../types';
+import { CopyFunctionKey } from '../injectionKeys';
 
 const props = defineProps<RendererProps>();
 
-// 状态
-const copied = ref(false);
+// 注入 FileViewer 提供的方法
+const copyContext = inject<{ setCopyFunction: (fn: () => void) => void; copied: { value: boolean } } | null>(CopyFunctionKey, null);
 
 /**
  * 代码内容
@@ -43,14 +42,27 @@ const lines = computed(() => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(codeContent.value);
-    copied.value = true;
-    setTimeout(() => {
-      copied.value = false;
-    }, 2000);
+    if (copyContext?.copied) {
+      copyContext.copied.value = true;
+      setTimeout(() => {
+        if (copyContext?.copied) {
+          copyContext.copied.value = false;
+        }
+      }, 2000);
+    }
   } catch (err) {
     console.error('复制失败:', err);
   }
 };
+
+// 组件挂载时注册复制函数
+onMounted(() => {
+  console.log('[CodeRenderer] onMounted, copyContext:', copyContext);
+  if (copyContext) {
+    copyContext.setCopyFunction(copyToClipboard);
+    console.log('[CodeRenderer] copyFunction registered');
+  }
+});
 
 /**
  * 简单的语法高亮
@@ -89,21 +101,7 @@ const highlightLine = (line: string): string => {
 </script>
 
 <template>
-  <div class="code-renderer flex flex-col h-full bg-[var(--bg)] relative">
-    <!-- 悬浮复制按钮 -->
-    <div class="absolute top-3 right-3 z-10">
-      <Button
-        variant="text"
-        size="small"
-        v-tooltip.bottom="copied ? '已复制' : '复制代码'"
-        @click="copyToClipboard"
-        class="bg-[var(--surface-1)]/80 backdrop-blur"
-      >
-        <Check v-if="copied" class="w-4 h-4 text-green-500" />
-        <Copy v-else class="w-4 h-4" />
-      </Button>
-    </div>
-
+  <div class="code-renderer flex flex-col h-full bg-[var(--bg)]">
     <!-- 代码内容 -->
     <div class="flex-1 overflow-auto">
       <table class="code-table">
