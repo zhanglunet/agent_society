@@ -282,6 +282,17 @@ watch(renderedHtml, () => {
   });
 });
 
+// 监听视图模式变化，切回预览视图时重新渲染
+watch(viewMode, (mode) => {
+  if (mode === 'preview') {
+    nextTick(() => {
+      if (!previewRef.value) return;
+      renderAllMermaid(previewRef.value);
+      renderAllMath(previewRef.value);
+    });
+  }
+});
+
 onMounted(() => {
   // 初始化渲染 Mermaid 和 Math
   if (previewRef.value) {
