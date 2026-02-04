@@ -2,10 +2,11 @@
  * 代码高亮插件
  * 
  * @module components/file-viewer/renderers/markdown/plugins/code-highlight
+ * 
+ * 支持懒加载语言，首次使用时会动态导入
  */
 
 import Prism from 'prismjs';
-import type { MarkdownEngine } from '../engine';
 
 // 基础语言（首屏加载）
 import 'prismjs/components/prism-javascript';
@@ -23,6 +24,7 @@ const LANG_ALIASES: Record<string, string> = {
   'rb': 'ruby',
   'sh': 'bash',
   'shell': 'bash',
+  'bash/shell': 'bash',
   'yml': 'yaml',
   'md': 'markdown',
   'vue': 'markup',
@@ -31,17 +33,28 @@ const LANG_ALIASES: Record<string, string> = {
   'jsx': 'javascript',
   'tsx': 'typescript',
   'c++': 'cpp',
-  'c#': 'csharp'
+  'c#': 'csharp',
+  'cs': 'csharp',
+  'golang': 'go',
+  'rs': 'rust'
 };
 
 // 懒加载的语言列表
 const LAZY_LANGUAGES = [
   'python', 'java', 'bash', 'yaml', 'sql', 'rust', 'go',
-  'php', 'ruby', 'docker', 'nginx', 'graphql'
+  'php', 'ruby', 'cpp', 'csharp', 'swift', 'kotlin',
+  'docker', 'nginx', 'graphql', 'c', 'perl', 'lua'
 ];
 
 // 已加载的语言
 const loadedLanguages = new Set(['javascript', 'typescript', 'json', 'markdown', 'css', 'markup']);
+
+// 加载中的语言
+const loadingLanguages = new Map<string, Promise<boolean>>();
+
+// 使用 import.meta.glob 预声明所有可能的语言模块导入
+// 这样 Vite 在构建时就能知道需要处理这些模块
+const languageModules = import.meta.glob('/node_modules/prismjs/components/prism-*.js', { eager: false });
 
 /**
  * 获取标准语言名称
@@ -61,17 +74,36 @@ async function loadLanguage(lang: string): Promise<boolean> {
     return true;
   }
   
-  if (!LAZY_LANGUAGES.includes(normalized)) {
+  // 检查是否正在加载中
+  if (loadingLanguages.has(normalized)) {
+    return loadingLanguages.get(normalized)!;
+  }
+  
+  // 构建模块路径
+  const modulePath = `/node_modules/prismjs/components/prism-${normalized}.js`;
+  const loader = languageModules[modulePath];
+  
+  if (!loader) {
+    console.warn(`[CodeHighlight] 语言模块不存在: ${normalized}`);
     return false;
   }
   
-  try {
-    await import(`prismjs/components/prism-${normalized}`);
-    loadedLanguages.add(normalized);
-    return true;
-  } catch {
-    return false;
-  }
+  // 创建加载 Promise
+  const loadPromise = (async () => {
+    try {
+      await loader();
+      loadedLanguages.add(normalized);
+      return true;
+    } catch (err) {
+      console.warn(`[CodeHighlight] 加载语言失败: ${normalized}`, err);
+      return false;
+    } finally {
+      loadingLanguages.delete(normalized);
+    }
+  })();
+  
+  loadingLanguages.set(normalized, loadPromise);
+  return loadPromise;
 }
 
 /**
@@ -102,55 +134,68 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * 预加载语言（如果尚未加载）
+ */
+async function ensureLanguageLoaded(lang: string): Promise<boolean> {
+  const normalized = normalizeLang(lang);
+  if (loadedLanguages.has(normalized)) {
+    return true;
+  }
+  return loadLanguage(lang);
+}
+
+/**
+ * 渲染所有代码块
+ * 后处理函数，用于懒加载语言并高亮
+ */
+export async function renderAllCodeBlocks(container: HTMLElement): Promise<void> {
+  const codeBlocks = container.querySelectorAll('pre[data-lang]:not([data-highlighted])');
+  
+  console.log('[CodeHighlight] Found code blocks:', codeBlocks.length);
+  if (codeBlocks.length === 0) return;
+  
+  const promises: Promise<void>[] = [];
+  
+  for (const pre of codeBlocks) {
+    const lang = pre.getAttribute('data-lang');
+    const code = pre.querySelector('code');
+    
+    if (!lang || !code) continue;
+    
+    const promise = (async () => {
+      console.log(`[CodeHighlight] Processing ${lang} block`);
+      // 确保语言加载完成
+      const loaded = await ensureLanguageLoaded(lang);
+      console.log(`[CodeHighlight] Language ${lang} loaded:`, loaded);
+      if (!loaded) return;
+      
+      // 高亮代码
+      const content = code.textContent || '';
+      console.log(`[CodeHighlight] Content length:`, content.length);
+      const highlighted = highlightCode(content, lang);
+      console.log(`[CodeHighlight] Highlighted length:`, highlighted.length);
+      code.innerHTML = highlighted;
+      
+      // 标记为已高亮
+      pre.setAttribute('data-highlighted', 'true');
+      console.log(`[CodeHighlight] Done highlighting ${lang}`);
+    })();
+    
+    promises.push(promise);
+  }
+  
+  await Promise.all(promises);
+}
+
+/**
  * 代码高亮插件
  */
 export const codeHighlightPlugin = {
   name: 'code-highlight',
   
-  install(engine: MarkdownEngine) {
-    const md = engine.md;
-    
-    // 重写 fence 规则（代码块）
-    const originalFence = md.renderer.rules.fence || md.renderer.renderToken;
-    
-    md.renderer.rules.fence = (tokens, idx, options, env, self) => {
-      const token = tokens[idx];
-      if (!token) {
-        return originalFence(tokens, idx, options, env, self);
-      }
-      
-      const code = token.content;
-      const info = token.info.trim();
-      const lang = info.split(' ')[0];
-      
-      // Mermaid 和数学公式不处理
-      if (lang === 'mermaid' || lang === 'math' || lang === 'latex') {
-        return originalFence(tokens, idx, options, env, self);
-      }
-      
-      // 有指定语言则高亮
-      if (lang && Prism.languages[normalizeLang(lang)]) {
-        const highlighted = highlightCode(code, lang);
-        return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>`;
-      }
-      
-      // 无语言或未知语言
-      return `<pre><code>${escapeHtml(code)}</code></pre>`;
-    };
-    
-    // 重写 code_inline 规则（行内代码）
-    const originalCodeInline = md.renderer.rules.code_inline || md.renderer.renderToken;
-    
-    md.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
-      const token = tokens[idx];
-      if (!token) {
-        return originalCodeInline(tokens, idx, options, env, self);
-      }
-      
-      const code = token.content;
-      // 行内代码不做高亮，只做转义
-      return `<code>${escapeHtml(code)}</code>`;
-    };
+  install() {
+    // 这个插件现在主要通过 renderAllCodeBlocks 后处理函数工作
+    // 在 MarkdownRenderer 中调用
   }
 };
 
@@ -158,6 +203,6 @@ export const codeHighlightPlugin = {
  * 预加载常用语言
  */
 export async function preloadCommonLanguages(): Promise<void> {
-  const promises = LAZY_LANGUAGES.slice(0, 5).map(loadLanguage);
+  const promises = LAZY_LANGUAGES.slice(0, 6).map(loadLanguage);
   await Promise.all(promises);
 }

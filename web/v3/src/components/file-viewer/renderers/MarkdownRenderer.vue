@@ -19,6 +19,7 @@ import './markdown/katex-theme.css';
 import type { RenderResult } from './markdown';
 import { renderAllMermaid } from './markdown/plugins/mermaid';
 import { renderAllMath } from './markdown/plugins/math';
+import { renderAllCodeBlocks } from './markdown/plugins/code-highlight';
 
 const props = defineProps<RendererProps>();
 const emit = defineEmits<{
@@ -276,6 +277,7 @@ watch(renderedHtml, () => {
     // 总是尝试渲染（函数内部会检查是否有需要渲染的元素）
     renderAllMermaid(previewRef.value);
     renderAllMath(previewRef.value);
+    renderAllCodeBlocks(previewRef.value);
     
     // 处理 hash 定位
     handleHashChange();
@@ -289,15 +291,17 @@ watch(viewMode, (mode) => {
       if (!previewRef.value) return;
       renderAllMermaid(previewRef.value);
       renderAllMath(previewRef.value);
+      renderAllCodeBlocks(previewRef.value);
     });
   }
 });
 
 onMounted(() => {
-  // 初始化渲染 Mermaid 和 Math
+  // 初始化渲染 Mermaid、Math 和代码高亮
   if (previewRef.value) {
     renderAllMermaid(previewRef.value);
     renderAllMath(previewRef.value);
+    renderAllCodeBlocks(previewRef.value);
   }
   // 初始化 hash 定位
   handleHashChange();

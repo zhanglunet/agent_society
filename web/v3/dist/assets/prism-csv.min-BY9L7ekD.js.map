@@ -1,0 +1,1 @@
+{"version":3,"file":"prism-csv.min-BY9L7ekD.js","sources":["../../node_modules/prismjs/components/prism-csv.min.js"],"sourcesContent":["Prism.languages.csv={value:/[^\\r\\n,\"]+|\"(?:[^\"]|\"\")*\"(?!\")/,punctuation:/,/};"],"names":[],"mappings":"AAAA,MAAM,UAAU,MAAI,EAAC,OAAM,kCAAiC,aAAY,IAAG;","x_google_ignoreList":[0]}

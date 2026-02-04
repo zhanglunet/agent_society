@@ -176,8 +176,12 @@ export function createMarkdownEngine(): MarkdownEngine {
       return `<div class="math-block" data-content="${escapeHtml(content)}">$$${escapeHtml(content)}$$</div>`;
     }
 
-    // 普通代码块
-    return originalFence ? originalFence(tokens, idx, options, env, self) : '';
+    // 普通代码块 - 添加 data-lang 属性用于后处理高亮
+    const lang = info.split(' ')[0];
+    if (lang) {
+      return `<pre data-lang="${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(content)}</code></pre>`;
+    }
+    return `<pre><code>${escapeHtml(content)}</code></pre>`;
   };
 
   /**
