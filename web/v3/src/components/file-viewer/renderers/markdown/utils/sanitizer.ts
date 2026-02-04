@@ -77,7 +77,7 @@ export function sanitizeHtml(html: string): string {
   const result = purify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: false,
+    ALLOW_DATA_ATTR: true,  // 允许 data-* 属性（用于 math, mermaid 等）
     SANITIZE_DOM: true,
     KEEP_CONTENT: true
   });

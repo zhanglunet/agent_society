@@ -10,7 +10,7 @@ import type { RenderOptions, RenderResult, HeadingInfo } from './markdown.types'
 import { sanitizeHtml } from './utils/sanitizer';
 import { generateAnchorId, resolveImage, resolveLink } from './utils/path';
 import { codeHighlightPlugin } from './plugins/code-highlight';
-import { mathPlugin } from './plugins/math';
+import { mathPlugin, hasMath as checkHasMath } from './plugins/math';
 
 /**
  * Markdown 引擎接口
@@ -198,14 +198,25 @@ export function createMarkdownEngine(): MarkdownEngine {
 
     // 渲染
     let html = md.render(content, env);
+    
+    // 调试：检查生成的 HTML 中是否包含 math 相关类
+    console.log('[Engine] Generated HTML contains math-inline:', html.includes('math-inline'));
+    console.log('[Engine] Generated HTML contains math-block:', html.includes('math-block'));
+    console.log('[Engine] HTML snippet:', html.substring(0, 500));
 
     // 安全过滤
     html = sanitizeHtml(html);
+    
+    // 调试：检查过滤后的 HTML
+    console.log('[Engine] After sanitize math-inline:', html.includes('math-inline'));
+
+    // 检测是否包含数学公式（代码块形式 + 行内/块级形式）
+    const finalHasMath = hasMath || checkHasMath(content);
 
     return {
       html,
       headings,
-      hasMath,
+      hasMath: finalHasMath,
       hasMermaid
     };
   }

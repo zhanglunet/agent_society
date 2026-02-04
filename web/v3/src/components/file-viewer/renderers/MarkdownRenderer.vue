@@ -283,6 +283,11 @@ watch(renderedHtml, () => {
 });
 
 onMounted(() => {
+  // 初始化渲染 Mermaid 和 Math
+  if (previewRef.value) {
+    renderAllMermaid(previewRef.value);
+    renderAllMath(previewRef.value);
+  }
   // 初始化 hash 定位
   handleHashChange();
 });

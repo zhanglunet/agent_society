@@ -95,9 +95,15 @@ async function renderBlockMath(element: HTMLElement): Promise<void> {
  * 渲染所有公式
  */
 export async function renderAllMath(container: HTMLElement): Promise<void> {
+  console.log('[Math] Container:', container);
+  console.log('[Math] Container innerHTML:', container.innerHTML.substring(0, 500));
+  
   const inlineElements = container.querySelectorAll('.math-inline:not(.math-rendered)');
   const blockElements = container.querySelectorAll('.math-block:not(.math-rendered)');
   
+  console.log('[Math] Found inline elements:', inlineElements.length);
+  console.log('[Math] Found block elements:', blockElements.length);
+
   if (inlineElements.length === 0 && blockElements.length === 0) return;
   
   // 先加载库
@@ -126,11 +132,14 @@ export const mathPlugin = {
     // 块级公式: $$...$$
     
     // 添加行内规则来处理 $
-    md.inline.ruler.after('escape', 'math_inline', (state, silent) => {
+    // 使用 push 添加到规则列表末尾，确保能处理未被其他规则匹配的 $
+    md.inline.ruler.push('math_inline', (state, silent) => {
       // 检查是否是 $
       if (state.src.charCodeAt(state.pos) !== 0x24 /* $ */) {
         return false;
       }
+      
+
       
       // 检查是否是 $$
       if (state.src.charCodeAt(state.pos + 1) === 0x24 /* $ */) {
