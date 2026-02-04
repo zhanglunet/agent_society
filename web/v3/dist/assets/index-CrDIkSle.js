@@ -29485,7 +29485,8 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
           "leave-to-class": "opacity-0"
         }, {
           default: withCtx(() => [
-            withDirectives(createBaseVNode("div", {
+            __props.modelValue ? (openBlock(), createElementBlock("div", {
+              key: 0,
               class: normalizeClass(["fixed z-40 flex flex-col overflow-hidden border border-[var(--border)] bg-[var(--surface-1)]", [
                 isDragging.value ? "opacity-90" : "",
                 isMaximized.value ? "" : "shadow-2xl rounded-lg"
@@ -29633,9 +29634,7 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
                   ])
                 ])
               ])
-            ], 6), [
-              [vShow, __props.modelValue]
-            ])
+            ], 6)) : createCommentVNode("", true)
           ]),
           _: 1
         })
@@ -29643,7 +29642,7 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const ModuleWindow = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-999d3bd8"]]);
+const ModuleWindow = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-472be796"]]);
 const _hoisted_1$d = { class: "p-4 flex items-center justify-between" };
 const _hoisted_2$c = {
   key: 0,
@@ -34734,4 +34733,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-DeCQEv77.js.map
+//# sourceMappingURL=index-CrDIkSle.js.map

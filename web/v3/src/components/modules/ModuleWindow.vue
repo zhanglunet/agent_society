@@ -304,7 +304,7 @@ defineExpose({
       leave-to-class="opacity-0"
     >
       <div
-        v-show="modelValue"
+        v-if="modelValue"
         class="fixed z-40 flex flex-col overflow-hidden border border-[var(--border)] bg-[var(--surface-1)]"
         :class="[
           isDragging ? 'opacity-90' : '',
