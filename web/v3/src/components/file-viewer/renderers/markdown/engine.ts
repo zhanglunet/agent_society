@@ -8,6 +8,7 @@ import MarkdownIt from 'markdown-it';
 import type { RenderOptions, RenderResult, HeadingInfo } from './markdown.types';
 import { sanitizeHtml } from './utils/sanitizer';
 import { generateAnchorId, resolveImage, resolveLink } from './utils/path';
+import { codeHighlightPlugin } from './plugins/code-highlight';
 
 /**
  * Markdown 引擎接口
@@ -216,6 +217,9 @@ export function createMarkdownEngine(): MarkdownEngine {
     use,
     md
   };
+
+  // 安装代码高亮插件
+  engine.use(codeHighlightPlugin);
 
   return engine;
 }

@@ -14,6 +14,7 @@ import { computed, inject, ref, onMounted, watch, nextTick } from 'vue';
 import { ViewModeKey } from '../index';
 import type { RendererProps } from '../types';
 import { getMarkdownEngine } from './markdown';
+import './markdown/prism-theme.css';
 import type { RenderResult } from './markdown';
 
 const props = defineProps<RendererProps>();
