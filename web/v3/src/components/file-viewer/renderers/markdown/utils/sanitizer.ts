@@ -23,7 +23,9 @@ const ALLOWED_TAGS = [
   // 表格
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
   // 其他
-  'sup', 'sub', 'del', 'ins', 'mark'
+  'sup', 'sub', 'del', 'ins', 'mark',
+  // 注脚
+  'section', 'footer'
 ];
 
 /**
@@ -39,7 +41,13 @@ const ALLOWED_ATTR = [
   // 代码属性
   'data-lang',
   // 锚点
-  'data-path', 'data-src'
+  'data-path', 'data-src',
+  // 数学公式
+  'data-math',
+  // Mermaid
+  'data-content',
+  // 注脚
+  'aria-describedby', 'role'
 ];
 
 

@@ -1,0 +1,137 @@
+/**
+ * KaTeX 主题 - 适配现有 CSS 变量
+ */
+
+/* 基础字体 */
+.katex {
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  font-size: 1.1em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-indent: 0;
+  color: var(--text-1);
+}
+
+/* 块级公式 */
+.katex-display {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex-display > .katex {
+  display: block;
+  text-align: center;
+  white-space: normal;
+}
+
+.katex-display > .katex > .katex-html {
+  display: block;
+  position: relative;
+}
+
+/* 行内公式 */
+.katex-inline {
+  display: inline;
+}
+
+/* 数学符号颜色 */
+.katex .mathnormal,
+.katex .mathrm,
+.katex .mathbf,
+.katex .mathit {
+  color: var(--text-1);
+}
+
+.katex .mfrac .frac-line {
+  border-bottom-color: var(--text-1);
+}
+
+/* 分隔符 */
+.katex .delimsizing {
+  color: var(--text-1);
+}
+
+/* 根号 */
+.katex .sqrt > .sqrt-line {
+  border-top-color: var(--text-1);
+}
+
+.katex .sqrt > .root {
+  color: var(--text-2);
+}
+
+/* 上下标 */
+.katex .msupsub {
+  color: var(--text-2);
+}
+
+/* 矩阵、数组 */
+.katex .arraycolsep {
+  border-color: var(--border);
+}
+
+.katex .hline {
+  border-top-color: var(--text-1);
+}
+
+/* 错误提示 */
+.katex-error {
+  color: #d73a49;
+  background: rgba(215, 58, 73, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* 未渲染状态 */
+.math-inline:not(.math-rendered),
+.math-block:not(.math-rendered) {
+  opacity: 0.7;
+}
+
+/* 块级公式容器 */
+.math-block {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+
+.math-block pre {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+/* 暗色模式适配 */
+.my-app-dark .katex {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .mathnormal,
+.my-app-dark .katex .mathrm,
+.my-app-dark .katex .mathbf,
+.my-app-dark .katex .mathit {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .mfrac .frac-line {
+  border-bottom-color: var(--text-1);
+}
+
+.my-app-dark .katex .delimsizing {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .sqrt > .sqrt-line {
+  border-top-color: var(--text-1);
+}
+
+.my-app-dark .katex .sqrt > .root {
+  color: var(--text-2);
+}
+
+.my-app-dark .katex .hline {
+  border-top-color: var(--text-1);
+}

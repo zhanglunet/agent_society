@@ -1816,33 +1816,33 @@ function watch$1(source, cb, options3 = EMPTY_OBJ) {
   watchHandle.stop = watchHandle;
   return watchHandle;
 }
-function traverse(value2, depth = Infinity, seen) {
+function traverse(value2, depth = Infinity, seen2) {
   if (depth <= 0 || !isObject$1(value2) || value2["__v_skip"]) {
     return value2;
   }
-  seen = seen || /* @__PURE__ */ new Map();
-  if ((seen.get(value2) || 0) >= depth) {
+  seen2 = seen2 || /* @__PURE__ */ new Map();
+  if ((seen2.get(value2) || 0) >= depth) {
     return value2;
   }
-  seen.set(value2, depth);
+  seen2.set(value2, depth);
   depth--;
   if (/* @__PURE__ */ isRef(value2)) {
-    traverse(value2.value, depth, seen);
+    traverse(value2.value, depth, seen2);
   } else if (isArray(value2)) {
     for (let i2 = 0; i2 < value2.length; i2++) {
-      traverse(value2[i2], depth, seen);
+      traverse(value2[i2], depth, seen2);
     }
   } else if (isSet(value2) || isMap(value2)) {
     value2.forEach((v2) => {
-      traverse(v2, depth, seen);
+      traverse(v2, depth, seen2);
     });
   } else if (isPlainObject$1(value2)) {
     for (const key in value2) {
-      traverse(value2[key], depth, seen);
+      traverse(value2[key], depth, seen2);
     }
     for (const key of Object.getOwnPropertySymbols(value2)) {
       if (Object.prototype.propertyIsEnumerable.call(value2, key)) {
-        traverse(value2[key], depth, seen);
+        traverse(value2[key], depth, seen2);
       }
     }
   }
@@ -2075,7 +2075,7 @@ function queuePostFlushCb(cb) {
   }
   queueFlush();
 }
-function flushPreFlushCbs(instance, seen, i2 = flushIndex + 1) {
+function flushPreFlushCbs(instance, seen2, i2 = flushIndex + 1) {
   for (; i2 < queue.length; i2++) {
     const cb = queue[i2];
     if (cb && cb.flags & 2) {
@@ -2094,7 +2094,7 @@ function flushPreFlushCbs(instance, seen, i2 = flushIndex + 1) {
     }
   }
 }
-function flushPostFlushCbs(seen) {
+function flushPostFlushCbs(seen2) {
   if (pendingPostFlushCbs.length) {
     const deduped = [...new Set(pendingPostFlushCbs)].sort(
       (a2, b2) => getId(a2) - getId(b2)
@@ -2118,7 +2118,7 @@ function flushPostFlushCbs(seen) {
   }
 }
 const getId = (job) => job.id == null ? job.flags & 2 ? -1 : Infinity : job.id;
-function flushJobs(seen) {
+function flushJobs(seen2) {
   try {
     for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
       const job = queue[flushIndex];
@@ -16448,7 +16448,7 @@ const HTML_REPLACEMENTS = {
 function replaceUnsafeChar(ch) {
   return HTML_REPLACEMENTS[ch];
 }
-function escapeHtml$1(str) {
+function escapeHtml$3(str) {
   if (HTML_ESCAPE_TEST_RE.test(str)) {
     return str.replace(HTML_ESCAPE_REPLACE_RE, replaceUnsafeChar);
   }
@@ -16545,7 +16545,7 @@ const utils = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   __proto__: null,
   arrayReplaceAt,
   assign: assign$1,
-  escapeHtml: escapeHtml$1,
+  escapeHtml: escapeHtml$3,
   escapeRE: escapeRE$1,
   fromCodePoint,
   has,
@@ -16726,11 +16726,11 @@ const helpers = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
 const default_rules = {};
 default_rules.code_inline = function(tokens, idx, options3, env, slf) {
   const token = tokens[idx];
-  return "<code" + slf.renderAttrs(token) + ">" + escapeHtml$1(token.content) + "</code>";
+  return "<code" + slf.renderAttrs(token) + ">" + escapeHtml$3(token.content) + "</code>";
 };
 default_rules.code_block = function(tokens, idx, options3, env, slf) {
   const token = tokens[idx];
-  return "<pre" + slf.renderAttrs(token) + "><code>" + escapeHtml$1(tokens[idx].content) + "</code></pre>\n";
+  return "<pre" + slf.renderAttrs(token) + "><code>" + escapeHtml$3(tokens[idx].content) + "</code></pre>\n";
 };
 default_rules.fence = function(tokens, idx, options3, env, slf) {
   const token = tokens[idx];
@@ -16744,9 +16744,9 @@ default_rules.fence = function(tokens, idx, options3, env, slf) {
   }
   let highlighted;
   if (options3.highlight) {
-    highlighted = options3.highlight(token.content, langName, langAttrs) || escapeHtml$1(token.content);
+    highlighted = options3.highlight(token.content, langName, langAttrs) || escapeHtml$3(token.content);
   } else {
-    highlighted = escapeHtml$1(token.content);
+    highlighted = escapeHtml$3(token.content);
   }
   if (highlighted.indexOf("<pre") === 0) {
     return highlighted + "\n";
@@ -16781,7 +16781,7 @@ default_rules.softbreak = function(tokens, idx, options3) {
   return options3.breaks ? options3.xhtmlOut ? "<br />\n" : "<br>\n" : "\n";
 };
 default_rules.text = function(tokens, idx) {
-  return escapeHtml$1(tokens[idx].content);
+  return escapeHtml$3(tokens[idx].content);
 };
 default_rules.html_block = function(tokens, idx) {
   return tokens[idx].content;
@@ -16799,7 +16799,7 @@ Renderer.prototype.renderAttrs = function renderAttrs(token) {
   }
   result = "";
   for (i2 = 0, l2 = token.attrs.length; i2 < l2; i2++) {
-    result += " " + escapeHtml$1(token.attrs[i2][0]) + '="' + escapeHtml$1(token.attrs[i2][1]) + '"';
+    result += " " + escapeHtml$3(token.attrs[i2][0]) + '="' + escapeHtml$3(token.attrs[i2][1]) + '"';
   }
   return result;
 };
@@ -20725,6 +20725,263 @@ MarkdownIt.prototype.renderInline = function(src, env) {
   env = env || {};
   return this.renderer.render(this.parseInline(src, env), this.options, env);
 };
+function render_footnote_anchor_name(tokens, idx, options3, env) {
+  const n2 = Number(tokens[idx].meta.id + 1).toString();
+  let prefix2 = "";
+  if (typeof env.docId === "string") prefix2 = `-${env.docId}-`;
+  return prefix2 + n2;
+}
+function render_footnote_caption(tokens, idx) {
+  let n2 = Number(tokens[idx].meta.id + 1).toString();
+  if (tokens[idx].meta.subId > 0) n2 += `:${tokens[idx].meta.subId}`;
+  return `[${n2}]`;
+}
+function render_footnote_ref(tokens, idx, options3, env, slf) {
+  const id3 = slf.rules.footnote_anchor_name(tokens, idx, options3, env, slf);
+  const caption = slf.rules.footnote_caption(tokens, idx, options3, env, slf);
+  let refid = id3;
+  if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`;
+  return `<sup class="footnote-ref"><a href="#fn${id3}" id="fnref${refid}">${caption}</a></sup>`;
+}
+function render_footnote_block_open(tokens, idx, options3) {
+  return (options3.xhtmlOut ? '<hr class="footnotes-sep" />\n' : '<hr class="footnotes-sep">\n') + '<section class="footnotes">\n<ol class="footnotes-list">\n';
+}
+function render_footnote_block_close() {
+  return "</ol>\n</section>\n";
+}
+function render_footnote_open(tokens, idx, options3, env, slf) {
+  let id3 = slf.rules.footnote_anchor_name(tokens, idx, options3, env, slf);
+  if (tokens[idx].meta.subId > 0) id3 += `:${tokens[idx].meta.subId}`;
+  return `<li id="fn${id3}" class="footnote-item">`;
+}
+function render_footnote_close() {
+  return "</li>\n";
+}
+function render_footnote_anchor(tokens, idx, options3, env, slf) {
+  let id3 = slf.rules.footnote_anchor_name(tokens, idx, options3, env, slf);
+  if (tokens[idx].meta.subId > 0) id3 += `:${tokens[idx].meta.subId}`;
+  return ` <a href="#fnref${id3}" class="footnote-backref">↩︎</a>`;
+}
+function footnote_plugin(md) {
+  const parseLinkLabel2 = md.helpers.parseLinkLabel;
+  const isSpace2 = md.utils.isSpace;
+  md.renderer.rules.footnote_ref = render_footnote_ref;
+  md.renderer.rules.footnote_block_open = render_footnote_block_open;
+  md.renderer.rules.footnote_block_close = render_footnote_block_close;
+  md.renderer.rules.footnote_open = render_footnote_open;
+  md.renderer.rules.footnote_close = render_footnote_close;
+  md.renderer.rules.footnote_anchor = render_footnote_anchor;
+  md.renderer.rules.footnote_caption = render_footnote_caption;
+  md.renderer.rules.footnote_anchor_name = render_footnote_anchor_name;
+  function footnote_def(state, startLine, endLine, silent) {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const max = state.eMarks[startLine];
+    if (start + 4 > max) return false;
+    if (state.src.charCodeAt(start) !== 91) return false;
+    if (state.src.charCodeAt(start + 1) !== 94) return false;
+    let pos;
+    for (pos = start + 2; pos < max; pos++) {
+      if (state.src.charCodeAt(pos) === 32) return false;
+      if (state.src.charCodeAt(pos) === 93) {
+        break;
+      }
+    }
+    if (pos === start + 2) return false;
+    if (pos + 1 >= max || state.src.charCodeAt(++pos) !== 58) return false;
+    if (silent) return true;
+    pos++;
+    if (!state.env.footnotes) state.env.footnotes = {};
+    if (!state.env.footnotes.refs) state.env.footnotes.refs = {};
+    const label7 = state.src.slice(start + 2, pos - 2);
+    state.env.footnotes.refs[`:${label7}`] = -1;
+    const token_fref_o = new state.Token("footnote_reference_open", "", 1);
+    token_fref_o.meta = { label: label7 };
+    token_fref_o.level = state.level++;
+    state.tokens.push(token_fref_o);
+    const oldBMark = state.bMarks[startLine];
+    const oldTShift = state.tShift[startLine];
+    const oldSCount = state.sCount[startLine];
+    const oldParentType = state.parentType;
+    const posAfterColon = pos;
+    const initial = state.sCount[startLine] + pos - (state.bMarks[startLine] + state.tShift[startLine]);
+    let offset = initial;
+    while (pos < max) {
+      const ch = state.src.charCodeAt(pos);
+      if (isSpace2(ch)) {
+        if (ch === 9) {
+          offset += 4 - offset % 4;
+        } else {
+          offset++;
+        }
+      } else {
+        break;
+      }
+      pos++;
+    }
+    state.tShift[startLine] = pos - posAfterColon;
+    state.sCount[startLine] = offset - initial;
+    state.bMarks[startLine] = posAfterColon;
+    state.blkIndent += 4;
+    state.parentType = "footnote";
+    if (state.sCount[startLine] < state.blkIndent) {
+      state.sCount[startLine] += state.blkIndent;
+    }
+    state.md.block.tokenize(state, startLine, endLine, true);
+    state.parentType = oldParentType;
+    state.blkIndent -= 4;
+    state.tShift[startLine] = oldTShift;
+    state.sCount[startLine] = oldSCount;
+    state.bMarks[startLine] = oldBMark;
+    const token_fref_c = new state.Token("footnote_reference_close", "", -1);
+    token_fref_c.level = --state.level;
+    state.tokens.push(token_fref_c);
+    return true;
+  }
+  function footnote_inline(state, silent) {
+    const max = state.posMax;
+    const start = state.pos;
+    if (start + 2 >= max) return false;
+    if (state.src.charCodeAt(start) !== 94) return false;
+    if (state.src.charCodeAt(start + 1) !== 91) return false;
+    const labelStart = start + 2;
+    const labelEnd = parseLinkLabel2(state, start + 1);
+    if (labelEnd < 0) return false;
+    if (!silent) {
+      if (!state.env.footnotes) state.env.footnotes = {};
+      if (!state.env.footnotes.list) state.env.footnotes.list = [];
+      const footnoteId = state.env.footnotes.list.length;
+      const tokens = [];
+      state.md.inline.parse(
+        state.src.slice(labelStart, labelEnd),
+        state.md,
+        state.env,
+        tokens
+      );
+      const token = state.push("footnote_ref", "", 0);
+      token.meta = { id: footnoteId };
+      state.env.footnotes.list[footnoteId] = {
+        content: state.src.slice(labelStart, labelEnd),
+        tokens
+      };
+    }
+    state.pos = labelEnd + 1;
+    state.posMax = max;
+    return true;
+  }
+  function footnote_ref(state, silent) {
+    const max = state.posMax;
+    const start = state.pos;
+    if (start + 3 > max) return false;
+    if (!state.env.footnotes || !state.env.footnotes.refs) return false;
+    if (state.src.charCodeAt(start) !== 91) return false;
+    if (state.src.charCodeAt(start + 1) !== 94) return false;
+    let pos;
+    for (pos = start + 2; pos < max; pos++) {
+      if (state.src.charCodeAt(pos) === 32) return false;
+      if (state.src.charCodeAt(pos) === 10) return false;
+      if (state.src.charCodeAt(pos) === 93) {
+        break;
+      }
+    }
+    if (pos === start + 2) return false;
+    if (pos >= max) return false;
+    pos++;
+    const label7 = state.src.slice(start + 2, pos - 1);
+    if (typeof state.env.footnotes.refs[`:${label7}`] === "undefined") return false;
+    if (!silent) {
+      if (!state.env.footnotes.list) state.env.footnotes.list = [];
+      let footnoteId;
+      if (state.env.footnotes.refs[`:${label7}`] < 0) {
+        footnoteId = state.env.footnotes.list.length;
+        state.env.footnotes.list[footnoteId] = { label: label7, count: 0 };
+        state.env.footnotes.refs[`:${label7}`] = footnoteId;
+      } else {
+        footnoteId = state.env.footnotes.refs[`:${label7}`];
+      }
+      const footnoteSubId = state.env.footnotes.list[footnoteId].count;
+      state.env.footnotes.list[footnoteId].count++;
+      const token = state.push("footnote_ref", "", 0);
+      token.meta = { id: footnoteId, subId: footnoteSubId, label: label7 };
+    }
+    state.pos = pos;
+    state.posMax = max;
+    return true;
+  }
+  function footnote_tail(state) {
+    let tokens;
+    let current;
+    let currentLabel;
+    let insideRef = false;
+    const refTokens = {};
+    if (!state.env.footnotes) {
+      return;
+    }
+    state.tokens = state.tokens.filter(function(tok) {
+      if (tok.type === "footnote_reference_open") {
+        insideRef = true;
+        current = [];
+        currentLabel = tok.meta.label;
+        return false;
+      }
+      if (tok.type === "footnote_reference_close") {
+        insideRef = false;
+        refTokens[":" + currentLabel] = current;
+        return false;
+      }
+      if (insideRef) {
+        current.push(tok);
+      }
+      return !insideRef;
+    });
+    if (!state.env.footnotes.list) {
+      return;
+    }
+    const list2 = state.env.footnotes.list;
+    state.tokens.push(new state.Token("footnote_block_open", "", 1));
+    for (let i2 = 0, l2 = list2.length; i2 < l2; i2++) {
+      const token_fo = new state.Token("footnote_open", "", 1);
+      token_fo.meta = { id: i2, label: list2[i2].label };
+      state.tokens.push(token_fo);
+      if (list2[i2].tokens) {
+        tokens = [];
+        const token_po = new state.Token("paragraph_open", "p", 1);
+        token_po.block = true;
+        tokens.push(token_po);
+        const token_i = new state.Token("inline", "", 0);
+        token_i.children = list2[i2].tokens;
+        token_i.content = list2[i2].content;
+        tokens.push(token_i);
+        const token_pc = new state.Token("paragraph_close", "p", -1);
+        token_pc.block = true;
+        tokens.push(token_pc);
+      } else if (list2[i2].label) {
+        tokens = refTokens[`:${list2[i2].label}`];
+      }
+      if (tokens) state.tokens = state.tokens.concat(tokens);
+      let lastParagraph;
+      if (state.tokens[state.tokens.length - 1].type === "paragraph_close") {
+        lastParagraph = state.tokens.pop();
+      } else {
+        lastParagraph = null;
+      }
+      const t2 = list2[i2].count > 0 ? list2[i2].count : 1;
+      for (let j = 0; j < t2; j++) {
+        const token_a = new state.Token("footnote_anchor", "", 0);
+        token_a.meta = { id: i2, subId: j, label: list2[i2].label };
+        state.tokens.push(token_a);
+      }
+      if (lastParagraph) {
+        state.tokens.push(lastParagraph);
+      }
+      state.tokens.push(new state.Token("footnote_close", "", -1));
+    }
+    state.tokens.push(new state.Token("footnote_block_close", "", -1));
+  }
+  md.block.ruler.before("reference", "footnote_def", footnote_def, { alt: ["paragraph", "reference"] });
+  md.inline.ruler.after("image", "footnote_inline", footnote_inline);
+  md.inline.ruler.after("footnote_inline", "footnote_ref", footnote_ref);
+  md.core.ruler.after("inline", "footnote_tail", footnote_tail);
+}
 const {
   entries,
   setPrototypeOf,
@@ -21775,7 +22032,10 @@ const ALLOWED_TAGS = [
   "sub",
   "del",
   "ins",
-  "mark"
+  "mark",
+  // 注脚
+  "section",
+  "footer"
 ];
 const ALLOWED_ATTR = [
   // 全局属性
@@ -21796,7 +22056,14 @@ const ALLOWED_ATTR = [
   "data-lang",
   // 锚点
   "data-path",
-  "data-src"
+  "data-src",
+  // 数学公式
+  "data-math",
+  // Mermaid
+  "data-content",
+  // 注脚
+  "aria-describedby",
+  "role"
 ];
 function createDOMPurify() {
   if (typeof window !== "undefined") {
@@ -21920,6 +22187,64 @@ function generateAnchorId(text2, usedIds = /* @__PURE__ */ new Set()) {
   usedIds.add(uniqueId);
   return uniqueId;
 }
+const scriptRel = "modulepreload";
+const assetsURL = function(dep, importerUrl) {
+  return new URL(dep, importerUrl).href;
+};
+const seen = {};
+const __vitePreload = function preload(baseModule, deps, importerUrl) {
+  let promise = Promise.resolve();
+  if (deps && deps.length > 0) {
+    let allSettled = function(promises$2) {
+      return Promise.all(promises$2.map((p2) => Promise.resolve(p2).then((value$1) => ({
+        status: "fulfilled",
+        value: value$1
+      }), (reason) => ({
+        status: "rejected",
+        reason
+      }))));
+    };
+    const links = document.getElementsByTagName("link");
+    const cspNonceMeta = document.querySelector("meta[property=csp-nonce]");
+    const cspNonce = cspNonceMeta?.nonce || cspNonceMeta?.getAttribute("nonce");
+    promise = allSettled(deps.map((dep) => {
+      dep = assetsURL(dep, importerUrl);
+      if (dep in seen) return;
+      seen[dep] = true;
+      const isCss = dep.endsWith(".css");
+      const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+      if (!!importerUrl) for (let i$12 = links.length - 1; i$12 >= 0; i$12--) {
+        const link$1 = links[i$12];
+        if (link$1.href === dep && (!isCss || link$1.rel === "stylesheet")) return;
+      }
+      else if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) return;
+      const link2 = document.createElement("link");
+      link2.rel = isCss ? "stylesheet" : scriptRel;
+      if (!isCss) link2.as = "script";
+      link2.crossOrigin = "";
+      link2.href = dep;
+      if (cspNonce) link2.setAttribute("nonce", cspNonce);
+      document.head.appendChild(link2);
+      if (isCss) return new Promise((res, rej) => {
+        link2.addEventListener("load", res);
+        link2.addEventListener("error", () => rej(/* @__PURE__ */ new Error(`Unable to preload CSS for ${dep}`)));
+      });
+    }));
+  }
+  function handlePreloadError(err$2) {
+    const e$12 = new Event("vite:preloadError", { cancelable: true });
+    e$12.payload = err$2;
+    window.dispatchEvent(e$12);
+    if (!e$12.defaultPrevented) throw err$2;
+  }
+  return promise.then((res) => {
+    for (const item2 of res || []) {
+      if (item2.status !== "rejected") continue;
+      handlePreloadError(item2.reason);
+    }
+    return baseModule().catch(handlePreloadError);
+  });
+};
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x2) {
   return x2 && x2.__esModule && Object.prototype.hasOwnProperty.call(x2, "default") ? x2["default"] : x2;
@@ -24201,15 +24526,15 @@ function normalizeLang(lang) {
 function highlightCode(code2, lang) {
   const normalized = normalizeLang(lang);
   if (!Prism$1.languages[normalized]) {
-    return escapeHtml(code2);
+    return escapeHtml$2(code2);
   }
   try {
     return Prism$1.highlight(code2, Prism$1.languages[normalized], normalized);
   } catch {
-    return escapeHtml(code2);
+    return escapeHtml$2(code2);
   }
 }
-function escapeHtml(text2) {
+function escapeHtml$2(text2) {
   return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 const codeHighlightPlugin = {
@@ -24232,7 +24557,7 @@ const codeHighlightPlugin = {
         const highlighted = highlightCode(code2, lang);
         return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>`;
       }
-      return `<pre><code>${escapeHtml(code2)}</code></pre>`;
+      return `<pre><code>${escapeHtml$2(code2)}</code></pre>`;
     };
     const originalCodeInline = md.renderer.rules.code_inline || md.renderer.renderToken;
     md.renderer.rules.code_inline = (tokens, idx, options3, env, self2) => {
@@ -24241,14 +24566,157 @@ const codeHighlightPlugin = {
         return originalCodeInline(tokens, idx, options3, env, self2);
       }
       const code2 = token.content;
-      return `<code>${escapeHtml(code2)}</code>`;
+      return `<code>${escapeHtml$2(code2)}</code>`;
+    };
+  }
+};
+let katex = null;
+let katexLoaded = false;
+let katexLoading = null;
+async function loadKatex() {
+  if (katexLoaded) return;
+  if (katexLoading) return katexLoading;
+  katexLoading = (async () => {
+    try {
+      const k2 = await __vitePreload(() => import("./katex-DK1nL-FM.js"), true ? [] : void 0, import.meta.url);
+      katex = k2.default || k2;
+      katexLoaded = true;
+    } catch (err) {
+      console.error("[MathPlugin] 加载失败:", err);
+    }
+  })();
+  return katexLoading;
+}
+function escapeHtml$1(text2) {
+  return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+async function renderInlineMath(element) {
+  if (!katex) await loadKatex();
+  if (!katex) {
+    element.textContent = element.getAttribute("data-math") || "";
+    return;
+  }
+  const content = element.getAttribute("data-math");
+  if (!content) return;
+  try {
+    const html2 = katex.renderToString(content, {
+      throwOnError: false,
+      displayMode: false
+    });
+    element.innerHTML = html2;
+    element.classList.add("math-rendered");
+  } catch {
+    element.textContent = "$" + content + "$";
+  }
+}
+async function renderBlockMath(element) {
+  if (!katex) await loadKatex();
+  if (!katex) {
+    element.innerHTML = `<pre>${escapeHtml$1(element.getAttribute("data-math") || "")}</pre>`;
+    return;
+  }
+  const content = element.getAttribute("data-math");
+  if (!content) return;
+  try {
+    const html2 = katex.renderToString(content, {
+      throwOnError: false,
+      displayMode: true
+    });
+    element.innerHTML = html2;
+    element.classList.add("math-rendered");
+  } catch {
+    element.innerHTML = `<pre>$$${escapeHtml$1(content)}$$</pre>`;
+  }
+}
+async function renderAllMath(container) {
+  const inlineElements = container.querySelectorAll(".math-inline:not(.math-rendered)");
+  const blockElements = container.querySelectorAll(".math-block:not(.math-rendered)");
+  if (inlineElements.length === 0 && blockElements.length === 0) return;
+  await loadKatex();
+  const promises = [
+    ...Array.from(inlineElements).map((el) => renderInlineMath(el)),
+    ...Array.from(blockElements).map((el) => renderBlockMath(el))
+  ];
+  await Promise.all(promises);
+}
+const mathPlugin = {
+  name: "math",
+  install(engine) {
+    const md = engine.md;
+    md.inline.ruler.after("escape", "math_inline", (state, silent) => {
+      if (state.src.charCodeAt(state.pos) !== 36) {
+        return false;
+      }
+      if (state.src.charCodeAt(state.pos + 1) === 36) {
+        return false;
+      }
+      const start = state.pos + 1;
+      const end = state.src.indexOf("$", start);
+      if (end === -1) return false;
+      if (end === start) return false;
+      const content = state.src.slice(start, end);
+      if (content.includes("\n")) return false;
+      if (!silent) {
+        const token = state.push("math_inline", "span", 0);
+        token.content = content;
+        token.markup = "$";
+      }
+      state.pos = end + 1;
+      return true;
+    });
+    md.block.ruler.before("fence", "math_block", (state, startLine, endLine, silent) => {
+      if (startLine >= state.bMarks.length) return false;
+      const pos = state.bMarks[startLine] + state.tShift[startLine];
+      if (state.src.slice(pos, pos + 2) !== "$$") {
+        return false;
+      }
+      let nextLine = startLine + 1;
+      let endPos = -1;
+      while (nextLine < endLine) {
+        if (nextLine >= state.bMarks.length) break;
+        const linePos = state.bMarks[nextLine] + state.tShift[nextLine];
+        const lineMax = state.eMarks[nextLine];
+        const line = state.src.slice(linePos, lineMax).trim();
+        if (line === "$$") {
+          endPos = nextLine;
+          break;
+        }
+        nextLine++;
+      }
+      if (endPos === -1) return false;
+      if (!silent) {
+        const contentLine = startLine + 1;
+        if (contentLine >= state.bMarks.length) return false;
+        const contentStart = state.bMarks[contentLine] + state.tShift[contentLine];
+        const contentEnd = endPos > startLine + 1 ? state.eMarks[endPos - 1] : contentStart;
+        const content = state.src.slice(contentStart, contentEnd);
+        const token = state.push("math_block", "div", 0);
+        token.content = content;
+        token.markup = "$$";
+        token.block = true;
+        token.map = [startLine, endPos + 1];
+      }
+      state.line = endPos + 1;
+      return true;
+    });
+    md.renderer.rules.math_inline = (tokens, idx) => {
+      const token = tokens[idx];
+      if (!token) return "";
+      const content = token.content;
+      return `<span class="math-inline" data-math="${escapeHtml$1(content)}">$${escapeHtml$1(content)}$</span>`;
+    };
+    md.renderer.rules.math_block = (tokens, idx) => {
+      const token = tokens[idx];
+      if (!token) return "";
+      const content = token.content;
+      return `<div class="math-block" data-math="${escapeHtml$1(content)}">$$${escapeHtml$1(content)}$$</div>`;
     };
   }
 };
 function createMarkdownEngine() {
   const md = new MarkdownIt({
-    html: false,
-    // 禁止原始 HTML，安全
+    html: true,
+    // 允许安全的 HTML（后续由 DOMPurify 过滤）
     breaks: true,
     // 转换换行为 <br>
     linkify: true,
@@ -24259,6 +24727,7 @@ function createMarkdownEngine() {
       return `<pre><code class="language-${lang || "text"}">${escapeHtml2(str)}</code></pre>`;
     }
   });
+  md.use(footnote_plugin);
   const usedAnchorIds = /* @__PURE__ */ new Set();
   let headings = [];
   let hasMath = false;
@@ -24360,6 +24829,7 @@ function createMarkdownEngine() {
     md
   };
   engine.use(codeHighlightPlugin);
+  engine.use(mathPlugin);
   return engine;
 }
 let engineInstance = null;
@@ -24368,6 +24838,62 @@ function getMarkdownEngine() {
     engineInstance = createMarkdownEngine();
   }
   return engineInstance;
+}
+let mermaid = null;
+let mermaidLoaded = false;
+let mermaidLoading = null;
+async function loadMermaid() {
+  if (mermaidLoaded) return;
+  if (mermaidLoading) return mermaidLoading;
+  mermaidLoading = (async () => {
+    try {
+      const m2 = await __vitePreload(() => import("./mermaid.core-Clu0Z0yL.js").then((n2) => n2.bA), true ? [] : void 0, import.meta.url);
+      mermaid = m2.default;
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "default",
+        securityLevel: "strict",
+        fontFamily: "system-ui, -apple-system, sans-serif"
+      });
+      mermaidLoaded = true;
+    } catch (err) {
+      console.error("[MermaidPlugin] 加载失败:", err);
+    }
+  })();
+  return mermaidLoading;
+}
+async function renderMermaid(element) {
+  if (!mermaid) {
+    await loadMermaid();
+  }
+  if (!mermaid) {
+    element.innerHTML = '<div class="mermaid-error">图表加载失败</div>';
+    return;
+  }
+  const content = element.getAttribute("data-content");
+  if (!content) return;
+  try {
+    const id3 = "mermaid-" + Math.random().toString(36).substr(2, 9);
+    const { svg: svg2 } = await mermaid.render(id3, content);
+    element.innerHTML = svg2;
+    element.classList.add("mermaid-rendered");
+  } catch (err) {
+    console.error("[MermaidPlugin] 渲染失败:", err);
+    element.innerHTML = `<div class="mermaid-error">
+      <div>图表语法错误</div>
+      <pre style="font-size: 12px; margin-top: 8px; opacity: 0.7;">${escapeHtml(content.substring(0, 200))}</pre>
+    </div>`;
+  }
+}
+function escapeHtml(text2) {
+  return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+async function renderAllMermaid(container) {
+  const elements = container.querySelectorAll(".mermaid:not(.mermaid-rendered)");
+  if (elements.length === 0) return;
+  await loadMermaid();
+  const promises = Array.from(elements).map((el) => renderMermaid(el));
+  await Promise.all(promises);
 }
 const _hoisted_1$C = { class: "markdown-renderer flex flex-col h-full bg-[var(--bg)]" };
 const _hoisted_2$z = ["innerHTML"];
@@ -24558,6 +25084,9 @@ const _sfc_main$m = /* @__PURE__ */ defineComponent({
     };
     watch(renderedHtml, () => {
       nextTick(() => {
+        if (!previewRef.value) return;
+        renderAllMermaid(previewRef.value);
+        renderAllMath(previewRef.value);
         handleHashChange();
       });
     });
@@ -24582,7 +25111,7 @@ const _sfc_main$m = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const MarkdownRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$m, [["__scopeId", "data-v-4725a42a"]]);
+const MarkdownRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$m, [["__scopeId", "data-v-e4f16ad9"]]);
 const _hoisted_1$B = { class: "json-renderer flex flex-col h-full bg-[var(--bg)] relative" };
 const _hoisted_2$y = { class: "absolute top-3 left-3 z-10" };
 const _hoisted_3$x = {
@@ -43779,4 +44308,9 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-FyOK9-3s.js.map
+export {
+  __vitePreload as _,
+  getDefaultExportFromCjs as g,
+  purify as p
+};
+//# sourceMappingURL=index-DBPNx3nV.js.map

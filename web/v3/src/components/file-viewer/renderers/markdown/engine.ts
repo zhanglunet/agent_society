@@ -5,10 +5,12 @@
  */
 
 import MarkdownIt from 'markdown-it';
+import footnote from 'markdown-it-footnote';
 import type { RenderOptions, RenderResult, HeadingInfo } from './markdown.types';
 import { sanitizeHtml } from './utils/sanitizer';
 import { generateAnchorId, resolveImage, resolveLink } from './utils/path';
 import { codeHighlightPlugin } from './plugins/code-highlight';
+import { mathPlugin } from './plugins/math';
 
 /**
  * Markdown 引擎接口
@@ -25,7 +27,7 @@ export interface MarkdownEngine {
 export function createMarkdownEngine(): MarkdownEngine {
   // 创建 markdown-it 实例
   const md = new MarkdownIt({
-    html: false, // 禁止原始 HTML，安全
+    html: true, // 允许安全的 HTML（后续由 DOMPurify 过滤）
     breaks: true, // 转换换行为 <br>
     linkify: true, // 自动识别链接
     typographer: true, // 启用排版优化
@@ -34,6 +36,9 @@ export function createMarkdownEngine(): MarkdownEngine {
       return `<pre><code class="language-${lang || 'text'}">${escapeHtml(str)}</code></pre>`;
     }
   });
+
+  // 使用注脚插件
+  md.use(footnote);
 
   // 存储已使用的锚点 ID
   const usedAnchorIds = new Set<string>();
@@ -220,6 +225,9 @@ export function createMarkdownEngine(): MarkdownEngine {
 
   // 安装代码高亮插件
   engine.use(codeHighlightPlugin);
+  
+  // 安装数学公式插件
+  engine.use(mathPlugin);
 
   return engine;
 }

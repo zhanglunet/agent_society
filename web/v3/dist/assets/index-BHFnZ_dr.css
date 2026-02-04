@@ -25,6 +25,11 @@
       --tw-leading: initial;
       --tw-font-weight: initial;
       --tw-tracking: initial;
+      --tw-ordinal: initial;
+      --tw-slashed-zero: initial;
+      --tw-numeric-figure: initial;
+      --tw-numeric-spacing: initial;
+      --tw-numeric-fraction: initial;
       --tw-shadow: 0 0 #0000;
       --tw-shadow-color: initial;
       --tw-shadow-alpha: 100%;
@@ -437,6 +442,10 @@
     visibility: collapse;
   }
 
+  .invisible {
+    visibility: hidden;
+  }
+
   .visible {
     visibility: visible;
   }
@@ -551,6 +560,10 @@
 
   .left-3 {
     left: calc(var(--spacing) * 3);
+  }
+
+  .isolate {
+    isolation: isolate;
   }
 
   .z-10 {
@@ -750,6 +763,10 @@
     display: table;
   }
 
+  .table-cell {
+    display: table-cell;
+  }
+
   .\!h-8 {
     height: calc(var(--spacing) * 8) !important;
   }
@@ -832,6 +849,14 @@
 
   .h-32 {
     height: calc(var(--spacing) * 32);
+  }
+
+  .h-40 {
+    height: calc(var(--spacing) * 40);
+  }
+
+  .h-84 {
+    height: calc(var(--spacing) * 84);
   }
 
   .h-\[70vh\] {
@@ -1066,11 +1091,19 @@
     flex-shrink: 1;
   }
 
-  .flex-shrink-0, .shrink-0 {
+  .flex-shrink-0 {
     flex-shrink: 0;
   }
 
-  .flex-grow {
+  .shrink {
+    flex-shrink: 1;
+  }
+
+  .shrink-0 {
+    flex-shrink: 0;
+  }
+
+  .flex-grow, .grow {
     flex-grow: 1;
   }
 
@@ -2097,6 +2130,10 @@
     letter-spacing: var(--tracking-wider);
   }
 
+  .text-wrap {
+    text-wrap: wrap;
+  }
+
   .break-words {
     overflow-wrap: break-word;
   }
@@ -2213,6 +2250,19 @@
     font-style: italic;
   }
 
+  .ordinal {
+    --tw-ordinal: ordinal;
+    font-variant-numeric: var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, );
+  }
+
+  .line-through {
+    text-decoration-line: line-through;
+  }
+
+  .overline {
+    text-decoration-line: overline;
+  }
+
   .underline {
     text-decoration-line: underline;
   }
@@ -2294,6 +2344,11 @@
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow) !important;
   }
 
+  .ring {
+    --tw-ring-shadow: var(--tw-ring-inset, ) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+
   .outline {
     outline-style: var(--tw-outline-style);
     outline-width: 1px;
@@ -2301,6 +2356,11 @@
 
   .blur {
     --tw-blur: blur(8px);
+    filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+  }
+
+  .invert {
+    --tw-invert: invert(100%);
     filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
   }
 
@@ -2935,6 +2995,31 @@
   inherits: false
 }
 
+@property --tw-ordinal {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-slashed-zero {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-figure {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-spacing {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-numeric-fraction {
+  syntax: "*";
+  inherits: false
+}
+
 @property --tw-shadow {
   syntax: "*";
   inherits: false;
@@ -3403,44 +3488,181 @@ pre[class*="language-"] {
   padding-right: 0.8em;
   text-align: right;
 }
+/**
+ * KaTeX 主题 - 适配现有 CSS 变量
+ */
 
-.markdown-renderer[data-v-4725a42a] {
+/* 基础字体 */
+.katex {
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  font-size: 1.1em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-indent: 0;
+  color: var(--text-1);
+}
+
+/* 块级公式 */
+.katex-display {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex-display > .katex {
+  display: block;
+  text-align: center;
+  white-space: normal;
+}
+
+.katex-display > .katex > .katex-html {
+  display: block;
+  position: relative;
+}
+
+/* 行内公式 */
+.katex-inline {
+  display: inline;
+}
+
+/* 数学符号颜色 */
+.katex .mathnormal,
+.katex .mathrm,
+.katex .mathbf,
+.katex .mathit {
+  color: var(--text-1);
+}
+
+.katex .mfrac .frac-line {
+  border-bottom-color: var(--text-1);
+}
+
+/* 分隔符 */
+.katex .delimsizing {
+  color: var(--text-1);
+}
+
+/* 根号 */
+.katex .sqrt > .sqrt-line {
+  border-top-color: var(--text-1);
+}
+
+.katex .sqrt > .root {
+  color: var(--text-2);
+}
+
+/* 上下标 */
+.katex .msupsub {
+  color: var(--text-2);
+}
+
+/* 矩阵、数组 */
+.katex .arraycolsep {
+  border-color: var(--border);
+}
+
+.katex .hline {
+  border-top-color: var(--text-1);
+}
+
+/* 错误提示 */
+.katex-error {
+  color: #d73a49;
+  background: rgba(215, 58, 73, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* 未渲染状态 */
+.math-inline:not(.math-rendered),
+.math-block:not(.math-rendered) {
+  opacity: 0.7;
+}
+
+/* 块级公式容器 */
+.math-block {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+
+.math-block pre {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+/* 暗色模式适配 */
+.my-app-dark .katex {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .mathnormal,
+.my-app-dark .katex .mathrm,
+.my-app-dark .katex .mathbf,
+.my-app-dark .katex .mathit {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .mfrac .frac-line {
+  border-bottom-color: var(--text-1);
+}
+
+.my-app-dark .katex .delimsizing {
+  color: var(--text-1);
+}
+
+.my-app-dark .katex .sqrt > .sqrt-line {
+  border-top-color: var(--text-1);
+}
+
+.my-app-dark .katex .sqrt > .root {
+  color: var(--text-2);
+}
+
+.my-app-dark .katex .hline {
+  border-top-color: var(--text-1);
+}
+
+.markdown-renderer[data-v-e4f16ad9] {
   width: 100%;
   height: 100%;
 }
 
 /* 标题样式 */
-.markdown-body[data-v-4725a42a] h1,
-.markdown-body[data-v-4725a42a] h2,
-.markdown-body[data-v-4725a42a] h3,
-.markdown-body[data-v-4725a42a] h4,
-.markdown-body[data-v-4725a42a] h5,
-.markdown-body[data-v-4725a42a] h6 {
+.markdown-body[data-v-e4f16ad9] h1,
+.markdown-body[data-v-e4f16ad9] h2,
+.markdown-body[data-v-e4f16ad9] h3,
+.markdown-body[data-v-e4f16ad9] h4,
+.markdown-body[data-v-e4f16ad9] h5,
+.markdown-body[data-v-e4f16ad9] h6 {
   color: var(--text-1);
   font-weight: bold;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   position: relative;
 }
-.markdown-body[data-v-4725a42a] h1 {
+.markdown-body[data-v-e4f16ad9] h1 {
   font-size: 2em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.3em;
 }
-.markdown-body[data-v-4725a42a] h2 {
+.markdown-body[data-v-e4f16ad9] h2 {
   font-size: 1.5em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.3em;
 }
-.markdown-body[data-v-4725a42a] h3 {
+.markdown-body[data-v-e4f16ad9] h3 {
   font-size: 1.25em;
 }
-.markdown-body[data-v-4725a42a] h4 {
+.markdown-body[data-v-e4f16ad9] h4 {
   font-size: 1em;
 }
 
 /* 锚点链接样式 */
-.markdown-body[data-v-4725a42a] .anchor-link {
+.markdown-body[data-v-e4f16ad9] .anchor-link {
   position: absolute;
   left: -1.2em;
   top: 50%;
@@ -3452,23 +3674,23 @@ pre[class*="language-"] {
   transition: opacity 0.2s;
   padding: 0.2em 0.4em;
 }
-.markdown-body[data-v-4725a42a] h1:hover .anchor-link,
-.markdown-body[data-v-4725a42a] h2:hover .anchor-link,
-.markdown-body[data-v-4725a42a] h3:hover .anchor-link,
-.markdown-body[data-v-4725a42a] h4:hover .anchor-link,
-.markdown-body[data-v-4725a42a] h5:hover .anchor-link,
-.markdown-body[data-v-4725a42a] h6:hover .anchor-link {
+.markdown-body[data-v-e4f16ad9] h1:hover .anchor-link,
+.markdown-body[data-v-e4f16ad9] h2:hover .anchor-link,
+.markdown-body[data-v-e4f16ad9] h3:hover .anchor-link,
+.markdown-body[data-v-e4f16ad9] h4:hover .anchor-link,
+.markdown-body[data-v-e4f16ad9] h5:hover .anchor-link,
+.markdown-body[data-v-e4f16ad9] h6:hover .anchor-link {
   opacity: 1;
 }
-.markdown-body[data-v-4725a42a] .anchor-link:hover {
+.markdown-body[data-v-e4f16ad9] .anchor-link:hover {
   color: var(--primary);
 }
 
 /* 标题高亮动画 */
-.markdown-body[data-v-4725a42a] .heading-highlight {
-  animation: highlight-pulse-4725a42a 2s ease;
+.markdown-body[data-v-e4f16ad9] .heading-highlight {
+  animation: highlight-pulse-e4f16ad9 2s ease;
 }
-@keyframes highlight-pulse-4725a42a {
+@keyframes highlight-pulse-e4f16ad9 {
 0%,
   100% {
     background: transparent;
@@ -3481,14 +3703,14 @@ pre[class*="language-"] {
 }
 
 /* 段落 */
-.markdown-body[data-v-4725a42a] p {
+.markdown-body[data-v-e4f16ad9] p {
   margin-bottom: 1em;
   line-height: 1.6;
   color: var(--text-1);
 }
 
 /* 代码 */
-.markdown-body[data-v-4725a42a] code {
+.markdown-body[data-v-e4f16ad9] code {
   background: var(--surface-2);
   padding: 0.2em 0.4em;
   border-radius: 3px;
@@ -3496,14 +3718,14 @@ pre[class*="language-"] {
   font-size: 0.9em;
   color: var(--text-1);
 }
-.markdown-body[data-v-4725a42a] pre {
+.markdown-body[data-v-e4f16ad9] pre {
   background: var(--surface-2);
   padding: 1em;
   border-radius: 6px;
   overflow-x: auto;
   margin-bottom: 1em;
 }
-.markdown-body[data-v-4725a42a] pre code {
+.markdown-body[data-v-e4f16ad9] pre code {
   background: none;
   padding: 0;
   font-size: 0.85em;
@@ -3511,7 +3733,7 @@ pre[class*="language-"] {
 }
 
 /* 引用 */
-.markdown-body[data-v-4725a42a] blockquote {
+.markdown-body[data-v-e4f16ad9] blockquote {
   border-left: 4px solid var(--primary);
   padding-left: 1em;
   margin-left: 0;
@@ -3520,88 +3742,137 @@ pre[class*="language-"] {
 }
 
 /* 列表 */
-.markdown-body[data-v-4725a42a] ul,
-.markdown-body[data-v-4725a42a] ol {
+.markdown-body[data-v-e4f16ad9] ul,
+.markdown-body[data-v-e4f16ad9] ol {
   margin-bottom: 1em;
   padding-left: 2em;
   color: var(--text-1);
 }
-.markdown-body[data-v-4725a42a] li {
+.markdown-body[data-v-e4f16ad9] li {
   margin-bottom: 0.3em;
 }
-.markdown-body[data-v-4725a42a] li>ul,
-.markdown-body[data-v-4725a42a] li>ol {
+.markdown-body[data-v-e4f16ad9] li>ul,
+.markdown-body[data-v-e4f16ad9] li>ol {
   margin-top: 0.3em;
 }
 
 /* 链接 */
-.markdown-body[data-v-4725a42a] a {
+.markdown-body[data-v-e4f16ad9] a {
   color: var(--primary);
   text-decoration: none;
   cursor: pointer;
 }
-.markdown-body[data-v-4725a42a] a:hover {
+.markdown-body[data-v-e4f16ad9] a:hover {
   text-decoration: underline;
 }
 
 /* 内部链接标记 */
-.markdown-body[data-v-4725a42a] a.internal-link::after {
+.markdown-body[data-v-e4f16ad9] a.internal-link::after {
   content: ' ↗';
   font-size: 0.8em;
   opacity: 0.6;
 }
 
 /* 分隔线 */
-.markdown-body[data-v-4725a42a] hr {
+.markdown-body[data-v-e4f16ad9] hr {
   border: none;
   border-top: 1px solid var(--border);
   margin: 1.5em 0;
 }
 
 /* 图片 */
-.markdown-body[data-v-4725a42a] img {
+.markdown-body[data-v-e4f16ad9] img {
   max-width: 100%;
   height: auto;
   border-radius: 4px;
   cursor: zoom-in;
   transition: transform 0.2s;
 }
-.markdown-body[data-v-4725a42a] img:hover {
+.markdown-body[data-v-e4f16ad9] img:hover {
   transform: scale(1.01);
 }
 
 /* 表格 */
-.markdown-body[data-v-4725a42a] table {
+.markdown-body[data-v-e4f16ad9] table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1em;
   color: var(--text-1);
 }
-.markdown-body[data-v-4725a42a] th,
-.markdown-body[data-v-4725a42a] td {
+.markdown-body[data-v-e4f16ad9] th,
+.markdown-body[data-v-e4f16ad9] td {
   padding: 0.5em 1em;
   border: 1px solid var(--border);
 }
-.markdown-body[data-v-4725a42a] th {
+.markdown-body[data-v-e4f16ad9] th {
   background: var(--surface-2);
   font-weight: bold;
 }
-.markdown-body[data-v-4725a42a] tr:nth-child(even) {
+.markdown-body[data-v-e4f16ad9] tr:nth-child(even) {
   background: var(--surface-1);
 }
 
 /* 强调 */
-.markdown-body[data-v-4725a42a] strong {
+.markdown-body[data-v-e4f16ad9] strong {
   font-weight: bold;
 }
-.markdown-body[data-v-4725a42a] em {
+.markdown-body[data-v-e4f16ad9] em {
   font-style: italic;
 }
 
 /* 删除线 */
-.markdown-body[data-v-4725a42a] del {
+.markdown-body[data-v-e4f16ad9] del {
   text-decoration: line-through;
   opacity: 0.7;
+}
+
+/* 注脚样式 */
+.markdown-body[data-v-e4f16ad9] .footnote-ref {
+  font-size: 0.8em;
+  vertical-align: super;
+  margin-left: 2px;
+}
+.markdown-body[data-v-e4f16ad9] .footnote-ref a {
+  text-decoration: none;
+}
+.markdown-body[data-v-e4f16ad9] .footnotes {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-size: 0.9em;
+}
+.markdown-body[data-v-e4f16ad9] .footnotes ol {
+  padding-left: 1.5em;
+}
+.markdown-body[data-v-e4f16ad9] .footnote-backref {
+  text-decoration: none;
+  margin-left: 0.5em;
+}
+
+/* 数学公式样式 */
+.markdown-body[data-v-e4f16ad9] .math-inline {
+  display: inline;
+}
+.markdown-body[data-v-e4f16ad9] .math-block {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+
+/* Mermaid 图表样式 */
+.markdown-body[data-v-e4f16ad9] .mermaid {
+  text-align: center;
+  margin: 1em 0;
+}
+.markdown-body[data-v-e4f16ad9] .mermaid-rendered {
+  display: inline-block;
+}
+.markdown-body[data-v-e4f16ad9] .mermaid-error {
+  color: #d73a49;
+  background: var(--surface-2);
+  padding: 1em;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 .json-renderer[data-v-25e3e499] {

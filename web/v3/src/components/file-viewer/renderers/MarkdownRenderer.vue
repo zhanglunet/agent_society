@@ -15,7 +15,10 @@ import { ViewModeKey } from '../index';
 import type { RendererProps } from '../types';
 import { getMarkdownEngine } from './markdown';
 import './markdown/prism-theme.css';
+import './markdown/katex-theme.css';
 import type { RenderResult } from './markdown';
+import { renderAllMermaid } from './markdown/plugins/mermaid';
+import { renderAllMath } from './markdown/plugins/math';
 
 const props = defineProps<RendererProps>();
 const emit = defineEmits<{
@@ -82,6 +85,10 @@ const renderedHtml = computed(() => {
  * - 图片：打开大图预览
  * - 内部链接：发送 openFile 事件
  * - 外部链接：新窗口打开（已有 target="_blank"）
+ */
+/**
+ * 处理点击事件
+ * 处理锚点点击、链接点击、图片点击等
  */
 const handleClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
@@ -261,9 +268,16 @@ const handleHashChange = () => {
   }
 };
 
-// 监听内容变化，处理可能的 hash 定位
+// 监听内容变化，渲染 Mermaid 和 Math，处理 hash 定位
 watch(renderedHtml, () => {
   nextTick(() => {
+    if (!previewRef.value) return;
+    
+    // 总是尝试渲染（函数内部会检查是否有需要渲染的元素）
+    renderAllMermaid(previewRef.value);
+    renderAllMath(previewRef.value);
+    
+    // 处理 hash 定位
     handleHashChange();
   });
 });
@@ -502,5 +516,61 @@ onMounted(() => {
 .markdown-body :deep(del) {
   text-decoration: line-through;
   opacity: 0.7;
+}
+
+/* 注脚样式 */
+.markdown-body :deep(.footnote-ref) {
+  font-size: 0.8em;
+  vertical-align: super;
+  margin-left: 2px;
+}
+
+.markdown-body :deep(.footnote-ref) a {
+  text-decoration: none;
+}
+
+.markdown-body :deep(.footnotes) {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-size: 0.9em;
+}
+
+.markdown-body :deep(.footnotes ol) {
+  padding-left: 1.5em;
+}
+
+.markdown-body :deep(.footnote-backref) {
+  text-decoration: none;
+  margin-left: 0.5em;
+}
+
+/* 数学公式样式 */
+.markdown-body :deep(.math-inline) {
+  display: inline;
+}
+
+.markdown-body :deep(.math-block) {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+
+/* Mermaid 图表样式 */
+.markdown-body :deep(.mermaid) {
+  text-align: center;
+  margin: 1em 0;
+}
+
+.markdown-body :deep(.mermaid-rendered) {
+  display: inline-block;
+}
+
+.markdown-body :deep(.mermaid-error) {
+  color: #d73a49;
+  background: var(--surface-2);
+  padding: 1em;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 </style>
