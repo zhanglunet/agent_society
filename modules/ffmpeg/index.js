@@ -1,5 +1,11 @@
 import { getToolDefinitions } from "./tools.js";
 import { FfmpegManager } from "./ffmpeg_manager.js";
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let runtime = null;
 let log = null;
@@ -29,6 +35,11 @@ export default {
       const [resource, id] = pathParts;
       if (!ffmpegManager) return { error: "module_not_initialized", message: "FFmpeg 模块尚未初始化" };
 
+      // GET /api/modules/ffmpeg/panel - 返回管理面板 HTML
+      if (resource === "panel" && req.method === "GET") {
+        return await this._servePanel(res);
+      }
+
       const rootAgent = runtime?._agents?.get?.("root") ?? null;
       const ctx = runtime?._buildAgentContext?.(rootAgent);
       if (!ctx) return { error: "runtime_not_ready", message: "运行时尚未就绪" };
@@ -49,6 +60,51 @@ export default {
 
       return { error: "not_found", message: "未知接口" };
     };
+  },
+
+  /**
+   * 提供管理面板 HTML
+   */
+  async _servePanel(res) {
+    try {
+      const panelDir = path.join(__dirname, "web");
+      const htmlPath = path.join(panelDir, "panel.html");
+      const cssPath = path.join(panelDir, "panel.css");
+      const jsPath = path.join(panelDir, "panel.js");
+
+      let html = "", css = "", js = "";
+
+      if (existsSync(htmlPath)) {
+        html = await readFile(htmlPath, "utf8");
+      }
+      if (existsSync(cssPath)) {
+        css = await readFile(cssPath, "utf8");
+      }
+      if (existsSync(jsPath)) {
+        js = await readFile(jsPath, "utf8");
+      }
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFmpeg 任务管理</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${js}</script>
+</body>
+</html>`;
+
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(fullHtml);
+      return { handled: true };
+    } catch (err) {
+      log?.error?.("读取面板文件失败", { error: err.message });
+      return { error: "read_panel_failed", message: err.message };
+    }
   },
 
   async init(rt, config = {}) {

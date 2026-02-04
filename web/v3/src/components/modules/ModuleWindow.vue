@@ -4,14 +4,14 @@
  * 
  * 职责：
  * - 可拖拽移动的非模态窗口
- * - 左侧模块列表，右侧管理页面
+ * - 左侧模块列表，右侧管理页面（iframe 嵌入）
  * - 支持最大化/还原
  * - 记忆窗口位置和尺寸
  * 
  * @author Agent Society
  */
 import { ref, onMounted, watch, computed } from 'vue';
-import { apiService, type ModuleInfo, type ModuleWebComponent } from '../../services/api';
+import { apiService, type ModuleInfo } from '../../services/api';
 import { 
   Puzzle, 
   X, 
@@ -23,7 +23,6 @@ import {
 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import ScrollPanel from 'primevue/scrollpanel';
-import ModulePanelContent from './ModulePanelContent.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -37,7 +36,7 @@ const modules = ref<ModuleInfo[]>([]);
 const loading = ref(false);
 const selectedModule = ref<ModuleInfo | null>(null);
 const panelLoading = ref(false);
-const webComponent = ref<ModuleWebComponent | null>(null);
+const iframeUrl = ref<string>('');
 
 // 窗口状态
 const windowX = ref(100);
@@ -123,9 +122,13 @@ const loadModules = async () => {
 /**
  * 刷新当前模块
  */
-const refreshCurrentModule = async () => {
+const refreshCurrentModule = () => {
   if (selectedModule.value) {
-    await selectModule(selectedModule.value);
+    // iframe 刷新
+    const iframe = document.getElementById('module-iframe') as HTMLIFrameElement;
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
   }
 };
 
@@ -137,18 +140,18 @@ const selectModule = async (module: ModuleInfo) => {
   
   selectedModule.value = module;
   panelLoading.value = true;
-  webComponent.value = null;
   
-  try {
-    const component = await apiService.getModuleWebComponent(module.name);
-    if (component) {
-      webComponent.value = component;
-    }
-  } catch (err) {
-    console.error('加载模块组件失败:', err);
-  } finally {
-    panelLoading.value = false;
-  }
+  // 构建 iframe URL
+  iframeUrl.value = `/api/modules/${encodeURIComponent(module.name)}/panel`;
+  
+  panelLoading.value = false;
+};
+
+/**
+ * iframe 加载完成
+ */
+const onIframeLoad = () => {
+  panelLoading.value = false;
 };
 
 /**
@@ -404,12 +407,12 @@ defineExpose({
             </ScrollPanel>
           </div>
 
-          <!-- 右侧：管理页面（Content） -->
+          <!-- 右侧：管理页面（iframe） -->
           <div class="flex-1 flex flex-col min-w-0 bg-[var(--surface-1)]">
             <!-- 子标题栏 -->
             <div class="h-12 flex items-center justify-between px-4 border-b border-[var(--border)] bg-[var(--surface-1)]">
               <span class="font-semibold text-sm text-[var(--text-1)]">
-                {{ webComponent?.displayName || selectedModule?.name || '模块详情' }}
+                {{ selectedModule?.name || '模块详情' }}
               </span>
               <Button 
                 variant="text" 
@@ -423,7 +426,7 @@ defineExpose({
               </Button>
             </div>
 
-            <!-- 内容区 -->
+            <!-- iframe 内容区 -->
             <div class="flex-1 relative overflow-hidden">
               <!-- 加载中 -->
               <div v-if="panelLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--surface-1)]">
@@ -431,23 +434,19 @@ defineExpose({
               </div>
 
               <!-- 空状态 -->
-              <div v-else-if="!webComponent" class="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-3)]">
+              <div v-else-if="!selectedModule" class="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-3)]">
                 <Puzzle class="w-12 h-12 mb-2 opacity-50" />
-                <p class="text-sm">无法加载模块管理界面</p>
+                <p class="text-sm">请选择一个模块</p>
               </div>
 
-              <!-- 模块面板内容 -->
-              <div v-else class="absolute inset-0 overflow-auto">
-                <div class="module-panel-content p-4">
-                  <!-- 注入模块的 HTML -->
-                  <ModulePanelContent 
-                    :html="webComponent.html" 
-                    :css="webComponent.css" 
-                    :js="webComponent.js"
-                    :module-name="selectedModule?.name || ''"
-                  />
-                </div>
-              </div>
+              <!-- iframe 嵌入模块面板 -->
+              <iframe
+                v-else
+                id="module-iframe"
+                :src="iframeUrl"
+                class="w-full h-full border-0"
+                @load="onIframeLoad"
+              ></iframe>
             </div>
           </div>
         </div>
@@ -457,8 +456,7 @@ defineExpose({
 </template>
 
 <style scoped>
-.module-panel-content {
-  width: 100%;
-  height: 100%;
+iframe {
+  background: var(--surface-1);
 }
 </style>

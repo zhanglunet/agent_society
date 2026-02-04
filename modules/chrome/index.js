@@ -1,20 +1,18 @@
 /**
  * Chrome 浏览器控制模块
  * 提供无头浏览器操作能力，包括浏览器管理、标签页管理、页面导航、内容读取、资源管理和页面交互。
- * 
- * 主要功能：
- * - 浏览器管理：启动、关闭浏览器实例
- * - 标签页管理：创建、关闭、列出标签页
- * - 页面导航：访问URL、获取当前URL
- * - 内容获取：截图、获取文本、获取元素信息
- * - 资源管理：获取页面资源列表、保存资源到工件
- * - 页面交互：点击、输入、填充、执行脚本、等待元素
  */
 
 import { BrowserManager } from "./browser_manager.js";
 import { TabManager } from "./tab_manager.js";
 import { PageActions } from "./page_actions.js";
 import { getToolDefinitions } from "./tools.js";
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {BrowserManager|null} */
 let browserManager = null;
@@ -171,61 +169,99 @@ export default {
    */
   getHttpHandler() {
     return async (req, res, pathParts) => {
-      // pathParts: ["browsers"] or ["browsers", "id"] or ["tabs", "id", "screenshot"]
-      const [resource, id, action] = pathParts;
+      console.log('[Chrome] Handler called:', { pathParts, method: req?.method });
       
+      const [resource, id, action] = pathParts;
+
       try {
+        // GET /api/modules/chrome/panel - 返回管理面板 HTML
+        if (resource === "panel" && req.method === "GET") {
+          console.log('[Chrome] Serving panel');
+          return await this._servePanel(res);
+        }
+
         if (resource === "browsers") {
           if (!id) {
-            // GET /api/modules/chrome/browsers
             const browsers = browserManager.listBrowsers();
             return { ok: true, browsers };
           }
           if (action === "close") {
-            // POST /api/modules/chrome/browsers/:id/close
             const result = await browserManager.close(id);
             return result;
           }
           if (action === "tabs") {
-            // GET /api/modules/chrome/browsers/:id/tabs
             const tabs = await tabManager.listTabs(id);
             return tabs;
           }
-          // GET /api/modules/chrome/browsers/:id
           const browser = browserManager.getBrowser(id);
           return browser ? { ok: true, browser } : { error: "browser_not_found", browserId: id };
         }
-        
+
         if (resource === "tabs") {
           if (id && action === "screenshot") {
-            // GET /api/modules/chrome/tabs/:id/screenshot
             return await pageActions.screenshot(id, {});
           }
           if (id && action === "close") {
-            // POST /api/modules/chrome/tabs/:id/close
             log?.info?.("HTTP请求关闭标签页", { tabId: id, method: req.method });
             const result = await tabManager.closeTab(id);
             log?.info?.("标签页关闭结果", { tabId: id, result });
             return result;
           }
         }
-        
+
         return { error: "not_found", path: pathParts.join("/") };
       } catch (err) {
         const message = err?.message ?? String(err);
-        const errorDetails = {
-          error: "handler_error", 
-          message,
-          resource,
-          id,
-          action,
-          stack: err?.stack
-        };
-        
-        log?.error?.("Chrome HTTP处理器错误", errorDetails);
-        return errorDetails;
+        log?.error?.("Chrome HTTP处理器错误", { error: message });
+        return { error: "handler_error", message };
       }
     };
+  },
+
+  /**
+   * 提供管理面板 HTML
+   */
+  async _servePanel(res) {
+    try {
+      const panelDir = path.join(__dirname, "web");
+      const htmlPath = path.join(panelDir, "panel.html");
+      const cssPath = path.join(panelDir, "panel.css");
+      const jsPath = path.join(panelDir, "panel.js");
+
+      let html = "", css = "", js = "";
+
+      if (existsSync(htmlPath)) {
+        html = await readFile(htmlPath, "utf8");
+      }
+      if (existsSync(cssPath)) {
+        css = await readFile(cssPath, "utf8");
+      }
+      if (existsSync(jsPath)) {
+        js = await readFile(jsPath, "utf8");
+      }
+
+      // 组装完整 HTML
+      const fullHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome 浏览器管理</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${js}</script>
+</body>
+</html>`;
+
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(fullHtml);
+      return { handled: true };
+    } catch (err) {
+      log?.error?.("读取面板文件失败", { error: err.message });
+      return { error: "read_panel_failed", message: err.message };
+    }
   },
 
   /**

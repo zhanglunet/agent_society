@@ -3076,7 +3076,16 @@ export class HTTPServer {
       }
 
       // 调用模块的 HTTP 处理器
+      console.log('[HTTP Server] Calling module handler:', { moduleName, subPath, method });
       const result = await httpHandler(req, res, subPath, body);
+      console.log('[HTTP Server] Module handler result:', { moduleName, result });
+      
+      // 如果模块已经直接处理了响应（如返回 HTML），则不再发送 JSON
+      if (result?.handled) {
+        console.log('[HTTP Server] Module handled response directly');
+        return;
+      }
+      
       this._sendJson(res, 200, result);
     } catch (err) {
       const message = err?.message ?? String(err);

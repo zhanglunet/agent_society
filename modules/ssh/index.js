@@ -19,6 +19,12 @@
 import ConnectionManager from './connection_manager.js';
 import ShellManager from './shell_manager.js';
 import FileTransfer from './file_transfer.js';
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { getToolDefinitions } from './tools.js';
 
 /** @type {any} 运行时实例 */
@@ -85,6 +91,11 @@ export default {
       try {
         if (!connectionManager || !fileTransfer) {
           return { error: 'module_not_initialized', message: 'SSH模块尚未初始化' };
+        }
+
+        // GET /api/modules/ssh/panel - 返回管理面板 HTML
+        if (resource === 'panel' && req.method === 'GET') {
+          return await this._servePanel(res);
         }
 
         if (resource === 'overview') {
@@ -174,6 +185,51 @@ export default {
         return { error: 'http_handler_failed', message: error.message };
       }
     };
+  },
+
+  /**
+   * 提供管理面板 HTML
+   */
+  async _servePanel(res) {
+    try {
+      const panelDir = path.join(__dirname, "web");
+      const htmlPath = path.join(panelDir, "panel.html");
+      const cssPath = path.join(panelDir, "panel.css");
+      const jsPath = path.join(panelDir, "panel.js");
+
+      let html = "", css = "", js = "";
+
+      if (existsSync(htmlPath)) {
+        html = await readFile(htmlPath, "utf8");
+      }
+      if (existsSync(cssPath)) {
+        css = await readFile(cssPath, "utf8");
+      }
+      if (existsSync(jsPath)) {
+        js = await readFile(jsPath, "utf8");
+      }
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH 连接与传输管理</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${js}</script>
+</body>
+</html>`;
+
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(fullHtml);
+      return { handled: true };
+    } catch (err) {
+      log?.error?.("读取面板文件失败", { error: err.message });
+      return { error: "read_panel_failed", message: err.message };
+    }
   },
 
   /**

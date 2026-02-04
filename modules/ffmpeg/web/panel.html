@@ -1,28 +1,39 @@
-<!-- FFmpeg 任务管理面板 - 适配新框架 -->
-<div class="ffmpeg-panel" id="ffmpeg-panel">
-  <div class="panel-header">
-    <span class="header-title">🎞️ FFmpeg 任务管理</span>
-    <div class="header-actions">
-      <label class="toggle">
-        <input id="ffmpeg-auto-refresh" type="checkbox" checked>
-        <span>自动刷新</span>
-      </label>
-      <button class="btn-icon" id="btn-refresh" title="刷新">↻</button>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFmpeg 任务管理</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="ffmpeg-panel" id="ffmpeg-panel">
+    <div class="panel-header">
+      <span class="header-title">🎞️ FFmpeg 任务管理</span>
+      <div class="header-actions">
+        <label class="toggle">
+          <input id="ffmpeg-auto-refresh" type="checkbox" checked>
+          <span>自动刷新</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="notice-box">
+      <span class="notice-icon">⚠️</span>
+      <span class="notice-text">ffmpeg_run 返回的输出工件在任务 completed 前可能不完整</span>
+    </div>
+
+    <div class="panel-section flex-1">
+      <div class="section-header">
+        <span class="section-title">任务列表</span>
+        <span class="task-count" id="task-count"></span>
+      </div>
+      <div class="task-list" id="task-list">
+        <div class="loading-text">加载中...</div>
+      </div>
     </div>
   </div>
 
-  <div class="notice-box">
-    <span class="notice-icon">⚠️</span>
-    <span class="notice-text">ffmpeg_run 返回的输出工件在任务 completed 前可能不完整</span>
-  </div>
-
-  <div class="panel-section flex-1">
-    <div class="section-header">
-      <span class="section-title">任务列表</span>
-      <span class="task-count" id="task-count"></span>
-    </div>
-    <div class="task-list" id="task-list">
-      <div class="loading-text">加载中...</div>
-    </div>
-  </div>
-</div>
+  <script src="panel.js"></script>
+</body>
+</html>
