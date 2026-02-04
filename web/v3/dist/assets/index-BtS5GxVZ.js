@@ -27526,7 +27526,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
     };
     const onClose = () => {
       if (saving.value) return;
-      dialogRef?.close?.();
+      dialogRef?.value?.close?.();
     };
     onMounted(() => {
       loadRole();
@@ -27777,7 +27777,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const RoleDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$d, [["__scopeId", "data-v-3192a84d"]]);
+const RoleDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$d, [["__scopeId", "data-v-8e296b5e"]]);
 const _hoisted_1$h = { class: "flex flex-col h-[70vh] bg-transparent overflow-hidden rounded-b-xl relative text-[var(--text-1)]" };
 const _hoisted_2$g = { class: "grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20" };
 const _hoisted_3$g = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
@@ -34733,4 +34733,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-CrDIkSle.js.map
+//# sourceMappingURL=index-BtS5GxVZ.js.map

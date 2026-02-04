@@ -3333,36 +3333,36 @@ iframe[data-v-2fa2d484] {
   height: 100%;
 }
 
-[data-v-3192a84d] .p-dialog-content {
+[data-v-8e296b5e] .p-dialog-content {
   padding: 0;
 }
-[data-v-3192a84d] .p-tablist {
+[data-v-8e296b5e] .p-tablist {
   background: transparent;
   border-bottom: 1px solid var(--border);
 }
-[data-v-3192a84d] .p-tab {
+[data-v-8e296b5e] .p-tab {
   padding: 12px 16px;
   color: var(--text-2);
   transition: all 0.2s;
 }
-[data-v-3192a84d] .p-tab[data-p-active="true"] {
+[data-v-8e296b5e] .p-tab[data-p-active="true"] {
   color: var(--primary);
   background: var(--surface-1);
   border-bottom: 2px solid var(--primary);
 }
-[data-v-3192a84d] .p-tab:hover:not([data-p-active="true"]) {
+[data-v-8e296b5e] .p-tab:hover:not([data-p-active="true"]) {
   color: var(--text-1);
   background: var(--surface-3);
 }
-[data-v-3192a84d] .p-tabpanel {
+[data-v-8e296b5e] .p-tabpanel {
   background: transparent;
 }
-[data-v-3192a84d] .p-textarea {
+[data-v-8e296b5e] .p-textarea {
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
 }
-[data-v-3192a84d] .p-dropdown,[data-v-3192a84d] .p-multiselect {
+[data-v-8e296b5e] .p-dropdown,[data-v-8e296b5e] .p-multiselect {
   font-size: 14px;
 }
 

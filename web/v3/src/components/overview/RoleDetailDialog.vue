@@ -472,7 +472,8 @@ const saveToolGroups = async () => {
 // 关闭对话框
 const onClose = () => {
   if (saving.value) return;
-  dialogRef?.close?.();
+  // dialogRef 是通过 inject 获取的 ref，需要通过 .value 访问
+  dialogRef?.value?.close?.();
 };
 
 onMounted(() => {
