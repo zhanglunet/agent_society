@@ -18119,11 +18119,11 @@ const _hoisted_13$a = { class: "font-medium truncate" };
 const _hoisted_14$a = { class: "flex-grow overflow-hidden relative" };
 const _hoisted_15$a = { class: "absolute inset-0 flex flex-col bg-[var(--bg)]" };
 const _hoisted_16$a = { class: "flex-grow overflow-y-auto" };
-const _hoisted_17$9 = {
+const _hoisted_17$a = {
   key: 0,
   class: "flex flex-col items-center justify-center py-20 text-[var(--text-3)] opacity-50"
 };
-const _hoisted_18$9 = {
+const _hoisted_18$a = {
   key: 1,
   class: "w-full text-left border-collapse min-w-[500px]"
 };
@@ -18389,10 +18389,10 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                 createBaseVNode("div", _hoisted_14$a, [
                   createBaseVNode("div", _hoisted_15$a, [
                     createBaseVNode("div", _hoisted_16$a, [
-                      currentItems.value.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_17$9, [
+                      currentItems.value.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_17$a, [
                         createVNode(unref(FileCode), { class: "w-16 h-16 mb-4" }),
                         _cache[2] || (_cache[2] = createBaseVNode("p", null, "该目录下暂无文件", -1))
-                      ])) : (openBlock(), createElementBlock("table", _hoisted_18$9, [
+                      ])) : (openBlock(), createElementBlock("table", _hoisted_18$a, [
                         _cache[3] || (_cache[3] = createBaseVNode("thead", null, [
                           createBaseVNode("tr", { class: "border-b border-[var(--border)] bg-[var(--surface-1)] sticky top-0 z-10 shadow-sm" }, [
                             createBaseVNode("th", { class: "py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-10" }),
@@ -21094,11 +21094,11 @@ const _hoisted_16$9 = {
   key: 0,
   class: "flex items-center justify-center py-12"
 };
-const _hoisted_17$8 = {
+const _hoisted_17$9 = {
   key: 1,
   class: "grid grid-cols-1 gap-4"
 };
-const _hoisted_18$8 = { class: "flex items-center justify-between" };
+const _hoisted_18$9 = { class: "flex items-center justify-between" };
 const _hoisted_19$6 = { class: "flex items-center gap-3" };
 const _hoisted_20$6 = { class: "w-10 h-10 rounded-lg bg-[var(--surface-3)] flex items-center justify-center text-[var(--primary)]" };
 const _hoisted_21$6 = { class: "font-medium text-[var(--text-1)]" };
@@ -21582,13 +21582,13 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                       ]),
                       servicesLoading.value ? (openBlock(), createElementBlock("div", _hoisted_16$9, [
                         createVNode(unref(LoaderCircle), { class: "w-6 h-6 animate-spin text-[var(--text-3)]" })
-                      ])) : (openBlock(), createElementBlock("div", _hoisted_17$8, [
+                      ])) : (openBlock(), createElementBlock("div", _hoisted_17$9, [
                         (openBlock(true), createElementBlock(Fragment, null, renderList(llmServices.value, (service) => {
                           return openBlock(), createElementBlock("div", {
                             key: service.id,
                             class: "p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]"
                           }, [
-                            createBaseVNode("div", _hoisted_18$8, [
+                            createBaseVNode("div", _hoisted_18$9, [
                               createBaseVNode("div", _hoisted_19$6, [
                                 createBaseVNode("div", _hoisted_20$6, [
                                   createVNode(unref(Cpu), { class: "w-5 h-5" })
@@ -27215,45 +27215,43 @@ function render$a(_ctx, _cache, $props, $setup, $data, $options) {
   }, 8, ["appendTo"])], 16, _hoisted_1$h);
 }
 script$b.render = render$a;
-const _hoisted_1$g = {
+const _hoisted_1$g = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
+const _hoisted_2$f = {
   key: 0,
   class: "flex items-center justify-center py-12"
 };
-const _hoisted_2$f = {
+const _hoisted_3$f = {
   key: 1,
   class: "p-4"
 };
-const _hoisted_3$f = {
+const _hoisted_4$e = {
   key: 2,
-  class: "flex flex-col",
-  style: { "max-height": "70vh" }
+  class: "flex flex-col h-full"
 };
-const _hoisted_4$e = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_5$a = { class: "text-sm text-[var(--text-1)] font-mono" };
-const _hoisted_6$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_7$9 = { class: "text-sm text-[var(--text-1)]" };
-const _hoisted_8$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_9$9 = { class: "text-sm text-[var(--text-1)]" };
-const _hoisted_10$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_11$9 = { class: "text-sm text-[var(--text-1)]" };
-const _hoisted_12$9 = { class: "flex items-center justify-between mb-2" };
+const _hoisted_5$a = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_6$9 = { class: "text-sm text-[var(--text-1)] font-mono" };
+const _hoisted_7$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_8$9 = { class: "text-sm text-[var(--text-1)]" };
+const _hoisted_9$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_10$9 = { class: "text-sm text-[var(--text-1)]" };
+const _hoisted_11$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_12$9 = { class: "text-sm text-[var(--text-1)]" };
 const _hoisted_13$8 = { class: "flex items-center justify-between mb-2" };
 const _hoisted_14$8 = { class: "flex items-center justify-between mb-2" };
 const _hoisted_15$8 = { class: "flex items-center justify-between mb-2" };
-const _hoisted_16$8 = { class: "flex justify-end gap-2" };
+const _hoisted_16$8 = { class: "flex items-center justify-between mb-2" };
+const _hoisted_17$8 = { class: "px-6 py-4 border-t border-[var(--border)] bg-[var(--surface-1)]" };
+const _hoisted_18$8 = { class: "flex justify-end" };
 const _sfc_main$c = /* @__PURE__ */ defineComponent({
   __name: "RoleDetailDialog",
   setup(__props) {
     const toast = useToast();
     const dialogRef = inject("dialogRef");
-    const dialogVisible = /* @__PURE__ */ ref(true);
     const loading2 = /* @__PURE__ */ ref(true);
     const error = /* @__PURE__ */ ref("");
     const saving = /* @__PURE__ */ ref(false);
     const data21 = dialogRef?.value?.data || {};
     const roleId = /* @__PURE__ */ ref(data21?.roleId || "");
-    const roleName = /* @__PURE__ */ ref(data21?.roleName || "");
-    const dialogTitle = computed(() => `岗位详情: ${roleName.value || roleId.value}`);
     console.log("RoleDetailDialog - dialogRef:", dialogRef);
     console.log("RoleDetailDialog - dialogRef.value:", dialogRef?.value);
     console.log("RoleDetailDialog - data:", data21);
@@ -27441,7 +27439,6 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     };
     const onClose = () => {
       if (saving.value) return;
-      dialogVisible.value = false;
       dialogRef?.close?.();
     };
     onMounted(() => {
@@ -27450,264 +27447,250 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
       loadToolGroups();
     });
     return (_ctx, _cache) => {
-      return openBlock(), createBlock(unref(script$D), {
-        visible: dialogVisible.value,
-        "onUpdate:visible": [
-          _cache[4] || (_cache[4] = ($event) => dialogVisible.value = $event),
-          onClose
-        ],
-        header: dialogTitle.value,
-        style: { width: "600px" },
-        modal: true,
-        closable: !saving.value,
-        "dismissable-mask": !saving.value
-      }, {
-        footer: withCtx(() => [
-          createBaseVNode("div", _hoisted_16$8, [
+      return openBlock(), createElementBlock("div", _hoisted_1$g, [
+        loading2.value ? (openBlock(), createElementBlock("div", _hoisted_2$f, [
+          createVNode(unref(LoaderCircle), { class: "w-8 h-8 animate-spin text-[var(--primary)]" }),
+          _cache[4] || (_cache[4] = createBaseVNode("span", { class: "ml-3 text-[var(--text-2)]" }, "加载中...", -1))
+        ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_3$f, [
+          createVNode(unref(script$s), { severity: "error" }, {
+            default: withCtx(() => [
+              createTextVNode(toDisplayString(error.value), 1)
+            ]),
+            _: 1
+          })
+        ])) : (openBlock(), createElementBlock("div", _hoisted_4$e, [
+          createVNode(unref(script$C), {
+            value: "info",
+            class: "flex-grow flex flex-col"
+          }, {
+            default: withCtx(() => [
+              createVNode(unref(script$z), { class: "px-4 border-b border-[var(--border)]" }, {
+                default: withCtx(() => [
+                  createVNode(unref(script$y), {
+                    value: "info",
+                    class: "flex items-center gap-2"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(unref(Info), { class: "w-4 h-4" }),
+                      _cache[5] || (_cache[5] = createBaseVNode("span", null, "基本信息", -1))
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(unref(script$y), {
+                    value: "prompt",
+                    class: "flex items-center gap-2"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(unref(FileText), { class: "w-4 h-4" }),
+                      _cache[6] || (_cache[6] = createBaseVNode("span", null, "岗位职责", -1))
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(unref(script$y), {
+                    value: "config",
+                    class: "flex items-center gap-2"
+                  }, {
+                    default: withCtx(() => [
+                      createVNode(unref(Settings), { class: "w-4 h-4" }),
+                      _cache[7] || (_cache[7] = createBaseVNode("span", null, "配置", -1))
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              }),
+              createVNode(unref(script$x), { class: "flex-grow overflow-y-auto" }, {
+                default: withCtx(() => [
+                  createVNode(unref(script$w), {
+                    value: "info",
+                    class: "p-6 space-y-6"
+                  }, {
+                    default: withCtx(() => [
+                      createBaseVNode("section", null, [
+                        _cache[8] || (_cache[8] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 岗位ID ", -1)),
+                        createBaseVNode("div", _hoisted_5$a, [
+                          createBaseVNode("code", _hoisted_6$9, toDisplayString(roleData.value?.id), 1)
+                        ])
+                      ]),
+                      createBaseVNode("section", null, [
+                        _cache[9] || (_cache[9] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 岗位名称 ", -1)),
+                        createBaseVNode("div", _hoisted_7$9, [
+                          createBaseVNode("span", _hoisted_8$9, toDisplayString(roleData.value?.name), 1)
+                        ])
+                      ]),
+                      createBaseVNode("section", null, [
+                        _cache[10] || (_cache[10] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 创建时间 ", -1)),
+                        createBaseVNode("div", _hoisted_9$9, [
+                          createBaseVNode("span", _hoisted_10$9, toDisplayString(formatTimestamp(roleData.value?.createdAt)), 1)
+                        ])
+                      ]),
+                      createBaseVNode("section", null, [
+                        _cache[11] || (_cache[11] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 创建者 ", -1)),
+                        createBaseVNode("div", _hoisted_11$9, [
+                          createBaseVNode("span", _hoisted_12$9, toDisplayString(roleData.value?.createdBy || "系统"), 1)
+                        ])
+                      ])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(unref(script$w), {
+                    value: "prompt",
+                    class: "p-6 space-y-6"
+                  }, {
+                    default: withCtx(() => [
+                      createBaseVNode("section", null, [
+                        createBaseVNode("div", _hoisted_13$8, [
+                          _cache[13] || (_cache[13] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 职责提示词 ", -1)),
+                          hasPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                            key: 0,
+                            variant: "text",
+                            size: "small",
+                            onClick: savePrompt,
+                            loading: savingPrompt.value,
+                            class: "!px-3 !py-1.5"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
+                              _cache[12] || (_cache[12] = createTextVNode(" 保存 ", -1))
+                            ]),
+                            _: 1
+                          }, 8, ["loading"])) : createCommentVNode("", true)
+                        ]),
+                        createVNode(unref(script$r), {
+                          modelValue: roleForm.value.rolePrompt,
+                          "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => roleForm.value.rolePrompt = $event),
+                          rows: 8,
+                          class: "w-full",
+                          placeholder: "描述该岗位的职责和任务...",
+                          disabled: savingPrompt.value
+                        }, null, 8, ["modelValue", "disabled"]),
+                        _cache[14] || (_cache[14] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 定义该岗位智能体的核心职责、任务范围和行为准则 ", -1))
+                      ]),
+                      createBaseVNode("section", null, [
+                        createBaseVNode("div", _hoisted_14$8, [
+                          _cache[16] || (_cache[16] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 组织架构提示词 ", -1)),
+                          hasOrgPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                            key: 0,
+                            variant: "text",
+                            size: "small",
+                            onClick: saveOrgPrompt,
+                            loading: savingOrgPrompt.value,
+                            class: "!px-3 !py-1.5"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
+                              _cache[15] || (_cache[15] = createTextVNode(" 保存 ", -1))
+                            ]),
+                            _: 1
+                          }, 8, ["loading"])) : createCommentVNode("", true)
+                        ]),
+                        createVNode(unref(script$r), {
+                          modelValue: roleForm.value.orgPrompt,
+                          "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => roleForm.value.orgPrompt = $event),
+                          rows: 6,
+                          class: "w-full",
+                          placeholder: "定义该岗位在组织架构中的定位和协作方式（可选）...",
+                          disabled: savingOrgPrompt.value
+                        }, null, 8, ["modelValue", "disabled"]),
+                        _cache[17] || (_cache[17] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 可选：描述该岗位与其他岗位的协作关系、上下级关系等 ", -1))
+                      ])
+                    ]),
+                    _: 1
+                  }),
+                  createVNode(unref(script$w), {
+                    value: "config",
+                    class: "p-6 space-y-6"
+                  }, {
+                    default: withCtx(() => [
+                      createBaseVNode("section", null, [
+                        createBaseVNode("div", _hoisted_15$8, [
+                          _cache[19] || (_cache[19] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " LLM 服务 ", -1)),
+                          hasLlmServiceChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                            key: 0,
+                            variant: "text",
+                            size: "small",
+                            onClick: saveLlmService,
+                            loading: savingLlmService.value,
+                            class: "!px-3 !py-1.5"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
+                              _cache[18] || (_cache[18] = createTextVNode(" 保存 ", -1))
+                            ]),
+                            _: 1
+                          }, 8, ["loading"])) : createCommentVNode("", true)
+                        ]),
+                        createVNode(unref(script$g), {
+                          modelValue: roleForm.value.llmServiceId,
+                          "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => roleForm.value.llmServiceId = $event),
+                          options: llmServiceOptions.value,
+                          "option-label": "label",
+                          "option-value": "value",
+                          placeholder: "使用默认LLM服务",
+                          class: "w-full",
+                          disabled: savingLlmService.value
+                        }, null, 8, ["modelValue", "options", "disabled"]),
+                        _cache[20] || (_cache[20] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 为该岗位指定专属的LLM服务，留空则使用系统默认服务 ", -1))
+                      ]),
+                      createBaseVNode("section", null, [
+                        createBaseVNode("div", _hoisted_16$8, [
+                          _cache[22] || (_cache[22] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 工具组 ", -1)),
+                          hasToolGroupsChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                            key: 0,
+                            variant: "text",
+                            size: "small",
+                            onClick: saveToolGroups,
+                            loading: savingToolGroups.value,
+                            class: "!px-3 !py-1.5"
+                          }, {
+                            default: withCtx(() => [
+                              createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
+                              _cache[21] || (_cache[21] = createTextVNode(" 保存 ", -1))
+                            ]),
+                            _: 1
+                          }, 8, ["loading"])) : createCommentVNode("", true)
+                        ]),
+                        createVNode(unref(script$b), {
+                          modelValue: roleForm.value.toolGroups,
+                          "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => roleForm.value.toolGroups = $event),
+                          options: toolGroupOptions.value,
+                          "option-label": "label",
+                          "option-value": "value",
+                          placeholder: "使用全部工具组",
+                          class: "w-full",
+                          disabled: savingToolGroups.value
+                        }, null, 8, ["modelValue", "options", "disabled"]),
+                        _cache[23] || (_cache[23] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 限制该岗位智能体可使用的工具组，留空则允许使用所有工具 ", -1))
+                      ])
+                    ]),
+                    _: 1
+                  })
+                ]),
+                _: 1
+              })
+            ]),
+            _: 1
+          })
+        ])),
+        createBaseVNode("div", _hoisted_17$8, [
+          createBaseVNode("div", _hoisted_18$8, [
             createVNode(unref(script$N), {
               variant: "text",
               onClick: onClose,
               disabled: saving.value
             }, {
-              default: withCtx(() => [..._cache[25] || (_cache[25] = [
+              default: withCtx(() => [..._cache[24] || (_cache[24] = [
                 createTextVNode(" 关闭 ", -1)
               ])]),
               _: 1
             }, 8, ["disabled"])
           ])
-        ]),
-        default: withCtx(() => [
-          loading2.value ? (openBlock(), createElementBlock("div", _hoisted_1$g, [
-            createVNode(unref(LoaderCircle), { class: "w-8 h-8 animate-spin text-[var(--primary)]" }),
-            _cache[5] || (_cache[5] = createBaseVNode("span", { class: "ml-3 text-[var(--text-2)]" }, "加载中...", -1))
-          ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_2$f, [
-            createVNode(unref(script$s), { severity: "error" }, {
-              default: withCtx(() => [
-                createTextVNode(toDisplayString(error.value), 1)
-              ]),
-              _: 1
-            })
-          ])) : (openBlock(), createElementBlock("div", _hoisted_3$f, [
-            createVNode(unref(script$C), {
-              value: "info",
-              class: "flex-grow flex flex-col"
-            }, {
-              default: withCtx(() => [
-                createVNode(unref(script$z), { class: "px-2 border-b border-[var(--border)]" }, {
-                  default: withCtx(() => [
-                    createVNode(unref(script$y), {
-                      value: "info",
-                      class: "flex items-center gap-2"
-                    }, {
-                      default: withCtx(() => [
-                        createVNode(unref(Info), { class: "w-4 h-4" }),
-                        _cache[6] || (_cache[6] = createBaseVNode("span", null, "基本信息", -1))
-                      ]),
-                      _: 1
-                    }),
-                    createVNode(unref(script$y), {
-                      value: "prompt",
-                      class: "flex items-center gap-2"
-                    }, {
-                      default: withCtx(() => [
-                        createVNode(unref(FileText), { class: "w-4 h-4" }),
-                        _cache[7] || (_cache[7] = createBaseVNode("span", null, "岗位职责", -1))
-                      ]),
-                      _: 1
-                    }),
-                    createVNode(unref(script$y), {
-                      value: "config",
-                      class: "flex items-center gap-2"
-                    }, {
-                      default: withCtx(() => [
-                        createVNode(unref(Settings), { class: "w-4 h-4" }),
-                        _cache[8] || (_cache[8] = createBaseVNode("span", null, "配置", -1))
-                      ]),
-                      _: 1
-                    })
-                  ]),
-                  _: 1
-                }),
-                createVNode(unref(script$x), { class: "flex-grow overflow-y-auto" }, {
-                  default: withCtx(() => [
-                    createVNode(unref(script$w), {
-                      value: "info",
-                      class: "p-6 space-y-6"
-                    }, {
-                      default: withCtx(() => [
-                        createBaseVNode("section", null, [
-                          _cache[9] || (_cache[9] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 岗位ID ", -1)),
-                          createBaseVNode("div", _hoisted_4$e, [
-                            createBaseVNode("code", _hoisted_5$a, toDisplayString(roleData.value?.id), 1)
-                          ])
-                        ]),
-                        createBaseVNode("section", null, [
-                          _cache[10] || (_cache[10] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 岗位名称 ", -1)),
-                          createBaseVNode("div", _hoisted_6$9, [
-                            createBaseVNode("span", _hoisted_7$9, toDisplayString(roleData.value?.name), 1)
-                          ])
-                        ]),
-                        createBaseVNode("section", null, [
-                          _cache[11] || (_cache[11] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 创建时间 ", -1)),
-                          createBaseVNode("div", _hoisted_8$9, [
-                            createBaseVNode("span", _hoisted_9$9, toDisplayString(formatTimestamp(roleData.value?.createdAt)), 1)
-                          ])
-                        ]),
-                        createBaseVNode("section", null, [
-                          _cache[12] || (_cache[12] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 创建者 ", -1)),
-                          createBaseVNode("div", _hoisted_10$9, [
-                            createBaseVNode("span", _hoisted_11$9, toDisplayString(roleData.value?.createdBy || "系统"), 1)
-                          ])
-                        ])
-                      ]),
-                      _: 1
-                    }),
-                    createVNode(unref(script$w), {
-                      value: "prompt",
-                      class: "p-6 space-y-6"
-                    }, {
-                      default: withCtx(() => [
-                        createBaseVNode("section", null, [
-                          createBaseVNode("div", _hoisted_12$9, [
-                            _cache[14] || (_cache[14] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 职责提示词 ", -1)),
-                            hasPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
-                              key: 0,
-                              variant: "text",
-                              size: "small",
-                              onClick: savePrompt,
-                              loading: savingPrompt.value,
-                              class: "!px-3 !py-1.5"
-                            }, {
-                              default: withCtx(() => [
-                                createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
-                                _cache[13] || (_cache[13] = createTextVNode(" 保存 ", -1))
-                              ]),
-                              _: 1
-                            }, 8, ["loading"])) : createCommentVNode("", true)
-                          ]),
-                          createVNode(unref(script$r), {
-                            modelValue: roleForm.value.rolePrompt,
-                            "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => roleForm.value.rolePrompt = $event),
-                            rows: 8,
-                            class: "w-full",
-                            placeholder: "描述该岗位的职责和任务...",
-                            disabled: savingPrompt.value
-                          }, null, 8, ["modelValue", "disabled"]),
-                          _cache[15] || (_cache[15] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 定义该岗位智能体的核心职责、任务范围和行为准则 ", -1))
-                        ]),
-                        createBaseVNode("section", null, [
-                          createBaseVNode("div", _hoisted_13$8, [
-                            _cache[17] || (_cache[17] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 组织架构提示词 ", -1)),
-                            hasOrgPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
-                              key: 0,
-                              variant: "text",
-                              size: "small",
-                              onClick: saveOrgPrompt,
-                              loading: savingOrgPrompt.value,
-                              class: "!px-3 !py-1.5"
-                            }, {
-                              default: withCtx(() => [
-                                createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
-                                _cache[16] || (_cache[16] = createTextVNode(" 保存 ", -1))
-                              ]),
-                              _: 1
-                            }, 8, ["loading"])) : createCommentVNode("", true)
-                          ]),
-                          createVNode(unref(script$r), {
-                            modelValue: roleForm.value.orgPrompt,
-                            "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => roleForm.value.orgPrompt = $event),
-                            rows: 6,
-                            class: "w-full",
-                            placeholder: "定义该岗位在组织架构中的定位和协作方式（可选）...",
-                            disabled: savingOrgPrompt.value
-                          }, null, 8, ["modelValue", "disabled"]),
-                          _cache[18] || (_cache[18] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 可选：描述该岗位与其他岗位的协作关系、上下级关系等 ", -1))
-                        ])
-                      ]),
-                      _: 1
-                    }),
-                    createVNode(unref(script$w), {
-                      value: "config",
-                      class: "p-6 space-y-6"
-                    }, {
-                      default: withCtx(() => [
-                        createBaseVNode("section", null, [
-                          createBaseVNode("div", _hoisted_14$8, [
-                            _cache[20] || (_cache[20] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " LLM 服务 ", -1)),
-                            hasLlmServiceChanges.value ? (openBlock(), createBlock(unref(script$N), {
-                              key: 0,
-                              variant: "text",
-                              size: "small",
-                              onClick: saveLlmService,
-                              loading: savingLlmService.value,
-                              class: "!px-3 !py-1.5"
-                            }, {
-                              default: withCtx(() => [
-                                createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
-                                _cache[19] || (_cache[19] = createTextVNode(" 保存 ", -1))
-                              ]),
-                              _: 1
-                            }, 8, ["loading"])) : createCommentVNode("", true)
-                          ]),
-                          createVNode(unref(script$g), {
-                            modelValue: roleForm.value.llmServiceId,
-                            "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => roleForm.value.llmServiceId = $event),
-                            options: llmServiceOptions.value,
-                            "option-label": "label",
-                            "option-value": "value",
-                            placeholder: "使用默认LLM服务",
-                            class: "w-full",
-                            disabled: savingLlmService.value
-                          }, null, 8, ["modelValue", "options", "disabled"]),
-                          _cache[21] || (_cache[21] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 为该岗位指定专属的LLM服务，留空则使用系统默认服务 ", -1))
-                        ]),
-                        createBaseVNode("section", null, [
-                          createBaseVNode("div", _hoisted_15$8, [
-                            _cache[23] || (_cache[23] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 工具组 ", -1)),
-                            hasToolGroupsChanges.value ? (openBlock(), createBlock(unref(script$N), {
-                              key: 0,
-                              variant: "text",
-                              size: "small",
-                              onClick: saveToolGroups,
-                              loading: savingToolGroups.value,
-                              class: "!px-3 !py-1.5"
-                            }, {
-                              default: withCtx(() => [
-                                createVNode(unref(Check), { class: "w-4 h-4 mr-1" }),
-                                _cache[22] || (_cache[22] = createTextVNode(" 保存 ", -1))
-                              ]),
-                              _: 1
-                            }, 8, ["loading"])) : createCommentVNode("", true)
-                          ]),
-                          createVNode(unref(script$b), {
-                            modelValue: roleForm.value.toolGroups,
-                            "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => roleForm.value.toolGroups = $event),
-                            options: toolGroupOptions.value,
-                            "option-label": "label",
-                            "option-value": "value",
-                            placeholder: "使用全部工具组",
-                            class: "w-full",
-                            disabled: savingToolGroups.value
-                          }, null, 8, ["modelValue", "options", "disabled"]),
-                          _cache[24] || (_cache[24] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-2" }, " 限制该岗位智能体可使用的工具组，留空则允许使用所有工具 ", -1))
-                        ])
-                      ]),
-                      _: 1
-                    })
-                  ]),
-                  _: 1
-                })
-              ]),
-              _: 1
-            })
-          ]))
-        ]),
-        _: 1
-      }, 8, ["visible", "header", "closable", "dismissable-mask"]);
+        ])
+      ]);
     };
   }
 });
-const RoleDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$c, [["__scopeId", "data-v-dbf5ce33"]]);
+const RoleDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$c, [["__scopeId", "data-v-3192a84d"]]);
 const _hoisted_1$f = { class: "flex flex-col h-[70vh] bg-transparent overflow-hidden rounded-b-xl relative text-[var(--text-1)]" };
 const _hoisted_2$e = { class: "grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20" };
 const _hoisted_3$e = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
@@ -33669,4 +33652,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-BnXWJRe1.js.map
+//# sourceMappingURL=index-q0YVbaol.js.map

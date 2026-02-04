@@ -369,19 +369,24 @@ export class RuntimeLifecycle {
     /**
      * 递归收集子岗位
      * 通过智能体的父子关系推断岗位层级：
-     * - 找到岗位下的所有智能体
+     * - 找到岗位下的所有智能体（从 _agentMetaById 获取元数据）
      * - 找到这些智能体创建的子智能体
      * - 子智能体所在的岗位就是子岗位
+     * 
+     * 注意：必须使用 _agentMetaById 而不是 _agents，因为：
+     * 1. _agents 存储的是 Agent 实例，只有 roleId，没有 parentAgentId
+     * 2. parentAgentId 只存在于元数据（_agentMetaById）中
      */
     const collectChildRoles = (parentRoleId) => {
-      for (const [agentId, agent] of runtime._agents) {
-        if (agent.roleId === parentRoleId) {
+      // 使用 _agentMetaById 而不是 _agents，因为 parentAgentId 只在元数据中
+      for (const [agentId, meta] of runtime._agentMetaById) {
+        if (meta.roleId === parentRoleId) {
           // 找到该岗位下的智能体，然后找它们创建的子智能体
-          for (const [childAgentId, childAgent] of runtime._agents) {
-            if (childAgent.parentAgentId === agentId && childAgent.roleId !== parentRoleId) {
-              if (!roleIdsToDelete.has(childAgent.roleId)) {
-                roleIdsToDelete.add(childAgent.roleId);
-                collectChildRoles(childAgent.roleId);
+          for (const [childAgentId, childMeta] of runtime._agentMetaById) {
+            if (childMeta.parentAgentId === agentId && childMeta.roleId !== parentRoleId) {
+              if (!roleIdsToDelete.has(childMeta.roleId)) {
+                roleIdsToDelete.add(childMeta.roleId);
+                collectChildRoles(childMeta.roleId);
               }
             }
           }
@@ -390,12 +395,14 @@ export class RuntimeLifecycle {
     };
     collectChildRoles(roleId);
 
-    // 2. 收集所有需要终止的智能体
+    // 2. 收集所有需要终止的智能体（基于元数据，确保不遗漏任何层级的智能体）
     const agentsToTerminate = [];
-    for (const [agentId, agent] of runtime._agents) {
-      if (roleIdsToDelete.has(agent.roleId)) {
-        // 包括已经 terminated 的，因为它们可能还在 runtime 内存中
-        agentsToTerminate.push(agentId);
+    for (const [agentId, meta] of runtime._agentMetaById) {
+      if (roleIdsToDelete.has(meta.roleId)) {
+        // 只收集还存活的智能体（在 runtime._agents 中）
+        if (runtime._agents.has(agentId)) {
+          agentsToTerminate.push(agentId);
+        }
       }
     }
 

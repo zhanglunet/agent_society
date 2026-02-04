@@ -236,7 +236,7 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "run_javascript",
-          description: "在浏览器环境中运行 JavaScript 代码。支持异步代码（可使用 await 和返回 Promise）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算。每次调用都是全新执行环境（新标签页）。参数 input 会作为变量 input 传入代码。code 必须是函数体形式的代码，需要显式 return 一个可 JSON 序列化的值。支持 Canvas 绘图功能：调用 getCanvas(path, width, height) 获取 Canvas 元素，绘图后图像会自动导出保存为工件，不必再次保存工件。path 参数必选，用于指定工件在工作空间中的完整路径（可包含文件夹），必须以 .png 结尾，例如 'charts/bar-chart.png'。这个运行的代码，如果用户需要重复执行，可以原样保存成文件，用户可以手动执行。原样保存，不需要做任何修改。",
+          description: "在浏览器环境中运行 JavaScript 代码。支持异步代码（可使用 await 和返回 Promise）。涉及严格计算/精确数值/统计/日期时间/格式转换等必须可复现的结果时，优先调用本工具用代码计算。每次调用都是全新执行环境（新标签页）。参数 input 会作为变量 input 传入代码。code 必须是函数体形式的代码，需要显式 return 一个可 JSON 序列化的值。支持 Canvas 绘图功能：调用 getCanvas(path, width, height) 获取 Canvas 元素，绘图后图像会自动导出保存为工件，不必再次保存工件。path 参数必选，用于指定工件在工作空间中的完整路径（可包含文件夹），必须以 .png 结尾，例如 'charts/bar-chart.png'。支持文件下载功能：调用 async downloadToWorkspace(filepath, mimeType, content) 将内容保存到工作区，filepath 是相对工作区根的子路径（不能用..向上），mimeType 是文件 MIME 类型，content 支持字符串、ArrayBuffer、TypedArray、Blob 等类型。你可以自己生成二进制或者文本内容，比如 wav mp3 mp4 png jpg js 等。较大的文件必须下载下来，不要通过返回值，返回值不允许超过10k，也不支持二进制。",
           parameters: {
             type: "object",
             properties: {
@@ -928,7 +928,10 @@ export class ToolExecutor {
     console.error(`[WORKSPACE TRACE] ctx.agent=`, ctx.agent);
     console.error(`[WORKSPACE TRACE] ctx.currentMessage?.from=`, ctx.currentMessage?.from);
     
-    const result = await this.runtime._runJavaScriptTool(args, messageId, agentId);
+    // 获取工作区ID
+    const workspaceId = agentId ? this.runtime.findWorkspaceIdForAgent(agentId) : null;
+    
+    const result = await this.runtime._runJavaScriptTool(args, messageId, agentId, workspaceId);
     const hasError = result?.error !== undefined;
     
     // 如果有错误，记录错误日志

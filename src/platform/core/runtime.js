@@ -1453,9 +1453,9 @@ export class Runtime {
     }
   }
 
-  async _runJavaScriptTool(args, messageId = null, agentId = null) {
+  async _runJavaScriptTool(args, messageId = null, agentId = null, workspaceId = null) {
     // [WORKSPACE TRACE 2/5] Runtime 入口
-    console.error(`[WORKSPACE TRACE] runtime._runJavaScriptTool: agentId=${agentId}, messageId=${messageId}`);
+    console.error(`[WORKSPACE TRACE] runtime._runJavaScriptTool: agentId=${agentId}, messageId=${messageId}, workspaceId=${workspaceId}`);
     console.error(`[WORKSPACE TRACE] _browserJsExecutor exists:`, !!this._browserJsExecutor);
     
     // 使用浏览器 JavaScript 执行器
@@ -1464,7 +1464,7 @@ export class Runtime {
     // - 异步代码支持（Promise/await）
     // - Canvas 绘图和导出
     // - 浏览器不可用时降级到 Node.js 执行
-    return await this._browserJsExecutor.execute(args, messageId, agentId);
+    return await this._browserJsExecutor.execute(args, messageId, agentId, workspaceId);
   }
 
   _detectBlockedJavaScriptTokens(code) {

@@ -157,7 +157,14 @@ export class RuntimeLlm {
           void this.runtime.log.info("请求 LLM", llmMeta);
           this.runtime._state.setAgentComputeStatus(agentId, 'waiting_llm');
           const convSnapshot = conv.slice();
-          msg = await llmClient.chat({ messages: conv, tools, meta: llmMeta });
+          
+          // 【统一取消管理器方案】使用 cancelScope 的 signal
+          // 这样当 AgentCancelManager.abort() 被调用时，HTTP 连接会被立即取消
+          const chatInput = { messages: conv, tools, meta: llmMeta };
+          if (cancelScope) {
+            chatInput.abortSignal = cancelScope.signal;
+          }
+          msg = await llmClient.chat(chatInput);
 
           void this.runtime.log.info("LLM 响应返回", {
             agentId,

@@ -37,6 +37,80 @@ import { randomUUID } from "node:crypto";
 import { WorkspaceManager } from "../services/workspace/workspace_manager.js";
 
 /**
+ * 将输入内容转换为 Buffer
+ * 支持 ArrayBuffer、TypedArray、Blob、字符串等多种类型
+ * 
+ * @param {ArrayBuffer|TypedArray|Blob|string} content - 输入内容
+ * @returns {Promise<Buffer>} Node.js Buffer 对象
+ */
+async function convertToBuffer(content) {
+  // 处理 null/undefined
+  if (content == null) {
+    return Buffer.alloc(0);
+  }
+
+  // 处理 ArrayBuffer
+  if (content instanceof ArrayBuffer) {
+    return Buffer.from(content);
+  }
+
+  // 处理 TypedArray (Uint8Array, Int8Array, Uint16Array 等)
+  if (ArrayBuffer.isView(content)) {
+    return Buffer.from(content.buffer, content.byteOffset, content.byteLength);
+  }
+
+  // 处理 Blob (Node.js 18+ 支持 Blob)
+  if (typeof Blob !== 'undefined' && content instanceof Blob) {
+    const arrayBuffer = await content.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
+  // 处理字符串
+  if (typeof content === 'string') {
+    return Buffer.from(content, 'utf8');
+  }
+
+  // 处理数字等其他类型，转为字符串
+  return Buffer.from(String(content), 'utf8');
+}
+
+/**
+ * 验证文件路径是否安全
+ * 路径必须是相对于工作区的子路径，不能使用 .. 向上遍历
+ * 
+ * @param {string} filepath - 要验证的文件路径
+ * @returns {{valid: boolean, error?: string}} 验证结果
+ */
+function validateFilePath(filepath) {
+  if (!filepath || typeof filepath !== 'string') {
+    return { valid: false, error: "filepath must be a non-empty string" };
+  }
+
+  // 检查是否为绝对路径
+  if (path.isAbsolute(filepath)) {
+    return { valid: false, error: "filepath must be relative, not absolute" };
+  }
+
+  // 规范化路径并检查是否包含 .. 
+  const normalized = path.normalize(filepath);
+  const parts = normalized.split(path.sep);
+  
+  // 检查任何部分是否为 .. 
+  for (const part of parts) {
+    if (part === '..') {
+      return { valid: false, error: "filepath cannot contain '..' to traverse upward" };
+    }
+  }
+
+  // 检查路径是否以 .. 开头
+  if (normalized.startsWith('..')) {
+    return { valid: false, error: "filepath cannot start with '..'" };
+  }
+
+  return { valid: true };
+}
+
+/**
  * 安全的日志记录函数
  * 当 runtime.log 不可用时，回退到 console
  * @param {object} runtime - Runtime 实例
@@ -172,6 +246,63 @@ export class JavaScriptExecutor {
       return newCanvas;
     };
 
+    // 创建 downloadToWorkspace 函数（需要在 try 块内使用 workspaceId 等变量）
+    let downloadResults = [];
+    const downloadToWorkspace = async (filepath, mimeType, content) => {
+      // 参数验证
+      if (!filepath || typeof filepath !== 'string') {
+        throw new Error("downloadToWorkspace: filepath must be a non-empty string");
+      }
+      if (!mimeType || typeof mimeType !== 'string') {
+        throw new Error("downloadToWorkspace: mimeType must be a non-empty string");
+      }
+      if (content === undefined) {
+        throw new Error("downloadToWorkspace: content is required");
+      }
+      if (!workspaceId) {
+        throw new Error("downloadToWorkspace: workspaceId is required");
+      }
+
+      // 路径安全验证
+      const pathValidation = validateFilePath(filepath);
+      if (!pathValidation.valid) {
+        throw new Error(`downloadToWorkspace: invalid filepath - ${pathValidation.error}`);
+      }
+
+      // 转换内容为 Buffer
+      const buffer = await convertToBuffer(content);
+
+      try {
+        const ws = await this.workspaceManager.getWorkspace(workspaceId);
+        await ws.writeFile(filepath, buffer, {
+          mimeType: mimeType,
+          operator: agentId,
+          messageId: messageId
+        });
+        
+        downloadResults.push(filepath);
+        
+        safeLog(this.runtime, "info", "downloadToWorkspace 文件已保存", {
+          workspaceId,
+          filepath,
+          mimeType,
+          size: buffer.length,
+          agentId,
+          messageId
+        });
+        
+        return { success: true, path: filepath, size: buffer.length };
+      } catch (err) {
+        const message = err && typeof err.message === "string" ? err.message : String(err ?? "unknown error");
+        safeLog(this.runtime, "error", "downloadToWorkspace 保存失败", {
+          workspaceId,
+          filepath,
+          error: message
+        });
+        throw new Error(`downloadToWorkspace failed: ${message}`);
+      }
+    };
+
     try {
       // 构建安全的执行环境前置代码
       // 禁用危险的全局对象和函数
@@ -181,8 +312,8 @@ export class JavaScriptExecutor {
         "const fetch=undefined, XMLHttpRequest=undefined, WebSocket=undefined;\n";
       
       // 创建函数并执行
-      const fn = new Function("input", "getCanvas", prelude + String(code));
-      let value = fn(input, getCanvas);
+      const fn = new Function("input", "getCanvas", "downloadToWorkspace", prelude + String(code));
+      let value = fn(input, getCanvas, downloadToWorkspace);
       
       // 如果返回 Promise，等待其完成
       if (value && (typeof value === "object" || typeof value === "function") && typeof value.then === "function") {
@@ -199,6 +330,11 @@ export class JavaScriptExecutor {
           return { result: jsonSafe.value, error: "workspace_required", message: "使用 Canvas 功能需要提供 workspaceId" };
         }
         return await this._saveAllCanvasImages(workspaceId, canvasInstances, jsonSafe.value, messageId, agentId);
+      }
+
+      // 如果有 downloadToWorkspace 调用，在结果中包含保存的文件路径
+      if (downloadResults.length > 0) {
+        return { result: jsonSafe.value, downloadPaths: downloadResults };
       }
 
       return jsonSafe.value;

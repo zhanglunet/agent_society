@@ -1,13 +1,5 @@
 <template>
-  <Dialog
-    v-model:visible="dialogVisible"
-    :header="dialogTitle"
-    :style="{ width: '600px' }"
-    :modal="true"
-    :closable="!saving"
-    :dismissable-mask="!saving"
-    @update:visible="onClose"
-  >
+  <div class="flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]">
     <div v-if="loading" class="flex items-center justify-center py-12">
       <Loader2 class="w-8 h-8 animate-spin text-[var(--primary)]" />
       <span class="ml-3 text-[var(--text-2)]">加载中...</span>
@@ -17,9 +9,9 @@
       <Message severity="error">{{ error }}</Message>
     </div>
 
-    <div v-else class="flex flex-col" style="max-height: 70vh;">
+    <div v-else class="flex flex-col h-full">
       <Tabs value="info" class="flex-grow flex flex-col">
-        <TabList class="px-2 border-b border-[var(--border)]">
+        <TabList class="px-4 border-b border-[var(--border)]">
           <Tab value="info" class="flex items-center gap-2">
             <Info class="w-4 h-4" />
             <span>基本信息</span>
@@ -203,8 +195,9 @@
       </Tabs>
     </div>
 
-    <template #footer>
-      <div class="flex justify-end gap-2">
+    <!-- 底部按钮栏 -->
+    <div class="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="flex justify-end">
         <Button
           variant="text"
           @click="onClose"
@@ -213,13 +206,12 @@
           关闭
         </Button>
       </div>
-    </template>
-  </Dialog>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, inject, onMounted } from 'vue';
-import Dialog from 'primevue/dialog';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -236,7 +228,6 @@ import { apiService } from '../../services/api';
 
 const toast = useToast();
 const dialogRef = inject<any>('dialogRef');
-const dialogVisible = ref(true);
 const loading = ref(true);
 const error = ref('');
 const saving = ref(false);
@@ -244,8 +235,6 @@ const saving = ref(false);
 // 获取从父组件传入的数据 - dialogRef 是一个 computed ref，需要访问 .value
 const data = dialogRef?.value?.data || {};
 const roleId = ref(data?.roleId || '');
-const roleName = ref(data?.roleName || '');
-const dialogTitle = computed(() => `岗位详情: ${roleName.value || roleId.value}`);
 
 // 调试日志
 console.log('RoleDetailDialog - dialogRef:', dialogRef);
@@ -483,7 +472,6 @@ const saveToolGroups = async () => {
 // 关闭对话框
 const onClose = () => {
   if (saving.value) return;
-  dialogVisible.value = false;
   dialogRef?.close?.();
 };
 

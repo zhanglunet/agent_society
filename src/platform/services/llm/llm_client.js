@@ -93,7 +93,13 @@ export class LlmClient {
 
   /**
    * 调用聊天补全（支持工具调用、中断和并发控制）。
-   * @param {{messages:any[], tools?:any[], temperature?:number, meta?:any}} input
+   * 
+   * 【统一取消管理器方案】
+   * - 优先使用外部传入的 abortSignal（来自 AgentCancelManager）
+   * - 如果没有外部 signal，使用内部 AbortController
+   * - 确保 HTTP 连接能被正确取消
+   * 
+   * @param {{messages:any[], tools?:any[], temperature?:number, meta?:any, abortSignal?:AbortSignal}} input
    * @returns {Promise<any>} message
    */
   async chat(input) {
@@ -101,6 +107,7 @@ export class LlmClient {
     await this._ensureInitialized();
 
     const agentId = input?.meta?.agentId ?? null;
+    const externalSignal = input?.abortSignal ?? null;
 
     // 获取最新配置
     const config = await this._getConfigAsync();
@@ -115,47 +122,56 @@ export class LlmClient {
 
     // 如果没有agentId，回退到原始行为（向后兼容）
     if (!agentId) {
-      return this._executeChatRequestLegacy(input, config);
+      return this._executeChatRequestLegacy(input, config, externalSignal);
     }
 
     // 使用并发控制器执行请求
+    // 将 externalSignal 传递给执行函数
     return this.concurrencyController.executeRequest(
       agentId,
-      () => this._executeChatRequest(input, config)
+      () => this._executeChatRequest(input, config, externalSignal)
     );
   }
 
   /** @private */
-  async _executeChatRequestLegacy(input, config) {
+  async _executeChatRequestLegacy(input, config, externalSignal = null) {
     const agentId = input?.meta?.agentId ?? null;
-    const abortController = new AbortController();
+    
+    // 优先使用外部 signal，否则创建内部 AbortController
+    const abortController = externalSignal ? null : new AbortController();
+    const signal = externalSignal ?? abortController.signal;
 
-    if (agentId) {
+    if (agentId && abortController) {
       this._activeRequests.set(agentId, abortController);
     }
 
     try {
-      return await this._chatWithRetry(input, this.maxRetries, abortController.signal, config);
+      return await this._chatWithRetry(input, this.maxRetries, signal, config);
     } finally {
-      if (agentId) {
+      if (agentId && abortController) {
         this._activeRequests.delete(agentId);
       }
     }
   }
 
   /** @private */
-  async _executeChatRequest(input, config) {
+  async _executeChatRequest(input, config, externalSignal = null) {
     const agentId = input?.meta?.agentId ?? null;
-    const abortController = new AbortController();
+    
+    // 【统一取消管理器方案】
+    // 优先使用外部传入的 signal（来自 AgentCancelManager）
+    // 这样 Runtime 可以通过 AgentCancelManager 统一控制所有 HTTP 连接
+    const abortController = externalSignal ? null : new AbortController();
+    const signal = externalSignal ?? abortController.signal;
 
-    if (agentId) {
+    if (agentId && abortController) {
       this._activeRequests.set(agentId, abortController);
     }
 
     try {
-      return await this._chatWithRetry(input, this.maxRetries, abortController.signal, config);
+      return await this._chatWithRetry(input, this.maxRetries, signal, config);
     } finally {
-      if (agentId) {
+      if (agentId && abortController) {
         this._activeRequests.delete(agentId);
       }
     }
