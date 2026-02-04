@@ -3,25 +3,41 @@
  * Markdown 渲染器
  * 
  * @module components/file-viewer/renderers/MarkdownRenderer
+ * 
+ * 功能：
+ * - Markdown 基础语法渲染（基于 markdown-it）
+ * - 标题锚点生成与平滑滚动
+ * - 图片点击预览
+ * - 文档链接跳转（外部新窗口，内部新查看器）
  */
-import { computed, inject } from 'vue';
+import { computed, inject, ref, onMounted, watch, nextTick } from 'vue';
 import { ViewModeKey } from '../index';
 import type { RendererProps } from '../types';
+import { getMarkdownEngine } from './markdown';
+import type { RenderResult } from './markdown';
 
 const props = defineProps<RendererProps>();
+const emit = defineEmits<{
+  /** 请求打开其他文件（内部文档链接） */
+  (e: 'openFile', path: string): void;
+}>();
 
-// 注入 viewMode - 这是一个 Ref
+// 注入 viewMode
 const injectedViewMode = inject(ViewModeKey);
-console.log('[MarkdownRenderer] injectedViewMode:', injectedViewMode);
 
-// 获取当前值（如果不是 ref 则返回本身）
+// 获取当前值
 const viewMode = computed(() => {
   const value = typeof injectedViewMode === 'object' && injectedViewMode !== null && 'value' in injectedViewMode
     ? injectedViewMode.value
     : injectedViewMode;
-  console.log('[MarkdownRenderer] viewMode computed, value:', value);
   return value;
 });
+
+// 预览容器 ref
+const previewRef = ref<HTMLElement | null>(null);
+
+// Markdown 引擎
+const engine = getMarkdownEngine();
 
 /**
  * Markdown 内容
@@ -38,44 +54,230 @@ const markdownContent = computed(() => {
 });
 
 /**
- * 简单的 Markdown 转 HTML
+ * 渲染结果
  */
-const renderMarkdown = (md: string): string => {
-  let html = md
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
-    .replace(/^\s*[-*+]\s+(.*$)/gim, '<li>$1</li>')
-    .replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>')
-    .replace(/^>\s+(.*$)/gim, '<blockquote>$1</blockquote>')
-    .replace(/^---$/gim, '<hr />')
-    .replace(/\n\n/g, '</p><p>');
-  
-  return `<div class="markdown-content">${html}</div>`;
-};
+const renderResult = computed<RenderResult>(() => {
+  const content = markdownContent.value;
+  if (!content) {
+    return { html: '' };
+  }
+
+  return engine.render(content, {
+    filePath: props.filePath,
+    workspaceId: props.workspaceId
+  });
+});
 
 /**
  * 渲染后的 HTML
  */
 const renderedHtml = computed(() => {
-  return renderMarkdown(markdownContent.value);
+  return renderResult.value.html;
+});
+
+/**
+ * 处理点击事件
+ * - 锚点链接：平滑滚动到对应位置
+ * - 图片：打开大图预览
+ * - 内部链接：发送 openFile 事件
+ * - 外部链接：新窗口打开（已有 target="_blank"）
+ */
+const handleClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+
+  // 1. 处理锚点链接点击（标题旁的 # 或文档内的锚点链接）
+  const anchorLink = target.closest('a[href^="#"]');
+  if (anchorLink) {
+    e.preventDefault();
+    const href = anchorLink.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      const id = href.slice(1);
+      scrollToHeading(id);
+    }
+    return;
+  }
+
+  // 2. 处理图片点击
+  const img = target.closest('img.markdown-image');
+  if (img) {
+    e.preventDefault();
+    const src = img.getAttribute('src');
+    if (src) {
+      openImagePreview(src);
+    }
+    return;
+  }
+
+  // 3. 处理内部文档链接
+  const internalLink = target.closest('a.internal-link');
+  if (internalLink) {
+    e.preventDefault();
+    const path = internalLink.getAttribute('data-path');
+    if (path) {
+      emit('openFile', path);
+    }
+    return;
+  }
+};
+
+/**
+ * 平滑滚动到指定标题
+ */
+const scrollToHeading = (id: string) => {
+  if (!previewRef.value) return;
+
+  try {
+    // 使用 CSS.escape 安全地转义 ID
+    const safeId = CSS.escape ? CSS.escape(id) : id.replace(/(["\\#$%&'()*+,.\/:;<=>?@[\\]^`{|}~])/g, '\\$1');
+    const element = previewRef.value.querySelector(`#${safeId}`);
+
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // 添加高亮效果
+      element.classList.add('heading-highlight');
+      setTimeout(() => {
+        element.classList.remove('heading-highlight');
+      }, 2000);
+    }
+  } catch (err) {
+    console.warn('[MarkdownRenderer] 滚动到锚点失败:', err);
+  }
+};
+
+/**
+ * 打开图片预览
+ */
+const openImagePreview = (src: string) => {
+  // 创建预览遮罩
+  const overlay = document.createElement('div');
+  overlay.className = 'image-preview-overlay';
+  overlay.innerHTML = `
+    <div class="image-preview-container">
+      <img src="${src}" alt="预览" />
+    </div>
+    <button class="image-preview-close">&times;</button>
+  `;
+
+  // 样式
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: zoom-out;
+  `;
+
+  const container = overlay.querySelector('.image-preview-container') as HTMLElement;
+  if (container) {
+    container.style.cssText = `
+      max-width: 90%;
+      max-height: 90%;
+    `;
+  }
+
+  const img = overlay.querySelector('img') as HTMLImageElement;
+  if (img) {
+    img.style.cssText = `
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 4px;
+    `;
+  }
+
+  const closeBtn = overlay.querySelector('.image-preview-close') as HTMLElement;
+  if (closeBtn) {
+    closeBtn.style.cssText = `
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      font-size: 36px;
+      cursor: pointer;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    `;
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+    });
+  }
+
+  // 关闭函数
+  const close = () => {
+    if (overlay.parentNode) {
+      document.body.removeChild(overlay);
+    }
+    document.removeEventListener('keydown', escHandler);
+  };
+
+  // ESC 键关闭
+  const escHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      close();
+    }
+  };
+
+  // 事件绑定
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      close();
+    }
+  });
+  closeBtn?.addEventListener('click', close);
+  document.addEventListener('keydown', escHandler);
+
+  // 添加到页面
+  document.body.appendChild(overlay);
+};
+
+/**
+ * 处理 URL hash 变化
+ * 支持通过 URL #heading-id 直接定位
+ */
+const handleHashChange = () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#')) {
+    const id = hash.slice(1);
+    // 延迟执行，等待渲染完成
+    setTimeout(() => scrollToHeading(id), 100);
+  }
+};
+
+// 监听内容变化，处理可能的 hash 定位
+watch(renderedHtml, () => {
+  nextTick(() => {
+    handleHashChange();
+  });
+});
+
+onMounted(() => {
+  // 初始化 hash 定位
+  handleHashChange();
 });
 </script>
 
 <template>
   <div class="markdown-renderer flex flex-col h-full bg-[var(--bg)]">
-    <div class="flex-1 overflow-auto">
-      <div 
-        v-if="viewMode === 'preview'" 
-        class="markdown-body p-6 max-w-4xl mx-auto"
-        v-html="renderedHtml"
-      />
+    <div ref="previewRef" class="flex-1 overflow-auto">
+      <div v-if="viewMode === 'preview'" class="markdown-body p-6 max-w-4xl mx-auto" v-html="renderedHtml"
+        @click="handleClick" />
       <pre v-else class="p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap">{{ markdownContent }}</pre>
     </div>
   </div>
@@ -87,20 +289,217 @@ const renderedHtml = computed(() => {
   height: 100%;
 }
 
-.markdown-body :deep(h1) { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; color: var(--text-1); }
-.markdown-body :deep(h2) { font-size: 1.5em; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; color: var(--text-1); border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
-.markdown-body :deep(h3) { font-size: 1.25em; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; color: var(--text-1); }
-.markdown-body :deep(p) { margin-bottom: 1em; line-height: 1.6; color: var(--text-1); }
-.markdown-body :deep(code) { background: var(--surface-2); padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
-.markdown-body :deep(pre) { background: var(--surface-2); padding: 1em; border-radius: 6px; overflow-x: auto; margin-bottom: 1em; }
-.markdown-body :deep(pre code) { background: none; padding: 0; }
-.markdown-body :deep(blockquote) { border-left: 4px solid var(--primary); padding-left: 1em; margin-left: 0; margin-bottom: 1em; color: var(--text-2); }
-.markdown-body :deep(ul), .markdown-body :deep(ol) { margin-bottom: 1em; padding-left: 2em; }
-.markdown-body :deep(li) { margin-bottom: 0.3em; }
-.markdown-body :deep(a) { color: var(--primary); text-decoration: none; }
-.markdown-body :deep(a:hover) { text-decoration: underline; }
-.markdown-body :deep(hr) { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
-.markdown-body :deep(img) { max-width: 100%; height: auto; }
-.markdown-body :deep(strong) { font-weight: bold; }
-.markdown-body :deep(em) { font-style: italic; }
+/* 标题样式 */
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  color: var(--text-1);
+  font-weight: bold;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  position: relative;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 2em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 1.25em;
+}
+
+.markdown-body :deep(h4) {
+  font-size: 1em;
+}
+
+/* 锚点链接样式 */
+.markdown-body :deep(.anchor-link) {
+  position: absolute;
+  left: -1.2em;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  text-decoration: none;
+  font-size: 0.8em;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 0.2em 0.4em;
+}
+
+.markdown-body :deep(h1:hover .anchor-link),
+.markdown-body :deep(h2:hover .anchor-link),
+.markdown-body :deep(h3:hover .anchor-link),
+.markdown-body :deep(h4:hover .anchor-link),
+.markdown-body :deep(h5:hover .anchor-link),
+.markdown-body :deep(h6:hover .anchor-link) {
+  opacity: 1;
+}
+
+.markdown-body :deep(.anchor-link:hover) {
+  color: var(--primary);
+}
+
+/* 标题高亮动画 */
+.markdown-body :deep(.heading-highlight) {
+  animation: highlight-pulse 2s ease;
+}
+
+@keyframes highlight-pulse {
+
+  0%,
+  100% {
+    background: transparent;
+  }
+
+  20%,
+  80% {
+    background: var(--surface-3);
+    border-radius: 4px;
+  }
+}
+
+/* 段落 */
+.markdown-body :deep(p) {
+  margin-bottom: 1em;
+  line-height: 1.6;
+  color: var(--text-1);
+}
+
+/* 代码 */
+.markdown-body :deep(code) {
+  background: var(--surface-2);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--text-1);
+}
+
+.markdown-body :deep(pre) {
+  background: var(--surface-2);
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+/* 引用 */
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid var(--primary);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  color: var(--text-2);
+}
+
+/* 列表 */
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin-bottom: 1em;
+  padding-left: 2em;
+  color: var(--text-1);
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 0.3em;
+}
+
+.markdown-body :deep(li)>ul,
+.markdown-body :deep(li)>ol {
+  margin-top: 0.3em;
+}
+
+/* 链接 */
+.markdown-body :deep(a) {
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+/* 内部链接标记 */
+.markdown-body :deep(a.internal-link)::after {
+  content: ' ↗';
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+/* 分隔线 */
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+
+/* 图片 */
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  cursor: zoom-in;
+  transition: transform 0.2s;
+}
+
+.markdown-body :deep(img:hover) {
+  transform: scale(1.01);
+}
+
+/* 表格 */
+.markdown-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  color: var(--text-1);
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  padding: 0.5em 1em;
+  border: 1px solid var(--border);
+}
+
+.markdown-body :deep(th) {
+  background: var(--surface-2);
+  font-weight: bold;
+}
+
+.markdown-body :deep(tr:nth-child(even)) {
+  background: var(--surface-1);
+}
+
+/* 强调 */
+.markdown-body :deep(strong) {
+  font-weight: bold;
+}
+
+.markdown-body :deep(em) {
+  font-style: italic;
+}
+
+/* 删除线 */
+.markdown-body :deep(del) {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
 </style>

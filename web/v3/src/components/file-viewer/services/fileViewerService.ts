@@ -2,11 +2,22 @@
  * 文件查看器服务
  * 
  * 负责与后端 API 交互，直接通过 /workspace-files/ 接口获取文件内容
- * 完全独立，不依赖其他模块
+ * 提供打开新文件查看器的功能
  * 
  * @module components/file-viewer/services/fileViewerService
  */
 import type { FileContent } from '../types';
+
+// 动态导入以避免循环依赖
+let openFileViewerFn: ((params: any) => any) | null = null;
+
+/**
+ * 注册打开文件查看器函数
+ * 由 file-viewer/index.ts 在初始化时调用
+ */
+export function registerOpenFileViewer(fn: (params: any) => any) {
+  openFileViewerFn = fn;
+}
 
 const RAW_FILES_URL = '/workspace-files';
 
@@ -124,6 +135,56 @@ class FileViewerService {
   getFileExtension(fileName: string): string {
     const parts = fileName.split('.');
     return parts.length > 1 ? parts.pop()?.toLowerCase() || '' : '';
+  }
+
+  /**
+   * 打开文件查看器
+   * 创建新的文件查看器对话框
+   * 
+   * @param options - 打开选项
+   * @param options.workspaceId - 工作区ID
+   * @param options.filePath - 文件路径
+   * @param options.fileName - 文件名（可选）
+   * @param options.viewMode - 初始视图模式（可选）
+   * @returns Promise<dialogInstance | null>
+   */
+  async openFile(options: {
+    workspaceId: string;
+    filePath: string;
+    fileName?: string;
+    viewMode?: 'preview' | 'source';
+  }): Promise<any> {
+    if (!openFileViewerFn) {
+      console.error('[FileViewerService] openFileViewer 未注册');
+      // 降级方案：使用 window.open 打开 raw 文件
+      const url = this.getRawFileUrl(options.workspaceId, options.filePath);
+      window.open(url, '_blank');
+      return null;
+    }
+
+    // 获取全局 dialog 实例（从 window 对象获取）
+    const dialog = (window as any).$dialog;
+    if (!dialog) {
+      console.error('[FileViewerService] 全局 dialog 实例未找到');
+      const url = this.getRawFileUrl(options.workspaceId, options.filePath);
+      window.open(url, '_blank');
+      return null;
+    }
+
+    try {
+      return await openFileViewerFn({
+        dialog,
+        workspaceId: options.workspaceId,
+        filePath: options.filePath,
+        maximized: false
+      });
+    } catch (err) {
+      console.error('[FileViewerService] 打开文件失败:', err);
+      // 降级方案
+      const url = this.getRawFileUrl(options.workspaceId, options.filePath);
+      window.open(url, '_blank');
+      return null;
+    }
   }
 }
 

@@ -35,6 +35,17 @@ const orgStore = useOrgStore();
 const dialog = useDialog();
 const isDark = ref(false);
 
+// 将 dialog 挂载到全局，供 fileViewerService 使用
+import { registerOpenFileViewer } from './components/file-viewer/services/fileViewerService';
+import { openFileViewer } from './components/file-viewer';
+
+onMounted(() => {
+  // 注册全局 dialog
+  (window as any).$dialog = dialog;
+  // 注册打开文件查看器函数
+  registerOpenFileViewer(openFileViewer);
+});
+
 // 配置检查状态
 const configChecked = ref(false);
 const hasLocalConfig = ref(true); // 默认假设有配置，避免闪烁

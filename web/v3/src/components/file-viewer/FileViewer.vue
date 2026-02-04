@@ -173,6 +173,52 @@ const loadFile = async () => {
 onMounted(() => {
   loadFile();
 });
+
+/**
+ * 处理打开文件请求（来自 Markdown 内部链接）
+ * 创建新的文件查看器打开目标文件
+ * @param path 文件路径（可能是相对路径）
+ */
+const handleOpenFile = (path: string) => {
+  console.log('[FileViewer] handleOpenFile:', path, 'current filePath:', filePath.value);
+
+  // 解析相对路径为绝对路径
+  let resolvedPath = path;
+
+  // 如果是相对路径，基于当前文件路径解析
+  if (!path.startsWith('/') && !path.startsWith('http://') && !path.startsWith('https://')) {
+    const currentDir = filePath.value.includes('/')
+      ? filePath.value.substring(0, filePath.value.lastIndexOf('/') + 1)
+      : '';
+    resolvedPath = normalizePath(currentDir + path);
+    console.log('[FileViewer] resolvedPath:', resolvedPath);
+  }
+
+  // 使用 fileViewerService 创建新的文件查看器
+  fileViewerService.openFile({
+    workspaceId: workspaceId.value,
+    filePath: resolvedPath,
+    fileName: resolvedPath.split('/').pop() || resolvedPath
+  });
+};
+
+/**
+ * 规范化路径（处理 . 和 ..）
+ */
+const normalizePath = (path: string): string => {
+  const parts = path.split('/');
+  const result: string[] = [];
+
+  for (const part of parts) {
+    if (part === '..') {
+      result.pop();
+    } else if (part !== '.' && part !== '') {
+      result.push(part);
+    }
+  }
+
+  return result.join('/');
+};
 </script>
 
 <template>
@@ -205,6 +251,7 @@ onMounted(() => {
         :file-name="fileName"
         :file-path="filePath"
         :workspace-id="workspaceId"
+        @open-file="handleOpenFile"
         class="h-full"
       />
 
