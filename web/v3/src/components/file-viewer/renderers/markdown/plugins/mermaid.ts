@@ -147,7 +147,7 @@ function createFullscreenViewer(svgContent: string): void {
 
   // 创建提示文字
   const hint = document.createElement('div');
-  hint.textContent = '滚轮缩放 · 拖拽移动 · 点击空白处关闭';
+  hint.textContent = '滚轮缩放（可无限放大）· 拖拽移动 · 点击空白处关闭';
   hint.style.cssText = `
     position: absolute;
     bottom: 20px;
@@ -232,7 +232,8 @@ function setupViewerEvents(viewer: HTMLElement, content: HTMLElement): void {
   viewer.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    scale = Math.max(0.1, Math.min(5, scale * delta));
+    // 只限制最小缩放倍数，不限制最大倍数
+    scale = Math.max(0.1, scale * delta);
     updateTransform(content);
   }, { passive: false });
 
