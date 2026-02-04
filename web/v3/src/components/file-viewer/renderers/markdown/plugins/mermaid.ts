@@ -11,6 +11,15 @@ let mermaid: any = null;
 let mermaidLoaded = false;
 let mermaidLoading: Promise<void> | null = null;
 
+// 全屏查看器状态
+let fullscreenViewer: HTMLElement | null = null;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let translateX = 0;
+let translateY = 0;
+let scale = 1;
+
 /**
  * 加载 Mermaid 库
  */
@@ -32,13 +41,179 @@ async function loadMermaid(): Promise<void> {
       });
       
       mermaidLoaded = true;
-      console.log('[MermaidPlugin] 加载成功');
     } catch (err) {
       console.error('[MermaidPlugin] 加载失败:', err);
     }
   })();
 
   return mermaidLoading;
+}
+
+/**
+ * 创建全屏查看器
+ */
+function createFullscreenViewer(svgContent: string): void {
+  // 如果已存在，先移除
+  if (fullscreenViewer) {
+    fullscreenViewer.remove();
+  }
+
+  // 重置状态
+  translateX = 0;
+  translateY = 0;
+  scale = 1;
+
+  // 创建遮罩层
+  fullscreenViewer = document.createElement('div');
+  fullscreenViewer.className = 'mermaid-fullscreen-viewer';
+  fullscreenViewer.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    overflow: hidden;
+  `;
+
+  // 创建内容容器
+  const contentContainer = document.createElement('div');
+  contentContainer.className = 'mermaid-fullscreen-content';
+  contentContainer.style.cssText = `
+    transform: translate(0px, 0px) scale(1);
+    transition: transform 0.1s ease-out;
+    max-width: 90%;
+    max-height: 90%;
+  `;
+  contentContainer.innerHTML = svgContent;
+
+  // 创建关闭按钮
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '✕';
+  closeBtn.style.cssText = `
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    transition: background 0.2s;
+  `;
+  closeBtn.onmouseenter = () => { closeBtn.style.background = 'rgba(255, 255, 255, 0.3)'; };
+  closeBtn.onmouseleave = () => { closeBtn.style.background = 'rgba(255, 255, 255, 0.2)'; };
+  closeBtn.onclick = (e) => {
+    e.stopPropagation();
+    closeFullscreenViewer();
+  };
+
+  // 创建提示文字
+  const hint = document.createElement('div');
+  hint.textContent = '滚轮缩放 · 拖拽移动 · 点击空白处关闭';
+  hint.style.cssText = `
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    pointer-events: none;
+    user-select: none;
+  `;
+
+  fullscreenViewer.appendChild(contentContainer);
+  fullscreenViewer.appendChild(closeBtn);
+  fullscreenViewer.appendChild(hint);
+  document.body.appendChild(fullscreenViewer);
+
+  // 添加事件监听
+  setupViewerEvents(fullscreenViewer, contentContainer);
+}
+
+/**
+ * 设置查看器事件
+ */
+function setupViewerEvents(viewer: HTMLElement, content: HTMLElement): void {
+  // 鼠标按下 - 开始拖拽
+  viewer.addEventListener('mousedown', (e) => {
+    if (e.target === viewer || e.target === content) {
+      isDragging = true;
+      dragStartX = e.clientX - translateX;
+      dragStartY = e.clientY - translateY;
+      viewer.style.cursor = 'grabbing';
+    }
+  });
+
+  // 鼠标移动 - 拖拽
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging || !fullscreenViewer) return;
+    e.preventDefault();
+    translateX = e.clientX - dragStartX;
+    translateY = e.clientY - dragStartY;
+    updateTransform(content);
+  });
+
+  // 鼠标释放 - 结束拖拽
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    if (fullscreenViewer) {
+      fullscreenViewer.style.cursor = 'grab';
+    }
+  });
+
+  // 滚轮缩放
+  viewer.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    scale = Math.max(0.1, Math.min(5, scale * delta));
+    updateTransform(content);
+  }, { passive: false });
+
+  // 点击空白处关闭
+  viewer.addEventListener('click', (e) => {
+    if (e.target === viewer) {
+      closeFullscreenViewer();
+    }
+  });
+
+  // ESC 键关闭
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeFullscreenViewer();
+      window.removeEventListener('keydown', handleKeyDown);
+    }
+  };
+  window.addEventListener('keydown', handleKeyDown);
+}
+
+/**
+ * 更新变换
+ */
+function updateTransform(content: HTMLElement): void {
+  content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+}
+
+/**
+ * 关闭全屏查看器
+ */
+function closeFullscreenViewer(): void {
+  if (fullscreenViewer) {
+    fullscreenViewer.remove();
+    fullscreenViewer = null;
+  }
 }
 
 /**
@@ -65,15 +240,12 @@ async function renderMermaid(element: HTMLElement): Promise<void> {
   try {
     content = decodeURIComponent(escape(window.atob(encoded)));
   } catch (e) {
-    // 兼容旧格式（未编码的内容）
     content = encoded;
   }
 
   // 清理内容：去除首尾空白行
   const cleanContent = content.trim();
   
-  console.log('[MermaidPlugin] 渲染图表:', cleanContent.substring(0, 50) + '...');
-
   try {
     // 生成唯一 ID
     const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
@@ -84,7 +256,14 @@ async function renderMermaid(element: HTMLElement): Promise<void> {
     // 替换内容
     element.innerHTML = svg;
     element.classList.add('mermaid-rendered');
-    console.log('[MermaidPlugin] 渲染成功');
+    
+    // 添加点击事件 - 全屏查看
+    element.style.cursor = 'pointer';
+    element.title = '点击全屏查看';
+    element.addEventListener('click', () => {
+      createFullscreenViewer(svg);
+    });
+    
   } catch (err) {
     console.error('[MermaidPlugin] 渲染失败:', err);
     element.innerHTML = `<div class="mermaid-error">
@@ -122,8 +301,6 @@ export async function updateMermaidTheme(isDark: boolean): Promise<void> {
 export async function renderAllMermaid(container: HTMLElement): Promise<void> {
   const elements = container.querySelectorAll('.mermaid:not(.mermaid-rendered)');
   
-  console.log('[MermaidPlugin] 找到图表元素:', elements.length);
-  
   if (elements.length === 0) return;
   
   // 先加载库
@@ -134,7 +311,7 @@ export async function renderAllMermaid(container: HTMLElement): Promise<void> {
     return;
   }
   
-  // 逐个渲染（避免并发问题）
+  // 逐个渲染
   for (const el of Array.from(elements)) {
     await renderMermaid(el as HTMLElement);
   }
@@ -162,3 +339,11 @@ export const mermaidPlugin = {
     };
   }
 };
+
+/**
+ * 预加载常用语言
+ */
+export async function preloadCommonLanguages(): Promise<void> {
+  const commonLangs = ['python', 'java', 'bash', 'yaml', 'sql', 'rust'];
+  await Promise.all(commonLangs.map(() => Promise.resolve()));
+}

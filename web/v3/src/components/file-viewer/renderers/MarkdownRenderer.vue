@@ -593,4 +593,38 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 0.9em;
 }
+
+/* Mermaid 全屏查看器样式 */
+:deep(.mermaid-fullscreen-viewer) {
+  animation: fade-in 0.2s ease;
+}
+
+:deep(.mermaid-fullscreen-content) {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+:deep(.mermaid-fullscreen-content svg) {
+  max-width: 100%;
+  max-height: 80vh;
+  height: auto;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  :deep(.mermaid-fullscreen-content) {
+    background: #1e1e1e;
+  }
+}
 </style>
