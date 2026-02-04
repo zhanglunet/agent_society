@@ -198,6 +198,16 @@ export const apiService = {
   },
 
   /**
+   * 更新岗位组织架构提示词
+   */
+  async updateRoleOrgPrompt(roleId: string, orgPrompt: string): Promise<any> {
+    return request(`/role/${encodeURIComponent(roleId)}/prompt`, {
+      method: 'POST',
+      body: JSON.stringify({ orgPrompt })
+    });
+  },
+
+  /**
    * 更新岗位 LLM 服务
    */
   async updateRoleLlmService(roleId: string, llmServiceId: string | null): Promise<any> {

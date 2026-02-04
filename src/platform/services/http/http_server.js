@@ -2601,7 +2601,7 @@ export class HTTPServer {
   }
 
   /**
-   * 处理 POST /api/role/:roleId/prompt - 更新岗位职责提示词。
+   * 处理 POST /api/role/:roleId/prompt - 更新岗位提示词（职责提示词和组织架构提示词）。
    * @param {import("node:http").IncomingMessage} req
    * @param {string} roleId - 岗位ID
    * @param {import("node:http").ServerResponse} res
@@ -2614,8 +2614,23 @@ export class HTTPServer {
       }
 
       const rolePrompt = body?.rolePrompt;
-      if (rolePrompt === undefined || typeof rolePrompt !== "string") {
+      const orgPrompt = body?.orgPrompt;
+
+      // 必须至少提供一个要更新的字段
+      if (rolePrompt === undefined && orgPrompt === undefined) {
+        this._sendJson(res, 400, { error: "invalid_request", message: "必须提供 rolePrompt 或 orgPrompt" });
+        return;
+      }
+
+      // 验证 rolePrompt（如果提供）
+      if (rolePrompt !== undefined && typeof rolePrompt !== "string") {
         this._sendJson(res, 400, { error: "invalid_role_prompt", message: "rolePrompt 必须是字符串" });
+        return;
+      }
+
+      // 验证 orgPrompt（如果提供）
+      if (orgPrompt !== undefined && typeof orgPrompt !== "string") {
+        this._sendJson(res, 400, { error: "invalid_org_prompt", message: "orgPrompt 必须是字符串" });
         return;
       }
 
@@ -2632,20 +2647,24 @@ export class HTTPServer {
         }
 
         const org = this.society.runtime.org;
-        const updatedRole = await org.updateRole(roleId, { rolePrompt });
+        const updates = {};
+        if (rolePrompt !== undefined) updates.rolePrompt = rolePrompt;
+        if (orgPrompt !== undefined) updates.orgPrompt = orgPrompt;
+
+        const updatedRole = await org.updateRole(roleId, updates);
         
         if (!updatedRole) {
           this._sendJson(res, 404, { error: "role_not_found", message: "岗位不存在" });
           return;
         }
 
-        void this.log.info("更新岗位职责提示词", { roleId, promptLength: rolePrompt.length });
+        void this.log.info("更新岗位提示词", { roleId, updates: Object.keys(updates) });
         this._sendJson(res, 200, { 
           ok: true, 
           role: updatedRole
         });
       } catch (saveErr) {
-        void this.log.error("更新岗位职责提示词失败", { roleId, error: saveErr.message });
+        void this.log.error("更新岗位提示词失败", { roleId, error: saveErr.message });
         this._sendJson(res, 500, { error: "update_failed", message: saveErr.message });
       }
     });

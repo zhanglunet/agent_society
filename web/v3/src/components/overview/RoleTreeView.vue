@@ -421,7 +421,8 @@ const handleEditRole = (node: any, roleName: string) => {
             style: { width: '600px' },
             modal: true,
             closable: true,
-            dismissableMask: true,
+            dismissableMask: false,
+            closeOnEscape: false,
         },
         data: {
             roleId,

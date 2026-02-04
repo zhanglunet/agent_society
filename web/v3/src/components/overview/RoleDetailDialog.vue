@@ -391,9 +391,7 @@ const saveOrgPrompt = async () => {
 
   savingOrgPrompt.value = true;
   try {
-    await apiService.updateRolePrompt(roleId.value, roleForm.value.rolePrompt);
-    // 同时更新 orgPrompt（需要后端支持）
-    // 暂时跳过 orgPrompt 的单独更新
+    await apiService.updateRoleOrgPrompt(roleId.value, roleForm.value.orgPrompt);
     originalRoleData.value.orgPrompt = roleForm.value.orgPrompt;
 
     toast.add({
