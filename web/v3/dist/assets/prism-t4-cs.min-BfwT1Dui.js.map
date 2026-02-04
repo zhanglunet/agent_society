@@ -1,1 +1,0 @@
-{"version":3,"file":"prism-t4-cs.min-BfwT1Dui.js","sources":["../../node_modules/prismjs/components/prism-t4-cs.min.js"],"sourcesContent":["Prism.languages.t4=Prism.languages[\"t4-cs\"]=Prism.languages[\"t4-templating\"].createT4(\"csharp\");"],"names":[],"mappings":"AAAA,MAAM,UAAU,KAAG,MAAM,UAAU,OAAO,IAAE,MAAM,UAAU,eAAe,EAAE,SAAS,QAAQ;","x_google_ignoreList":[0]}

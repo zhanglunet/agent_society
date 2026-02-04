@@ -15,6 +15,7 @@ import 'prismjs/components/prism-json';
 import 'prismjs/components/prism-markdown';
 import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-markup'; // HTML/XML
+import 'prismjs/components/prism-clike'; // C-like 语言基础
 
 // 语言别名映射
 const LANG_ALIASES: Record<string, string> = {
@@ -39,22 +40,13 @@ const LANG_ALIASES: Record<string, string> = {
   'rs': 'rust'
 };
 
-// 懒加载的语言列表
-const LAZY_LANGUAGES = [
-  'python', 'java', 'bash', 'yaml', 'sql', 'rust', 'go',
-  'php', 'ruby', 'cpp', 'csharp', 'swift', 'kotlin',
-  'docker', 'nginx', 'graphql', 'c', 'perl', 'lua'
-];
-
 // 已加载的语言
-const loadedLanguages = new Set(['javascript', 'typescript', 'json', 'markdown', 'css', 'markup']);
+const loadedLanguages = new Set([
+  'javascript', 'typescript', 'json', 'markdown', 'css', 'markup', 'html', 'xml', 'clike'
+]);
 
 // 加载中的语言
 const loadingLanguages = new Map<string, Promise<boolean>>();
-
-// 使用 import.meta.glob 预声明所有可能的语言模块导入
-// 这样 Vite 在构建时就能知道需要处理这些模块
-const languageModules = import.meta.glob('/node_modules/prismjs/components/prism-*.js', { eager: false });
 
 /**
  * 获取标准语言名称
@@ -63,6 +55,73 @@ function normalizeLang(lang: string): string {
   const lower = lang.toLowerCase();
   return LANG_ALIASES[lower] || lower;
 }
+
+/**
+ * 语言加载器映射表
+ * 使用动态导入加载语言组件
+ */
+const languageLoaders: Record<string, () => Promise<void>> = {
+  // @ts-ignore
+  python: async () => { await import('prismjs/components/prism-python'); },
+  // @ts-ignore
+  java: async () => { await import('prismjs/components/prism-java'); },
+  // @ts-ignore
+  bash: async () => { await import('prismjs/components/prism-bash'); },
+  // @ts-ignore
+  yaml: async () => { await import('prismjs/components/prism-yaml'); },
+  // @ts-ignore
+  sql: async () => { await import('prismjs/components/prism-sql'); },
+  // @ts-ignore
+  rust: async () => { await import('prismjs/components/prism-rust'); },
+  // @ts-ignore
+  go: async () => { await import('prismjs/components/prism-go'); },
+  // @ts-ignore  
+  php: async () => { 
+    // PHP 依赖 clike，确保已加载
+    await ensureLanguageLoaded('clike');
+    // @ts-ignore
+    await import('prismjs/components/prism-php'); 
+  },
+  // @ts-ignore
+  ruby: async () => { await import('prismjs/components/prism-ruby'); },
+  // @ts-ignore
+  cpp: async () => { 
+    // C++ 依赖 clike
+    await ensureLanguageLoaded('clike');
+    // @ts-ignore
+    await import('prismjs/components/prism-cpp'); 
+  },
+  // @ts-ignore
+  csharp: async () => { 
+    await ensureLanguageLoaded('clike');
+    // @ts-ignore
+    await import('prismjs/components/prism-csharp'); 
+  },
+  // @ts-ignore
+  swift: async () => { await import('prismjs/components/prism-swift'); },
+  // @ts-ignore
+  kotlin: async () => { 
+    await ensureLanguageLoaded('clike');
+    // @ts-ignore
+    await import('prismjs/components/prism-kotlin'); 
+  },
+  // @ts-ignore
+  docker: async () => { await import('prismjs/components/prism-docker'); },
+  // @ts-ignore
+  nginx: async () => { await import('prismjs/components/prism-nginx'); },
+  // @ts-ignore
+  graphql: async () => { await import('prismjs/components/prism-graphql'); },
+  // @ts-ignore
+  c: async () => { 
+    await ensureLanguageLoaded('clike');
+    // @ts-ignore
+    await import('prismjs/components/prism-c'); 
+  },
+  // @ts-ignore
+  perl: async () => { await import('prismjs/components/prism-perl'); },
+  // @ts-ignore
+  lua: async () => { await import('prismjs/components/prism-lua'); },
+};
 
 /**
  * 懒加载语言
@@ -79,9 +138,8 @@ async function loadLanguage(lang: string): Promise<boolean> {
     return loadingLanguages.get(normalized)!;
   }
   
-  // 构建模块路径
-  const modulePath = `/node_modules/prismjs/components/prism-${normalized}.js`;
-  const loader = languageModules[modulePath];
+  // 获取语言加载器
+  const loader = languageLoaders[normalized];
   
   if (!loader) {
     console.warn(`[CodeHighlight] 语言模块不存在: ${normalized}`);
@@ -107,18 +165,34 @@ async function loadLanguage(lang: string): Promise<boolean> {
 }
 
 /**
+ * 预加载语言（如果尚未加载）
+ */
+async function ensureLanguageLoaded(lang: string): Promise<boolean> {
+  const normalized = normalizeLang(lang);
+  if (loadedLanguages.has(normalized)) {
+    return true;
+  }
+  return loadLanguage(lang);
+}
+
+/**
  * 高亮代码
  */
 function highlightCode(code: string, lang: string): string {
   const normalized = normalizeLang(lang);
   
-  if (!Prism.languages[normalized]) {
+  // 检查 Prism.languages 中是否存在该语言定义
+  const languageDef = Prism.languages[normalized];
+  
+  if (!languageDef) {
+    console.warn(`[CodeHighlight] Prism.languages['${normalized}'] 不存在，跳过高亮`);
     return escapeHtml(code);
   }
   
   try {
-    return Prism.highlight(code, Prism.languages[normalized], normalized);
-  } catch {
+    return Prism.highlight(code, languageDef, normalized);
+  } catch (err) {
+    console.error(`[CodeHighlight] 高亮失败: ${normalized}`, err);
     return escapeHtml(code);
   }
 }
@@ -134,24 +208,12 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * 预加载语言（如果尚未加载）
- */
-async function ensureLanguageLoaded(lang: string): Promise<boolean> {
-  const normalized = normalizeLang(lang);
-  if (loadedLanguages.has(normalized)) {
-    return true;
-  }
-  return loadLanguage(lang);
-}
-
-/**
  * 渲染所有代码块
  * 后处理函数，用于懒加载语言并高亮
  */
 export async function renderAllCodeBlocks(container: HTMLElement): Promise<void> {
   const codeBlocks = container.querySelectorAll('pre[data-lang]:not([data-highlighted])');
   
-  console.log('[CodeHighlight] Found code blocks:', codeBlocks.length);
   if (codeBlocks.length === 0) return;
   
   const promises: Promise<void>[] = [];
@@ -163,22 +225,20 @@ export async function renderAllCodeBlocks(container: HTMLElement): Promise<void>
     if (!lang || !code) continue;
     
     const promise = (async () => {
-      console.log(`[CodeHighlight] Processing ${lang} block`);
       // 确保语言加载完成
       const loaded = await ensureLanguageLoaded(lang);
-      console.log(`[CodeHighlight] Language ${lang} loaded:`, loaded);
-      if (!loaded) return;
+      if (!loaded) {
+        console.warn(`[CodeHighlight] 语言 ${lang} 加载失败`);
+        return;
+      }
       
       // 高亮代码
       const content = code.textContent || '';
-      console.log(`[CodeHighlight] Content length:`, content.length);
       const highlighted = highlightCode(content, lang);
-      console.log(`[CodeHighlight] Highlighted length:`, highlighted.length);
       code.innerHTML = highlighted;
       
       // 标记为已高亮
       pre.setAttribute('data-highlighted', 'true');
-      console.log(`[CodeHighlight] Done highlighting ${lang}`);
     })();
     
     promises.push(promise);
@@ -203,6 +263,7 @@ export const codeHighlightPlugin = {
  * 预加载常用语言
  */
 export async function preloadCommonLanguages(): Promise<void> {
-  const promises = LAZY_LANGUAGES.slice(0, 6).map(loadLanguage);
+  const commonLangs = ['python', 'java', 'bash', 'yaml', 'sql', 'rust'];
+  const promises = commonLangs.map(loadLanguage);
   await Promise.all(promises);
 }
