@@ -141,8 +141,9 @@ const selectModule = async (module: ModuleInfo) => {
   selectedModule.value = module;
   panelLoading.value = true;
   
-  // 构建 iframe URL
-  iframeUrl.value = `/api/modules/${encodeURIComponent(module.name)}/panel`;
+  // 构建 iframe URL - 从静态服务加载面板页面
+  // 这样面板内的相对路径资源引用(panel.css, panel.js)才能正确解析
+  iframeUrl.value = `/modules/${encodeURIComponent(module.name)}/web/panel.html`;
   
   panelLoading.value = false;
 };

@@ -29377,7 +29377,7 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
       if (selectedModule.value?.name === module.name) return;
       selectedModule.value = module;
       panelLoading.value = true;
-      iframeUrl.value = `/api/modules/${encodeURIComponent(module.name)}/panel`;
+      iframeUrl.value = `/modules/${encodeURIComponent(module.name)}/web/panel.html`;
       panelLoading.value = false;
     };
     const onIframeLoad = () => {
@@ -29642,7 +29642,7 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const ModuleWindow = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-472be796"]]);
+const ModuleWindow = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-7f766c14"]]);
 const _hoisted_1$d = { class: "p-4 flex items-center justify-between" };
 const _hoisted_2$c = {
   key: 0,
@@ -34733,4 +34733,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-BtS5GxVZ.js.map
+//# sourceMappingURL=index-CvPE2Vwf.js.map
