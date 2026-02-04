@@ -3,6 +3,7 @@
  * 确认对话框组件
  * 
  * 用于需要用户确认的操作，如删除智能体等危险操作
+ * 设计原则：紧凑平衡、留白适中、视觉层次分明
  * 
  * @author Agent Society
  */
@@ -26,16 +27,10 @@ const emit = defineEmits<{
   (e: 'cancel'): void;
 }>();
 
-/**
- * 处理确认
- */
 const handleConfirm = () => {
   emit('confirm');
 };
 
-/**
- * 处理取消
- */
 const handleCancel = () => {
   emit('cancel');
   emit('update:visible', false);
@@ -51,57 +46,80 @@ const handleCancel = () => {
     :close-on-escape="!loading"
     class="confirm-dialog"
     :pt="{
-      root: { class: 'w-[400px]' },
-      header: { class: 'pb-2' },
-      content: { class: 'pb-4' }
+      root: { class: 'w-[360px] max-w-[90vw]' }
     }"
   >
-    <template #header>
-      <div class="flex items-center space-x-2">
-        <AlertTriangle class="w-5 h-5 text-red-500" />
-        <span class="font-semibold text-[var(--text-1)]">{{ title || '确认操作' }}</span>
-      </div>
-    </template>
-
-    <div class="py-4">
-      <p class="text-sm text-[var(--text-2)] leading-relaxed">
-        {{ message || '确定要执行此操作吗？此操作不可撤销。' }}
-      </p>
-    </div>
-
-    <template #footer>
-      <div class="flex justify-end space-x-2 pt-2">
-        <Button
-          :label="cancelLabel || '取消'"
-          variant="text"
-          :disabled="loading"
-          @click="handleCancel"
-          class="!text-[var(--text-2)]"
-        />
-        <Button
-          :label="confirmLabel || '确认'"
-          :severity="confirmSeverity || 'danger'"
-          :loading="loading"
-          @click="handleConfirm"
-          class="min-w-[80px]"
-        />
+    <template #container>
+      <div class="confirm-container">
+        <!-- 头部 -->
+        <div class="confirm-header">
+          <AlertTriangle class="w-4 h-4 text-red-500 flex-shrink-0" />
+          <span class="text-sm font-medium text-[var(--text-1)]">{{ title || '确认操作' }}</span>
+        </div>
+        
+        <!-- 内容区 -->
+        <div class="confirm-body">
+          <p class="text-sm text-[var(--text-2)] leading-relaxed">
+            {{ message || '确定要执行此操作吗？此操作不可撤销。' }}
+          </p>
+        </div>
+        
+        <!-- 页脚 -->
+        <div class="confirm-footer">
+          <Button
+            :label="cancelLabel || '取消'"
+            variant="text"
+            size="small"
+            :disabled="loading"
+            @click="handleCancel"
+            class="!text-[var(--text-2)] !px-3 !py-1.5"
+          />
+          <Button
+            :label="confirmLabel || '确认'"
+            :severity="confirmSeverity || 'danger'"
+            size="small"
+            :loading="loading"
+            @click="handleConfirm"
+            class="!px-3 !py-1.5"
+          />
+        </div>
       </div>
     </template>
   </Dialog>
 </template>
 
 <style scoped>
-.confirm-dialog :deep(.p-dialog-header) {
-  padding: 1rem 1.25rem;
+/* 容器 - 整体样式 */
+.confirm-container {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* 头部 - 紧凑设计，减少高度 */
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
 }
 
-.confirm-dialog :deep(.p-dialog-content) {
-  padding: 0 1.25rem;
+/* 内容区 - 充足的留白 */
+.confirm-body {
+  padding: 24px 28px;
+  background: var(--surface-1);
 }
 
-.confirm-dialog :deep(.p-dialog-footer) {
-  padding: 1rem 1.25rem;
+/* 页脚 - 紧凑但平衡 */
+.confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
   border-top: 1px solid var(--border);
+  background: var(--surface-1);
 }
 </style>
