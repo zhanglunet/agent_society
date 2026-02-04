@@ -172,30 +172,59 @@ function createFullscreenViewer(svgContent: string): void {
  * 设置查看器事件
  */
 function setupViewerEvents(viewer: HTMLElement, content: HTMLElement): void {
+  // 防止文本选择
+  viewer.style.userSelect = 'none';
+  content.style.userSelect = 'none';
+  
+  // 对 SVG 元素也禁用文本选择
+  const svg = content.querySelector('svg');
+  if (svg) {
+    svg.style.userSelect = 'none';
+    svg.style.pointerEvents = 'none'; // 让事件穿透到 content 容器
+  }
+  // 让所有子元素都不响应指针事件，只有 content 容器响应
+  const allElements = content.querySelectorAll('*');
+  allElements.forEach(el => {
+    (el as HTMLElement).style.pointerEvents = 'none';
+  });
+  content.style.pointerEvents = 'auto';
+
+  let hasDragged = false;
+  let mouseDownTime = 0;
+
   // 鼠标按下 - 开始拖拽
-  viewer.addEventListener('mousedown', (e) => {
-    if (e.target === viewer || e.target === content) {
-      isDragging = true;
-      dragStartX = e.clientX - translateX;
-      dragStartY = e.clientY - translateY;
-      viewer.style.cursor = 'grabbing';
-    }
+  content.addEventListener('mousedown', (e) => {
+    e.preventDefault(); // 防止文本选择
+    isDragging = true;
+    hasDragged = false;
+    mouseDownTime = Date.now();
+    dragStartX = e.clientX - translateX;
+    dragStartY = e.clientY - translateY;
+    viewer.style.cursor = 'grabbing';
   });
 
   // 鼠标移动 - 拖拽
   window.addEventListener('mousemove', (e) => {
     if (!isDragging || !fullscreenViewer) return;
     e.preventDefault();
+    hasDragged = true;
     translateX = e.clientX - dragStartX;
     translateY = e.clientY - dragStartY;
     updateTransform(content);
   });
 
   // 鼠标释放 - 结束拖拽
-  window.addEventListener('mouseup', () => {
+  window.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
     isDragging = false;
     if (fullscreenViewer) {
       fullscreenViewer.style.cursor = 'grab';
+    }
+    
+    // 如果点击的是 viewer（空白处）且没有拖拽，则关闭
+    const clickDuration = Date.now() - mouseDownTime;
+    if (e.target === viewer && !hasDragged && clickDuration < 300) {
+      closeFullscreenViewer();
     }
   });
 
@@ -207,9 +236,9 @@ function setupViewerEvents(viewer: HTMLElement, content: HTMLElement): void {
     updateTransform(content);
   }, { passive: false });
 
-  // 点击空白处关闭
+  // 点击空白处关闭（作为后备）
   viewer.addEventListener('click', (e) => {
-    if (e.target === viewer) {
+    if (e.target === viewer && !hasDragged) {
       closeFullscreenViewer();
     }
   });
