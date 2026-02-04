@@ -164,16 +164,18 @@ export function createMarkdownEngine(): MarkdownEngine {
     const info = token.info.trim();
     const content = token.content;
 
-    // 检测 Mermaid
+    // 检测 Mermaid - 使用 base64 编码存储内容
     if (info === 'mermaid') {
       hasMermaid = true;
-      return `<div class="mermaid" data-content="${escapeHtml(content)}">${escapeHtml(content)}</div>`;
+      const encoded = typeof window !== 'undefined' ? window.btoa(unescape(encodeURIComponent(content))) : content;
+      return `<div class="mermaid" data-content="${encoded}">${escapeHtml(content)}</div>`;
     }
 
-    // 检测数学公式块
+    // 检测数学公式块 - 使用 base64 编码存储内容
     if (info === 'math' || info === 'latex') {
       hasMath = true;
-      return `<div class="math-block" data-content="${escapeHtml(content)}">$$${escapeHtml(content)}$$</div>`;
+      const encoded = typeof window !== 'undefined' ? window.btoa(unescape(encodeURIComponent(content))) : content;
+      return `<div class="math-block" data-content="${encoded}">$$${escapeHtml(content)}$$</div>`;
     }
 
     // 普通代码块 - 添加 data-lang 属性用于后处理高亮

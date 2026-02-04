@@ -27,11 +27,12 @@ async function loadMermaid(): Promise<void> {
       mermaid.initialize({
         startOnLoad: false,
         theme: 'default',
-        securityLevel: 'strict',
+        securityLevel: 'loose',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       });
       
       mermaidLoaded = true;
+      console.log('[MermaidPlugin] 加载成功');
     } catch (err) {
       console.error('[MermaidPlugin] 加载失败:', err);
     }
@@ -49,28 +50,46 @@ async function renderMermaid(element: HTMLElement): Promise<void> {
   }
   
   if (!mermaid) {
-    element.innerHTML = '<div class="mermaid-error">图表加载失败</div>';
+    element.innerHTML = '<div class="mermaid-error">图表库加载失败</div>';
     return;
   }
 
-  const content = element.getAttribute('data-content');
-  if (!content) return;
+  const encoded = element.getAttribute('data-content');
+  if (!encoded) {
+    console.warn('[MermaidPlugin] 元素缺少 data-content 属性');
+    return;
+  }
+
+  // 解码 base64 内容
+  let content: string;
+  try {
+    content = decodeURIComponent(escape(window.atob(encoded)));
+  } catch (e) {
+    // 兼容旧格式（未编码的内容）
+    content = encoded;
+  }
+
+  // 清理内容：去除首尾空白行
+  const cleanContent = content.trim();
+  
+  console.log('[MermaidPlugin] 渲染图表:', cleanContent.substring(0, 50) + '...');
 
   try {
     // 生成唯一 ID
     const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
     
     // 渲染
-    const { svg } = await mermaid.render(id, content);
+    const { svg } = await mermaid.render(id, cleanContent);
     
     // 替换内容
     element.innerHTML = svg;
     element.classList.add('mermaid-rendered');
+    console.log('[MermaidPlugin] 渲染成功');
   } catch (err) {
     console.error('[MermaidPlugin] 渲染失败:', err);
     element.innerHTML = `<div class="mermaid-error">
       <div>图表语法错误</div>
-      <pre style="font-size: 12px; margin-top: 8px; opacity: 0.7;">${escapeHtml(content.substring(0, 200))}</pre>
+      <pre style="font-size: 12px; margin-top: 8px; opacity: 0.7;">${escapeHtml(cleanContent.substring(0, 200))}</pre>
     </div>`;
   }
 }
@@ -103,14 +122,22 @@ export async function updateMermaidTheme(isDark: boolean): Promise<void> {
 export async function renderAllMermaid(container: HTMLElement): Promise<void> {
   const elements = container.querySelectorAll('.mermaid:not(.mermaid-rendered)');
   
+  console.log('[MermaidPlugin] 找到图表元素:', elements.length);
+  
   if (elements.length === 0) return;
   
   // 先加载库
   await loadMermaid();
   
-  // 并行渲染
-  const promises = Array.from(elements).map(el => renderMermaid(el as HTMLElement));
-  await Promise.all(promises);
+  if (!mermaid) {
+    console.error('[MermaidPlugin] Mermaid 库未加载');
+    return;
+  }
+  
+  // 逐个渲染（避免并发问题）
+  for (const el of Array.from(elements)) {
+    await renderMermaid(el as HTMLElement);
+  }
 }
 
 /**

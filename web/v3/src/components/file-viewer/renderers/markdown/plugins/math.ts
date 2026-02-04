@@ -51,8 +51,16 @@ async function renderInlineMath(element: HTMLElement): Promise<void> {
     return;
   }
 
-  const content = element.getAttribute('data-math');
-  if (!content) return;
+  const encoded = element.getAttribute('data-math');
+  if (!encoded) return;
+  
+  // 解码 base64 内容
+  let content: string;
+  try {
+    content = decodeURIComponent(escape(window.atob(encoded)));
+  } catch (e) {
+    content = encoded;
+  }
 
   try {
     const html = katex.renderToString(content, {
@@ -76,8 +84,16 @@ async function renderBlockMath(element: HTMLElement): Promise<void> {
     return;
   }
 
-  const content = element.getAttribute('data-math');
-  if (!content) return;
+  const encoded = element.getAttribute('data-math');
+  if (!encoded) return;
+  
+  // 解码 base64 内容
+  let content: string;
+  try {
+    content = decodeURIComponent(escape(window.atob(encoded)));
+  } catch (e) {
+    content = encoded;
+  }
 
   try {
     const html = katex.renderToString(content, {
@@ -233,20 +249,22 @@ export const mathPlugin = {
       return true;
     });
     
-    // 渲染行内公式
+    // 渲染行内公式 - 使用 base64 编码存储
     md.renderer.rules.math_inline = (tokens, idx) => {
       const token = tokens[idx];
       if (!token) return '';
       const content = token.content;
-      return `<span class="math-inline" data-math="${escapeHtml(content)}">$${escapeHtml(content)}$</span>`;
+      const encoded = typeof window !== 'undefined' ? window.btoa(unescape(encodeURIComponent(content))) : content;
+      return `<span class="math-inline" data-math="${encoded}">$${escapeHtml(content)}$</span>`;
     };
     
-    // 渲染块级公式
+    // 渲染块级公式 - 使用 base64 编码存储
     md.renderer.rules.math_block = (tokens, idx) => {
       const token = tokens[idx];
       if (!token) return '';
       const content = token.content;
-      return `<div class="math-block" data-math="${escapeHtml(content)}">$$${escapeHtml(content)}$$</div>`;
+      const encoded = typeof window !== 'undefined' ? window.btoa(unescape(encodeURIComponent(content))) : content;
+      return `<div class="math-block" data-math="${encoded}">$$${escapeHtml(content)}$$</div>`;
     };
   }
 };
