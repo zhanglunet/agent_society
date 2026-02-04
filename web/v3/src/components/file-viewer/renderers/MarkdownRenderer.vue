@@ -580,10 +580,27 @@ onMounted(() => {
 .markdown-body :deep(.mermaid) {
   text-align: center;
   margin: 1em 0;
+  padding: 1em;
+  background: var(--surface-1);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.markdown-body :deep(.mermaid:hover) {
+  background: var(--surface-2);
+  border-color: var(--border-hover);
 }
 
 .markdown-body :deep(.mermaid-rendered) {
   display: inline-block;
+  background: transparent;
+}
+
+.markdown-body :deep(.mermaid-rendered svg) {
+  max-width: 100%;
+  height: auto;
 }
 
 .markdown-body :deep(.mermaid-error) {
@@ -618,13 +635,6 @@ onMounted(() => {
   }
   to {
     opacity: 1;
-  }
-}
-
-/* 深色模式适配 */
-@media (prefers-color-scheme: dark) {
-  :deep(.mermaid-fullscreen-content) {
-    background: #1e1e1e;
   }
 }
 </style>

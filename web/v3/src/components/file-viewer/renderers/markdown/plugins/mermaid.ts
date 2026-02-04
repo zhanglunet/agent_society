@@ -32,10 +32,11 @@ async function loadMermaid(): Promise<void> {
       const m = await import('mermaid');
       mermaid = m.default;
       
-      // 初始化配置
+      // 根据当前主题初始化
+      const isDark = getCurrentTheme() === 'dark';
       mermaid.initialize({
         startOnLoad: false,
-        theme: 'default',
+        theme: isDark ? 'dark' : 'default',
         securityLevel: 'loose',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       });
@@ -47,6 +48,24 @@ async function loadMermaid(): Promise<void> {
   })();
 
   return mermaidLoading;
+}
+
+/**
+ * 获取当前主题模式
+ */
+function getCurrentTheme(): 'light' | 'dark' {
+  // 检查文档根元素是否有 dark 类
+  if (document.documentElement.classList.contains('dark')) {
+    return 'dark';
+  }
+  // 检查是否有 data-theme 属性
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'dark') return 'dark';
+  // 检查 prefers-color-scheme
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
 }
 
 /**
@@ -62,6 +81,8 @@ function createFullscreenViewer(svgContent: string): void {
   translateX = 0;
   translateY = 0;
   scale = 1;
+  
+  const isDark = getCurrentTheme() === 'dark';
 
   // 创建遮罩层
   fullscreenViewer = document.createElement('div');
@@ -72,7 +93,7 @@ function createFullscreenViewer(svgContent: string): void {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.9);
+    background: ${isDark ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)'};
     z-index: 9999;
     display: flex;
     align-items: center;
@@ -89,6 +110,11 @@ function createFullscreenViewer(svgContent: string): void {
     transition: transform 0.1s ease-out;
     max-width: 90%;
     max-height: 90%;
+    background: ${isDark ? '#1e1e1e' : '#ffffff'};
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 32px ${isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.15)'};
+    border: 1px solid ${isDark ? '#333333' : '#e5e5e5'};
   `;
   contentContainer.innerHTML = svgContent;
 
@@ -99,22 +125,26 @@ function createFullscreenViewer(svgContent: string): void {
     position: absolute;
     top: 20px;
     right: 20px;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+    background: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'};
+    color: ${isDark ? '#ffffff' : '#333333'};
     font-size: 20px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
   `;
-  closeBtn.onmouseenter = () => { closeBtn.style.background = 'rgba(255, 255, 255, 0.3)'; };
-  closeBtn.onmouseleave = () => { closeBtn.style.background = 'rgba(255, 255, 255, 0.2)'; };
+  closeBtn.onmouseenter = () => { 
+    closeBtn.style.background = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'; 
+  };
+  closeBtn.onmouseleave = () => { 
+    closeBtn.style.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'; 
+  };
   closeBtn.onclick = (e) => {
     e.stopPropagation();
     closeFullscreenViewer();
@@ -128,7 +158,7 @@ function createFullscreenViewer(svgContent: string): void {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.6);
+    color: ${isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'};
     font-size: 14px;
     pointer-events: none;
     user-select: none;
@@ -291,8 +321,24 @@ export async function updateMermaidTheme(isDark: boolean): Promise<void> {
   if (!mermaid) return;
   
   mermaid.initialize({
-    theme: isDark ? 'dark' : 'default'
+    startOnLoad: false,
+    theme: isDark ? 'dark' : 'default',
+    securityLevel: 'loose',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
   });
+  
+  // 重新渲染所有图表以应用新主题
+  const containers = document.querySelectorAll('.mermaid-rendered');
+  for (const container of Array.from(containers)) {
+    container.classList.remove('mermaid-rendered');
+    const element = container as HTMLElement;
+    // 清空内容，保留 data-content
+    const encoded = element.getAttribute('data-content');
+    if (encoded) {
+      element.innerHTML = '';
+      await renderMermaid(element);
+    }
+  }
 }
 
 /**
