@@ -265,29 +265,6 @@
   color: var(--danger, #f44336);
 }
 
-/* 启动浏览器按钮 */
-.launch-btn {
-  margin: 8px 12px;
-  padding: 10px;
-  border: 1px dashed var(--border, #e0e0e0);
-  border-radius: var(--panel-radius);
-  background: transparent;
-  color: var(--text-2, #666);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.launch-btn:hover {
-  border-color: var(--primary, #4caf50);
-  color: var(--primary, #4caf50);
-  background: var(--primary-weak, rgba(76, 175, 80, 0.05));
-}
-
 /* 响应式调整 */
 @media (max-width: 600px) {
   .panel-layout {

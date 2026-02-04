@@ -8,6 +8,7 @@ import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
 import { apiService } from '../../services/api';
 import ChatMessageList from './ChatMessageList.vue';
+import ConfirmDialog from '../common/ConfirmDialog.vue';
 
 const props = defineProps<{
   orgId: string;
@@ -75,6 +76,10 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const moreMenuRef = ref<InstanceType<typeof Menu> | null>(null);
 const isDeleting = ref(false);
 
+// 确认删除对话框状态
+const showDeleteConfirm = ref(false);
+const deleteConfirmMessage = ref('');
+
 /**
  * 更多菜单项
  */
@@ -82,7 +87,7 @@ const moreMenuItems = computed(() => [
   {
     label: '删除智能体',
     icon: 'trash-2',
-    command: () => handleDeleteAgent(),
+    command: () => openDeleteConfirm(),
     disabled: !activeAgent.value || activeAgent.value.id === 'user' || isDeleting.value
   }
 ]);
@@ -380,17 +385,22 @@ const toggleMoreMenu = (event: Event) => {
 };
 
 /**
+ * 打开删除确认对话框
+ */
+const openDeleteConfirm = () => {
+  const agent = activeAgent.value;
+  if (!agent || agent.id === 'user') return;
+  
+  deleteConfirmMessage.value = `确定要删除智能体 "${agent.name}" 吗？删除后，该智能体将被终止且无法恢复。`;
+  showDeleteConfirm.value = true;
+};
+
+/**
  * 处理删除智能体
  */
 const handleDeleteAgent = async () => {
   const agent = activeAgent.value;
   if (!agent || agent.id === 'user') return;
-
-  // 确认对话框
-  const confirmed = confirm(
-    `确定要删除智能体 "${agent.name}" 吗？\n\n删除后，该智能体将被终止且无法恢复。`
-  );
-  if (!confirmed) return;
 
   isDeleting.value = true;
   try {
@@ -398,6 +408,9 @@ const handleDeleteAgent = async () => {
       reason: '用户手动删除',
       deletedBy: 'user'
     });
+    
+    // 关闭确认对话框
+    showDeleteConfirm.value = false;
     
     // 删除成功后，刷新智能体列表
     await agentStore.fetchAgentsByOrg(props.orgId);
@@ -407,9 +420,6 @@ const handleDeleteAgent = async () => {
     if (chatStore.activeAgentIds[props.orgId] === agent.id) {
       chatStore.setActiveAgent(props.orgId, 'user');
     }
-    
-    // 显示成功提示（使用简单的 alert，后续可以替换为更好的 UI）
-    alert(`智能体 "${agent.name}" 已删除`);
   } catch (error: any) {
     console.error('删除智能体失败:', error);
     const message = error?.message || '删除失败，请重试';
@@ -602,6 +612,18 @@ const handleDeleteAgent = async () => {
       </div>
     </div>
   </div>
+
+  <!-- 删除确认对话框 -->
+  <ConfirmDialog
+    v-model:visible="showDeleteConfirm"
+    title="删除智能体"
+    :message="deleteConfirmMessage"
+    confirm-label="删除"
+    cancel-label="取消"
+    confirm-severity="danger"
+    :loading="isDeleting"
+    @confirm="handleDeleteAgent"
+  />
 </template>
 
 <style scoped>

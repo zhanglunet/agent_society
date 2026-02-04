@@ -954,6 +954,10 @@
     width: 360px;
   }
 
+  .w-\[400px\] {
+    width: 400px;
+  }
+
   .w-full {
     width: 100%;
   }
@@ -1028,6 +1032,10 @@
 
   .min-w-\[50px\] {
     min-width: 50px;
+  }
+
+  .min-w-\[80px\] {
+    min-width: 80px;
   }
 
   .min-w-\[240px\] {
@@ -1957,6 +1965,14 @@
     padding-bottom: calc(var(--spacing) * 1);
   }
 
+  .pb-2 {
+    padding-bottom: calc(var(--spacing) * 2);
+  }
+
+  .pb-4 {
+    padding-bottom: calc(var(--spacing) * 4);
+  }
+
   .\!pl-4 {
     padding-left: calc(var(--spacing) * 4) !important;
   }
@@ -2103,6 +2119,10 @@
 
   .\!text-\[var\(--text-1\)\] {
     color: var(--text-1) !important;
+  }
+
+  .\!text-\[var\(--text-2\)\] {
+    color: var(--text-2) !important;
   }
 
   .\!text-\[var\(--text-3\)\] {
@@ -3542,26 +3562,38 @@ iframe[data-v-2fa2d484] {
   display: none;
 }
 
+.confirm-dialog[data-v-7f4fb828] .p-dialog-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.confirm-dialog[data-v-7f4fb828] .p-dialog-content {
+  padding: 0 1.25rem;
+}
+.confirm-dialog[data-v-7f4fb828] .p-dialog-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
 /* 自定义输入框样式，确保 PrimeVue 默认样式不冲突 */
-[data-v-31e02829] .p-inputtext {
+[data-v-01674bb6] .p-inputtext {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 /* 搜索高亮样式 */
-[data-v-31e02829] .search-highlight {
+[data-v-01674bb6] .search-highlight {
   background-color: rgba(250, 204, 21, 0.4);
   border-radius: 2px;
   padding: 0 2px;
   color: inherit;
 }
-[data-v-31e02829] .search-highlight-current {
+[data-v-01674bb6] .search-highlight-current {
   background-color: rgba(250, 204, 21, 0.8);
   box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
-  animation: searchPulse-31e02829 1.5s ease-in-out infinite;
+  animation: searchPulse-01674bb6 1.5s ease-in-out infinite;
 }
-@keyframes searchPulse-31e02829 {
+@keyframes searchPulse-01674bb6 {
 0%, 100% {
     box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
 }
@@ -3572,14 +3604,14 @@ iframe[data-v-2fa2d484] {
 
 /* 深色模式适配 */
 @media (prefers-color-scheme: dark) {
-[data-v-31e02829] .search-highlight {
+[data-v-01674bb6] .search-highlight {
     background-color: rgba(234, 179, 8, 0.3);
 }
-[data-v-31e02829] .search-highlight-current {
+[data-v-01674bb6] .search-highlight-current {
     background-color: rgba(234, 179, 8, 0.7);
     box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
 }
-@keyframes searchPulse-31e02829 {
+@keyframes searchPulse-01674bb6 {
 0%, 100% {
       box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
 }

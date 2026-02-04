@@ -6,6 +6,8 @@
 import puppeteer from "puppeteer-core";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 
 /**
  * @typedef {object} BrowserInstance
@@ -80,8 +82,18 @@ export class BrowserManager {
     const effectiveHeadless = autoOpenDevtoolsForTabs ? false : headless;
     const browserId = randomUUID();
     const chromePath = executablePath ?? this._findChromePath();
-    
-    this.log.info?.("启动浏览器", { browserId, headless: effectiveHeadless, chromePath, proxy: proxy.server ? { server: proxy.server } : null, autoOpenDevtoolsForTabs });
+
+    // 构建 Chrome 用户数据目录路径（从配置获取）
+    let userDataDir = null;
+    if (this.config.dataDir) {
+      userDataDir = path.resolve(this.config.dataDir, "chrome");
+      // 确保用户数据目录存在
+      if (!existsSync(userDataDir)) {
+        mkdirSync(userDataDir, { recursive: true });
+      }
+    }
+
+    this.log.info?.("启动浏览器", { browserId, headless: effectiveHeadless, chromePath, userDataDir, proxy: proxy.server ? { server: proxy.server } : null, autoOpenDevtoolsForTabs });
 
     try {
       // 构建启动参数
@@ -106,6 +118,11 @@ export class BrowserManager {
         executablePath: chromePath,
         args
       };
+
+      // 只有在配置了 dataDir 时才设置 userDataDir
+      if (userDataDir) {
+        launchOptions.userDataDir = userDataDir;
+      }
 
       const browser = await puppeteer.launch(launchOptions);
 
@@ -133,10 +150,8 @@ export class BrowserManager {
 
       // 监听浏览器断开连接
       browser.on("disconnected", () => {
-        const inst = this._browsers.get(browserId);
-        if (inst) {
-          inst.status = "closed";
-        }
+        // 直接从列表中删除，不保留 closed 状态记录
+        this._browsers.delete(browserId);
         this.log.info?.("浏览器已断开连接", { browserId });
       });
 

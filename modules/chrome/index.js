@@ -56,11 +56,17 @@ export default {
     runtime = rt;
     moduleConfig = config;
     log = runtime?.log ?? console;
-    
-    browserManager = new BrowserManager({ log, config: moduleConfig });
+
+    // 合并全局配置中的 dataDir 到模块配置
+    const configWithDataDir = {
+      ...moduleConfig,
+      dataDir: runtime?.config?.dataDir ?? null
+    };
+
+    browserManager = new BrowserManager({ log, config: configWithDataDir });
     tabManager = new TabManager({ log, browserManager });
     pageActions = new PageActions({ log, tabManager, runtime });
-    
+
     log.info?.("Chrome 模块初始化完成", { config: moduleConfig });
   },
 
