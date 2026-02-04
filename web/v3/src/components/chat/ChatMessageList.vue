@@ -11,6 +11,8 @@ const props = defineProps<{
   orgId?: string;
   // 是否只显示当前会话的消息（过滤掉旧消息）
   onlyCurrentSession?: boolean;
+  // 搜索关键词
+  searchKeyword?: string;
 }>();
 
 const chatStore = useChatStore();
@@ -352,6 +354,21 @@ const formatTime = (timestamp: number) => {
 };
 
 /**
+ * 渲染带高亮的消息内容
+ * @param content 消息内容
+ * @param messageId 消息ID
+ */
+const renderHighlightedContent = (content: string, messageId: string): string => {
+  if (!props.searchKeyword || !props.searchKeyword.trim()) return content;
+  
+  const keyword = props.searchKeyword.trim();
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+  
+  return content.replace(regex, `<mark class="search-highlight" data-message-id="${messageId}">$1</mark>`);
+};
+
+/**
  * 计算工具调用组的总 Token 数
  */
 const getGroupTotalTokens = (messages: any[]): number => {
@@ -438,7 +455,10 @@ const getGroupCompletionTokens = (messages: any[]): number => {
                 </div>
                 
                 <div v-if="expandedReasoning[item.id]" class="mt-2 p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg text-xs italic text-[var(--text-2)] whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
-                  {{ item.reasoning }}
+                  <template v-if="searchKeyword?.trim()">
+                    <span v-html="renderHighlightedContent(item.reasoning, item.id)"></span>
+                  </template>
+                  <template v-else>{{ item.reasoning }}</template>
                 </div>
               </div>
 
@@ -468,7 +488,12 @@ const getGroupCompletionTokens = (messages: any[]): number => {
               </div>
 
               <!-- 消息内容 -->
-              <div v-if="item.content && !item.toolCall" class="whitespace-pre-wrap leading-relaxed break-words">{{ item.content }}</div>
+              <div v-if="item.content && !item.toolCall" class="whitespace-pre-wrap leading-relaxed break-words">
+                <template v-if="searchKeyword?.trim()">
+                  <span v-html="renderHighlightedContent(item.content, item.id)"></span>
+                </template>
+                <template v-else>{{ item.content }}</template>
+              </div>
               
               <!-- 如果是工具调用且有额外内容（非自动生成的提示）才显示 -->
               <div v-if="item.content && item.toolCall && !item.content.startsWith('调用工具:')" class="mt-2 whitespace-pre-wrap leading-relaxed break-words border-t border-[var(--border)] pt-2 opacity-80">{{ item.content }}</div>
@@ -563,7 +588,10 @@ const getGroupCompletionTokens = (messages: any[]): number => {
                   <div v-if="expandedToolCalls[msg.id]" class="p-3 space-y-2 border-t border-[var(--border)]">
                     <!-- 组内消息的思考过程 -->
                     <div v-if="msg.reasoning" class="mb-2 p-2 bg-[var(--surface-3)] rounded text-[11px] italic text-[var(--text-3)] whitespace-pre-wrap border-l-2 border-[var(--primary)]">
-                      {{ msg.reasoning }}
+                      <template v-if="searchKeyword?.trim()">
+                        <span v-html="renderHighlightedContent(msg.reasoning, msg.id)"></span>
+                      </template>
+                      <template v-else>{{ msg.reasoning }}</template>
                     </div>
                     <div class="space-y-1">
                       <div class="text-[10px] font-bold text-[var(--text-3)] uppercase">参数</div>

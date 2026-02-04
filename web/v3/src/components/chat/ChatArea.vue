@@ -1,8 +1,8 @@
-<script setup lang="ts">
-import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2 } from 'lucide-vue-next';
+﻿<script setup lang="ts">
+import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2, ChevronUp, ChevronDown, X } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
 import ChatMessageList from './ChatMessageList.vue';
@@ -61,6 +61,13 @@ const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
 const showScrollBottomButton = ref(false);
 const SCROLL_THRESHOLD = 150; // 距离底部小于 150px 视为“在底部”
+
+// 搜索功能相关状态
+const isSearchActive = ref(false);
+const searchKeyword = ref('');
+const searchMatches = ref<{ element: HTMLElement; messageId: string }[]>([]);
+const currentMatchIndex = ref(-1);
+const searchInputRef = ref<HTMLInputElement | null>(null);
 
 /**
  * 检查滚动位置，决定是否显示“返回底部”按钮
@@ -211,6 +218,141 @@ const sendMessage = async () => {
     isSending.value = false;
   }
 };
+
+/**
+ * 切换搜索框显示状态
+ */
+const toggleSearch = () => {
+  isSearchActive.value = !isSearchActive.value;
+  if (isSearchActive.value) {
+    // 激活搜索框后自动聚焦
+    nextTick(() => {
+      searchInputRef.value?.focus();
+    });
+  } else {
+    // 关闭搜索时清空搜索状态
+    clearSearch();
+  }
+};
+
+/**
+ * 清空搜索状态
+ */
+const clearSearch = () => {
+  searchKeyword.value = '';
+  searchMatches.value = [];
+  currentMatchIndex.value = -1;
+};
+
+/**
+ * 关闭搜索
+ */
+const closeSearch = () => {
+  isSearchActive.value = false;
+  clearSearch();
+};
+
+/**
+ * 处理搜索输入变化
+ */
+const handleSearchInput = () => {
+  // 使用 nextTick 等待 DOM 更新后执行搜索
+  nextTick(() => {
+    performSearch();
+  });
+};
+
+/**
+ * 执行搜索
+ */
+const performSearch = () => {
+  const keyword = searchKeyword.value.trim();
+  if (!keyword) {
+    searchMatches.value = [];
+    currentMatchIndex.value = -1;
+    return;
+  }
+
+  // 查找所有高亮的元素
+  const highlights = messageContainer.value?.querySelectorAll('.search-highlight');
+  if (!highlights || highlights.length === 0) {
+    searchMatches.value = [];
+    currentMatchIndex.value = -1;
+    return;
+  }
+
+  searchMatches.value = Array.from(highlights).map((el) => ({
+    element: el as HTMLElement,
+    messageId: (el as HTMLElement).dataset.messageId || ''
+  }));
+
+  // 如果有匹配结果，定位到第一个
+  if (searchMatches.value.length > 0) {
+    currentMatchIndex.value = 0;
+    scrollToMatch(0);
+  }
+};
+
+/**
+ * 滚动到指定匹配项
+ */
+const scrollToMatch = (index: number) => {
+  if (index < 0 || index >= searchMatches.value.length) return;
+  
+  const match = searchMatches.value[index];
+  if (!match || !match.element) return;
+
+  // 移除之前的当前高亮
+  searchMatches.value.forEach((m, i) => {
+    if (i === currentMatchIndex.value) {
+      m.element.classList.remove('search-highlight-current');
+    }
+  });
+
+  // 添加当前高亮
+  currentMatchIndex.value = index;
+  match.element.classList.add('search-highlight-current');
+
+  // 滚动到元素
+  match.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+/**
+ * 跳转到上一个匹配项
+ */
+const goToPrevMatch = () => {
+  if (searchMatches.value.length === 0) return;
+  const newIndex = currentMatchIndex.value <= 0 
+    ? searchMatches.value.length - 1 
+    : currentMatchIndex.value - 1;
+  scrollToMatch(newIndex);
+};
+
+/**
+ * 跳转到下一个匹配项
+ */
+const goToNextMatch = () => {
+  if (searchMatches.value.length === 0) return;
+  const newIndex = currentMatchIndex.value >= searchMatches.value.length - 1 
+    ? 0 
+    : currentMatchIndex.value + 1;
+  scrollToMatch(newIndex);
+};
+
+/**
+ * 键盘事件处理
+ */
+const handleSearchKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    closeSearch();
+  } else if (e.key === 'Enter') {
+    if (e.shiftKey) {
+      goToPrevMatch();
+    } else {
+      goToNextMatch();
+    }
+  }
+};
 </script>
 
 <template>
@@ -231,7 +373,14 @@ const sendMessage = async () => {
         </div>
       </div>
       <div class="flex items-center space-x-1">
-        <Button variant="text" rounded class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]">
+        <Button 
+          variant="text" 
+          rounded 
+          class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]"
+          :class="{ '!text-[var(--primary)] !bg-[var(--primary-weak)]': isSearchActive }"
+          @click="toggleSearch"
+          title="搜索对话内容"
+        >
           <Search class="w-4 h-4" />
         </Button>
         <Button variant="text" rounded class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]">
@@ -239,6 +388,68 @@ const sendMessage = async () => {
         </Button>
       </div>
     </header>
+
+    <!-- 搜索栏 -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="transform -translate-y-2 opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform -translate-y-2 opacity-0"
+    >
+      <div v-if="isSearchActive" class="border-b border-[var(--border)] bg-[var(--surface-1)] px-4 py-2 shrink-0">
+        <div class="flex items-center space-x-3 max-w-4xl mx-auto">
+          <div class="flex-1 relative">
+            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
+            <input
+              ref="searchInputRef"
+              v-model="searchKeyword"
+              type="text"
+              placeholder="搜索消息内容..."
+              class="w-full pl-9 pr-4 py-1.5 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text-1)] placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]"
+              @input="handleSearchInput"
+              @keydown="handleSearchKeydown"
+            />
+          </div>
+          <div v-if="searchMatches.length > 0" class="flex items-center space-x-2 text-sm text-[var(--text-2)] shrink-0">
+            <span class="font-medium">{{ currentMatchIndex + 1 }} / {{ searchMatches.length }}</span>
+            <div class="flex items-center space-x-1">
+              <Button 
+                variant="text" 
+                rounded 
+                class="!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]"
+                @click="goToPrevMatch"
+                title="上一个匹配 (Shift+Enter)"
+              >
+                <ChevronUp class="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="text" 
+                rounded 
+                class="!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]"
+                @click="goToNextMatch"
+                title="下一个匹配 (Enter)"
+              >
+                <ChevronDown class="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <div v-else-if="searchKeyword.trim()" class="text-sm text-[var(--text-3)] shrink-0">
+            无匹配结果
+          </div>
+          <Button 
+            variant="text" 
+            rounded 
+            class="!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)] shrink-0"
+            @click="closeSearch"
+            title="关闭搜索 (Esc)"
+          >
+            <X class="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 消息流区域 -->
     <div class="flex-grow overflow-hidden relative group/chat">
@@ -258,7 +469,8 @@ const sendMessage = async () => {
         <div v-else class="max-w-4xl mx-auto">
           <ChatMessageList 
             :agent-id="activeAgentId" 
-            :org-id="orgId" 
+            :org-id="orgId"
+            :search-keyword="searchKeyword"
           />
         </div>
       </div>
@@ -317,5 +529,49 @@ const sendMessage = async () => {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* 搜索高亮样式 */
+:deep(.search-highlight) {
+  background-color: rgba(250, 204, 21, 0.4);
+  border-radius: 2px;
+  padding: 0 2px;
+  color: inherit;
+}
+
+:deep(.search-highlight-current) {
+  background-color: rgba(250, 204, 21, 0.8);
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
+  animation: searchPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes searchPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.3);
+  }
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  :deep(.search-highlight) {
+    background-color: rgba(234, 179, 8, 0.3);
+  }
+  
+  :deep(.search-highlight-current) {
+    background-color: rgba(234, 179, 8, 0.7);
+    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+  }
+  
+  @keyframes searchPulse {
+    0%, 100% {
+      box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.2);
+    }
+  }
 }
 </style>
