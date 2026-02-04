@@ -95,15 +95,9 @@ async function renderBlockMath(element: HTMLElement): Promise<void> {
  * 渲染所有公式
  */
 export async function renderAllMath(container: HTMLElement): Promise<void> {
-  console.log('[Math] Container:', container);
-  console.log('[Math] Container innerHTML:', container.innerHTML.substring(0, 500));
-  
   const inlineElements = container.querySelectorAll('.math-inline:not(.math-rendered)');
   const blockElements = container.querySelectorAll('.math-block:not(.math-rendered)');
   
-  console.log('[Math] Found inline elements:', inlineElements.length);
-  console.log('[Math] Found block elements:', blockElements.length);
-
   if (inlineElements.length === 0 && blockElements.length === 0) return;
   
   // 先加载库
@@ -168,6 +162,9 @@ export const mathPlugin = {
     });
     
     // 添加块级规则来处理 $$
+    // 支持两种格式：
+    //   多行：$$\n...\n$$
+    //   单行：$$...$$
     md.block.ruler.before('fence', 'math_block', (state, startLine, endLine, silent) => {
       // 安全检查
       if (startLine >= state.bMarks.length) return false;
@@ -179,7 +176,25 @@ export const mathPlugin = {
         return false;
       }
       
-      // 查找结束标记
+      const lineMax = state.eMarks[startLine]!;
+      const lineContent = state.src.slice(pos + 2, lineMax).trim();
+      
+      // 检查是否是单行格式 $$...$$
+      if (lineContent.endsWith('$$') && lineContent.length > 2) {
+        // 单行格式：$$content$$
+        if (!silent) {
+          const content = lineContent.slice(0, -2).trim();
+          const token = state.push('math_block', 'div', 0);
+          token.content = content;
+          token.markup = '$$';
+          token.block = true;
+          token.map = [startLine, startLine + 1];
+        }
+        state.line = startLine + 1;
+        return true;
+      }
+      
+      // 多行格式：查找结束标记 $$
       let nextLine = startLine + 1;
       let endPos = -1;
       
