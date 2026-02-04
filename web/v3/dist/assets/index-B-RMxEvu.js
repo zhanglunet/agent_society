@@ -127,8 +127,8 @@ function normalizeStyle(value2) {
   if (isArray(value2)) {
     const res = {};
     for (let i2 = 0; i2 < value2.length; i2++) {
-      const item = value2[i2];
-      const normalized = isString(item) ? parseStringStyle(item) : normalizeStyle(item);
+      const item2 = value2[i2];
+      const normalized = isString(item2) ? parseStringStyle(item2) : normalizeStyle(item2);
       if (normalized) {
         for (const key in normalized) {
           res[key] = normalized[key];
@@ -145,9 +145,9 @@ const propertyDelimiterRE = /:([^]+)/;
 const styleCommentRE = /\/\*[^]*?\*\//g;
 function parseStringStyle(cssText) {
   const ret = {};
-  cssText.replace(styleCommentRE, "").split(listDelimiterRE).forEach((item) => {
-    if (item) {
-      const tmp = item.split(propertyDelimiterRE);
+  cssText.replace(styleCommentRE, "").split(listDelimiterRE).forEach((item2) => {
+    if (item2) {
+      const tmp = item2.split(propertyDelimiterRE);
       tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
     }
   });
@@ -818,16 +818,16 @@ function shallowReadArray(arr) {
   track(arr = /* @__PURE__ */ toRaw(arr), "iterate", ARRAY_ITERATE_KEY);
   return arr;
 }
-function toWrapped(target2, item) {
+function toWrapped(target2, item2) {
   if (/* @__PURE__ */ isReadonly(target2)) {
-    return /* @__PURE__ */ isReactive(target2) ? toReadonly(toReactive(item)) : toReadonly(item);
+    return /* @__PURE__ */ isReactive(target2) ? toReadonly(toReactive(item2)) : toReadonly(item2);
   }
-  return toReactive(item);
+  return toReactive(item2);
 }
 const arrayInstrumentations = {
   __proto__: null,
   [Symbol.iterator]() {
-    return iterator(this, Symbol.iterator, (item) => toWrapped(this, item));
+    return iterator(this, Symbol.iterator, (item2) => toWrapped(this, item2));
   },
   concat(...args) {
     return reactiveReadArray(this).concat(
@@ -849,7 +849,7 @@ const arrayInstrumentations = {
       "filter",
       fn,
       thisArg,
-      (v2) => v2.map((item) => toWrapped(this, item)),
+      (v2) => v2.map((item2) => toWrapped(this, item2)),
       arguments
     );
   },
@@ -859,7 +859,7 @@ const arrayInstrumentations = {
       "find",
       fn,
       thisArg,
-      (item) => toWrapped(this, item),
+      (item2) => toWrapped(this, item2),
       arguments
     );
   },
@@ -872,7 +872,7 @@ const arrayInstrumentations = {
       "findLast",
       fn,
       thisArg,
-      (item) => toWrapped(this, item),
+      (item2) => toWrapped(this, item2),
       arguments
     );
   },
@@ -934,7 +934,7 @@ const arrayInstrumentations = {
     return noTracking(this, "unshift", args);
   },
   values() {
-    return iterator(this, "values", (item) => toWrapped(this, item));
+    return iterator(this, "values", (item2) => toWrapped(this, item2));
   }
 };
 function iterator(self2, method, wrapValue) {
@@ -964,12 +964,12 @@ function apply(self2, method, fn, thisArg, wrappedRetFn, args) {
   let wrappedFn = fn;
   if (arr !== self2) {
     if (needsWrap) {
-      wrappedFn = function(item, index2) {
-        return fn.call(this, toWrapped(self2, item), index2, self2);
+      wrappedFn = function(item2, index2) {
+        return fn.call(this, toWrapped(self2, item2), index2, self2);
       };
     } else if (fn.length > 2) {
-      wrappedFn = function(item, index2) {
-        return fn.call(this, item, index2, self2);
+      wrappedFn = function(item2, index2) {
+        return fn.call(this, item2, index2, self2);
       };
     }
   }
@@ -981,12 +981,12 @@ function reduce(self2, method, fn, args) {
   let wrappedFn = fn;
   if (arr !== self2) {
     if (!/* @__PURE__ */ isShallow(self2)) {
-      wrappedFn = function(acc, item, index2) {
-        return fn.call(this, acc, toWrapped(self2, item), index2, self2);
+      wrappedFn = function(acc, item2, index2) {
+        return fn.call(this, acc, toWrapped(self2, item2), index2, self2);
       };
     } else if (fn.length > 3) {
-      wrappedFn = function(acc, item, index2) {
-        return fn.call(this, acc, item, index2, self2);
+      wrappedFn = function(acc, item2, index2) {
+        return fn.call(this, acc, item2, index2, self2);
       };
     }
   }
@@ -2383,7 +2383,7 @@ const TeleportImpl = {
       pbc: patchBlockChildren,
       o: { insert: insert2, querySelector, createText, createComment }
     } = internals;
-    const disabled2 = isTeleportDisabled(n2.props);
+    const disabled4 = isTeleportDisabled(n2.props);
     let { shapeFlag, children, dynamicChildren } = n2;
     if (n1 == null) {
       const placeholder = n2.el = createText("");
@@ -2416,13 +2416,13 @@ const TeleportImpl = {
           if (parentComponent && parentComponent.isCE) {
             (parentComponent.ce._teleportTargets || (parentComponent.ce._teleportTargets = /* @__PURE__ */ new Set())).add(target2);
           }
-          if (!disabled2) {
+          if (!disabled4) {
             mount(target2, targetAnchor);
             updateCssVars(n2, false);
           }
         }
       };
-      if (disabled2) {
+      if (disabled4) {
         mount(container, mainAnchor);
         updateCssVars(n2, true);
       }
@@ -2490,7 +2490,7 @@ const TeleportImpl = {
           false
         );
       }
-      if (disabled2) {
+      if (disabled4) {
         if (!wasDisabled) {
           moveTeleport(
             n2,
@@ -2529,7 +2529,7 @@ const TeleportImpl = {
           );
         }
       }
-      updateCssVars(n2, disabled2);
+      updateCssVars(n2, disabled4);
     }
   },
   remove(vnode, parentComponent, parentSuspense, { um: unmount, o: { remove: hostRemove } }, doRemove) {
@@ -2609,11 +2609,11 @@ function hydrateTeleport(node2, vnode, parentComponent, parentSuspense, slotScop
     vnode.props,
     querySelector
   );
-  const disabled2 = isTeleportDisabled(vnode.props);
+  const disabled4 = isTeleportDisabled(vnode.props);
   if (target2) {
     const targetNode = target2._lpa || target2.firstChild;
     if (vnode.shapeFlag & 16) {
-      if (disabled2) {
+      if (disabled4) {
         hydrateDisabledTeleport(
           node2,
           vnode,
@@ -2649,8 +2649,8 @@ function hydrateTeleport(node2, vnode, parentComponent, parentSuspense, slotScop
         );
       }
     }
-    updateCssVars(vnode, disabled2);
-  } else if (disabled2) {
+    updateCssVars(vnode, disabled4);
+  } else if (disabled4) {
     if (vnode.shapeFlag & 16) {
       hydrateDisabledTeleport(node2, vnode, node2, nextSibling(node2));
     }
@@ -2837,12 +2837,12 @@ function resolveTransitionHooks(vnode, props, state, instance, postClone) {
     mode: mode2,
     persisted = false,
     onBeforeEnter,
-    onEnter: onEnter3,
+    onEnter: onEnter4,
     onAfterEnter: onAfterEnter2,
     onEnterCancelled,
     onBeforeLeave: onBeforeLeave2,
-    onLeave: onLeave3,
-    onAfterLeave: onAfterLeave2,
+    onLeave: onLeave4,
+    onAfterLeave: onAfterLeave3,
     onLeaveCancelled,
     onBeforeAppear,
     onAppear,
@@ -2893,12 +2893,12 @@ function resolveTransitionHooks(vnode, props, state, instance, postClone) {
       callHook2(hook, [el]);
     },
     enter(el) {
-      let hook = onEnter3;
+      let hook = onEnter4;
       let afterHook = onAfterEnter2;
       let cancelHook = onEnterCancelled;
       if (!state.isMounted) {
         if (appear) {
-          hook = onAppear || onEnter3;
+          hook = onAppear || onEnter4;
           afterHook = onAfterAppear || onAfterEnter2;
           cancelHook = onAppearCancelled || onEnterCancelled;
         } else {
@@ -2945,7 +2945,7 @@ function resolveTransitionHooks(vnode, props, state, instance, postClone) {
         if (cancelled) {
           callHook2(onLeaveCancelled, [el]);
         } else {
-          callHook2(onAfterLeave2, [el]);
+          callHook2(onAfterLeave3, [el]);
         }
         el[leaveCbKey] = void 0;
         if (leavingVNodesCache[key2] === vnode) {
@@ -2953,8 +2953,8 @@ function resolveTransitionHooks(vnode, props, state, instance, postClone) {
         }
       };
       leavingVNodesCache[key2] = vnode;
-      if (onLeave3) {
-        callAsyncHook(onLeave3, [el, done]);
+      if (onLeave4) {
+        callAsyncHook(onLeave4, [el, done]);
       } else {
         done();
       }
@@ -3320,7 +3320,7 @@ function renderList(source, renderItem, cache, index2) {
     if (source[Symbol.iterator]) {
       ret = Array.from(
         source,
-        (item, i2) => renderItem(item, i2, void 0, cached)
+        (item2, i2) => renderItem(item2, i2, void 0, cached)
       );
     } else {
       const keys = Object.keys(source);
@@ -3439,7 +3439,7 @@ const PublicInstanceProxyHandlers = {
     if (key === "__v_skip") {
       return true;
     }
-    const { ctx, setupState, data: data21, props, accessCache, type, appContext } = instance;
+    const { ctx, setupState, data: data22, props, accessCache, type, appContext } = instance;
     if (key[0] !== "$") {
       const n2 = accessCache[key];
       if (n2 !== void 0) {
@@ -3447,7 +3447,7 @@ const PublicInstanceProxyHandlers = {
           case 1:
             return setupState[key];
           case 2:
-            return data21[key];
+            return data22[key];
           case 4:
             return ctx[key];
           case 3:
@@ -3456,9 +3456,9 @@ const PublicInstanceProxyHandlers = {
       } else if (hasSetupBinding(setupState, key)) {
         accessCache[key] = 1;
         return setupState[key];
-      } else if (data21 !== EMPTY_OBJ && hasOwn(data21, key)) {
+      } else if (data22 !== EMPTY_OBJ && hasOwn(data22, key)) {
         accessCache[key] = 2;
-        return data21[key];
+        return data22[key];
       } else if (hasOwn(props, key)) {
         accessCache[key] = 3;
         return props[key];
@@ -3494,12 +3494,12 @@ const PublicInstanceProxyHandlers = {
     } else ;
   },
   set({ _: instance }, key, value2) {
-    const { data: data21, setupState, ctx } = instance;
+    const { data: data22, setupState, ctx } = instance;
     if (hasSetupBinding(setupState, key)) {
       setupState[key] = value2;
       return true;
-    } else if (data21 !== EMPTY_OBJ && hasOwn(data21, key)) {
-      data21[key] = value2;
+    } else if (data22 !== EMPTY_OBJ && hasOwn(data22, key)) {
+      data22[key] = value2;
       return true;
     } else if (hasOwn(instance.props, key)) {
       return false;
@@ -3514,10 +3514,10 @@ const PublicInstanceProxyHandlers = {
     return true;
   },
   has({
-    _: { data: data21, setupState, accessCache, ctx, appContext, props, type }
+    _: { data: data22, setupState, accessCache, ctx, appContext, props, type }
   }, key) {
     let cssModules;
-    return !!(accessCache[key] || data21 !== EMPTY_OBJ && key[0] !== "$" && hasOwn(data21, key) || hasSetupBinding(setupState, key) || hasOwn(props, key) || hasOwn(ctx, key) || hasOwn(publicPropertiesMap, key) || hasOwn(appContext.config.globalProperties, key) || (cssModules = type.__cssModules) && cssModules[key]);
+    return !!(accessCache[key] || data22 !== EMPTY_OBJ && key[0] !== "$" && hasOwn(data22, key) || hasSetupBinding(setupState, key) || hasOwn(props, key) || hasOwn(ctx, key) || hasOwn(publicPropertiesMap, key) || hasOwn(appContext.config.globalProperties, key) || (cssModules = type.__cssModules) && cssModules[key]);
   },
   defineProperty(target2, key, descriptor) {
     if (descriptor.get != null) {
@@ -3554,13 +3554,13 @@ function applyOptions(instance) {
     // lifecycle
     created: created3,
     beforeMount: beforeMount4,
-    mounted: mounted20,
+    mounted: mounted21,
     beforeUpdate: beforeUpdate2,
     updated: updated11,
     activated,
     deactivated,
     beforeDestroy,
-    beforeUnmount: beforeUnmount13,
+    beforeUnmount: beforeUnmount14,
     destroyed,
     unmounted: unmounted6,
     render: render2,
@@ -3591,10 +3591,10 @@ function applyOptions(instance) {
     }
   }
   if (dataOptions) {
-    const data21 = dataOptions.call(publicThis, publicThis);
-    if (!isObject(data21)) ;
+    const data22 = dataOptions.call(publicThis, publicThis);
+    if (!isObject(data22)) ;
     else {
-      instance.data = /* @__PURE__ */ reactive(data21);
+      instance.data = /* @__PURE__ */ reactive(data22);
     }
   }
   shouldCacheAccess = true;
@@ -3637,7 +3637,7 @@ function applyOptions(instance) {
     }
   }
   registerLifecycleHook(onBeforeMount, beforeMount4);
-  registerLifecycleHook(onMounted, mounted20);
+  registerLifecycleHook(onMounted, mounted21);
   registerLifecycleHook(onBeforeUpdate, beforeUpdate2);
   registerLifecycleHook(onUpdated, updated11);
   registerLifecycleHook(onActivated, activated);
@@ -3645,7 +3645,7 @@ function applyOptions(instance) {
   registerLifecycleHook(onErrorCaptured, errorCaptured);
   registerLifecycleHook(onRenderTracked, renderTracked);
   registerLifecycleHook(onRenderTriggered, renderTriggered);
-  registerLifecycleHook(onBeforeUnmount, beforeUnmount13);
+  registerLifecycleHook(onBeforeUnmount, beforeUnmount14);
   registerLifecycleHook(onUnmounted, unmounted6);
   registerLifecycleHook(onServerPrefetch, serverPrefetch);
   if (isArray(expose)) {
@@ -4116,7 +4116,7 @@ function renderComponentRoot(instance) {
     render: render2,
     renderCache,
     props,
-    data: data21,
+    data: data22,
     setupState,
     ctx,
     inheritAttrs
@@ -4144,7 +4144,7 @@ function renderComponentRoot(instance) {
           renderCache,
           false ? /* @__PURE__ */ shallowReadonly(props) : props,
           setupState,
-          data21,
+          data22,
           ctx
         )
       );
@@ -4175,10 +4175,10 @@ function renderComponentRoot(instance) {
     handleError(err, instance, 1);
     result = createVNode(Comment);
   }
-  let root21 = result;
+  let root22 = result;
   if (fallthroughAttrs && inheritAttrs !== false) {
     const keys = Object.keys(fallthroughAttrs);
-    const { shapeFlag } = root21;
+    const { shapeFlag } = root22;
     if (keys.length) {
       if (shapeFlag & (1 | 6)) {
         if (propsOptions && keys.some(isModelListener)) {
@@ -4187,19 +4187,19 @@ function renderComponentRoot(instance) {
             propsOptions
           );
         }
-        root21 = cloneVNode(root21, fallthroughAttrs, false, true);
+        root22 = cloneVNode(root22, fallthroughAttrs, false, true);
       }
     }
   }
   if (vnode.dirs) {
-    root21 = cloneVNode(root21, null, false, true);
-    root21.dirs = root21.dirs ? root21.dirs.concat(vnode.dirs) : vnode.dirs;
+    root22 = cloneVNode(root22, null, false, true);
+    root22.dirs = root22.dirs ? root22.dirs.concat(vnode.dirs) : vnode.dirs;
   }
   if (vnode.transition) {
-    setTransitionHooks(root21, vnode.transition);
+    setTransitionHooks(root22, vnode.transition);
   }
   {
-    result = root21;
+    result = root22;
   }
   setCurrentRenderingInstance(prev);
   return result;
@@ -4281,11 +4281,11 @@ function hasPropsChanged(prevProps, nextProps, emitsOptions) {
 }
 function updateHOCHostEl({ vnode, parent }, el) {
   while (parent) {
-    const root21 = parent.subTree;
-    if (root21.suspense && root21.suspense.activeBranch === vnode) {
-      root21.el = vnode.el;
+    const root22 = parent.subTree;
+    if (root22.suspense && root22.suspense.activeBranch === vnode) {
+      root22.el = vnode.el;
     }
-    if (root21 === vnode) {
+    if (root22 === vnode) {
       (vnode = parent.vnode).el = el;
       parent = parent.parent;
     } else {
@@ -5253,7 +5253,7 @@ function baseCreateRenderer(options3, createHydrationFns) {
       if (!instance.isMounted) {
         let vnodeHook;
         const { el, props } = initialVNode;
-        const { bm, m: m2, parent, root: root21, type } = instance;
+        const { bm, m: m2, parent, root: root22, type } = instance;
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode);
         toggleRecurse(instance, false);
         if (bm) {
@@ -5264,9 +5264,9 @@ function baseCreateRenderer(options3, createHydrationFns) {
         }
         toggleRecurse(instance, true);
         {
-          if (root21.ce && // @ts-expect-error _def is private
-          root21.ce._def.shadowRoot !== false) {
-            root21.ce._injectChildStyle(type);
+          if (root22.ce && // @ts-expect-error _def is private
+          root22.ce._def.shadowRoot !== false) {
+            root22.ce._injectChildStyle(type);
           }
           const subTree = instance.subTree = renderComponentRoot(instance);
           patch(
@@ -6837,12 +6837,12 @@ function resolveTransitionProps(rawProps) {
   const leaveDuration = durations && durations[1];
   const {
     onBeforeEnter,
-    onEnter: onEnter3,
+    onEnter: onEnter4,
     onEnterCancelled,
-    onLeave: onLeave3,
+    onLeave: onLeave4,
     onLeaveCancelled,
     onBeforeAppear = onBeforeEnter,
-    onAppear = onEnter3,
+    onAppear = onEnter4,
     onAppearCancelled = onEnterCancelled
   } = baseProps;
   const finishEnter = (el, isAppear, done, isCancelled) => {
@@ -6860,7 +6860,7 @@ function resolveTransitionProps(rawProps) {
   };
   const makeEnterHook = (isAppear) => {
     return (el, done) => {
-      const hook = isAppear ? onAppear : onEnter3;
+      const hook = isAppear ? onAppear : onEnter4;
       const resolve2 = () => finishEnter(el, isAppear, done);
       callHook(hook, [el, resolve2]);
       nextFrame(() => {
@@ -6902,11 +6902,11 @@ function resolveTransitionProps(rawProps) {
         }
         removeTransitionClass(el, leaveFromClass);
         addTransitionClass(el, leaveToClass);
-        if (!hasExplicitCallback(onLeave3)) {
+        if (!hasExplicitCallback(onLeave4)) {
           whenTransitionEnds(el, type, leaveDuration, resolve2);
         }
       });
-      callHook(onLeave3, [el, resolve2]);
+      callHook(onLeave4, [el, resolve2]);
     },
     onEnterCancelled(el) {
       finishEnter(el, false, void 0, true);
@@ -7516,7 +7516,7 @@ function applyTranslation(c2) {
     return c2;
   }
 }
-function hasCSSTransform(el, root21, moveClass) {
+function hasCSSTransform(el, root22, moveClass) {
   const clone = el.cloneNode();
   const _vtc = el[vtcKey];
   if (_vtc) {
@@ -7526,7 +7526,7 @@ function hasCSSTransform(el, root21, moveClass) {
   }
   moveClass.split(/\s+/).forEach((c2) => c2 && clone.classList.add(c2));
   clone.style.display = "none";
-  const container = root21.nodeType === 1 ? root21 : root21.parentNode;
+  const container = root22.nodeType === 1 ? root22 : root22.parentNode;
   container.appendChild(clone);
   const { hasTransform } = getTransitionInfo(clone);
   container.removeChild(clone);
@@ -8823,7 +8823,7 @@ var FilterMatchMode = {
 function _createForOfIteratorHelper(r2, e2) {
   var t2 = "undefined" != typeof Symbol && r2[Symbol.iterator] || r2["@@iterator"];
   if (!t2) {
-    if (Array.isArray(r2) || (t2 = _unsupportedIterableToArray$t(r2)) || e2) {
+    if (Array.isArray(r2) || (t2 = _unsupportedIterableToArray$u(r2)) || e2) {
       t2 && (r2 = t2);
       var _n = 0, F2 = function F3() {
       };
@@ -8851,14 +8851,14 @@ function _createForOfIteratorHelper(r2, e2) {
     }
   } };
 }
-function _unsupportedIterableToArray$t(r2, a2) {
+function _unsupportedIterableToArray$u(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$t(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$u(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$t(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$u(r2, a2) : void 0;
   }
 }
-function _arrayLikeToArray$t(r2, a2) {
+function _arrayLikeToArray$u(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -8872,10 +8872,10 @@ var FilterService = {
     var _iterator = _createForOfIteratorHelper(value2), _step;
     try {
       for (_iterator.s(); !(_step = _iterator.n()).done; ) {
-        var item = _step.value;
-        if (typeof item === "string") {
-          if (this.filters[filterMatchMode](item, filterValue, filterLocale)) {
-            filteredItems.push(item);
+        var item2 = _step.value;
+        if (typeof item2 === "string") {
+          if (this.filters[filterMatchMode](item2, filterValue, filterLocale)) {
+            filteredItems.push(item2);
             continue;
           }
         } else {
@@ -8883,9 +8883,9 @@ var FilterService = {
           try {
             for (_iterator2.s(); !(_step2 = _iterator2.n()).done; ) {
               var field = _step2.value;
-              var fieldValue = p$3(item, field);
+              var fieldValue = p$3(item2, field);
               if (this.filters[filterMatchMode](fieldValue, filterValue, filterLocale)) {
-                filteredItems.push(item);
+                filteredItems.push(item2);
                 break;
               }
             }
@@ -9070,7 +9070,7 @@ var FilterService = {
     this.filters[rule] = fn;
   }
 };
-var style$o = "\n    *,\n    ::before,\n    ::after {\n        box-sizing: border-box;\n    }\n\n    .p-collapsible-enter-active {\n        animation: p-animate-collapsible-expand 0.2s ease-out;\n        overflow: hidden;\n    }\n\n    .p-collapsible-leave-active {\n        animation: p-animate-collapsible-collapse 0.2s ease-out;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-collapsible-expand {\n        from {\n            grid-template-rows: 0fr;\n        }\n        to {\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-collapsible-collapse {\n        from {\n            grid-template-rows: 1fr;\n        }\n        to {\n            grid-template-rows: 0fr;\n        }\n    }\n\n    .p-disabled,\n    .p-disabled * {\n        cursor: default;\n        pointer-events: none;\n        user-select: none;\n    }\n\n    .p-disabled,\n    .p-component:disabled {\n        opacity: dt('disabled.opacity');\n    }\n\n    .pi {\n        font-size: dt('icon.size');\n    }\n\n    .p-icon {\n        width: dt('icon.size');\n        height: dt('icon.size');\n    }\n\n    .p-overlay-mask {\n        background: var(--px-mask-background, dt('mask.background'));\n        color: dt('mask.color');\n        position: fixed;\n        top: 0;\n        left: 0;\n        width: 100%;\n        height: 100%;\n    }\n\n    .p-overlay-mask-enter-active {\n        animation: p-animate-overlay-mask-enter dt('mask.transition.duration') forwards;\n    }\n\n    .p-overlay-mask-leave-active {\n        animation: p-animate-overlay-mask-leave dt('mask.transition.duration') forwards;\n    }\n\n    @keyframes p-animate-overlay-mask-enter {\n        from {\n            background: transparent;\n        }\n        to {\n            background: var(--px-mask-background, dt('mask.background'));\n        }\n    }\n    @keyframes p-animate-overlay-mask-leave {\n        from {\n            background: var(--px-mask-background, dt('mask.background'));\n        }\n        to {\n            background: transparent;\n        }\n    }\n\n    .p-anchored-overlay-enter-active {\n        animation: p-animate-anchored-overlay-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-anchored-overlay-leave-active {\n        animation: p-animate-anchored-overlay-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-anchored-overlay-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-anchored-overlay-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
+var style$p = "\n    *,\n    ::before,\n    ::after {\n        box-sizing: border-box;\n    }\n\n    .p-collapsible-enter-active {\n        animation: p-animate-collapsible-expand 0.2s ease-out;\n        overflow: hidden;\n    }\n\n    .p-collapsible-leave-active {\n        animation: p-animate-collapsible-collapse 0.2s ease-out;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-collapsible-expand {\n        from {\n            grid-template-rows: 0fr;\n        }\n        to {\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-collapsible-collapse {\n        from {\n            grid-template-rows: 1fr;\n        }\n        to {\n            grid-template-rows: 0fr;\n        }\n    }\n\n    .p-disabled,\n    .p-disabled * {\n        cursor: default;\n        pointer-events: none;\n        user-select: none;\n    }\n\n    .p-disabled,\n    .p-component:disabled {\n        opacity: dt('disabled.opacity');\n    }\n\n    .pi {\n        font-size: dt('icon.size');\n    }\n\n    .p-icon {\n        width: dt('icon.size');\n        height: dt('icon.size');\n    }\n\n    .p-overlay-mask {\n        background: var(--px-mask-background, dt('mask.background'));\n        color: dt('mask.color');\n        position: fixed;\n        top: 0;\n        left: 0;\n        width: 100%;\n        height: 100%;\n    }\n\n    .p-overlay-mask-enter-active {\n        animation: p-animate-overlay-mask-enter dt('mask.transition.duration') forwards;\n    }\n\n    .p-overlay-mask-leave-active {\n        animation: p-animate-overlay-mask-leave dt('mask.transition.duration') forwards;\n    }\n\n    @keyframes p-animate-overlay-mask-enter {\n        from {\n            background: transparent;\n        }\n        to {\n            background: var(--px-mask-background, dt('mask.background'));\n        }\n    }\n    @keyframes p-animate-overlay-mask-leave {\n        from {\n            background: var(--px-mask-background, dt('mask.background'));\n        }\n        to {\n            background: transparent;\n        }\n    }\n\n    .p-anchored-overlay-enter-active {\n        animation: p-animate-anchored-overlay-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-anchored-overlay-leave-active {\n        animation: p-animate-anchored-overlay-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-anchored-overlay-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-anchored-overlay-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
 function _typeof$t(o2) {
   "@babel/helpers - typeof";
   return _typeof$t = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
@@ -9194,19 +9194,19 @@ function _typeof$s(o2) {
 }
 var _templateObject, _templateObject2, _templateObject3, _templateObject4;
 function _slicedToArray$3(r2, e2) {
-  return _arrayWithHoles$3(r2) || _iterableToArrayLimit$3(r2, e2) || _unsupportedIterableToArray$s(r2, e2) || _nonIterableRest$3();
+  return _arrayWithHoles$3(r2) || _iterableToArrayLimit$3(r2, e2) || _unsupportedIterableToArray$t(r2, e2) || _nonIterableRest$3();
 }
 function _nonIterableRest$3() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$s(r2, a2) {
+function _unsupportedIterableToArray$t(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$s(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$t(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$s(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$t(r2, a2) : void 0;
   }
 }
-function _arrayLikeToArray$s(r2, a2) {
+function _arrayLikeToArray$t(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -9278,13 +9278,13 @@ var css$5 = function css(_ref) {
   var dt2 = _ref.dt;
   return "\n.p-hidden-accessible {\n    border: 0;\n    clip: rect(0 0 0 0);\n    height: 1px;\n    margin: -1px;\n    opacity: 0;\n    overflow: hidden;\n    padding: 0;\n    pointer-events: none;\n    position: absolute;\n    white-space: nowrap;\n    width: 1px;\n}\n\n.p-overflow-hidden {\n    overflow: hidden;\n    padding-right: ".concat(dt2("scrollbar.width"), ";\n}\n");
 };
-var classes$t = {};
+var classes$u = {};
 var inlineStyles$3 = {};
 var BaseStyle = {
   name: "base",
   css: css$5,
-  style: style$o,
-  classes: classes$t,
+  style: style$p,
+  classes: classes$u,
   inlineStyles: inlineStyles$3,
   load: function load(style2) {
     var options3 = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
@@ -9720,7 +9720,7 @@ var ConnectedOverlayScrollHandler = /* @__PURE__ */ (function() {
   }
   return _createClass$1(ConnectedOverlayScrollHandler2, [{
     key: "bindScrollListener",
-    value: function bindScrollListener4() {
+    value: function bindScrollListener5() {
       this.scrollableParents = At(this.element);
       for (var i2 = 0; i2 < this.scrollableParents.length; i2++) {
         this.scrollableParents[i2].addEventListener("scroll", this.listener);
@@ -9728,7 +9728,7 @@ var ConnectedOverlayScrollHandler = /* @__PURE__ */ (function() {
     }
   }, {
     key: "unbindScrollListener",
-    value: function unbindScrollListener4() {
+    value: function unbindScrollListener5() {
       if (this.scrollableParents) {
         for (var i2 = 0; i2 < this.scrollableParents.length; i2++) {
           this.scrollableParents[i2].removeEventListener("scroll", this.listener);
@@ -9783,19 +9783,19 @@ function _typeof$q(o2) {
   }, _typeof$q(o2);
 }
 function _slicedToArray$2(r2, e2) {
-  return _arrayWithHoles$2(r2) || _iterableToArrayLimit$2(r2, e2) || _unsupportedIterableToArray$r(r2, e2) || _nonIterableRest$2();
+  return _arrayWithHoles$2(r2) || _iterableToArrayLimit$2(r2, e2) || _unsupportedIterableToArray$s(r2, e2) || _nonIterableRest$2();
 }
 function _nonIterableRest$2() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$r(r2, a2) {
+function _unsupportedIterableToArray$s(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$r(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$s(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$r(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$s(r2, a2) : void 0;
   }
 }
-function _arrayLikeToArray$r(r2, a2) {
+function _arrayLikeToArray$s(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -10190,7 +10190,7 @@ var BaseDirective = {
         handleHook("beforeMount", el, binding, vnode, prevVnode);
         handleWatchers(el);
       },
-      mounted: function mounted20(el, binding, vnode, prevVnode) {
+      mounted: function mounted21(el, binding, vnode, prevVnode) {
         var _el$$pd$name2;
         BaseDirective._loadStyles((_el$$pd$name2 = el.$pd[name]) === null || _el$$pd$name2 === void 0 ? void 0 : _el$$pd$name2.instance, binding, vnode);
         handleHook("mounted", el, binding, vnode, prevVnode);
@@ -10203,7 +10203,7 @@ var BaseDirective = {
         BaseDirective._loadStyles((_el$$pd$name3 = el.$pd[name]) === null || _el$$pd$name3 === void 0 ? void 0 : _el$$pd$name3.instance, binding, vnode);
         handleHook("updated", el, binding, vnode, prevVnode);
       },
-      beforeUnmount: function beforeUnmount13(el, binding, vnode, prevVnode) {
+      beforeUnmount: function beforeUnmount14(el, binding, vnode, prevVnode) {
         var _el$$pd$name4;
         stopWatchers2(el);
         BaseDirective._removeThemeListeners((_el$$pd$name4 = el.$pd[name]) === null || _el$$pd$name4 === void 0 ? void 0 : _el$$pd$name4.instance);
@@ -10226,34 +10226,34 @@ var BaseDirective = {
     }, BaseDirective._extend(name, options3));
   }
 };
-var style$n = "\n    .p-tooltip {\n        position: absolute;\n        display: none;\n        max-width: dt('tooltip.max.width');\n    }\n\n    .p-tooltip-right,\n    .p-tooltip-left {\n        padding: 0 dt('tooltip.gutter');\n    }\n\n    .p-tooltip-top,\n    .p-tooltip-bottom {\n        padding: dt('tooltip.gutter') 0;\n    }\n\n    .p-tooltip-text {\n        white-space: pre-line;\n        word-break: break-word;\n        background: dt('tooltip.background');\n        color: dt('tooltip.color');\n        padding: dt('tooltip.padding');\n        box-shadow: dt('tooltip.shadow');\n        border-radius: dt('tooltip.border.radius');\n    }\n\n    .p-tooltip-arrow {\n        position: absolute;\n        width: 0;\n        height: 0;\n        border-color: transparent;\n        border-style: solid;\n    }\n\n    .p-tooltip-right .p-tooltip-arrow {\n        margin-top: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') dt('tooltip.gutter') dt('tooltip.gutter') 0;\n        border-right-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-left .p-tooltip-arrow {\n        margin-top: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') 0 dt('tooltip.gutter') dt('tooltip.gutter');\n        border-left-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-top .p-tooltip-arrow {\n        margin-left: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') dt('tooltip.gutter') 0 dt('tooltip.gutter');\n        border-top-color: dt('tooltip.background');\n        border-bottom-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-bottom .p-tooltip-arrow {\n        margin-left: calc(-1 * dt('tooltip.gutter'));\n        border-width: 0 dt('tooltip.gutter') dt('tooltip.gutter') dt('tooltip.gutter');\n        border-top-color: dt('tooltip.background');\n        border-bottom-color: dt('tooltip.background');\n    }\n";
-var classes$s = {
+var style$o = "\n    .p-tooltip {\n        position: absolute;\n        display: none;\n        max-width: dt('tooltip.max.width');\n    }\n\n    .p-tooltip-right,\n    .p-tooltip-left {\n        padding: 0 dt('tooltip.gutter');\n    }\n\n    .p-tooltip-top,\n    .p-tooltip-bottom {\n        padding: dt('tooltip.gutter') 0;\n    }\n\n    .p-tooltip-text {\n        white-space: pre-line;\n        word-break: break-word;\n        background: dt('tooltip.background');\n        color: dt('tooltip.color');\n        padding: dt('tooltip.padding');\n        box-shadow: dt('tooltip.shadow');\n        border-radius: dt('tooltip.border.radius');\n    }\n\n    .p-tooltip-arrow {\n        position: absolute;\n        width: 0;\n        height: 0;\n        border-color: transparent;\n        border-style: solid;\n    }\n\n    .p-tooltip-right .p-tooltip-arrow {\n        margin-top: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') dt('tooltip.gutter') dt('tooltip.gutter') 0;\n        border-right-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-left .p-tooltip-arrow {\n        margin-top: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') 0 dt('tooltip.gutter') dt('tooltip.gutter');\n        border-left-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-top .p-tooltip-arrow {\n        margin-left: calc(-1 * dt('tooltip.gutter'));\n        border-width: dt('tooltip.gutter') dt('tooltip.gutter') 0 dt('tooltip.gutter');\n        border-top-color: dt('tooltip.background');\n        border-bottom-color: dt('tooltip.background');\n    }\n\n    .p-tooltip-bottom .p-tooltip-arrow {\n        margin-left: calc(-1 * dt('tooltip.gutter'));\n        border-width: 0 dt('tooltip.gutter') dt('tooltip.gutter') dt('tooltip.gutter');\n        border-top-color: dt('tooltip.background');\n        border-bottom-color: dt('tooltip.background');\n    }\n";
+var classes$t = {
   root: "p-tooltip p-component",
   arrow: "p-tooltip-arrow",
   text: "p-tooltip-text"
 };
 var TooltipStyle = BaseStyle.extend({
   name: "tooltip-directive",
-  style: style$n,
-  classes: classes$s
+  style: style$o,
+  classes: classes$t
 });
 var BaseTooltip = BaseDirective.extend({
   style: TooltipStyle
 });
 function _slicedToArray$1(r2, e2) {
-  return _arrayWithHoles$1(r2) || _iterableToArrayLimit$1(r2, e2) || _unsupportedIterableToArray$q(r2, e2) || _nonIterableRest$1();
+  return _arrayWithHoles$1(r2) || _iterableToArrayLimit$1(r2, e2) || _unsupportedIterableToArray$r(r2, e2) || _nonIterableRest$1();
 }
 function _nonIterableRest$1() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$q(r2, a2) {
+function _unsupportedIterableToArray$r(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$q(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$r(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$q(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$r(r2, a2) : void 0;
   }
 }
-function _arrayLikeToArray$q(r2, a2) {
+function _arrayLikeToArray$r(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -11169,25 +11169,25 @@ function _typeof$n(o2) {
   }, _typeof$n(o2);
 }
 function _toArray(r2) {
-  return _arrayWithHoles(r2) || _iterableToArray$p(r2) || _unsupportedIterableToArray$p(r2) || _nonIterableRest();
+  return _arrayWithHoles(r2) || _iterableToArray$q(r2) || _unsupportedIterableToArray$q(r2) || _nonIterableRest();
 }
-function _iterableToArray$p(r2) {
+function _iterableToArray$q(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
 function _slicedToArray(r2, e2) {
-  return _arrayWithHoles(r2) || _iterableToArrayLimit(r2, e2) || _unsupportedIterableToArray$p(r2, e2) || _nonIterableRest();
+  return _arrayWithHoles(r2) || _iterableToArrayLimit(r2, e2) || _unsupportedIterableToArray$q(r2, e2) || _nonIterableRest();
 }
 function _nonIterableRest() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$p(r2, a2) {
+function _unsupportedIterableToArray$q(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$p(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$q(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$p(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$q(r2, a2) : void 0;
   }
 }
-function _arrayLikeToArray$p(r2, a2) {
+function _arrayLikeToArray$q(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -11254,7 +11254,7 @@ function _toPrimitive$n(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$R = {
+var script$S = {
   name: "BaseComponent",
   props: {
     pt: {
@@ -11671,7 +11671,7 @@ var script$R = {
         return key === null || key === void 0 ? void 0 : key.startsWith("pt:");
       }).reduce(function(result, _ref12) {
         var _ref13 = _slicedToArray(_ref12, 2), key = _ref13[0], value2 = _ref13[1];
-        var _key$split = key.split(":"), _key$split2 = _toArray(_key$split), rest = _arrayLikeToArray$p(_key$split2).slice(1);
+        var _key$split = key.split(":"), _key$split2 = _toArray(_key$split), rest = _arrayLikeToArray$q(_key$split2).slice(1);
         rest === null || rest === void 0 || rest.reduce(function(currentObj, nestedKey, index2, array) {
           !currentObj[nestedKey] && (currentObj[nestedKey] = index2 === array.length - 1 ? value2 : {});
           return currentObj[nestedKey];
@@ -11742,9 +11742,9 @@ function _toPrimitive$m(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$Q = {
+var script$R = {
   name: "BaseIcon",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     label: {
       type: String,
@@ -11777,49 +11777,49 @@ var script$Q = {
     }
   }
 };
-var script$P = {
+var script$Q = {
   name: "SpinnerIcon",
-  "extends": script$Q
+  "extends": script$R
 };
-function _toConsumableArray$o(r2) {
-  return _arrayWithoutHoles$o(r2) || _iterableToArray$o(r2) || _unsupportedIterableToArray$o(r2) || _nonIterableSpread$o();
+function _toConsumableArray$p(r2) {
+  return _arrayWithoutHoles$p(r2) || _iterableToArray$p(r2) || _unsupportedIterableToArray$p(r2) || _nonIterableSpread$p();
 }
-function _nonIterableSpread$o() {
+function _nonIterableSpread$p() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$o(r2, a2) {
+function _unsupportedIterableToArray$p(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$o(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$p(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$o(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$p(r2, a2) : void 0;
   }
 }
-function _iterableToArray$o(r2) {
+function _iterableToArray$p(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$o(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$o(r2);
+function _arrayWithoutHoles$p(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$p(r2);
 }
-function _arrayLikeToArray$o(r2, a2) {
+function _arrayLikeToArray$p(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$L(_ctx, _cache, $props, $setup, $data, $options) {
+function render$M(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$o(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$p(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M6.99701 14C5.85441 13.999 4.72939 13.7186 3.72012 13.1832C2.71084 12.6478 1.84795 11.8737 1.20673 10.9284C0.565504 9.98305 0.165424 8.89526 0.041387 7.75989C-0.0826496 6.62453 0.073125 5.47607 0.495122 4.4147C0.917119 3.35333 1.59252 2.4113 2.46241 1.67077C3.33229 0.930247 4.37024 0.413729 5.4857 0.166275C6.60117 -0.0811796 7.76026 -0.0520535 8.86188 0.251112C9.9635 0.554278 10.9742 1.12227 11.8057 1.90555C11.915 2.01493 11.9764 2.16319 11.9764 2.31778C11.9764 2.47236 11.915 2.62062 11.8057 2.73C11.7521 2.78503 11.688 2.82877 11.6171 2.85864C11.5463 2.8885 11.4702 2.90389 11.3933 2.90389C11.3165 2.90389 11.2404 2.8885 11.1695 2.85864C11.0987 2.82877 11.0346 2.78503 10.9809 2.73C9.9998 1.81273 8.73246 1.26138 7.39226 1.16876C6.05206 1.07615 4.72086 1.44794 3.62279 2.22152C2.52471 2.99511 1.72683 4.12325 1.36345 5.41602C1.00008 6.70879 1.09342 8.08723 1.62775 9.31926C2.16209 10.5513 3.10478 11.5617 4.29713 12.1803C5.48947 12.7989 6.85865 12.988 8.17414 12.7157C9.48963 12.4435 10.6711 11.7264 11.5196 10.6854C12.3681 9.64432 12.8319 8.34282 12.8328 7C12.8328 6.84529 12.8943 6.69692 13.0038 6.58752C13.1132 6.47812 13.2616 6.41667 13.4164 6.41667C13.5712 6.41667 13.7196 6.47812 13.8291 6.58752C13.9385 6.69692 14 6.84529 14 7C14 8.85651 13.2622 10.637 11.9489 11.9497C10.6356 13.2625 8.85432 14 6.99701 14Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$P.render = render$L;
-var style$m = "\n    .p-badge {\n        display: inline-flex;\n        border-radius: dt('badge.border.radius');\n        align-items: center;\n        justify-content: center;\n        padding: dt('badge.padding');\n        background: dt('badge.primary.background');\n        color: dt('badge.primary.color');\n        font-size: dt('badge.font.size');\n        font-weight: dt('badge.font.weight');\n        min-width: dt('badge.min.width');\n        height: dt('badge.height');\n    }\n\n    .p-badge-dot {\n        width: dt('badge.dot.size');\n        min-width: dt('badge.dot.size');\n        height: dt('badge.dot.size');\n        border-radius: 50%;\n        padding: 0;\n    }\n\n    .p-badge-circle {\n        padding: 0;\n        border-radius: 50%;\n    }\n\n    .p-badge-secondary {\n        background: dt('badge.secondary.background');\n        color: dt('badge.secondary.color');\n    }\n\n    .p-badge-success {\n        background: dt('badge.success.background');\n        color: dt('badge.success.color');\n    }\n\n    .p-badge-info {\n        background: dt('badge.info.background');\n        color: dt('badge.info.color');\n    }\n\n    .p-badge-warn {\n        background: dt('badge.warn.background');\n        color: dt('badge.warn.color');\n    }\n\n    .p-badge-danger {\n        background: dt('badge.danger.background');\n        color: dt('badge.danger.color');\n    }\n\n    .p-badge-contrast {\n        background: dt('badge.contrast.background');\n        color: dt('badge.contrast.color');\n    }\n\n    .p-badge-sm {\n        font-size: dt('badge.sm.font.size');\n        min-width: dt('badge.sm.min.width');\n        height: dt('badge.sm.height');\n    }\n\n    .p-badge-lg {\n        font-size: dt('badge.lg.font.size');\n        min-width: dt('badge.lg.min.width');\n        height: dt('badge.lg.height');\n    }\n\n    .p-badge-xl {\n        font-size: dt('badge.xl.font.size');\n        min-width: dt('badge.xl.min.width');\n        height: dt('badge.xl.height');\n    }\n";
-var classes$r = {
+script$Q.render = render$M;
+var style$n = "\n    .p-badge {\n        display: inline-flex;\n        border-radius: dt('badge.border.radius');\n        align-items: center;\n        justify-content: center;\n        padding: dt('badge.padding');\n        background: dt('badge.primary.background');\n        color: dt('badge.primary.color');\n        font-size: dt('badge.font.size');\n        font-weight: dt('badge.font.weight');\n        min-width: dt('badge.min.width');\n        height: dt('badge.height');\n    }\n\n    .p-badge-dot {\n        width: dt('badge.dot.size');\n        min-width: dt('badge.dot.size');\n        height: dt('badge.dot.size');\n        border-radius: 50%;\n        padding: 0;\n    }\n\n    .p-badge-circle {\n        padding: 0;\n        border-radius: 50%;\n    }\n\n    .p-badge-secondary {\n        background: dt('badge.secondary.background');\n        color: dt('badge.secondary.color');\n    }\n\n    .p-badge-success {\n        background: dt('badge.success.background');\n        color: dt('badge.success.color');\n    }\n\n    .p-badge-info {\n        background: dt('badge.info.background');\n        color: dt('badge.info.color');\n    }\n\n    .p-badge-warn {\n        background: dt('badge.warn.background');\n        color: dt('badge.warn.color');\n    }\n\n    .p-badge-danger {\n        background: dt('badge.danger.background');\n        color: dt('badge.danger.color');\n    }\n\n    .p-badge-contrast {\n        background: dt('badge.contrast.background');\n        color: dt('badge.contrast.color');\n    }\n\n    .p-badge-sm {\n        font-size: dt('badge.sm.font.size');\n        min-width: dt('badge.sm.min.width');\n        height: dt('badge.sm.height');\n    }\n\n    .p-badge-lg {\n        font-size: dt('badge.lg.font.size');\n        min-width: dt('badge.lg.min.width');\n        height: dt('badge.lg.height');\n    }\n\n    .p-badge-xl {\n        font-size: dt('badge.xl.font.size');\n        min-width: dt('badge.xl.min.width');\n        height: dt('badge.xl.height');\n    }\n";
+var classes$s = {
   root: function root(_ref) {
     var props = _ref.props, instance = _ref.instance;
     return ["p-badge p-component", {
@@ -11839,12 +11839,12 @@ var classes$r = {
 };
 var BadgeStyle = BaseStyle.extend({
   name: "badge",
-  style: style$m,
-  classes: classes$r
+  style: style$n,
+  classes: classes$s
 });
-var script$1$s = {
+var script$1$t = {
   name: "BaseBadge",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     value: {
       type: [String, Number],
@@ -11892,9 +11892,9 @@ function _toPrimitive$l(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$O = {
+var script$P = {
   name: "Badge",
-  "extends": script$1$s,
+  "extends": script$1$t,
   inheritAttrs: false,
   computed: {
     dataP: function dataP() {
@@ -11905,24 +11905,24 @@ var script$O = {
     }
   }
 };
-var _hoisted_1$K = ["data-p"];
-function render$K(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$L = ["data-p"];
+function render$L(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("span", mergeProps({
     "class": _ctx.cx("root"),
     "data-p": $options.dataP
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default", {}, function() {
     return [createTextVNode(toDisplayString(_ctx.value), 1)];
-  })], 16, _hoisted_1$K);
+  })], 16, _hoisted_1$L);
 }
-script$O.render = render$K;
-var style$l = "\n    .p-ink {\n        display: block;\n        position: absolute;\n        background: dt('ripple.background');\n        border-radius: 100%;\n        transform: scale(0);\n        pointer-events: none;\n    }\n\n    .p-ink-active {\n        animation: ripple 0.4s linear;\n    }\n\n    @keyframes ripple {\n        100% {\n            opacity: 0;\n            transform: scale(2.5);\n        }\n    }\n";
-var classes$q = {
+script$P.render = render$L;
+var style$m = "\n    .p-ink {\n        display: block;\n        position: absolute;\n        background: dt('ripple.background');\n        border-radius: 100%;\n        transform: scale(0);\n        pointer-events: none;\n    }\n\n    .p-ink-active {\n        animation: ripple 0.4s linear;\n    }\n\n    @keyframes ripple {\n        100% {\n            opacity: 0;\n            transform: scale(2.5);\n        }\n    }\n";
+var classes$r = {
   root: "p-ink"
 };
 var RippleStyle = BaseStyle.extend({
   name: "ripple-directive",
-  style: style$l,
-  classes: classes$q
+  style: style$m,
+  classes: classes$r
 });
 var BaseRipple = BaseDirective.extend({
   style: RippleStyle
@@ -11935,26 +11935,26 @@ function _typeof$k(o2) {
     return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
   }, _typeof$k(o2);
 }
-function _toConsumableArray$n(r2) {
-  return _arrayWithoutHoles$n(r2) || _iterableToArray$n(r2) || _unsupportedIterableToArray$n(r2) || _nonIterableSpread$n();
+function _toConsumableArray$o(r2) {
+  return _arrayWithoutHoles$o(r2) || _iterableToArray$o(r2) || _unsupportedIterableToArray$o(r2) || _nonIterableSpread$o();
 }
-function _nonIterableSpread$n() {
+function _nonIterableSpread$o() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$n(r2, a2) {
+function _unsupportedIterableToArray$o(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$n(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$o(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$n(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$o(r2, a2) : void 0;
   }
 }
-function _iterableToArray$n(r2) {
+function _iterableToArray$o(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$n(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$n(r2);
+function _arrayWithoutHoles$o(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$o(r2);
 }
-function _arrayLikeToArray$n(r2, a2) {
+function _arrayLikeToArray$o(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -12063,13 +12063,13 @@ var Ripple = BaseRipple.extend("ripple", {
       event.currentTarget.setAttribute("data-p-ink-active", "false");
     },
     getInk: function getInk(el) {
-      return el && el.children ? _toConsumableArray$n(el.children).find(function(child) {
+      return el && el.children ? _toConsumableArray$o(el.children).find(function(child) {
         return Q$1(child, "data-pc-name") === "ripple";
       }) : void 0;
     }
   }
 });
-var style$k = `
+var style$l = `
     .p-button {
         display: inline-flex;
         cursor: pointer;
@@ -12745,7 +12745,7 @@ function _toPrimitive$j(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var classes$p = {
+var classes$q = {
   root: function root2(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-button p-component", _defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j(_defineProperty$j({
@@ -12764,12 +12764,12 @@ var classes$p = {
 };
 var ButtonStyle = BaseStyle.extend({
   name: "button",
-  style: style$k,
-  classes: classes$p
+  style: style$l,
+  classes: classes$q
 });
-var script$1$r = {
+var script$1$s = {
   name: "BaseButton",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     label: {
       type: String,
@@ -12889,9 +12889,9 @@ function _toPrimitive$i(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$N = {
+var script$O = {
   name: "Button",
-  "extends": script$1$r,
+  "extends": script$1$s,
   inheritAttrs: false,
   inject: {
     $pcFluid: {
@@ -12949,16 +12949,16 @@ var script$N = {
     }
   },
   components: {
-    SpinnerIcon: script$P,
-    Badge: script$O
+    SpinnerIcon: script$Q,
+    Badge: script$P
   },
   directives: {
     ripple: Ripple
   }
 };
-var _hoisted_1$J = ["data-p"];
-var _hoisted_2$E = ["data-p"];
-function render$J(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$K = ["data-p"];
+var _hoisted_2$F = ["data-p"];
+function render$K(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_SpinnerIcon = resolveComponent("SpinnerIcon");
   var _component_Badge = resolveComponent("Badge");
   var _directive_ripple = resolveDirective("ripple");
@@ -12989,13 +12989,13 @@ function render$J(_ctx, _cache, $props, $setup, $data, $options) {
             key: 0,
             "class": [_ctx.cx("icon"), _ctx.icon, _ctx.iconClass],
             "data-p": $options.dataIconP
-          }, _ctx.ptm("icon")), null, 16, _hoisted_1$J)) : createCommentVNode("", true)];
+          }, _ctx.ptm("icon")), null, 16, _hoisted_1$K)) : createCommentVNode("", true)];
         }), _ctx.label ? (openBlock(), createElementBlock("span", mergeProps({
           key: 2,
           "class": _ctx.cx("label")
         }, _ctx.ptm("label"), {
           "data-p": $options.dataLabelP
-        }), toDisplayString(_ctx.label), 17, _hoisted_2$E)) : createCommentVNode("", true), _ctx.badge ? (openBlock(), createBlock(_component_Badge, {
+        }), toDisplayString(_ctx.label), 17, _hoisted_2$F)) : createCommentVNode("", true), _ctx.badge ? (openBlock(), createBlock(_component_Badge, {
           key: 3,
           value: _ctx.badge,
           "class": normalizeClass(_ctx.badgeClass),
@@ -13012,10 +13012,10 @@ function render$J(_ctx, _cache, $props, $setup, $data, $options) {
     a11yAttrs: $options.a11yAttrs
   });
 }
-script$N.render = render$J;
-var script$M = {
+script$O.render = render$K;
+var script$N = {
   name: "BaseEditableHolder",
-  "extends": script$R,
+  "extends": script$S,
   emits: ["update:modelValue", "value-change"],
   props: {
     modelValue: {
@@ -13158,9 +13158,9 @@ var script$M = {
     }
   }
 };
-var script$L = {
+var script$M = {
   name: "BaseInput",
-  "extends": script$M,
+  "extends": script$N,
   props: {
     size: {
       type: String,
@@ -13198,8 +13198,8 @@ var script$L = {
     }
   }
 };
-var style$j = "\n    .p-inputtext {\n        font-family: inherit;\n        font-feature-settings: inherit;\n        font-size: 1rem;\n        color: dt('inputtext.color');\n        background: dt('inputtext.background');\n        padding-block: dt('inputtext.padding.y');\n        padding-inline: dt('inputtext.padding.x');\n        border: 1px solid dt('inputtext.border.color');\n        transition:\n            background dt('inputtext.transition.duration'),\n            color dt('inputtext.transition.duration'),\n            border-color dt('inputtext.transition.duration'),\n            outline-color dt('inputtext.transition.duration'),\n            box-shadow dt('inputtext.transition.duration');\n        appearance: none;\n        border-radius: dt('inputtext.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('inputtext.shadow');\n    }\n\n    .p-inputtext:enabled:hover {\n        border-color: dt('inputtext.hover.border.color');\n    }\n\n    .p-inputtext:enabled:focus {\n        border-color: dt('inputtext.focus.border.color');\n        box-shadow: dt('inputtext.focus.ring.shadow');\n        outline: dt('inputtext.focus.ring.width') dt('inputtext.focus.ring.style') dt('inputtext.focus.ring.color');\n        outline-offset: dt('inputtext.focus.ring.offset');\n    }\n\n    .p-inputtext.p-invalid {\n        border-color: dt('inputtext.invalid.border.color');\n    }\n\n    .p-inputtext.p-variant-filled {\n        background: dt('inputtext.filled.background');\n    }\n\n    .p-inputtext.p-variant-filled:enabled:hover {\n        background: dt('inputtext.filled.hover.background');\n    }\n\n    .p-inputtext.p-variant-filled:enabled:focus {\n        background: dt('inputtext.filled.focus.background');\n    }\n\n    .p-inputtext:disabled {\n        opacity: 1;\n        background: dt('inputtext.disabled.background');\n        color: dt('inputtext.disabled.color');\n    }\n\n    .p-inputtext::placeholder {\n        color: dt('inputtext.placeholder.color');\n    }\n\n    .p-inputtext.p-invalid::placeholder {\n        color: dt('inputtext.invalid.placeholder.color');\n    }\n\n    .p-inputtext-sm {\n        font-size: dt('inputtext.sm.font.size');\n        padding-block: dt('inputtext.sm.padding.y');\n        padding-inline: dt('inputtext.sm.padding.x');\n    }\n\n    .p-inputtext-lg {\n        font-size: dt('inputtext.lg.font.size');\n        padding-block: dt('inputtext.lg.padding.y');\n        padding-inline: dt('inputtext.lg.padding.x');\n    }\n\n    .p-inputtext-fluid {\n        width: 100%;\n    }\n";
-var classes$o = {
+var style$k = "\n    .p-inputtext {\n        font-family: inherit;\n        font-feature-settings: inherit;\n        font-size: 1rem;\n        color: dt('inputtext.color');\n        background: dt('inputtext.background');\n        padding-block: dt('inputtext.padding.y');\n        padding-inline: dt('inputtext.padding.x');\n        border: 1px solid dt('inputtext.border.color');\n        transition:\n            background dt('inputtext.transition.duration'),\n            color dt('inputtext.transition.duration'),\n            border-color dt('inputtext.transition.duration'),\n            outline-color dt('inputtext.transition.duration'),\n            box-shadow dt('inputtext.transition.duration');\n        appearance: none;\n        border-radius: dt('inputtext.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('inputtext.shadow');\n    }\n\n    .p-inputtext:enabled:hover {\n        border-color: dt('inputtext.hover.border.color');\n    }\n\n    .p-inputtext:enabled:focus {\n        border-color: dt('inputtext.focus.border.color');\n        box-shadow: dt('inputtext.focus.ring.shadow');\n        outline: dt('inputtext.focus.ring.width') dt('inputtext.focus.ring.style') dt('inputtext.focus.ring.color');\n        outline-offset: dt('inputtext.focus.ring.offset');\n    }\n\n    .p-inputtext.p-invalid {\n        border-color: dt('inputtext.invalid.border.color');\n    }\n\n    .p-inputtext.p-variant-filled {\n        background: dt('inputtext.filled.background');\n    }\n\n    .p-inputtext.p-variant-filled:enabled:hover {\n        background: dt('inputtext.filled.hover.background');\n    }\n\n    .p-inputtext.p-variant-filled:enabled:focus {\n        background: dt('inputtext.filled.focus.background');\n    }\n\n    .p-inputtext:disabled {\n        opacity: 1;\n        background: dt('inputtext.disabled.background');\n        color: dt('inputtext.disabled.color');\n    }\n\n    .p-inputtext::placeholder {\n        color: dt('inputtext.placeholder.color');\n    }\n\n    .p-inputtext.p-invalid::placeholder {\n        color: dt('inputtext.invalid.placeholder.color');\n    }\n\n    .p-inputtext-sm {\n        font-size: dt('inputtext.sm.font.size');\n        padding-block: dt('inputtext.sm.padding.y');\n        padding-inline: dt('inputtext.sm.padding.x');\n    }\n\n    .p-inputtext-lg {\n        font-size: dt('inputtext.lg.font.size');\n        padding-block: dt('inputtext.lg.padding.y');\n        padding-inline: dt('inputtext.lg.padding.x');\n    }\n\n    .p-inputtext-fluid {\n        width: 100%;\n    }\n";
+var classes$p = {
   root: function root3(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-inputtext p-component", {
@@ -13214,12 +13214,12 @@ var classes$o = {
 };
 var InputTextStyle = BaseStyle.extend({
   name: "inputtext",
-  style: style$j,
-  classes: classes$o
+  style: style$k,
+  classes: classes$p
 });
-var script$1$q = {
+var script$1$r = {
   name: "BaseInputText",
-  "extends": script$L,
+  "extends": script$M,
   style: InputTextStyle,
   provide: function provide5() {
     return {
@@ -13253,9 +13253,9 @@ function _toPrimitive$h(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$K = {
+var script$L = {
   name: "InputText",
-  "extends": script$1$q,
+  "extends": script$1$r,
   inheritAttrs: false,
   methods: {
     onInput: function onInput(event) {
@@ -13280,8 +13280,8 @@ var script$K = {
     }
   }
 };
-var _hoisted_1$I = ["value", "name", "disabled", "aria-invalid", "data-p"];
-function render$I(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$J = ["value", "name", "disabled", "aria-invalid", "data-p"];
+function render$J(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("input", mergeProps({
     type: "text",
     "class": _ctx.cx("root"),
@@ -13293,9 +13293,9 @@ function render$I(_ctx, _cache, $props, $setup, $data, $options) {
     onInput: _cache[0] || (_cache[0] = function() {
       return $options.onInput && $options.onInput.apply($options, arguments);
     })
-  }, $options.attrs), null, 16, _hoisted_1$I);
+  }, $options.attrs), null, 16, _hoisted_1$J);
 }
-script$K.render = render$I;
+script$L.render = render$J;
 const hasA11yProp = (props) => {
   for (const prop in props) {
     if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
@@ -13909,10 +13909,10 @@ const apiService = {
    * 组织定义为：root 直接创建的智能体
    */
   async getOrganizations() {
-    const data21 = await request$2("/org/tree");
+    const data22 = await request$2("/org/tree");
     const orgs = [];
-    if (Array.isArray(data21.tree)) {
-      const rootNode = data21.tree.find((node2) => node2.id === "root");
+    if (Array.isArray(data22.tree)) {
+      const rootNode = data22.tree.find((node2) => node2.id === "root");
       if (rootNode && Array.isArray(rootNode.children)) {
         rootNode.children.forEach((node2) => {
           const name = node2.customName || node2.id;
@@ -13953,9 +13953,9 @@ const apiService = {
    * 组织 ID 实际上是父智能体的 ID
    */
   async getAgents(orgId) {
-    const data21 = await request$2("/agents");
+    const data22 = await request$2("/agents");
     if (orgId === "all") {
-      return data21.agents.map((agent) => ({
+      return data22.agents.map((agent) => ({
         id: agent.id,
         orgId: agent.parentAgentId || "home",
         name: agent.customName || agent.id,
@@ -13965,7 +13965,7 @@ const apiService = {
       }));
     }
     if (orgId === "home") {
-      return data21.agents.filter((a2) => a2.id === "root" || a2.id === "user").map((agent) => ({
+      return data22.agents.filter((a2) => a2.id === "root" || a2.id === "user").map((agent) => ({
         id: agent.id,
         orgId: "home",
         name: agent.customName || agent.id,
@@ -13974,8 +13974,8 @@ const apiService = {
         lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
       }));
     }
-    const descendantIds = this.getDescendantIds(data21.agents, orgId);
-    const filteredAgents = data21.agents.filter((agent) => agent.id === orgId || descendantIds.has(agent.id)).map((agent) => ({
+    const descendantIds = this.getDescendantIds(data22.agents, orgId);
+    const filteredAgents = data22.agents.filter((agent) => agent.id === orgId || descendantIds.has(agent.id)).map((agent) => ({
       id: agent.id,
       orgId,
       name: agent.customName || agent.id,
@@ -13983,7 +13983,7 @@ const apiService = {
       status: this.mapStatus(agent.computeStatus, agent.status),
       lastSeen: agent.lastActiveAt ? new Date(agent.lastActiveAt).getTime() : 0
     }));
-    const userAgent = data21.agents.find((a2) => a2.id === "user");
+    const userAgent = data22.agents.find((a2) => a2.id === "user");
     if (userAgent) {
       filteredAgents.unshift({
         id: "user",
@@ -14000,15 +14000,15 @@ const apiService = {
    * 获取所有岗位列表
    */
   async getRoles() {
-    const data21 = await request$2("/roles");
-    return data21.roles || [];
+    const data22 = await request$2("/roles");
+    return data22.roles || [];
   },
   /**
    * 获取所有智能体原始数据
    */
   async getAllAgentsRaw() {
-    const data21 = await request$2("/agents");
-    return data21.agents || [];
+    const data22 = await request$2("/agents");
+    return data22.agents || [];
   },
   /**
    * 删除岗位
@@ -14023,8 +14023,8 @@ const apiService = {
    * 获取单个岗位详情
    */
   async getRole(roleId) {
-    const data21 = await request$2(`/role/${encodeURIComponent(roleId)}`);
-    return data21.role;
+    const data22 = await request$2(`/role/${encodeURIComponent(roleId)}`);
+    return data22.role;
   },
   /**
    * 更新岗位职责提示词
@@ -14057,8 +14057,8 @@ const apiService = {
    * 获取工具组列表
    */
   async getToolGroups() {
-    const data21 = await request$2("/tool-groups");
-    return data21.toolGroups || [];
+    const data22 = await request$2("/tool-groups");
+    return data22.toolGroups || [];
   },
   /**
    * 状态映射逻辑
@@ -14079,8 +14079,8 @@ const apiService = {
    * 获取消息历史
    */
   async getMessages(agentId) {
-    const data21 = await request$2(`/agent-messages/${encodeURIComponent(agentId)}`);
-    return data21.messages.map((msg) => {
+    const data22 = await request$2(`/agent-messages/${encodeURIComponent(agentId)}`);
+    return data22.messages.map((msg) => {
       let content = "";
       let toolCall = void 0;
       let usage = void 0;
@@ -14161,8 +14161,22 @@ const apiService = {
    * 获取所有智能体
    */
   async getAllAgents() {
-    const data21 = await request$2("/agents");
-    return data21.agents;
+    const data22 = await request$2("/agents");
+    return data22.agents;
+  },
+  /**
+   * 删除智能体（软删除）
+   * @param agentId 智能体ID
+   * @param options 删除选项
+   */
+  async deleteAgent(agentId, options3 = {}) {
+    return request$2(`/agent/${encodeURIComponent(agentId)}`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        reason: options3.reason || "用户删除",
+        deletedBy: options3.deletedBy || "user"
+      })
+    });
   },
   /**
    * 获取最近的事件（错误和重试）
@@ -14176,8 +14190,8 @@ const apiService = {
    * 获取所有已加载模块列表
    */
   async getModules() {
-    const data21 = await request$2("/modules");
-    return data21.modules || [];
+    const data22 = await request$2("/modules");
+    return data22.modules || [];
   },
   /**
    * 获取指定模块的 Web 组件定义
@@ -14185,18 +14199,18 @@ const apiService = {
    */
   async getModuleWebComponent(moduleName) {
     try {
-      const data21 = await request$2(`/modules/${encodeURIComponent(moduleName)}/web-component`);
-      if (data21.component) {
-        return data21.component;
+      const data22 = await request$2(`/modules/${encodeURIComponent(moduleName)}/web-component`);
+      if (data22.component) {
+        return data22.component;
       }
-      if (data21.html !== void 0) {
+      if (data22.html !== void 0) {
         return {
-          moduleName: data21.moduleName || moduleName,
-          displayName: data21.displayName || moduleName,
-          icon: data21.icon || "📦",
-          html: data21.html,
-          css: data21.css,
-          js: data21.js
+          moduleName: data22.moduleName || moduleName,
+          displayName: data22.displayName || moduleName,
+          icon: data22.icon || "📦",
+          html: data22.html,
+          css: data22.css,
+          js: data22.js
         };
       }
       return null;
@@ -14365,8 +14379,8 @@ const templateApi = {
    * @throws 获取失败时抛出错误
    */
   async getTemplates() {
-    const data21 = await request$1("/org-templates");
-    return data21.templates.map((t2) => ({
+    const data22 = await request$1("/org-templates");
+    return data22.templates.map((t2) => ({
       id: t2.orgName,
       name: t2.orgName,
       description: t2.infoMd?.substring(0, 100) || ""
@@ -14455,8 +14469,8 @@ const templateApi = {
     });
   }
 };
-var style$i = "\n    .p-splitter {\n        display: flex;\n        flex-wrap: nowrap;\n        border: 1px solid dt('splitter.border.color');\n        background: dt('splitter.background');\n        border-radius: dt('border.radius.md');\n        color: dt('splitter.color');\n    }\n\n    .p-splitter-vertical {\n        flex-direction: column;\n    }\n\n    .p-splitter-gutter {\n        flex-grow: 0;\n        flex-shrink: 0;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        z-index: 1;\n        background: dt('splitter.gutter.background');\n    }\n\n    .p-splitter-gutter-handle {\n        border-radius: dt('splitter.handle.border.radius');\n        background: dt('splitter.handle.background');\n        transition:\n            outline-color dt('splitter.transition.duration'),\n            box-shadow dt('splitter.transition.duration');\n        outline-color: transparent;\n    }\n\n    .p-splitter-gutter-handle:focus-visible {\n        box-shadow: dt('splitter.handle.focus.ring.shadow');\n        outline: dt('splitter.handle.focus.ring.width') dt('splitter.handle.focus.ring.style') dt('splitter.handle.focus.ring.color');\n        outline-offset: dt('splitter.handle.focus.ring.offset');\n    }\n\n    .p-splitter-horizontal.p-splitter-resizing {\n        cursor: col-resize;\n        user-select: none;\n    }\n\n    .p-splitter-vertical.p-splitter-resizing {\n        cursor: row-resize;\n        user-select: none;\n    }\n\n    .p-splitter-horizontal > .p-splitter-gutter > .p-splitter-gutter-handle {\n        height: dt('splitter.handle.size');\n        width: 100%;\n    }\n\n    .p-splitter-vertical > .p-splitter-gutter > .p-splitter-gutter-handle {\n        width: dt('splitter.handle.size');\n        height: 100%;\n    }\n\n    .p-splitter-horizontal > .p-splitter-gutter {\n        cursor: col-resize;\n    }\n\n    .p-splitter-vertical > .p-splitter-gutter {\n        cursor: row-resize;\n    }\n\n    .p-splitterpanel {\n        flex-grow: 1;\n        overflow: hidden;\n    }\n\n    .p-splitterpanel-nested {\n        display: flex;\n    }\n\n    .p-splitterpanel .p-splitter {\n        flex-grow: 1;\n        min-width: 0;\n        min-height: 0;\n        border: 0 none;\n    }\n";
-var classes$n = {
+var style$j = "\n    .p-splitter {\n        display: flex;\n        flex-wrap: nowrap;\n        border: 1px solid dt('splitter.border.color');\n        background: dt('splitter.background');\n        border-radius: dt('border.radius.md');\n        color: dt('splitter.color');\n    }\n\n    .p-splitter-vertical {\n        flex-direction: column;\n    }\n\n    .p-splitter-gutter {\n        flex-grow: 0;\n        flex-shrink: 0;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        z-index: 1;\n        background: dt('splitter.gutter.background');\n    }\n\n    .p-splitter-gutter-handle {\n        border-radius: dt('splitter.handle.border.radius');\n        background: dt('splitter.handle.background');\n        transition:\n            outline-color dt('splitter.transition.duration'),\n            box-shadow dt('splitter.transition.duration');\n        outline-color: transparent;\n    }\n\n    .p-splitter-gutter-handle:focus-visible {\n        box-shadow: dt('splitter.handle.focus.ring.shadow');\n        outline: dt('splitter.handle.focus.ring.width') dt('splitter.handle.focus.ring.style') dt('splitter.handle.focus.ring.color');\n        outline-offset: dt('splitter.handle.focus.ring.offset');\n    }\n\n    .p-splitter-horizontal.p-splitter-resizing {\n        cursor: col-resize;\n        user-select: none;\n    }\n\n    .p-splitter-vertical.p-splitter-resizing {\n        cursor: row-resize;\n        user-select: none;\n    }\n\n    .p-splitter-horizontal > .p-splitter-gutter > .p-splitter-gutter-handle {\n        height: dt('splitter.handle.size');\n        width: 100%;\n    }\n\n    .p-splitter-vertical > .p-splitter-gutter > .p-splitter-gutter-handle {\n        width: dt('splitter.handle.size');\n        height: 100%;\n    }\n\n    .p-splitter-horizontal > .p-splitter-gutter {\n        cursor: col-resize;\n    }\n\n    .p-splitter-vertical > .p-splitter-gutter {\n        cursor: row-resize;\n    }\n\n    .p-splitterpanel {\n        flex-grow: 1;\n        overflow: hidden;\n    }\n\n    .p-splitterpanel-nested {\n        display: flex;\n    }\n\n    .p-splitterpanel .p-splitter {\n        flex-grow: 1;\n        min-width: 0;\n        min-height: 0;\n        border: 0 none;\n    }\n";
+var classes$o = {
   root: function root4(_ref) {
     var props = _ref.props;
     return ["p-splitter p-component", "p-splitter-" + props.layout];
@@ -14466,12 +14480,12 @@ var classes$n = {
 };
 var SplitterStyle = BaseStyle.extend({
   name: "splitter",
-  style: style$i,
-  classes: classes$n
+  style: style$j,
+  classes: classes$o
 });
-var script$1$p = {
+var script$1$q = {
   name: "BaseSplitter",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     layout: {
       type: String,
@@ -14527,33 +14541,33 @@ function _toPrimitive$g(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-function _toConsumableArray$m(r2) {
-  return _arrayWithoutHoles$m(r2) || _iterableToArray$m(r2) || _unsupportedIterableToArray$m(r2) || _nonIterableSpread$m();
+function _toConsumableArray$n(r2) {
+  return _arrayWithoutHoles$n(r2) || _iterableToArray$n(r2) || _unsupportedIterableToArray$n(r2) || _nonIterableSpread$n();
 }
-function _nonIterableSpread$m() {
+function _nonIterableSpread$n() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$m(r2, a2) {
+function _unsupportedIterableToArray$n(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$m(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$n(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$m(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$n(r2, a2) : void 0;
   }
 }
-function _iterableToArray$m(r2) {
+function _iterableToArray$n(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$m(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$m(r2);
+function _arrayWithoutHoles$n(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$n(r2);
 }
-function _arrayLikeToArray$m(r2, a2) {
+function _arrayLikeToArray$n(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-var script$J = {
+var script$K = {
   name: "Splitter",
-  "extends": script$1$p,
+  "extends": script$1$q,
   inheritAttrs: false,
   emits: ["resizestart", "resizeend", "resize"],
   dragging: false,
@@ -14595,7 +14609,7 @@ var script$J = {
           initialized = this.restoreState();
         }
         if (!initialized) {
-          var children = _toConsumableArray$m(this.$el.children).filter(function(child) {
+          var children = _toConsumableArray$n(this.$el.children).filter(function(child) {
             return child.getAttribute("data-pc-name") === "splitterpanel";
           });
           var _panelSizes = [];
@@ -14855,7 +14869,7 @@ var script$J = {
       var stateString = storage.getItem(this.stateKey);
       if (stateString) {
         this.panelSizes = JSON.parse(stateString);
-        var children = _toConsumableArray$m(this.$el.children).filter(function(child) {
+        var children = _toConsumableArray$n(this.$el.children).filter(function(child) {
           return child.getAttribute("data-pc-name") === "splitterpanel";
         });
         children.forEach(function(child, i2) {
@@ -14925,10 +14939,10 @@ var script$J = {
     }
   }
 };
-var _hoisted_1$H = ["data-p"];
-var _hoisted_2$D = ["onMousedown", "onTouchstart", "onTouchmove", "onTouchend", "data-p"];
-var _hoisted_3$C = ["aria-orientation", "aria-valuenow", "onKeydown", "data-p"];
-function render$H(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$I = ["data-p"];
+var _hoisted_2$E = ["onMousedown", "onTouchstart", "onTouchmove", "onTouchend", "data-p"];
+var _hoisted_3$D = ["aria-orientation", "aria-valuenow", "onKeydown", "data-p"];
+function render$I(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root"),
     "data-p-resizing": false,
@@ -14976,11 +14990,11 @@ function render$H(_ctx, _cache, $props, $setup, $data, $options) {
       "data-p": $options.dataP
     }, {
       ref_for: true
-    }, _ctx.ptm("gutterHandle")), null, 16, _hoisted_3$C)], 16, _hoisted_2$D)) : createCommentVNode("", true)], 64);
-  }), 128))], 16, _hoisted_1$H);
+    }, _ctx.ptm("gutterHandle")), null, 16, _hoisted_3$D)], 16, _hoisted_2$E)) : createCommentVNode("", true)], 64);
+  }), 128))], 16, _hoisted_1$I);
 }
-script$J.render = render$H;
-var classes$m = {
+script$K.render = render$I;
+var classes$n = {
   root: function root5(_ref) {
     var instance = _ref.instance;
     return ["p-splitterpanel", {
@@ -14990,11 +15004,11 @@ var classes$m = {
 };
 var SplitterPanelStyle = BaseStyle.extend({
   name: "splitterpanel",
-  classes: classes$m
+  classes: classes$n
 });
-var script$1$o = {
+var script$1$p = {
   name: "BaseSplitterPanel",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     size: {
       type: Number,
@@ -15013,9 +15027,9 @@ var script$1$o = {
     };
   }
 };
-var script$I = {
+var script$J = {
   name: "SplitterPanel",
-  "extends": script$1$o,
+  "extends": script$1$p,
   inheritAttrs: false,
   data: function data3() {
     return {
@@ -15039,19 +15053,19 @@ var script$I = {
     }
   }
 };
-function render$G(_ctx, _cache, $props, $setup, $data, $options) {
+function render$H(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     ref: "container",
     "class": _ctx.cx("root")
   }, _ctx.ptmi("root", $options.getPTOptions)), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$I.render = render$G;
-const _hoisted_1$G = {
+script$J.render = render$H;
+const _hoisted_1$H = {
   key: 0,
   class: "flex flex-col"
 };
-const _hoisted_2$C = { class: "text-sm truncate flex-grow" };
-const _hoisted_3$B = {
+const _hoisted_2$D = { class: "text-sm truncate flex-grow" };
+const _hoisted_3$C = {
   key: 0,
   class: "flex flex-col"
 };
@@ -15070,7 +15084,7 @@ const _sfc_main$r = /* @__PURE__ */ defineComponent({
     const isExpanded = (path) => props.expandedDirs.has(path);
     return (_ctx, _cache) => {
       const _component_FileTreeNode = resolveComponent("FileTreeNode", true);
-      return props.node.type === "directory" ? (openBlock(), createElementBlock("div", _hoisted_1$G, [
+      return props.node.type === "directory" ? (openBlock(), createElementBlock("div", _hoisted_1$H, [
         createBaseVNode("button", {
           onClick: _cache[1] || (_cache[1] = ($event) => emit2("select", props.node)),
           class: normalizeClass(["w-full text-left px-2 py-1 rounded flex items-center transition-all group relative", [
@@ -15091,9 +15105,9 @@ const _sfc_main$r = /* @__PURE__ */ defineComponent({
             }))
           ]),
           createVNode(unref(Folder), { class: "w-4 h-4 mr-2 text-[var(--primary)] opacity-70" }),
-          createBaseVNode("span", _hoisted_2$C, toDisplayString(props.node.name), 1)
+          createBaseVNode("span", _hoisted_2$D, toDisplayString(props.node.name), 1)
         ], 6),
-        isExpanded(props.node.path) ? (openBlock(), createElementBlock("div", _hoisted_3$B, [
+        isExpanded(props.node.path) ? (openBlock(), createElementBlock("div", _hoisted_3$C, [
           (openBlock(true), createElementBlock(Fragment, null, renderList(props.node.children, (child) => {
             return openBlock(), createBlock(_component_FileTreeNode, {
               key: child.path,
@@ -15211,11 +15225,11 @@ class FileViewerService {
   }
 }
 const fileViewerService = new FileViewerService();
-const _hoisted_1$F = { class: "image-renderer flex flex-col h-full bg-[var(--bg)] relative" };
-const _hoisted_2$B = { class: "absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--surface-1)]/90 backdrop-blur shadow-lg border border-[var(--border)]" };
-const _hoisted_3$A = { class: "text-xs text-[var(--text-3)] min-w-[50px] text-center" };
-const _hoisted_4$w = { class: "flex-1 overflow-auto flex items-center justify-center p-4" };
-const _hoisted_5$p = {
+const _hoisted_1$G = { class: "image-renderer flex flex-col h-full bg-[var(--bg)] relative" };
+const _hoisted_2$C = { class: "absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--surface-1)]/90 backdrop-blur shadow-lg border border-[var(--border)]" };
+const _hoisted_3$B = { class: "text-xs text-[var(--text-3)] min-w-[50px] text-center" };
+const _hoisted_4$x = { class: "flex-1 overflow-auto flex items-center justify-center p-4" };
+const _hoisted_5$q = {
   key: 0,
   class: "flex items-center justify-center"
 };
@@ -15266,9 +15280,9 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
     }));
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$F, [
-        createBaseVNode("div", _hoisted_2$B, [
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+      return openBlock(), createElementBlock("div", _hoisted_1$G, [
+        createBaseVNode("div", _hoisted_2$C, [
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: _cache[0] || (_cache[0] = ($event) => zoom(-0.2))
@@ -15285,8 +15299,8 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
               { bottom: true }
             ]
           ]),
-          createBaseVNode("span", _hoisted_3$A, toDisplayString(Math.round(scale.value * 100)) + "% ", 1),
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+          createBaseVNode("span", _hoisted_3$B, toDisplayString(Math.round(scale.value * 100)) + "% ", 1),
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: _cache[1] || (_cache[1] = ($event) => zoom(0.2))
@@ -15304,7 +15318,7 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
             ]
           ]),
           _cache[5] || (_cache[5] = createBaseVNode("div", { class: "w-px h-3 bg-[var(--border)] mx-1" }, null, -1)),
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: rotate
@@ -15321,7 +15335,7 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
               { bottom: true }
             ]
           ]),
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: reset
@@ -15339,8 +15353,8 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
             ]
           ])
         ]),
-        createBaseVNode("div", _hoisted_4$w, [
-          loading2.value ? (openBlock(), createElementBlock("div", _hoisted_5$p, [..._cache[6] || (_cache[6] = [
+        createBaseVNode("div", _hoisted_4$x, [
+          loading2.value ? (openBlock(), createElementBlock("div", _hoisted_5$q, [..._cache[6] || (_cache[6] = [
             createBaseVNode("div", { class: "animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full" }, null, -1)
           ])])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_6$j, [
             createVNode(unref(CircleAlert), { class: "w-12 h-12 mb-2" }),
@@ -15360,14 +15374,14 @@ const _sfc_main$q = /* @__PURE__ */ defineComponent({
   }
 });
 const ImageRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$q, [["__scopeId", "data-v-6e23f01f"]]);
-const _hoisted_1$E = { class: "video-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$A = { class: "flex-1 overflow-auto flex items-center justify-center p-4" };
-const _hoisted_3$z = {
+const _hoisted_1$F = { class: "video-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$B = { class: "flex-1 overflow-auto flex items-center justify-center p-4" };
+const _hoisted_3$A = {
   key: 0,
   class: "flex flex-col items-center text-[var(--text-3)]"
 };
-const _hoisted_4$v = { class: "text-sm" };
-const _hoisted_5$o = ["src", "type"];
+const _hoisted_4$w = { class: "text-sm" };
+const _hoisted_5$p = ["src", "type"];
 const _sfc_main$p = /* @__PURE__ */ defineComponent({
   __name: "VideoRenderer",
   props: {
@@ -15385,32 +15399,32 @@ const _sfc_main$p = /* @__PURE__ */ defineComponent({
       videoUrl.value = fileViewerService.getRawFileUrl(props.workspaceId, props.filePath);
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$E, [
-        createBaseVNode("div", _hoisted_2$A, [
-          error.value ? (openBlock(), createElementBlock("div", _hoisted_3$z, [
+      return openBlock(), createElementBlock("div", _hoisted_1$F, [
+        createBaseVNode("div", _hoisted_2$B, [
+          error.value ? (openBlock(), createElementBlock("div", _hoisted_3$A, [
             createVNode(unref(CircleAlert), { class: "w-12 h-12 mb-2" }),
-            createBaseVNode("p", _hoisted_4$v, toDisplayString(error.value), 1)
+            createBaseVNode("p", _hoisted_4$w, toDisplayString(error.value), 1)
           ])) : videoUrl.value ? (openBlock(), createElementBlock("video", {
             key: 1,
             src: videoUrl.value,
             controls: "",
             class: "max-w-full max-h-full rounded-lg shadow-lg",
             type: __props.content.mimeType
-          }, " 您的浏览器不支持视频播放 ", 8, _hoisted_5$o)) : createCommentVNode("", true)
+          }, " 您的浏览器不支持视频播放 ", 8, _hoisted_5$p)) : createCommentVNode("", true)
         ])
       ]);
     };
   }
 });
 const VideoRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$p, [["__scopeId", "data-v-6b8bd903"]]);
-const _hoisted_1$D = { class: "audio-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$z = { class: "flex-1 flex flex-col items-center justify-center p-8" };
-const _hoisted_3$y = {
+const _hoisted_1$E = { class: "audio-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$A = { class: "flex-1 flex flex-col items-center justify-center p-8" };
+const _hoisted_3$z = {
   key: 0,
   class: "flex flex-col items-center text-[var(--text-3)]"
 };
-const _hoisted_4$u = { class: "text-sm" };
-const _hoisted_5$n = { class: "w-24 h-24 rounded-full bg-[var(--surface-2)] flex items-center justify-center mb-6" };
+const _hoisted_4$v = { class: "text-sm" };
+const _hoisted_5$o = { class: "w-24 h-24 rounded-full bg-[var(--surface-2)] flex items-center justify-center mb-6" };
 const _hoisted_6$i = { class: "text-sm text-[var(--text-3)] mb-6" };
 const _hoisted_7$g = ["src", "type"];
 const _sfc_main$o = /* @__PURE__ */ defineComponent({
@@ -15430,13 +15444,13 @@ const _sfc_main$o = /* @__PURE__ */ defineComponent({
       audioUrl.value = fileViewerService.getRawFileUrl(props.workspaceId, props.filePath);
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$D, [
-        createBaseVNode("div", _hoisted_2$z, [
-          error.value ? (openBlock(), createElementBlock("div", _hoisted_3$y, [
+      return openBlock(), createElementBlock("div", _hoisted_1$E, [
+        createBaseVNode("div", _hoisted_2$A, [
+          error.value ? (openBlock(), createElementBlock("div", _hoisted_3$z, [
             createVNode(unref(CircleAlert), { class: "w-12 h-12 mb-2" }),
-            createBaseVNode("p", _hoisted_4$u, toDisplayString(error.value), 1)
+            createBaseVNode("p", _hoisted_4$v, toDisplayString(error.value), 1)
           ])) : audioUrl.value ? (openBlock(), createElementBlock(Fragment, { key: 1 }, [
-            createBaseVNode("div", _hoisted_5$n, [
+            createBaseVNode("div", _hoisted_5$o, [
               createVNode(unref(Music), { class: "w-12 h-12 text-[var(--primary)]" })
             ]),
             createBaseVNode("p", _hoisted_6$i, toDisplayString(__props.content.mimeType), 1),
@@ -15453,9 +15467,9 @@ const _sfc_main$o = /* @__PURE__ */ defineComponent({
   }
 });
 const AudioRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$o, [["__scopeId", "data-v-963d440c"]]);
-const _hoisted_1$C = { class: "text-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$y = { class: "flex-1 overflow-auto" };
-const _hoisted_3$x = { class: "p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap break-all" };
+const _hoisted_1$D = { class: "text-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$z = { class: "flex-1 overflow-auto" };
+const _hoisted_3$y = { class: "p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap break-all" };
 const _sfc_main$n = /* @__PURE__ */ defineComponent({
   __name: "TextRenderer",
   props: {
@@ -15478,19 +15492,19 @@ const _sfc_main$n = /* @__PURE__ */ defineComponent({
       return "";
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$C, [
-        createBaseVNode("div", _hoisted_2$y, [
-          createBaseVNode("pre", _hoisted_3$x, toDisplayString(textContent.value), 1)
+      return openBlock(), createElementBlock("div", _hoisted_1$D, [
+        createBaseVNode("div", _hoisted_2$z, [
+          createBaseVNode("pre", _hoisted_3$y, toDisplayString(textContent.value), 1)
         ])
       ]);
     };
   }
 });
 const TextRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$n, [["__scopeId", "data-v-6077f715"]]);
-const _hoisted_1$B = { class: "markdown-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$x = { class: "flex-1 overflow-auto" };
-const _hoisted_3$w = ["innerHTML"];
-const _hoisted_4$t = {
+const _hoisted_1$C = { class: "markdown-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$y = { class: "flex-1 overflow-auto" };
+const _hoisted_3$x = ["innerHTML"];
+const _hoisted_4$u = {
   key: 1,
   class: "p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap"
 };
@@ -15530,30 +15544,30 @@ const _sfc_main$m = /* @__PURE__ */ defineComponent({
       return renderMarkdown(markdownContent.value);
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$B, [
-        createBaseVNode("div", _hoisted_2$x, [
+      return openBlock(), createElementBlock("div", _hoisted_1$C, [
+        createBaseVNode("div", _hoisted_2$y, [
           viewMode.value === "preview" ? (openBlock(), createElementBlock("div", {
             key: 0,
             class: "markdown-body p-6 max-w-4xl mx-auto",
             innerHTML: renderedHtml.value
-          }, null, 8, _hoisted_3$w)) : (openBlock(), createElementBlock("pre", _hoisted_4$t, toDisplayString(markdownContent.value), 1))
+          }, null, 8, _hoisted_3$x)) : (openBlock(), createElementBlock("pre", _hoisted_4$u, toDisplayString(markdownContent.value), 1))
         ])
       ]);
     };
   }
 });
 const MarkdownRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$m, [["__scopeId", "data-v-fa5a69a7"]]);
-const _hoisted_1$A = { class: "json-renderer flex flex-col h-full bg-[var(--bg)] relative" };
-const _hoisted_2$w = { class: "absolute top-3 left-3 z-10" };
-const _hoisted_3$v = {
+const _hoisted_1$B = { class: "json-renderer flex flex-col h-full bg-[var(--bg)] relative" };
+const _hoisted_2$x = { class: "absolute top-3 left-3 z-10" };
+const _hoisted_3$w = {
   key: 0,
   class: "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
 };
-const _hoisted_4$s = {
+const _hoisted_4$t = {
   key: 1,
   class: "text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700"
 };
-const _hoisted_5$m = { class: "absolute top-3 right-3 z-10" };
+const _hoisted_5$n = { class: "absolute top-3 right-3 z-10" };
 const _hoisted_6$h = { class: "flex-1 overflow-auto" };
 const _hoisted_7$f = { class: "p-4 pt-12 text-sm font-mono" };
 const _hoisted_8$e = { class: "json" };
@@ -15608,12 +15622,12 @@ const _sfc_main$l = /* @__PURE__ */ defineComponent({
     };
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$A, [
-        createBaseVNode("div", _hoisted_2$w, [
-          isValidJson.value ? (openBlock(), createElementBlock("span", _hoisted_3$v, " 有效 JSON ")) : (openBlock(), createElementBlock("span", _hoisted_4$s, " 无效 JSON "))
+      return openBlock(), createElementBlock("div", _hoisted_1$B, [
+        createBaseVNode("div", _hoisted_2$x, [
+          isValidJson.value ? (openBlock(), createElementBlock("span", _hoisted_3$w, " 有效 JSON ")) : (openBlock(), createElementBlock("span", _hoisted_4$t, " 无效 JSON "))
         ]),
-        createBaseVNode("div", _hoisted_5$m, [
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+        createBaseVNode("div", _hoisted_5$n, [
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: copyToClipboard,
@@ -15648,13 +15662,13 @@ const _sfc_main$l = /* @__PURE__ */ defineComponent({
   }
 });
 const JsonRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$l, [["__scopeId", "data-v-25e3e499"]]);
-const _hoisted_1$z = { class: "html-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$v = { class: "flex-1 overflow-auto" };
-const _hoisted_3$u = {
+const _hoisted_1$A = { class: "html-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$w = { class: "flex-1 overflow-auto" };
+const _hoisted_3$v = {
   key: 0,
   class: "p-4 text-sm font-mono text-[var(--text-1)] whitespace-pre-wrap"
 };
-const _hoisted_4$r = ["src"];
+const _hoisted_4$s = ["src"];
 const _sfc_main$k = /* @__PURE__ */ defineComponent({
   __name: "HtmlRenderer",
   props: {
@@ -15684,25 +15698,25 @@ const _sfc_main$k = /* @__PURE__ */ defineComponent({
       return fileViewerService.getRawFileUrl(props.workspaceId, props.filePath);
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$z, [
-        createBaseVNode("div", _hoisted_2$v, [
-          viewMode.value === "source" ? (openBlock(), createElementBlock("pre", _hoisted_3$u, toDisplayString(htmlContent.value), 1)) : (openBlock(), createElementBlock("iframe", {
+      return openBlock(), createElementBlock("div", _hoisted_1$A, [
+        createBaseVNode("div", _hoisted_2$w, [
+          viewMode.value === "source" ? (openBlock(), createElementBlock("pre", _hoisted_3$v, toDisplayString(htmlContent.value), 1)) : (openBlock(), createElementBlock("iframe", {
             key: 1,
             src: fileUrl.value,
             class: "w-full h-full border-0",
             title: "HTML Preview"
-          }, null, 8, _hoisted_4$r))
+          }, null, 8, _hoisted_4$s))
         ])
       ]);
     };
   }
 });
 const HtmlRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$k, [["__scopeId", "data-v-4723099d"]]);
-const _hoisted_1$y = { class: "pdf-renderer flex flex-col h-full bg-[var(--bg)] relative" };
-const _hoisted_2$u = { class: "absolute top-3 right-3 z-10" };
-const _hoisted_3$t = { class: "flex-1 overflow-hidden" };
-const _hoisted_4$q = ["src"];
-const _hoisted_5$l = {
+const _hoisted_1$z = { class: "pdf-renderer flex flex-col h-full bg-[var(--bg)] relative" };
+const _hoisted_2$v = { class: "absolute top-3 right-3 z-10" };
+const _hoisted_3$u = { class: "flex-1 overflow-hidden" };
+const _hoisted_4$r = ["src"];
+const _hoisted_5$m = {
   key: 1,
   class: "flex flex-col items-center justify-center h-full text-[var(--text-3)]"
 };
@@ -15727,9 +15741,9 @@ const _sfc_main$j = /* @__PURE__ */ defineComponent({
     };
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$y, [
-        createBaseVNode("div", _hoisted_2$u, [
-          withDirectives((openBlock(), createBlock(unref(script$N), {
+      return openBlock(), createElementBlock("div", _hoisted_1$z, [
+        createBaseVNode("div", _hoisted_2$v, [
+          withDirectives((openBlock(), createBlock(unref(script$O), {
             variant: "text",
             size: "small",
             onClick: openInNewTab,
@@ -15748,14 +15762,14 @@ const _sfc_main$j = /* @__PURE__ */ defineComponent({
             ]
           ])
         ]),
-        createBaseVNode("div", _hoisted_3$t, [
+        createBaseVNode("div", _hoisted_3$u, [
           pdfUrl.value ? (openBlock(), createElementBlock("iframe", {
             key: 0,
             src: pdfUrl.value,
             class: "w-full h-full border-0",
             type: "application/pdf",
             title: "PDF Viewer"
-          }, null, 8, _hoisted_4$q)) : (openBlock(), createElementBlock("div", _hoisted_5$l, [
+          }, null, 8, _hoisted_4$r)) : (openBlock(), createElementBlock("div", _hoisted_5$m, [
             createVNode(unref(FileText), { class: "w-16 h-16 mb-4" }),
             _cache[0] || (_cache[0] = createBaseVNode("p", { class: "text-sm" }, "无法显示 PDF 预览", -1))
           ]))
@@ -15766,11 +15780,11 @@ const _sfc_main$j = /* @__PURE__ */ defineComponent({
 });
 const PdfRenderer = /* @__PURE__ */ _export_sfc(_sfc_main$j, [["__scopeId", "data-v-2fa2d484"]]);
 const CopyFunctionKey = /* @__PURE__ */ Symbol("copyFunction");
-const _hoisted_1$x = { class: "code-renderer flex flex-col h-full bg-[var(--bg)]" };
-const _hoisted_2$t = { class: "flex-1 overflow-auto" };
-const _hoisted_3$s = { class: "code-table" };
-const _hoisted_4$p = { class: "line-number" };
-const _hoisted_5$k = ["innerHTML"];
+const _hoisted_1$y = { class: "code-renderer flex flex-col h-full bg-[var(--bg)]" };
+const _hoisted_2$u = { class: "flex-1 overflow-auto" };
+const _hoisted_3$t = { class: "code-table" };
+const _hoisted_4$q = { class: "line-number" };
+const _hoisted_5$l = ["innerHTML"];
 const _sfc_main$i = /* @__PURE__ */ defineComponent({
   __name: "CodeRenderer",
   props: {
@@ -15858,17 +15872,17 @@ const _sfc_main$i = /* @__PURE__ */ defineComponent({
       return highlighted;
     };
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$x, [
-        createBaseVNode("div", _hoisted_2$t, [
-          createBaseVNode("table", _hoisted_3$s, [
+      return openBlock(), createElementBlock("div", _hoisted_1$y, [
+        createBaseVNode("div", _hoisted_2$u, [
+          createBaseVNode("table", _hoisted_3$t, [
             createBaseVNode("tbody", null, [
               (openBlock(true), createElementBlock(Fragment, null, renderList(lines.value, (line, index2) => {
                 return openBlock(), createElementBlock("tr", { key: index2 }, [
-                  createBaseVNode("td", _hoisted_4$p, toDisplayString(index2 + 1), 1),
+                  createBaseVNode("td", _hoisted_4$q, toDisplayString(index2 + 1), 1),
                   createBaseVNode("td", {
                     class: "code-line",
                     innerHTML: highlightLine(line) || " "
-                  }, null, 8, _hoisted_5$k)
+                  }, null, 8, _hoisted_5$l)
                 ]);
               }), 128))
             ])
@@ -16088,17 +16102,17 @@ class MimeTypeRegistry {
   }
 }
 const mimeTypeRegistry = new MimeTypeRegistry();
-const _hoisted_1$w = { class: "file-viewer flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-1)]" };
-const _hoisted_2$s = { class: "flex-1 overflow-hidden relative" };
-const _hoisted_3$r = {
+const _hoisted_1$x = { class: "file-viewer flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-1)]" };
+const _hoisted_2$t = { class: "flex-1 overflow-hidden relative" };
+const _hoisted_3$s = {
   key: 0,
   class: "absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg)]"
 };
-const _hoisted_4$o = {
+const _hoisted_4$p = {
   key: 1,
   class: "absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg)] p-8"
 };
-const _hoisted_5$j = { class: "text-sm text-[var(--text-1)]" };
+const _hoisted_5$k = { class: "text-sm text-[var(--text-1)]" };
 const _hoisted_6$g = {
   key: 3,
   class: "absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg)] p-8"
@@ -16136,13 +16150,13 @@ const _sfc_main$h = /* @__PURE__ */ defineComponent({
     };
     const getFileContent = () => {
       if (fileContent.value) {
-        const data21 = fileContent.value.data;
-        if (typeof data21 === "string") {
-          return data21;
+        const data22 = fileContent.value.data;
+        if (typeof data22 === "string") {
+          return data22;
         }
-        if (data21 instanceof ArrayBuffer) {
+        if (data22 instanceof ArrayBuffer) {
           const decoder = new TextDecoder("utf-8");
-          return decoder.decode(data21);
+          return decoder.decode(data22);
         }
       }
       return "";
@@ -16228,14 +16242,14 @@ const _sfc_main$h = /* @__PURE__ */ defineComponent({
       loadFile();
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$w, [
-        createBaseVNode("div", _hoisted_2$s, [
-          loading2.value ? (openBlock(), createElementBlock("div", _hoisted_3$r, [
+      return openBlock(), createElementBlock("div", _hoisted_1$x, [
+        createBaseVNode("div", _hoisted_2$t, [
+          loading2.value ? (openBlock(), createElementBlock("div", _hoisted_3$s, [
             createVNode(unref(LoaderCircle), { class: "w-10 h-10 animate-spin text-[var(--primary)] mb-3" }),
             _cache[0] || (_cache[0] = createBaseVNode("p", { class: "text-sm text-[var(--text-3)]" }, "加载中...", -1))
-          ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_4$o, [
+          ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_4$p, [
             createVNode(unref(CircleAlert), { class: "w-12 h-12 text-red-500 mb-3" }),
-            createBaseVNode("p", _hoisted_5$j, toDisplayString(error.value), 1)
+            createBaseVNode("p", _hoisted_5$k, toDisplayString(error.value), 1)
           ])) : rendererComponent.value && fileContent.value ? (openBlock(), createBlock(resolveDynamicComponent(rendererComponent.value), {
             key: 2,
             content: fileContent.value,
@@ -16253,9 +16267,50 @@ const _sfc_main$h = /* @__PURE__ */ defineComponent({
   }
 });
 const FileViewer = /* @__PURE__ */ _export_sfc(_sfc_main$h, [["__scopeId", "data-v-ffa557aa"]]);
-var script$H = {
+var script$I = {
   name: "TimesIcon",
-  "extends": script$Q
+  "extends": script$R
+};
+function _toConsumableArray$m(r2) {
+  return _arrayWithoutHoles$m(r2) || _iterableToArray$m(r2) || _unsupportedIterableToArray$m(r2) || _nonIterableSpread$m();
+}
+function _nonIterableSpread$m() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$m(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$m(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$m(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$m(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$m(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$m(r2);
+}
+function _arrayLikeToArray$m(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$G(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$m(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M8.01186 7.00933L12.27 2.75116C12.341 2.68501 12.398 2.60524 12.4375 2.51661C12.4769 2.42798 12.4982 2.3323 12.4999 2.23529C12.5016 2.13827 12.4838 2.0419 12.4474 1.95194C12.4111 1.86197 12.357 1.78024 12.2884 1.71163C12.2198 1.64302 12.138 1.58893 12.0481 1.55259C11.9581 1.51625 11.8617 1.4984 11.7647 1.50011C11.6677 1.50182 11.572 1.52306 11.4834 1.56255C11.3948 1.60204 11.315 1.65898 11.2488 1.72997L6.99067 5.98814L2.7325 1.72997C2.59553 1.60234 2.41437 1.53286 2.22718 1.53616C2.03999 1.53946 1.8614 1.61529 1.72901 1.74767C1.59663 1.88006 1.5208 2.05865 1.5175 2.24584C1.5142 2.43303 1.58368 2.61419 1.71131 2.75116L5.96948 7.00933L1.71131 11.2675C1.576 11.403 1.5 11.5866 1.5 11.7781C1.5 11.9696 1.576 12.1532 1.71131 12.2887C1.84679 12.424 2.03043 12.5 2.2219 12.5C2.41338 12.5 2.59702 12.424 2.7325 12.2887L6.99067 8.03052L11.2488 12.2887C11.3843 12.424 11.568 12.5 11.7594 12.5C11.9509 12.5 12.1346 12.424 12.27 12.2887C12.4053 12.1532 12.4813 11.9696 12.4813 11.7781C12.4813 11.5866 12.4053 11.403 12.27 11.2675L8.01186 7.00933Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
+script$I.render = render$G;
+var script$H = {
+  name: "WindowMaximizeIcon",
+  "extends": script$R
 };
 function _toConsumableArray$l(r2) {
   return _arrayWithoutHoles$l(r2) || _iterableToArray$l(r2) || _unsupportedIterableToArray$l(r2) || _nonIterableSpread$l();
@@ -16289,14 +16344,16 @@ function render$F(_ctx, _cache, $props, $setup, $data, $options) {
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
   }, _ctx.pti()), _toConsumableArray$l(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M8.01186 7.00933L12.27 2.75116C12.341 2.68501 12.398 2.60524 12.4375 2.51661C12.4769 2.42798 12.4982 2.3323 12.4999 2.23529C12.5016 2.13827 12.4838 2.0419 12.4474 1.95194C12.4111 1.86197 12.357 1.78024 12.2884 1.71163C12.2198 1.64302 12.138 1.58893 12.0481 1.55259C11.9581 1.51625 11.8617 1.4984 11.7647 1.50011C11.6677 1.50182 11.572 1.52306 11.4834 1.56255C11.3948 1.60204 11.315 1.65898 11.2488 1.72997L6.99067 5.98814L2.7325 1.72997C2.59553 1.60234 2.41437 1.53286 2.22718 1.53616C2.03999 1.53946 1.8614 1.61529 1.72901 1.74767C1.59663 1.88006 1.5208 2.05865 1.5175 2.24584C1.5142 2.43303 1.58368 2.61419 1.71131 2.75116L5.96948 7.00933L1.71131 11.2675C1.576 11.403 1.5 11.5866 1.5 11.7781C1.5 11.9696 1.576 12.1532 1.71131 12.2887C1.84679 12.424 2.03043 12.5 2.2219 12.5C2.41338 12.5 2.59702 12.424 2.7325 12.2887L6.99067 8.03052L11.2488 12.2887C11.3843 12.424 11.568 12.5 11.7594 12.5C11.9509 12.5 12.1346 12.424 12.27 12.2887C12.4053 12.1532 12.4813 11.9696 12.4813 11.7781C12.4813 11.5866 12.4053 11.403 12.27 11.2675L8.01186 7.00933Z",
+    "fill-rule": "evenodd",
+    "clip-rule": "evenodd",
+    d: "M7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14ZM9.77805 7.42192C9.89013 7.534 10.0415 7.59788 10.2 7.59995C10.3585 7.59788 10.5099 7.534 10.622 7.42192C10.7341 7.30985 10.798 7.15844 10.8 6.99995V3.94242C10.8066 3.90505 10.8096 3.86689 10.8089 3.82843C10.8079 3.77159 10.7988 3.7157 10.7824 3.6623C10.756 3.55552 10.701 3.45698 10.622 3.37798C10.5099 3.2659 10.3585 3.20202 10.2 3.19995H7.00002C6.84089 3.19995 6.68828 3.26317 6.57576 3.37569C6.46324 3.48821 6.40002 3.64082 6.40002 3.79995C6.40002 3.95908 6.46324 4.11169 6.57576 4.22422C6.68828 4.33674 6.84089 4.39995 7.00002 4.39995H8.80006L6.19997 7.00005C6.10158 7.11005 6.04718 7.25246 6.04718 7.40005C6.04718 7.54763 6.10158 7.69004 6.19997 7.80005C6.30202 7.91645 6.44561 7.98824 6.59997 8.00005C6.75432 7.98824 6.89791 7.91645 6.99997 7.80005L9.60002 5.26841V6.99995C9.6021 7.15844 9.66598 7.30985 9.77805 7.42192ZM1.4 14H3.8C4.17066 13.9979 4.52553 13.8498 4.78763 13.5877C5.04973 13.3256 5.1979 12.9707 5.2 12.6V10.2C5.1979 9.82939 5.04973 9.47452 4.78763 9.21242C4.52553 8.95032 4.17066 8.80215 3.8 8.80005H1.4C1.02934 8.80215 0.674468 8.95032 0.412371 9.21242C0.150274 9.47452 0.00210008 9.82939 0 10.2V12.6C0.00210008 12.9707 0.150274 13.3256 0.412371 13.5877C0.674468 13.8498 1.02934 13.9979 1.4 14ZM1.25858 10.0586C1.29609 10.0211 1.34696 10 1.4 10H3.8C3.85304 10 3.90391 10.0211 3.94142 10.0586C3.97893 10.0961 4 10.147 4 10.2V12.6C4 12.6531 3.97893 12.704 3.94142 12.7415C3.90391 12.779 3.85304 12.8 3.8 12.8H1.4C1.34696 12.8 1.29609 12.779 1.25858 12.7415C1.22107 12.704 1.2 12.6531 1.2 12.6V10.2C1.2 10.147 1.22107 10.0961 1.25858 10.0586Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
 script$H.render = render$F;
 var script$G = {
-  name: "WindowMaximizeIcon",
-  "extends": script$Q
+  name: "WindowMinimizeIcon",
+  "extends": script$R
 };
 function _toConsumableArray$k(r2) {
   return _arrayWithoutHoles$k(r2) || _iterableToArray$k(r2) || _unsupportedIterableToArray$k(r2) || _nonIterableSpread$k();
@@ -16332,54 +16389,11 @@ function render$E(_ctx, _cache, $props, $setup, $data, $options) {
   }, _ctx.pti()), _toConsumableArray$k(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     "fill-rule": "evenodd",
     "clip-rule": "evenodd",
-    d: "M7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14ZM9.77805 7.42192C9.89013 7.534 10.0415 7.59788 10.2 7.59995C10.3585 7.59788 10.5099 7.534 10.622 7.42192C10.7341 7.30985 10.798 7.15844 10.8 6.99995V3.94242C10.8066 3.90505 10.8096 3.86689 10.8089 3.82843C10.8079 3.77159 10.7988 3.7157 10.7824 3.6623C10.756 3.55552 10.701 3.45698 10.622 3.37798C10.5099 3.2659 10.3585 3.20202 10.2 3.19995H7.00002C6.84089 3.19995 6.68828 3.26317 6.57576 3.37569C6.46324 3.48821 6.40002 3.64082 6.40002 3.79995C6.40002 3.95908 6.46324 4.11169 6.57576 4.22422C6.68828 4.33674 6.84089 4.39995 7.00002 4.39995H8.80006L6.19997 7.00005C6.10158 7.11005 6.04718 7.25246 6.04718 7.40005C6.04718 7.54763 6.10158 7.69004 6.19997 7.80005C6.30202 7.91645 6.44561 7.98824 6.59997 8.00005C6.75432 7.98824 6.89791 7.91645 6.99997 7.80005L9.60002 5.26841V6.99995C9.6021 7.15844 9.66598 7.30985 9.77805 7.42192ZM1.4 14H3.8C4.17066 13.9979 4.52553 13.8498 4.78763 13.5877C5.04973 13.3256 5.1979 12.9707 5.2 12.6V10.2C5.1979 9.82939 5.04973 9.47452 4.78763 9.21242C4.52553 8.95032 4.17066 8.80215 3.8 8.80005H1.4C1.02934 8.80215 0.674468 8.95032 0.412371 9.21242C0.150274 9.47452 0.00210008 9.82939 0 10.2V12.6C0.00210008 12.9707 0.150274 13.3256 0.412371 13.5877C0.674468 13.8498 1.02934 13.9979 1.4 14ZM1.25858 10.0586C1.29609 10.0211 1.34696 10 1.4 10H3.8C3.85304 10 3.90391 10.0211 3.94142 10.0586C3.97893 10.0961 4 10.147 4 10.2V12.6C4 12.6531 3.97893 12.704 3.94142 12.7415C3.90391 12.779 3.85304 12.8 3.8 12.8H1.4C1.34696 12.8 1.29609 12.779 1.25858 12.7415C1.22107 12.704 1.2 12.6531 1.2 12.6V10.2C1.2 10.147 1.22107 10.0961 1.25858 10.0586Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$G.render = render$E;
-var script$F = {
-  name: "WindowMinimizeIcon",
-  "extends": script$Q
-};
-function _toConsumableArray$j(r2) {
-  return _arrayWithoutHoles$j(r2) || _iterableToArray$j(r2) || _unsupportedIterableToArray$j(r2) || _nonIterableSpread$j();
-}
-function _nonIterableSpread$j() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$j(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$j(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$j(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$j(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$j(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$j(r2);
-}
-function _arrayLikeToArray$j(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$D(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$j(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    "fill-rule": "evenodd",
-    "clip-rule": "evenodd",
     d: "M11.8 0H2.2C1.61652 0 1.05694 0.231785 0.644365 0.644365C0.231785 1.05694 0 1.61652 0 2.2V7C0 7.15913 0.063214 7.31174 0.175736 7.42426C0.288258 7.53679 0.44087 7.6 0.6 7.6C0.75913 7.6 0.911742 7.53679 1.02426 7.42426C1.13679 7.31174 1.2 7.15913 1.2 7V2.2C1.2 1.93478 1.30536 1.68043 1.49289 1.49289C1.68043 1.30536 1.93478 1.2 2.2 1.2H11.8C12.0652 1.2 12.3196 1.30536 12.5071 1.49289C12.6946 1.68043 12.8 1.93478 12.8 2.2V11.8C12.8 12.0652 12.6946 12.3196 12.5071 12.5071C12.3196 12.6946 12.0652 12.8 11.8 12.8H7C6.84087 12.8 6.68826 12.8632 6.57574 12.9757C6.46321 13.0883 6.4 13.2409 6.4 13.4C6.4 13.5591 6.46321 13.7117 6.57574 13.8243C6.68826 13.9368 6.84087 14 7 14H11.8C12.3835 14 12.9431 13.7682 13.3556 13.3556C13.7682 12.9431 14 12.3835 14 11.8V2.2C14 1.61652 13.7682 1.05694 13.3556 0.644365C12.9431 0.231785 12.3835 0 11.8 0ZM6.368 7.952C6.44137 7.98326 6.52025 7.99958 6.6 8H9.8C9.95913 8 10.1117 7.93678 10.2243 7.82426C10.3368 7.71174 10.4 7.55913 10.4 7.4C10.4 7.24087 10.3368 7.08826 10.2243 6.97574C10.1117 6.86321 9.95913 6.8 9.8 6.8H8.048L10.624 4.224C10.73 4.11026 10.7877 3.95982 10.7849 3.80438C10.7822 3.64894 10.7192 3.50063 10.6093 3.3907C10.4994 3.28077 10.3511 3.2178 10.1956 3.21506C10.0402 3.21232 9.88974 3.27002 9.776 3.376L7.2 5.952V4.2C7.2 4.04087 7.13679 3.88826 7.02426 3.77574C6.91174 3.66321 6.75913 3.6 6.6 3.6C6.44087 3.6 6.28826 3.66321 6.17574 3.77574C6.06321 3.88826 6 4.04087 6 4.2V7.4C6.00042 7.47975 6.01674 7.55862 6.048 7.632C6.07656 7.70442 6.11971 7.7702 6.17475 7.82524C6.2298 7.88029 6.29558 7.92344 6.368 7.952ZM1.4 8.80005H3.8C4.17066 8.80215 4.52553 8.95032 4.78763 9.21242C5.04973 9.47452 5.1979 9.82939 5.2 10.2V12.6C5.1979 12.9707 5.04973 13.3256 4.78763 13.5877C4.52553 13.8498 4.17066 13.9979 3.8 14H1.4C1.02934 13.9979 0.674468 13.8498 0.412371 13.5877C0.150274 13.3256 0.00210008 12.9707 0 12.6V10.2C0.00210008 9.82939 0.150274 9.47452 0.412371 9.21242C0.674468 8.95032 1.02934 8.80215 1.4 8.80005ZM3.94142 12.7415C3.97893 12.704 4 12.6531 4 12.6V10.2C4 10.147 3.97893 10.0961 3.94142 10.0586C3.90391 10.0211 3.85304 10 3.8 10H1.4C1.34696 10 1.29609 10.0211 1.25858 10.0586C1.22107 10.0961 1.2 10.147 1.2 10.2V12.6C1.2 12.6531 1.22107 12.704 1.25858 12.7415C1.29609 12.779 1.34696 12.8 1.4 12.8H3.8C3.85304 12.8 3.90391 12.779 3.94142 12.7415Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$F.render = render$D;
+script$G.render = render$E;
 var FocusTrapStyle = BaseStyle.extend({
   name: "focustrap-directive"
 });
@@ -16434,8 +16448,8 @@ function _toPrimitive$f(t2, r2) {
 }
 var FocusTrap = BaseFocusTrap.extend("focustrap", {
   mounted: function mounted3(el, binding) {
-    var _ref = binding.value || {}, disabled2 = _ref.disabled;
-    if (!disabled2) {
+    var _ref = binding.value || {}, disabled4 = _ref.disabled;
+    if (!disabled4) {
       this.createHiddenFocusableElements(el, binding);
       this.bind(el, binding);
       this.autoElementFocus(el, binding);
@@ -16444,8 +16458,8 @@ var FocusTrap = BaseFocusTrap.extend("focustrap", {
     this.$el = el;
   },
   updated: function updated3(el, binding) {
-    var _ref2 = binding.value || {}, disabled2 = _ref2.disabled;
-    disabled2 && this.unbind(el);
+    var _ref2 = binding.value || {}, disabled4 = _ref2.disabled;
+    disabled4 && this.unbind(el);
   },
   unmounted: function unmounted4(el) {
     this.unbind(el);
@@ -16538,7 +16552,7 @@ var FocusTrap = BaseFocusTrap.extend("focustrap", {
     }
   }
 });
-var script$E = {
+var script$F = {
   name: "Portal",
   props: {
     appendTo: {
@@ -16564,7 +16578,7 @@ var script$E = {
     }
   }
 };
-function render$C(_ctx, _cache, $props, $setup, $data, $options) {
+function render$D(_ctx, _cache, $props, $setup, $data, $options) {
   return $options.inline ? renderSlot(_ctx.$slots, "default", {
     key: 0
   }) : $data.mounted ? (openBlock(), createBlock(Teleport, {
@@ -16572,7 +16586,7 @@ function render$C(_ctx, _cache, $props, $setup, $data, $options) {
     to: $props.appendTo
   }, [renderSlot(_ctx.$slots, "default")], 8, ["to"])) : createCommentVNode("", true);
 }
-script$E.render = render$C;
+script$F.render = render$D;
 function blockBodyScroll() {
   st$1({
     variableName: rr("scrollbar.width").name
@@ -16583,7 +16597,7 @@ function unblockBodyScroll() {
     variableName: rr("scrollbar.width").name
   });
 }
-var style$h = "\n    .p-dialog {\n        max-height: 90%;\n        transform: scale(1);\n        border-radius: dt('dialog.border.radius');\n        box-shadow: dt('dialog.shadow');\n        background: dt('dialog.background');\n        border: 1px solid dt('dialog.border.color');\n        color: dt('dialog.color');\n        will-change: transform;\n    }\n\n    .p-dialog-content {\n        overflow-y: auto;\n        padding: dt('dialog.content.padding');\n        flex-grow: 1;\n    }\n\n    .p-dialog-header {\n        display: flex;\n        align-items: center;\n        justify-content: space-between;\n        flex-shrink: 0;\n        padding: dt('dialog.header.padding');\n    }\n\n    .p-dialog-title {\n        font-weight: dt('dialog.title.font.weight');\n        font-size: dt('dialog.title.font.size');\n    }\n\n    .p-dialog-footer {\n        flex-shrink: 0;\n        padding: dt('dialog.footer.padding');\n        display: flex;\n        justify-content: flex-end;\n        gap: dt('dialog.footer.gap');\n    }\n\n    .p-dialog-header-actions {\n        display: flex;\n        align-items: center;\n        gap: dt('dialog.header.gap');\n    }\n\n    .p-dialog-top .p-dialog,\n    .p-dialog-bottom .p-dialog,\n    .p-dialog-left .p-dialog,\n    .p-dialog-right .p-dialog,\n    .p-dialog-topleft .p-dialog,\n    .p-dialog-topright .p-dialog,\n    .p-dialog-bottomleft .p-dialog,\n    .p-dialog-bottomright .p-dialog {\n        margin: 1rem;\n    }\n\n    .p-dialog-maximized {\n        width: 100vw !important;\n        height: 100vh !important;\n        top: 0px !important;\n        left: 0px !important;\n        max-height: 100%;\n        height: 100%;\n        border-radius: 0;\n    }\n\n    .p-dialog .p-resizable-handle {\n        position: absolute;\n        font-size: 0.1px;\n        display: block;\n        cursor: se-resize;\n        width: 12px;\n        height: 12px;\n        right: 1px;\n        bottom: 1px;\n    }\n\n    .p-dialog-enter-active {\n        animation: p-animate-dialog-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-dialog-leave-active {\n        animation: p-animate-dialog-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-dialog-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-dialog-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
+var style$i = "\n    .p-dialog {\n        max-height: 90%;\n        transform: scale(1);\n        border-radius: dt('dialog.border.radius');\n        box-shadow: dt('dialog.shadow');\n        background: dt('dialog.background');\n        border: 1px solid dt('dialog.border.color');\n        color: dt('dialog.color');\n        will-change: transform;\n    }\n\n    .p-dialog-content {\n        overflow-y: auto;\n        padding: dt('dialog.content.padding');\n        flex-grow: 1;\n    }\n\n    .p-dialog-header {\n        display: flex;\n        align-items: center;\n        justify-content: space-between;\n        flex-shrink: 0;\n        padding: dt('dialog.header.padding');\n    }\n\n    .p-dialog-title {\n        font-weight: dt('dialog.title.font.weight');\n        font-size: dt('dialog.title.font.size');\n    }\n\n    .p-dialog-footer {\n        flex-shrink: 0;\n        padding: dt('dialog.footer.padding');\n        display: flex;\n        justify-content: flex-end;\n        gap: dt('dialog.footer.gap');\n    }\n\n    .p-dialog-header-actions {\n        display: flex;\n        align-items: center;\n        gap: dt('dialog.header.gap');\n    }\n\n    .p-dialog-top .p-dialog,\n    .p-dialog-bottom .p-dialog,\n    .p-dialog-left .p-dialog,\n    .p-dialog-right .p-dialog,\n    .p-dialog-topleft .p-dialog,\n    .p-dialog-topright .p-dialog,\n    .p-dialog-bottomleft .p-dialog,\n    .p-dialog-bottomright .p-dialog {\n        margin: 1rem;\n    }\n\n    .p-dialog-maximized {\n        width: 100vw !important;\n        height: 100vh !important;\n        top: 0px !important;\n        left: 0px !important;\n        max-height: 100%;\n        height: 100%;\n        border-radius: 0;\n    }\n\n    .p-dialog .p-resizable-handle {\n        position: absolute;\n        font-size: 0.1px;\n        display: block;\n        cursor: se-resize;\n        width: 12px;\n        height: 12px;\n        right: 1px;\n        bottom: 1px;\n    }\n\n    .p-dialog-enter-active {\n        animation: p-animate-dialog-enter 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    .p-dialog-leave-active {\n        animation: p-animate-dialog-leave 300ms cubic-bezier(.19,1,.22,1);\n    }\n\n    @keyframes p-animate-dialog-enter {\n        from {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n\n    @keyframes p-animate-dialog-leave {\n        to {\n            opacity: 0;\n            transform: scale(0.93);\n        }\n    }\n";
 var inlineStyles$2 = {
   mask: function mask(_ref) {
     var position2 = _ref.position, modal2 = _ref.modal;
@@ -16605,12 +16619,12 @@ var inlineStyles$2 = {
     pointerEvents: "auto"
   }
 };
-var classes$l = {
+var classes$m = {
   mask: function mask2(_ref2) {
     var props = _ref2.props;
     var positions = ["left", "right", "top", "topleft", "topright", "bottom", "bottomleft", "bottomright"];
-    var pos = positions.find(function(item) {
-      return item === props.position;
+    var pos = positions.find(function(item2) {
+      return item2 === props.position;
     });
     return ["p-dialog-mask", {
       "p-overlay-mask p-overlay-mask-enter-active": props.modal
@@ -16632,13 +16646,13 @@ var classes$l = {
 };
 var DialogStyle = BaseStyle.extend({
   name: "dialog",
-  style: style$h,
-  classes: classes$l,
+  style: style$i,
+  classes: classes$m,
   inlineStyles: inlineStyles$2
 });
-var script$1$n = {
+var script$1$o = {
   name: "BaseDialog",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     header: {
       type: null,
@@ -16770,9 +16784,9 @@ var script$1$n = {
     };
   }
 };
-var script$D = {
+var script$E = {
   name: "Dialog",
-  "extends": script$1$n,
+  "extends": script$1$o,
   inheritAttrs: false,
   emits: ["update:visible", "show", "hide", "after-hide", "maximize", "unmaximize", "dragstart", "dragend"],
   provide: function provide9() {
@@ -17093,11 +17107,11 @@ var script$D = {
     focustrap: FocusTrap
   },
   components: {
-    Button: script$N,
-    Portal: script$E,
-    WindowMinimizeIcon: script$F,
-    WindowMaximizeIcon: script$G,
-    TimesIcon: script$H
+    Button: script$O,
+    Portal: script$F,
+    WindowMinimizeIcon: script$G,
+    WindowMaximizeIcon: script$H,
+    TimesIcon: script$I
   }
 };
 function _typeof$e(o2) {
@@ -17146,11 +17160,11 @@ function _toPrimitive$e(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var _hoisted_1$v = ["data-p"];
-var _hoisted_2$r = ["aria-labelledby", "aria-modal", "data-p"];
-var _hoisted_3$q = ["id"];
-var _hoisted_4$n = ["data-p"];
-function render$B(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$w = ["data-p"];
+var _hoisted_2$s = ["aria-labelledby", "aria-modal", "data-p"];
+var _hoisted_3$r = ["id"];
+var _hoisted_4$o = ["data-p"];
+function render$C(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_Button = resolveComponent("Button");
   var _component_Portal = resolveComponent("Portal");
   var _directive_focustrap = resolveDirective("focustrap");
@@ -17215,7 +17229,7 @@ function render$B(_ctx, _cache, $props, $setup, $data, $options) {
               key: 0,
               id: $options.ariaLabelledById,
               "class": _ctx.cx("title")
-            }, _ctx.ptm("title")), toDisplayString(_ctx.header), 17, _hoisted_3$q)) : createCommentVNode("", true)];
+            }, _ctx.ptm("title")), toDisplayString(_ctx.header), 17, _hoisted_3$r)) : createCommentVNode("", true)];
           }), createBaseVNode("div", mergeProps({
             "class": _ctx.cx("headerActions")
           }, _ctx.ptm("headerActions")), [_ctx.maximizable ? renderSlot(_ctx.$slots, "maximizebutton", {
@@ -17276,23 +17290,23 @@ function render$B(_ctx, _cache, $props, $setup, $data, $options) {
             "class": [_ctx.cx("content"), _ctx.contentClass],
             style: _ctx.contentStyle,
             "data-p": $options.dataP
-          }, _objectSpread$8(_objectSpread$8({}, _ctx.contentProps), _ctx.ptm("content"))), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_4$n), _ctx.footer || _ctx.$slots.footer ? (openBlock(), createElementBlock("div", mergeProps({
+          }, _objectSpread$8(_objectSpread$8({}, _ctx.contentProps), _ctx.ptm("content"))), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_4$o), _ctx.footer || _ctx.$slots.footer ? (openBlock(), createElementBlock("div", mergeProps({
             key: 1,
             ref: $options.footerContainerRef,
             "class": _ctx.cx("footer")
           }, _ctx.ptm("footer")), [renderSlot(_ctx.$slots, "footer", {}, function() {
             return [createTextVNode(toDisplayString(_ctx.footer), 1)];
-          })], 16)) : createCommentVNode("", true)], 64))], 16, _hoisted_2$r)), [[_directive_focustrap, {
+          })], 16)) : createCommentVNode("", true)], 64))], 16, _hoisted_2$s)), [[_directive_focustrap, {
             disabled: !_ctx.modal
           }]]) : createCommentVNode("", true)];
         }),
         _: 3
-      }, 16, ["onEnter", "onAfterEnter", "onBeforeLeave", "onLeave", "onAfterLeave"])], 16, _hoisted_1$v)) : createCommentVNode("", true)];
+      }, 16, ["onEnter", "onAfterEnter", "onBeforeLeave", "onLeave", "onAfterLeave"])], 16, _hoisted_1$w)) : createCommentVNode("", true)];
     }),
     _: 3
   }, 8, ["appendTo"]);
 }
-script$D.render = render$B;
+script$E.render = render$C;
 class UiCommandService {
   clientId;
   isRunning = false;
@@ -17369,11 +17383,11 @@ class UiCommandService {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    const data21 = await response.json();
-    if (!data21.ok) {
-      throw new Error(data21.error || "Unknown error");
+    const data22 = await response.json();
+    if (!data22.ok) {
+      throw new Error(data22.error || "Unknown error");
     }
-    return data21.command;
+    return data22.command;
   }
   /**
    * 执行命令
@@ -17633,7 +17647,7 @@ class UiCommandService {
       };
     }
     if (Array.isArray(value2)) {
-      return value2.map((item) => this.serializeResult(item));
+      return value2.map((item2) => this.serializeResult(item2));
     }
     if (type === "object") {
       const result = {};
@@ -17656,14 +17670,14 @@ class UiCommandService {
   }
 }
 const uiCommandService = new UiCommandService();
-const _hoisted_1$u = { class: "flex items-center justify-between w-full px-2" };
-const _hoisted_2$q = { class: "flex items-center gap-2 min-w-0 flex-1" };
-const _hoisted_3$p = ["title"];
-const _hoisted_4$m = {
+const _hoisted_1$v = { class: "flex items-center justify-between w-full px-2" };
+const _hoisted_2$r = { class: "flex items-center gap-2 min-w-0 flex-1" };
+const _hoisted_3$q = ["title"];
+const _hoisted_4$n = {
   key: 0,
   class: "text-xs text-[var(--text-3)]"
 };
-const _hoisted_5$i = { class: "flex items-center gap-0.5 shrink-0" };
+const _hoisted_5$j = { class: "flex items-center gap-0.5 shrink-0" };
 const _hoisted_6$f = {
   key: 0,
   class: "flex items-center gap-0.5 mr-2"
@@ -17809,17 +17823,17 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
       return openBlock(), createElementBlock(Fragment, null, [
-        createBaseVNode("div", _hoisted_1$u, [
-          createBaseVNode("div", _hoisted_2$q, [
+        createBaseVNode("div", _hoisted_1$v, [
+          createBaseVNode("div", _hoisted_2$r, [
             createBaseVNode("span", {
               class: "font-medium text-sm truncate",
               title: __props.fileName
-            }, toDisplayString(__props.fileName), 9, _hoisted_3$p),
-            __props.mimeType ? (openBlock(), createElementBlock("span", _hoisted_4$m, toDisplayString(__props.mimeType) + " · " + toDisplayString(formatSize(__props.size)), 1)) : createCommentVNode("", true)
+            }, toDisplayString(__props.fileName), 9, _hoisted_3$q),
+            __props.mimeType ? (openBlock(), createElementBlock("span", _hoisted_4$n, toDisplayString(__props.mimeType) + " · " + toDisplayString(formatSize(__props.size)), 1)) : createCommentVNode("", true)
           ]),
-          createBaseVNode("div", _hoisted_5$i, [
+          createBaseVNode("div", _hoisted_5$j, [
             __props.hasViewMode && __props.viewMode ? (openBlock(), createElementBlock("div", _hoisted_6$f, [
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: currentMode.value === "preview" ? "primary" : "text",
                 size: "small",
                 class: "!px-2 !py-1",
@@ -17831,7 +17845,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 ]),
                 _: 1
               }, 8, ["variant"]),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: currentMode.value === "source" ? "primary" : "text",
                 size: "small",
                 class: "!px-2 !py-1",
@@ -17844,7 +17858,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 _: 1
               }, 8, ["variant"])
             ])) : createCommentVNode("", true),
-            isJavaScript.value ? withDirectives((openBlock(), createBlock(unref(script$N), {
+            isJavaScript.value ? withDirectives((openBlock(), createBlock(unref(script$O), {
               key: 1,
               variant: "text",
               size: "small",
@@ -17867,7 +17881,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 { bottom: true }
               ]
             ]) : createCommentVNode("", true),
-            showCopyButton.value ? withDirectives((openBlock(), createBlock(unref(script$N), {
+            showCopyButton.value ? withDirectives((openBlock(), createBlock(unref(script$O), {
               key: 2,
               variant: "text",
               size: "small",
@@ -17892,7 +17906,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 { bottom: true }
               ]
             ]) : createCommentVNode("", true),
-            isDownloadable.value ? withDirectives((openBlock(), createBlock(unref(script$N), {
+            isDownloadable.value ? withDirectives((openBlock(), createBlock(unref(script$O), {
               key: 3,
               variant: "text",
               size: "small",
@@ -17911,7 +17925,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 { bottom: true }
               ]
             ]) : createCommentVNode("", true),
-            withDirectives((openBlock(), createBlock(unref(script$N), {
+            withDirectives((openBlock(), createBlock(unref(script$O), {
               variant: "text",
               size: "small",
               onClick: handleMaximize,
@@ -17935,7 +17949,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
                 { bottom: true }
               ]
             ]),
-            withDirectives((openBlock(), createBlock(unref(script$N), {
+            withDirectives((openBlock(), createBlock(unref(script$O), {
               variant: "text",
               size: "small",
               onClick: handleClose,
@@ -17955,7 +17969,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
             ])
           ])
         ]),
-        createVNode(unref(script$D), {
+        createVNode(unref(script$E), {
           visible: showResult.value,
           "onUpdate:visible": _cache[1] || (_cache[1] = ($event) => showResult.value = $event),
           modal: "",
@@ -17965,7 +17979,7 @@ const _sfc_main$g = /* @__PURE__ */ defineComponent({
           closeOnEscape: false
         }, {
           footer: withCtx(() => [
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               label: "关闭",
               onClick: _cache[0] || (_cache[0] = ($event) => showResult.value = false),
               variant: "text"
@@ -18085,8 +18099,8 @@ async function openFileViewer(params) {
       header: (dialogProps) => {
         console.log("[index.ts] header called, dialogProps:", dialogProps);
         const instance = dialogProps?.instance;
-        const data21 = instance?.data;
-        const sharedViewMode = data21?.viewMode || viewMode;
+        const data22 = instance?.data;
+        const sharedViewMode = data22?.viewMode || viewMode;
         const handleMaximize = () => {
           console.log("[index.ts] === handleMaximize ===");
           const allDialogs = Array.from(document.querySelectorAll(".p-dialog"));
@@ -18153,11 +18167,11 @@ async function openFileViewer(params) {
   });
   return dialogInstance;
 }
-const _hoisted_1$t = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
-const _hoisted_2$p = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0" };
-const _hoisted_3$o = { class: "flex flex-col" };
-const _hoisted_4$l = { class: "text-xs font-bold text-[var(--text-3)] uppercase tracking-wider" };
-const _hoisted_5$h = {
+const _hoisted_1$u = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
+const _hoisted_2$q = { class: "p-3 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0" };
+const _hoisted_3$p = { class: "flex flex-col" };
+const _hoisted_4$m = { class: "text-xs font-bold text-[var(--text-3)] uppercase tracking-wider" };
+const _hoisted_5$i = {
   key: 0,
   class: "text-[10px] text-[var(--text-3)] opacity-70 mt-0.5"
 };
@@ -18260,7 +18274,7 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
       } else {
         items = fileTree.value[0]?.children || [];
       }
-      return items.filter((item) => item.type === "file");
+      return items.filter((item2) => item2.type === "file");
     });
     const toggleDir = (node2) => {
       const path = node2.path;
@@ -18300,14 +18314,14 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
       try {
         const res = await fetch(`/api/workspaces/${orgId.value}`);
         if (res.ok) {
-          const data21 = await res.json();
-          files.value = data21.files || [];
+          const data22 = await res.json();
+          files.value = data22.files || [];
           if (fileTree.value.length > 0) {
-            const root21 = fileTree.value[0];
-            currentDir.value = root21;
-            selectedId.value = root21.path;
+            const root22 = fileTree.value[0];
+            currentDir.value = root22;
+            selectedId.value = root22.path;
             expandedDirs.value.clear();
-            expandedDirs.value.add(root21.path);
+            expandedDirs.value.add(root22.path);
           }
         }
       } catch (err) {
@@ -18375,19 +18389,19 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
       }
     };
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$t, [
-        createVNode(unref(script$J), { class: "flex-grow border-none" }, {
+      return openBlock(), createElementBlock("div", _hoisted_1$u, [
+        createVNode(unref(script$K), { class: "flex-grow border-none" }, {
           default: withCtx(() => [
-            createVNode(unref(script$I), {
+            createVNode(unref(script$J), {
               size: 30,
               minSize: 20,
               class: "flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)] relative"
             }, {
               default: withCtx(() => [
-                createBaseVNode("div", _hoisted_2$p, [
-                  createBaseVNode("div", _hoisted_3$o, [
-                    createBaseVNode("span", _hoisted_4$l, "项目工作区 (" + toDisplayString(files.value.length) + ")", 1),
-                    orgId.value ? (openBlock(), createElementBlock("span", _hoisted_5$h, "组织: " + toDisplayString(orgId.value), 1)) : createCommentVNode("", true)
+                createBaseVNode("div", _hoisted_2$q, [
+                  createBaseVNode("div", _hoisted_3$p, [
+                    createBaseVNode("span", _hoisted_4$m, "项目工作区 (" + toDisplayString(files.value.length) + ")", 1),
+                    orgId.value ? (openBlock(), createElementBlock("span", _hoisted_5$i, "组织: " + toDisplayString(orgId.value), 1)) : createCommentVNode("", true)
                   ])
                 ]),
                 createBaseVNode("div", _hoisted_6$e, [
@@ -18416,7 +18430,7 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }),
-            createVNode(unref(script$I), {
+            createVNode(unref(script$J), {
               size: 70,
               class: "flex flex-col bg-[var(--bg)]"
             }, {
@@ -18426,7 +18440,7 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
                     createVNode(unref(Folder), { class: "w-3.5 h-3.5 mr-2 text-[var(--primary)] opacity-70" }),
                     createBaseVNode("span", _hoisted_13$a, toDisplayString(currentDir.value ? currentDir.value.path : "根目录"), 1)
                   ]),
-                  createVNode(unref(script$N), {
+                  createVNode(unref(script$O), {
                     variant: "text",
                     size: "small",
                     class: "!p-1.5",
@@ -18464,23 +18478,23 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
                           ])
                         ], -1)),
                         createBaseVNode("tbody", null, [
-                          (openBlock(true), createElementBlock(Fragment, null, renderList(currentItems.value, (item) => {
+                          (openBlock(true), createElementBlock(Fragment, null, renderList(currentItems.value, (item2) => {
                             return openBlock(), createElementBlock("tr", {
-                              key: item.path,
-                              onClick: ($event) => selectFile(item),
+                              key: item2.path,
+                              onClick: ($event) => selectFile(item2),
                               class: "border-b border-[var(--border)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer group"
                             }, [
                               createBaseVNode("td", _hoisted_20$8, [
                                 createVNode(unref(FileCode), { class: "w-4 h-4 text-[var(--text-3)] opacity-70 group-hover:text-[var(--primary)]" })
                               ]),
                               createBaseVNode("td", _hoisted_21$7, [
-                                createBaseVNode("span", _hoisted_22$7, toDisplayString(item.name), 1)
+                                createBaseVNode("span", _hoisted_22$7, toDisplayString(item2.name), 1)
                               ]),
                               createBaseVNode("td", _hoisted_23$5, [
-                                createBaseVNode("span", _hoisted_24$5, toDisplayString((item.size / 1024).toFixed(1) + " KB"), 1)
+                                createBaseVNode("span", _hoisted_24$5, toDisplayString((item2.size / 1024).toFixed(1) + " KB"), 1)
                               ]),
                               createBaseVNode("td", _hoisted_25$5, [
-                                createBaseVNode("span", _hoisted_26$4, toDisplayString(formatTime(item.modifiedAt)), 1)
+                                createBaseVNode("span", _hoisted_26$4, toDisplayString(formatTime(item2.modifiedAt)), 1)
                               ])
                             ], 8, _hoisted_19$8);
                           }), 128))
@@ -18499,8 +18513,8 @@ const _sfc_main$f = /* @__PURE__ */ defineComponent({
     };
   }
 });
-var style$g = "\n    .p-tabs {\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-tablist {\n        display: flex;\n        position: relative;\n        overflow: hidden;\n        background: dt('tabs.tablist.background');\n    }\n\n    .p-tablist-viewport {\n        overflow-x: auto;\n        overflow-y: hidden;\n        scroll-behavior: smooth;\n        scrollbar-width: none;\n        overscroll-behavior: contain auto;\n    }\n\n    .p-tablist-viewport::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-tablist-tab-list {\n        position: relative;\n        display: flex;\n        border-style: solid;\n        border-color: dt('tabs.tablist.border.color');\n        border-width: dt('tabs.tablist.border.width');\n    }\n\n    .p-tablist-content {\n        flex-grow: 1;\n    }\n\n    .p-tablist-nav-button {\n        all: unset;\n        position: absolute !important;\n        flex-shrink: 0;\n        inset-block-start: 0;\n        z-index: 2;\n        height: 100%;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        background: dt('tabs.nav.button.background');\n        color: dt('tabs.nav.button.color');\n        width: dt('tabs.nav.button.width');\n        transition:\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        box-shadow: dt('tabs.nav.button.shadow');\n        outline-color: transparent;\n        cursor: pointer;\n    }\n\n    .p-tablist-nav-button:focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.nav.button.focus.ring.shadow');\n        outline: dt('tabs.nav.button.focus.ring.width') dt('tabs.nav.button.focus.ring.style') dt('tabs.nav.button.focus.ring.color');\n        outline-offset: dt('tabs.nav.button.focus.ring.offset');\n    }\n\n    .p-tablist-nav-button:hover {\n        color: dt('tabs.nav.button.hover.color');\n    }\n\n    .p-tablist-prev-button {\n        inset-inline-start: 0;\n    }\n\n    .p-tablist-next-button {\n        inset-inline-end: 0;\n    }\n\n    .p-tablist-prev-button:dir(rtl),\n    .p-tablist-next-button:dir(rtl) {\n        transform: rotate(180deg);\n    }\n\n    .p-tab {\n        flex-shrink: 0;\n        cursor: pointer;\n        user-select: none;\n        position: relative;\n        border-style: solid;\n        white-space: nowrap;\n        gap: dt('tabs.tab.gap');\n        background: dt('tabs.tab.background');\n        border-width: dt('tabs.tab.border.width');\n        border-color: dt('tabs.tab.border.color');\n        color: dt('tabs.tab.color');\n        padding: dt('tabs.tab.padding');\n        font-weight: dt('tabs.tab.font.weight');\n        transition:\n            background dt('tabs.transition.duration'),\n            border-color dt('tabs.transition.duration'),\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        margin: dt('tabs.tab.margin');\n        outline-color: transparent;\n    }\n\n    .p-tab:not(.p-disabled):focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.tab.focus.ring.shadow');\n        outline: dt('tabs.tab.focus.ring.width') dt('tabs.tab.focus.ring.style') dt('tabs.tab.focus.ring.color');\n        outline-offset: dt('tabs.tab.focus.ring.offset');\n    }\n\n    .p-tab:not(.p-tab-active):not(.p-disabled):hover {\n        background: dt('tabs.tab.hover.background');\n        border-color: dt('tabs.tab.hover.border.color');\n        color: dt('tabs.tab.hover.color');\n    }\n\n    .p-tab-active {\n        background: dt('tabs.tab.active.background');\n        border-color: dt('tabs.tab.active.border.color');\n        color: dt('tabs.tab.active.color');\n    }\n\n    .p-tabpanels {\n        background: dt('tabs.tabpanel.background');\n        color: dt('tabs.tabpanel.color');\n        padding: dt('tabs.tabpanel.padding');\n        outline: 0 none;\n    }\n\n    .p-tabpanel:focus-visible {\n        box-shadow: dt('tabs.tabpanel.focus.ring.shadow');\n        outline: dt('tabs.tabpanel.focus.ring.width') dt('tabs.tabpanel.focus.ring.style') dt('tabs.tabpanel.focus.ring.color');\n        outline-offset: dt('tabs.tabpanel.focus.ring.offset');\n    }\n\n    .p-tablist-active-bar {\n        z-index: 1;\n        display: block;\n        position: absolute;\n        inset-block-end: dt('tabs.active.bar.bottom');\n        height: dt('tabs.active.bar.height');\n        background: dt('tabs.active.bar.background');\n        transition: 250ms cubic-bezier(0.35, 0, 0.25, 1);\n    }\n";
-var classes$k = {
+var style$h = "\n    .p-tabs {\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-tablist {\n        display: flex;\n        position: relative;\n        overflow: hidden;\n        background: dt('tabs.tablist.background');\n    }\n\n    .p-tablist-viewport {\n        overflow-x: auto;\n        overflow-y: hidden;\n        scroll-behavior: smooth;\n        scrollbar-width: none;\n        overscroll-behavior: contain auto;\n    }\n\n    .p-tablist-viewport::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-tablist-tab-list {\n        position: relative;\n        display: flex;\n        border-style: solid;\n        border-color: dt('tabs.tablist.border.color');\n        border-width: dt('tabs.tablist.border.width');\n    }\n\n    .p-tablist-content {\n        flex-grow: 1;\n    }\n\n    .p-tablist-nav-button {\n        all: unset;\n        position: absolute !important;\n        flex-shrink: 0;\n        inset-block-start: 0;\n        z-index: 2;\n        height: 100%;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        background: dt('tabs.nav.button.background');\n        color: dt('tabs.nav.button.color');\n        width: dt('tabs.nav.button.width');\n        transition:\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        box-shadow: dt('tabs.nav.button.shadow');\n        outline-color: transparent;\n        cursor: pointer;\n    }\n\n    .p-tablist-nav-button:focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.nav.button.focus.ring.shadow');\n        outline: dt('tabs.nav.button.focus.ring.width') dt('tabs.nav.button.focus.ring.style') dt('tabs.nav.button.focus.ring.color');\n        outline-offset: dt('tabs.nav.button.focus.ring.offset');\n    }\n\n    .p-tablist-nav-button:hover {\n        color: dt('tabs.nav.button.hover.color');\n    }\n\n    .p-tablist-prev-button {\n        inset-inline-start: 0;\n    }\n\n    .p-tablist-next-button {\n        inset-inline-end: 0;\n    }\n\n    .p-tablist-prev-button:dir(rtl),\n    .p-tablist-next-button:dir(rtl) {\n        transform: rotate(180deg);\n    }\n\n    .p-tab {\n        flex-shrink: 0;\n        cursor: pointer;\n        user-select: none;\n        position: relative;\n        border-style: solid;\n        white-space: nowrap;\n        gap: dt('tabs.tab.gap');\n        background: dt('tabs.tab.background');\n        border-width: dt('tabs.tab.border.width');\n        border-color: dt('tabs.tab.border.color');\n        color: dt('tabs.tab.color');\n        padding: dt('tabs.tab.padding');\n        font-weight: dt('tabs.tab.font.weight');\n        transition:\n            background dt('tabs.transition.duration'),\n            border-color dt('tabs.transition.duration'),\n            color dt('tabs.transition.duration'),\n            outline-color dt('tabs.transition.duration'),\n            box-shadow dt('tabs.transition.duration');\n        margin: dt('tabs.tab.margin');\n        outline-color: transparent;\n    }\n\n    .p-tab:not(.p-disabled):focus-visible {\n        z-index: 1;\n        box-shadow: dt('tabs.tab.focus.ring.shadow');\n        outline: dt('tabs.tab.focus.ring.width') dt('tabs.tab.focus.ring.style') dt('tabs.tab.focus.ring.color');\n        outline-offset: dt('tabs.tab.focus.ring.offset');\n    }\n\n    .p-tab:not(.p-tab-active):not(.p-disabled):hover {\n        background: dt('tabs.tab.hover.background');\n        border-color: dt('tabs.tab.hover.border.color');\n        color: dt('tabs.tab.hover.color');\n    }\n\n    .p-tab-active {\n        background: dt('tabs.tab.active.background');\n        border-color: dt('tabs.tab.active.border.color');\n        color: dt('tabs.tab.active.color');\n    }\n\n    .p-tabpanels {\n        background: dt('tabs.tabpanel.background');\n        color: dt('tabs.tabpanel.color');\n        padding: dt('tabs.tabpanel.padding');\n        outline: 0 none;\n    }\n\n    .p-tabpanel:focus-visible {\n        box-shadow: dt('tabs.tabpanel.focus.ring.shadow');\n        outline: dt('tabs.tabpanel.focus.ring.width') dt('tabs.tabpanel.focus.ring.style') dt('tabs.tabpanel.focus.ring.color');\n        outline-offset: dt('tabs.tabpanel.focus.ring.offset');\n    }\n\n    .p-tablist-active-bar {\n        z-index: 1;\n        display: block;\n        position: absolute;\n        inset-block-end: dt('tabs.active.bar.bottom');\n        height: dt('tabs.active.bar.height');\n        background: dt('tabs.active.bar.background');\n        transition: 250ms cubic-bezier(0.35, 0, 0.25, 1);\n    }\n";
+var classes$l = {
   root: function root7(_ref) {
     var props = _ref.props;
     return ["p-tabs p-component", {
@@ -18510,12 +18524,12 @@ var classes$k = {
 };
 var TabsStyle = BaseStyle.extend({
   name: "tabs",
-  style: style$g,
-  classes: classes$k
+  style: style$h,
+  classes: classes$l
 });
-var script$1$m = {
+var script$1$n = {
   name: "BaseTabs",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     value: {
       type: [String, Number],
@@ -18550,9 +18564,9 @@ var script$1$m = {
     };
   }
 };
-var script$C = {
+var script$D = {
   name: "Tabs",
-  "extends": script$1$m,
+  "extends": script$1$n,
   inheritAttrs: false,
   emits: ["update:value"],
   data: function data6() {
@@ -18577,15 +18591,56 @@ var script$C = {
     }
   }
 };
-function render$A(_ctx, _cache, $props, $setup, $data, $options) {
+function render$B(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root")
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default")], 16);
 }
+script$D.render = render$B;
+var script$C = {
+  name: "ChevronLeftIcon",
+  "extends": script$R
+};
+function _toConsumableArray$j(r2) {
+  return _arrayWithoutHoles$j(r2) || _iterableToArray$j(r2) || _unsupportedIterableToArray$j(r2) || _nonIterableSpread$j();
+}
+function _nonIterableSpread$j() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$j(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$j(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$j(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$j(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$j(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$j(r2);
+}
+function _arrayLikeToArray$j(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$A(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$j(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M9.61296 13C9.50997 13.0005 9.40792 12.9804 9.3128 12.9409C9.21767 12.9014 9.13139 12.8433 9.05902 12.7701L3.83313 7.54416C3.68634 7.39718 3.60388 7.19795 3.60388 6.99022C3.60388 6.78249 3.68634 6.58325 3.83313 6.43628L9.05902 1.21039C9.20762 1.07192 9.40416 0.996539 9.60724 1.00012C9.81032 1.00371 10.0041 1.08597 10.1477 1.22959C10.2913 1.37322 10.3736 1.56698 10.3772 1.77005C10.3808 1.97313 10.3054 2.16968 10.1669 2.31827L5.49496 6.99022L10.1669 11.6622C10.3137 11.8091 10.3962 12.0084 10.3962 12.2161C10.3962 12.4238 10.3137 12.6231 10.1669 12.7701C10.0945 12.8433 10.0083 12.9014 9.91313 12.9409C9.81801 12.9804 9.71596 13.0005 9.61296 13Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
 script$C.render = render$A;
 var script$B = {
-  name: "ChevronLeftIcon",
-  "extends": script$Q
+  name: "ChevronRightIcon",
+  "extends": script$R
 };
 function _toConsumableArray$i(r2) {
   return _arrayWithoutHoles$i(r2) || _iterableToArray$i(r2) || _unsupportedIterableToArray$i(r2) || _nonIterableSpread$i();
@@ -18619,53 +18674,12 @@ function render$z(_ctx, _cache, $props, $setup, $data, $options) {
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
   }, _ctx.pti()), _toConsumableArray$i(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M9.61296 13C9.50997 13.0005 9.40792 12.9804 9.3128 12.9409C9.21767 12.9014 9.13139 12.8433 9.05902 12.7701L3.83313 7.54416C3.68634 7.39718 3.60388 7.19795 3.60388 6.99022C3.60388 6.78249 3.68634 6.58325 3.83313 6.43628L9.05902 1.21039C9.20762 1.07192 9.40416 0.996539 9.60724 1.00012C9.81032 1.00371 10.0041 1.08597 10.1477 1.22959C10.2913 1.37322 10.3736 1.56698 10.3772 1.77005C10.3808 1.97313 10.3054 2.16968 10.1669 2.31827L5.49496 6.99022L10.1669 11.6622C10.3137 11.8091 10.3962 12.0084 10.3962 12.2161C10.3962 12.4238 10.3137 12.6231 10.1669 12.7701C10.0945 12.8433 10.0083 12.9014 9.91313 12.9409C9.81801 12.9804 9.71596 13.0005 9.61296 13Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$B.render = render$z;
-var script$A = {
-  name: "ChevronRightIcon",
-  "extends": script$Q
-};
-function _toConsumableArray$h(r2) {
-  return _arrayWithoutHoles$h(r2) || _iterableToArray$h(r2) || _unsupportedIterableToArray$h(r2) || _nonIterableSpread$h();
-}
-function _nonIterableSpread$h() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$h(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$h(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$h(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$h(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$h(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$h(r2);
-}
-function _arrayLikeToArray$h(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$y(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$h(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M4.38708 13C4.28408 13.0005 4.18203 12.9804 4.08691 12.9409C3.99178 12.9014 3.9055 12.8433 3.83313 12.7701C3.68634 12.6231 3.60388 12.4238 3.60388 12.2161C3.60388 12.0084 3.68634 11.8091 3.83313 11.6622L8.50507 6.99022L3.83313 2.31827C3.69467 2.16968 3.61928 1.97313 3.62287 1.77005C3.62645 1.56698 3.70872 1.37322 3.85234 1.22959C3.99596 1.08597 4.18972 1.00371 4.3928 1.00012C4.59588 0.996539 4.79242 1.07192 4.94102 1.21039L10.1669 6.43628C10.3137 6.58325 10.3962 6.78249 10.3962 6.99022C10.3962 7.19795 10.3137 7.39718 10.1669 7.54416L4.94102 12.7701C4.86865 12.8433 4.78237 12.9014 4.68724 12.9409C4.59212 12.9804 4.49007 13.0005 4.38708 13Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$A.render = render$y;
-var classes$j = {
+script$B.render = render$z;
+var classes$k = {
   root: "p-tablist",
   content: "p-tablist-content p-tablist-viewport",
   tabList: "p-tablist-tab-list",
@@ -18675,11 +18689,11 @@ var classes$j = {
 };
 var TabListStyle = BaseStyle.extend({
   name: "tablist",
-  classes: classes$j
+  classes: classes$k
 });
-var script$1$l = {
+var script$1$m = {
   name: "BaseTabList",
-  "extends": script$R,
+  "extends": script$S,
   props: {},
   style: TabListStyle,
   provide: function provide11() {
@@ -18689,9 +18703,9 @@ var script$1$l = {
     };
   }
 };
-var script$z = {
+var script$A = {
   name: "TabList",
-  "extends": script$1$l,
+  "extends": script$1$m,
   inheritAttrs: false,
   inject: ["$pcTabs"],
   data: function data7() {
@@ -18823,19 +18837,19 @@ var script$z = {
     }
   },
   components: {
-    ChevronLeftIcon: script$B,
-    ChevronRightIcon: script$A
+    ChevronLeftIcon: script$C,
+    ChevronRightIcon: script$B
   },
   directives: {
     ripple: Ripple
   }
 };
-var _hoisted_1$s = ["data-p"];
-var _hoisted_2$o = ["aria-label", "tabindex"];
-var _hoisted_3$n = ["data-p"];
-var _hoisted_4$k = ["aria-orientation"];
-var _hoisted_5$g = ["aria-label", "tabindex"];
-function render$x(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$t = ["data-p"];
+var _hoisted_2$p = ["aria-label", "tabindex"];
+var _hoisted_3$o = ["data-p"];
+var _hoisted_4$l = ["aria-orientation"];
+var _hoisted_5$h = ["aria-label", "tabindex"];
+function render$y(_ctx, _cache, $props, $setup, $data, $options) {
   var _directive_ripple = resolveDirective("ripple");
   return openBlock(), createElementBlock("div", mergeProps({
     ref: "list",
@@ -18855,7 +18869,7 @@ function render$x(_ctx, _cache, $props, $setup, $data, $options) {
     "data-pc-group-section": "navigator"
   }), [(openBlock(), createBlock(resolveDynamicComponent($options.templates.previcon || "ChevronLeftIcon"), mergeProps({
     "aria-hidden": "true"
-  }, _ctx.ptm("prevIcon")), null, 16))], 16, _hoisted_2$o)), [[_directive_ripple]]) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
+  }, _ctx.ptm("prevIcon")), null, 16))], 16, _hoisted_2$p)), [[_directive_ripple]]) : createCommentVNode("", true), createBaseVNode("div", mergeProps({
     ref: "content",
     "class": _ctx.cx("content"),
     onScroll: _cache[1] || (_cache[1] = function() {
@@ -18872,7 +18886,7 @@ function render$x(_ctx, _cache, $props, $setup, $data, $options) {
     "class": _ctx.cx("activeBar"),
     role: "presentation",
     "aria-hidden": "true"
-  }, _ctx.ptm("activeBar")), null, 16)], 16, _hoisted_4$k)], 16, _hoisted_3$n), $options.showNavigators && $data.isNextButtonEnabled ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
+  }, _ctx.ptm("activeBar")), null, 16)], 16, _hoisted_4$l)], 16, _hoisted_3$o), $options.showNavigators && $data.isNextButtonEnabled ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
     key: 1,
     ref: "nextButton",
     type: "button",
@@ -18886,10 +18900,10 @@ function render$x(_ctx, _cache, $props, $setup, $data, $options) {
     "data-pc-group-section": "navigator"
   }), [(openBlock(), createBlock(resolveDynamicComponent($options.templates.nexticon || "ChevronRightIcon"), mergeProps({
     "aria-hidden": "true"
-  }, _ctx.ptm("nextIcon")), null, 16))], 16, _hoisted_5$g)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_1$s);
+  }, _ctx.ptm("nextIcon")), null, 16))], 16, _hoisted_5$h)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_1$t);
 }
-script$z.render = render$x;
-var classes$i = {
+script$A.render = render$y;
+var classes$j = {
   root: function root8(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-tab", {
@@ -18900,11 +18914,11 @@ var classes$i = {
 };
 var TabStyle = BaseStyle.extend({
   name: "tab",
-  classes: classes$i
+  classes: classes$j
 });
-var script$1$k = {
+var script$1$l = {
   name: "BaseTab",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     value: {
       type: [String, Number],
@@ -18931,9 +18945,9 @@ var script$1$k = {
     };
   }
 };
-var script$y = {
+var script$z = {
   name: "Tab",
-  "extends": script$1$k,
+  "extends": script$1$l,
   inheritAttrs: false,
   inject: ["$pcTabs", "$pcTabList"],
   methods: {
@@ -19084,7 +19098,7 @@ var script$y = {
     ripple: Ripple
   }
 };
-function render$w(_ctx, _cache, $props, $setup, $data, $options) {
+function render$x(_ctx, _cache, $props, $setup, $data, $options) {
   var _directive_ripple = resolveDirective("ripple");
   return !_ctx.asChild ? withDirectives((openBlock(), createBlock(resolveDynamicComponent(_ctx.as), mergeProps({
     key: 0,
@@ -19105,17 +19119,17 @@ function render$w(_ctx, _cache, $props, $setup, $data, $options) {
     onClick: $options.onClick
   });
 }
-script$y.render = render$w;
-var classes$h = {
+script$z.render = render$x;
+var classes$i = {
   root: "p-tabpanels"
 };
 var TabPanelsStyle = BaseStyle.extend({
   name: "tabpanels",
-  classes: classes$h
+  classes: classes$i
 });
-var script$1$j = {
+var script$1$k = {
   name: "BaseTabPanels",
-  "extends": script$R,
+  "extends": script$S,
   props: {},
   style: TabPanelsStyle,
   provide: function provide13() {
@@ -19125,19 +19139,19 @@ var script$1$j = {
     };
   }
 };
-var script$x = {
+var script$y = {
   name: "TabPanels",
-  "extends": script$1$j,
+  "extends": script$1$k,
   inheritAttrs: false
 };
-function render$v(_ctx, _cache, $props, $setup, $data, $options) {
+function render$w(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root"),
     role: "presentation"
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$x.render = render$v;
-var classes$g = {
+script$y.render = render$w;
+var classes$h = {
   root: function root9(_ref) {
     var instance = _ref.instance;
     return ["p-tabpanel", {
@@ -19147,11 +19161,11 @@ var classes$g = {
 };
 var TabPanelStyle = BaseStyle.extend({
   name: "tabpanel",
-  classes: classes$g
+  classes: classes$h
 });
-var script$1$i = {
+var script$1$j = {
   name: "BaseTabPanel",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     // in Tabs
     value: {
@@ -19185,9 +19199,9 @@ var script$1$i = {
     };
   }
 };
-var script$w = {
+var script$x = {
   name: "TabPanel",
-  "extends": script$1$i,
+  "extends": script$1$j,
   inheritAttrs: false,
   inject: ["$pcTabs"],
   computed: {
@@ -19226,7 +19240,7 @@ var script$w = {
     }
   }
 };
-function render$u(_ctx, _cache, $props, $setup, $data, $options) {
+function render$v(_ctx, _cache, $props, $setup, $data, $options) {
   var _$options$$pcTabs, _$options$$pcTabs2;
   return !$options.$pcTabs ? renderSlot(_ctx.$slots, "default", {
     key: 0
@@ -19249,10 +19263,51 @@ function render$u(_ctx, _cache, $props, $setup, $data, $options) {
     a11yAttrs: $options.a11yAttrs
   })], 64));
 }
+script$x.render = render$v;
+var script$w = {
+  name: "AngleDownIcon",
+  "extends": script$R
+};
+function _toConsumableArray$h(r2) {
+  return _arrayWithoutHoles$h(r2) || _iterableToArray$h(r2) || _unsupportedIterableToArray$h(r2) || _nonIterableSpread$h();
+}
+function _nonIterableSpread$h() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$h(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$h(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$h(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$h(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$h(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$h(r2);
+}
+function _arrayLikeToArray$h(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$u(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$h(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M3.58659 4.5007C3.68513 4.50023 3.78277 4.51945 3.87379 4.55723C3.9648 4.59501 4.04735 4.65058 4.11659 4.7207L7.11659 7.7207L10.1166 4.7207C10.2619 4.65055 10.4259 4.62911 10.5843 4.65956C10.7427 4.69002 10.8871 4.77074 10.996 4.88976C11.1049 5.00877 11.1726 5.15973 11.1889 5.32022C11.2052 5.48072 11.1693 5.6422 11.0866 5.7807L7.58659 9.2807C7.44597 9.42115 7.25534 9.50004 7.05659 9.50004C6.85784 9.50004 6.66722 9.42115 6.52659 9.2807L3.02659 5.7807C2.88614 5.64007 2.80725 5.44945 2.80725 5.2507C2.80725 5.05195 2.88614 4.86132 3.02659 4.7207C3.09932 4.64685 3.18675 4.58911 3.28322 4.55121C3.37969 4.51331 3.48305 4.4961 3.58659 4.5007Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
 script$w.render = render$u;
 var script$v = {
-  name: "AngleDownIcon",
-  "extends": script$Q
+  name: "AngleUpIcon",
+  "extends": script$R
 };
 function _toConsumableArray$g(r2) {
   return _arrayWithoutHoles$g(r2) || _iterableToArray$g(r2) || _unsupportedIterableToArray$g(r2) || _nonIterableSpread$g();
@@ -19286,54 +19341,13 @@ function render$t(_ctx, _cache, $props, $setup, $data, $options) {
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
   }, _ctx.pti()), _toConsumableArray$g(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M3.58659 4.5007C3.68513 4.50023 3.78277 4.51945 3.87379 4.55723C3.9648 4.59501 4.04735 4.65058 4.11659 4.7207L7.11659 7.7207L10.1166 4.7207C10.2619 4.65055 10.4259 4.62911 10.5843 4.65956C10.7427 4.69002 10.8871 4.77074 10.996 4.88976C11.1049 5.00877 11.1726 5.15973 11.1889 5.32022C11.2052 5.48072 11.1693 5.6422 11.0866 5.7807L7.58659 9.2807C7.44597 9.42115 7.25534 9.50004 7.05659 9.50004C6.85784 9.50004 6.66722 9.42115 6.52659 9.2807L3.02659 5.7807C2.88614 5.64007 2.80725 5.44945 2.80725 5.2507C2.80725 5.05195 2.88614 4.86132 3.02659 4.7207C3.09932 4.64685 3.18675 4.58911 3.28322 4.55121C3.37969 4.51331 3.48305 4.4961 3.58659 4.5007Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$v.render = render$t;
-var script$u = {
-  name: "AngleUpIcon",
-  "extends": script$Q
-};
-function _toConsumableArray$f(r2) {
-  return _arrayWithoutHoles$f(r2) || _iterableToArray$f(r2) || _unsupportedIterableToArray$f(r2) || _nonIterableSpread$f();
-}
-function _nonIterableSpread$f() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$f(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$f(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$f(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$f(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$f(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$f(r2);
-}
-function _arrayLikeToArray$f(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$s(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$f(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M10.4134 9.49931C10.3148 9.49977 10.2172 9.48055 10.1262 9.44278C10.0352 9.405 9.95263 9.34942 9.88338 9.27931L6.88338 6.27931L3.88338 9.27931C3.73811 9.34946 3.57409 9.3709 3.41567 9.34044C3.25724 9.30999 3.11286 9.22926 3.00395 9.11025C2.89504 8.99124 2.82741 8.84028 2.8111 8.67978C2.79478 8.51928 2.83065 8.35781 2.91338 8.21931L6.41338 4.71931C6.55401 4.57886 6.74463 4.49997 6.94338 4.49997C7.14213 4.49997 7.33276 4.57886 7.47338 4.71931L10.9734 8.21931C11.1138 8.35994 11.1927 8.55056 11.1927 8.74931C11.1927 8.94806 11.1138 9.13868 10.9734 9.27931C10.9007 9.35315 10.8132 9.41089 10.7168 9.44879C10.6203 9.48669 10.5169 9.5039 10.4134 9.49931Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$u.render = render$s;
-var style$f = "\n    .p-inputnumber {\n        display: inline-flex;\n        position: relative;\n    }\n\n    .p-inputnumber-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex: 0 0 auto;\n        cursor: pointer;\n        background: dt('inputnumber.button.background');\n        color: dt('inputnumber.button.color');\n        width: dt('inputnumber.button.width');\n        transition:\n            background dt('inputnumber.transition.duration'),\n            color dt('inputnumber.transition.duration'),\n            border-color dt('inputnumber.transition.duration'),\n            outline-color dt('inputnumber.transition.duration');\n    }\n\n    .p-inputnumber-button:disabled {\n        cursor: auto;\n    }\n\n    .p-inputnumber-button:not(:disabled):hover {\n        background: dt('inputnumber.button.hover.background');\n        color: dt('inputnumber.button.hover.color');\n    }\n\n    .p-inputnumber-button:not(:disabled):active {\n        background: dt('inputnumber.button.active.background');\n        color: dt('inputnumber.button.active.color');\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button {\n        position: relative;\n        flex: 1 1 auto;\n        border: 0 none;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button-group {\n        display: flex;\n        flex-direction: column;\n        position: absolute;\n        inset-block-start: 1px;\n        inset-inline-end: 1px;\n        height: calc(100% - 2px);\n        z-index: 1;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-increment-button {\n        padding: 0;\n        border-start-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-decrement-button {\n        padding: 0;\n        border-end-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-increment-button {\n        order: 3;\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        border-inline-start: 0 none;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-decrement-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-inline-end: 0 none;\n    }\n\n    .p-floatlabel:has(.p-inputnumber-horizontal) label {\n        margin-inline-start: dt('inputnumber.button.width');\n    }\n\n    .p-inputnumber-vertical {\n        flex-direction: column;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n        padding: dt('inputnumber.button.vertical.padding');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-increment-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-end: 0 none;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n        text-align: center;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-decrement-button {\n        order: 3;\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-start: 0 none;\n    }\n\n    .p-inputnumber-input {\n        flex: 1 1 auto;\n    }\n\n    .p-inputnumber-fluid {\n        width: 100%;\n    }\n\n    .p-inputnumber-fluid .p-inputnumber-input {\n        width: 1%;\n    }\n\n    .p-inputnumber-fluid.p-inputnumber-vertical .p-inputnumber-input {\n        width: 100%;\n    }\n\n    .p-inputnumber:has(.p-inputtext-sm) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n    }\n\n    .p-inputnumber:has(.p-inputtext-lg) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n    }\n\n    .p-inputnumber-clear-icon {\n        position: absolute;\n        top: 50%;\n        margin-top: -0.5rem;\n        cursor: pointer;\n        inset-inline-end: dt('form.field.padding.x');\n        color: dt('form.field.icon.color');\n    }\n\n    .p-inputnumber:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-stacked:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + (dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n";
-var classes$f = {
+script$v.render = render$t;
+var style$g = "\n    .p-inputnumber {\n        display: inline-flex;\n        position: relative;\n    }\n\n    .p-inputnumber-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex: 0 0 auto;\n        cursor: pointer;\n        background: dt('inputnumber.button.background');\n        color: dt('inputnumber.button.color');\n        width: dt('inputnumber.button.width');\n        transition:\n            background dt('inputnumber.transition.duration'),\n            color dt('inputnumber.transition.duration'),\n            border-color dt('inputnumber.transition.duration'),\n            outline-color dt('inputnumber.transition.duration');\n    }\n\n    .p-inputnumber-button:disabled {\n        cursor: auto;\n    }\n\n    .p-inputnumber-button:not(:disabled):hover {\n        background: dt('inputnumber.button.hover.background');\n        color: dt('inputnumber.button.hover.color');\n    }\n\n    .p-inputnumber-button:not(:disabled):active {\n        background: dt('inputnumber.button.active.background');\n        color: dt('inputnumber.button.active.color');\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button {\n        position: relative;\n        flex: 1 1 auto;\n        border: 0 none;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-button-group {\n        display: flex;\n        flex-direction: column;\n        position: absolute;\n        inset-block-start: 1px;\n        inset-inline-end: 1px;\n        height: calc(100% - 2px);\n        z-index: 1;\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-increment-button {\n        padding: 0;\n        border-start-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-decrement-button {\n        padding: 0;\n        border-end-end-radius: calc(dt('inputnumber.button.border.radius') - 1px);\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-increment-button {\n        order: 3;\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        border-inline-start: 0 none;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-decrement-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-inline-end: 0 none;\n    }\n\n    .p-floatlabel:has(.p-inputnumber-horizontal) label {\n        margin-inline-start: dt('inputnumber.button.width');\n    }\n\n    .p-inputnumber-vertical {\n        flex-direction: column;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button {\n        border: 1px solid dt('inputnumber.button.border.color');\n        padding: dt('inputnumber.button.vertical.padding');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:hover {\n        border-color: dt('inputnumber.button.hover.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-button:active {\n        border-color: dt('inputnumber.button.active.border.color');\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-increment-button {\n        order: 1;\n        border-start-start-radius: dt('inputnumber.button.border.radius');\n        border-start-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-end: 0 none;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-input {\n        order: 2;\n        border-radius: 0;\n        text-align: center;\n    }\n\n    .p-inputnumber-vertical .p-inputnumber-decrement-button {\n        order: 3;\n        border-end-start-radius: dt('inputnumber.button.border.radius');\n        border-end-end-radius: dt('inputnumber.button.border.radius');\n        width: 100%;\n        border-block-start: 0 none;\n    }\n\n    .p-inputnumber-input {\n        flex: 1 1 auto;\n    }\n\n    .p-inputnumber-fluid {\n        width: 100%;\n    }\n\n    .p-inputnumber-fluid .p-inputnumber-input {\n        width: 1%;\n    }\n\n    .p-inputnumber-fluid.p-inputnumber-vertical .p-inputnumber-input {\n        width: 100%;\n    }\n\n    .p-inputnumber:has(.p-inputtext-sm) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n    }\n\n    .p-inputnumber:has(.p-inputtext-lg) .p-inputnumber-button .p-icon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n    }\n\n    .p-inputnumber-clear-icon {\n        position: absolute;\n        top: 50%;\n        margin-top: -0.5rem;\n        cursor: pointer;\n        inset-inline-end: dt('form.field.padding.x');\n        color: dt('form.field.icon.color');\n    }\n\n    .p-inputnumber:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-stacked .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n\n    .p-inputnumber-stacked:has(.p-inputnumber-clear-icon) .p-inputnumber-input {\n        padding-inline-end: calc(dt('inputnumber.button.width') + (dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-inputnumber-horizontal .p-inputnumber-clear-icon {\n        inset-inline-end: calc(dt('inputnumber.button.width') + dt('form.field.padding.x'));\n    }\n";
+var classes$g = {
   root: function root10(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-inputnumber p-component p-inputwrapper", {
@@ -19364,12 +19378,12 @@ var classes$f = {
 };
 var InputNumberStyle = BaseStyle.extend({
   name: "inputnumber",
-  style: style$f,
-  classes: classes$f
+  style: style$g,
+  classes: classes$g
 });
-var script$1$h = {
+var script$1$i = {
   name: "BaseInputNumber",
-  "extends": script$L,
+  "extends": script$M,
   props: {
     format: {
       type: Boolean,
@@ -19565,33 +19579,33 @@ function _toPrimitive$d(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-function _toConsumableArray$e(r2) {
-  return _arrayWithoutHoles$e(r2) || _iterableToArray$e(r2) || _unsupportedIterableToArray$e(r2) || _nonIterableSpread$e();
+function _toConsumableArray$f(r2) {
+  return _arrayWithoutHoles$f(r2) || _iterableToArray$f(r2) || _unsupportedIterableToArray$f(r2) || _nonIterableSpread$f();
 }
-function _nonIterableSpread$e() {
+function _nonIterableSpread$f() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$e(r2, a2) {
+function _unsupportedIterableToArray$f(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$e(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$f(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$e(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$f(r2, a2) : void 0;
   }
 }
-function _iterableToArray$e(r2) {
+function _iterableToArray$f(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$e(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$e(r2);
+function _arrayWithoutHoles$f(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$f(r2);
 }
-function _arrayLikeToArray$e(r2, a2) {
+function _arrayLikeToArray$f(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-var script$t = {
+var script$u = {
   name: "InputNumber",
-  "extends": script$1$h,
+  "extends": script$1$i,
   inheritAttrs: false,
   emits: ["input", "focus", "blur"],
   inject: {
@@ -19686,7 +19700,7 @@ var script$t = {
     },
     constructParser: function constructParser() {
       this.numberFormat = new Intl.NumberFormat(this.locale, this.getOptions());
-      var numerals = _toConsumableArray$e(new Intl.NumberFormat(this.locale, {
+      var numerals = _toConsumableArray$f(new Intl.NumberFormat(this.locale, {
         useGrouping: false
       }).format(9876543210)).reverse();
       var index2 = new Map(numerals.map(function(d2, i2) {
@@ -20053,12 +20067,12 @@ var script$t = {
         return;
       }
       event.preventDefault();
-      var data21 = (event.clipboardData || window["clipboardData"]).getData("Text");
-      if (this.inputId === "integeronly" && /[^\d-]/.test(data21)) {
+      var data22 = (event.clipboardData || window["clipboardData"]).getData("Text");
+      if (this.inputId === "integeronly" && /[^\d-]/.test(data22)) {
         return;
       }
-      if (data21) {
-        var filteredData = this.parseValue(data21);
+      if (data22) {
+        var filteredData = this.parseValue(data22);
         if (filteredData != null) {
           this.insert(event, filteredData.toString());
         }
@@ -20478,19 +20492,19 @@ var script$t = {
     }
   },
   components: {
-    InputText: script$K,
-    AngleUpIcon: script$u,
-    AngleDownIcon: script$v,
-    TimesIcon: script$H
+    InputText: script$L,
+    AngleUpIcon: script$v,
+    AngleDownIcon: script$w,
+    TimesIcon: script$I
   }
 };
-var _hoisted_1$r = ["data-p"];
-var _hoisted_2$n = ["data-p"];
-var _hoisted_3$m = ["disabled", "data-p"];
-var _hoisted_4$j = ["disabled", "data-p"];
-var _hoisted_5$f = ["disabled", "data-p"];
+var _hoisted_1$s = ["data-p"];
+var _hoisted_2$o = ["data-p"];
+var _hoisted_3$n = ["disabled", "data-p"];
+var _hoisted_4$k = ["disabled", "data-p"];
+var _hoisted_5$g = ["disabled", "data-p"];
 var _hoisted_6$d = ["disabled", "data-p"];
-function render$r(_ctx, _cache, $props, $setup, $data, $options) {
+function render$s(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_InputText = resolveComponent("InputText");
   var _component_TimesIcon = resolveComponent("TimesIcon");
   return openBlock(), createElementBlock("span", mergeProps({
@@ -20561,7 +20575,7 @@ function render$r(_ctx, _cache, $props, $setup, $data, $options) {
       }, _ctx.ptm("incrementIcon"), {
         "data-pc-section": "incrementicon"
       }), null, 16, ["class"]))];
-    })], 16, _hoisted_3$m)];
+    })], 16, _hoisted_3$n)];
   }), renderSlot(_ctx.$slots, "decrementbutton", {
     listeners: $options.downButtonListeners
   }, function() {
@@ -20580,8 +20594,8 @@ function render$r(_ctx, _cache, $props, $setup, $data, $options) {
       }, _ctx.ptm("decrementIcon"), {
         "data-pc-section": "decrementicon"
       }), null, 16, ["class"]))];
-    })], 16, _hoisted_4$j)];
-  })], 16, _hoisted_2$n)) : createCommentVNode("", true), renderSlot(_ctx.$slots, "incrementbutton", {
+    })], 16, _hoisted_4$k)];
+  })], 16, _hoisted_2$o)) : createCommentVNode("", true), renderSlot(_ctx.$slots, "incrementbutton", {
     listeners: $options.upButtonListeners
   }, function() {
     return [_ctx.showButtons && _ctx.buttonLayout !== "stacked" ? (openBlock(), createElementBlock("button", mergeProps({
@@ -20600,7 +20614,7 @@ function render$r(_ctx, _cache, $props, $setup, $data, $options) {
       }, _ctx.ptm("incrementIcon"), {
         "data-pc-section": "incrementicon"
       }), null, 16, ["class"]))];
-    })], 16, _hoisted_5$f)) : createCommentVNode("", true)];
+    })], 16, _hoisted_5$g)) : createCommentVNode("", true)];
   }), renderSlot(_ctx.$slots, "decrementbutton", {
     listeners: $options.downButtonListeners
   }, function() {
@@ -20621,11 +20635,11 @@ function render$r(_ctx, _cache, $props, $setup, $data, $options) {
         "data-pc-section": "decrementicon"
       }), null, 16, ["class"]))];
     })], 16, _hoisted_6$d)) : createCommentVNode("", true)];
-  })], 16, _hoisted_1$r);
+  })], 16, _hoisted_1$s);
 }
-script$t.render = render$r;
-var style$e = "\n    .p-message {\n        display: grid;\n        grid-template-rows: 1fr;\n        border-radius: dt('message.border.radius');\n        outline-width: dt('message.border.width');\n        outline-style: solid;\n    }\n\n    .p-message-content-wrapper {\n        min-height: 0;\n    }\n\n    .p-message-content {\n        display: flex;\n        align-items: center;\n        padding: dt('message.content.padding');\n        gap: dt('message.content.gap');\n    }\n\n    .p-message-icon {\n        flex-shrink: 0;\n    }\n\n    .p-message-close-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        margin-inline-start: auto;\n        overflow: hidden;\n        position: relative;\n        width: dt('message.close.button.width');\n        height: dt('message.close.button.height');\n        border-radius: dt('message.close.button.border.radius');\n        background: transparent;\n        transition:\n            background dt('message.transition.duration'),\n            color dt('message.transition.duration'),\n            outline-color dt('message.transition.duration'),\n            box-shadow dt('message.transition.duration'),\n            opacity 0.3s;\n        outline-color: transparent;\n        color: inherit;\n        padding: 0;\n        border: none;\n        cursor: pointer;\n        user-select: none;\n    }\n\n    .p-message-close-icon {\n        font-size: dt('message.close.icon.size');\n        width: dt('message.close.icon.size');\n        height: dt('message.close.icon.size');\n    }\n\n    .p-message-close-button:focus-visible {\n        outline-width: dt('message.close.button.focus.ring.width');\n        outline-style: dt('message.close.button.focus.ring.style');\n        outline-offset: dt('message.close.button.focus.ring.offset');\n    }\n\n    .p-message-info {\n        background: dt('message.info.background');\n        outline-color: dt('message.info.border.color');\n        color: dt('message.info.color');\n        box-shadow: dt('message.info.shadow');\n    }\n\n    .p-message-info .p-message-close-button:focus-visible {\n        outline-color: dt('message.info.close.button.focus.ring.color');\n        box-shadow: dt('message.info.close.button.focus.ring.shadow');\n    }\n\n    .p-message-info .p-message-close-button:hover {\n        background: dt('message.info.close.button.hover.background');\n    }\n\n    .p-message-info.p-message-outlined {\n        color: dt('message.info.outlined.color');\n        outline-color: dt('message.info.outlined.border.color');\n    }\n\n    .p-message-info.p-message-simple {\n        color: dt('message.info.simple.color');\n    }\n\n    .p-message-success {\n        background: dt('message.success.background');\n        outline-color: dt('message.success.border.color');\n        color: dt('message.success.color');\n        box-shadow: dt('message.success.shadow');\n    }\n\n    .p-message-success .p-message-close-button:focus-visible {\n        outline-color: dt('message.success.close.button.focus.ring.color');\n        box-shadow: dt('message.success.close.button.focus.ring.shadow');\n    }\n\n    .p-message-success .p-message-close-button:hover {\n        background: dt('message.success.close.button.hover.background');\n    }\n\n    .p-message-success.p-message-outlined {\n        color: dt('message.success.outlined.color');\n        outline-color: dt('message.success.outlined.border.color');\n    }\n\n    .p-message-success.p-message-simple {\n        color: dt('message.success.simple.color');\n    }\n\n    .p-message-warn {\n        background: dt('message.warn.background');\n        outline-color: dt('message.warn.border.color');\n        color: dt('message.warn.color');\n        box-shadow: dt('message.warn.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:focus-visible {\n        outline-color: dt('message.warn.close.button.focus.ring.color');\n        box-shadow: dt('message.warn.close.button.focus.ring.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:hover {\n        background: dt('message.warn.close.button.hover.background');\n    }\n\n    .p-message-warn.p-message-outlined {\n        color: dt('message.warn.outlined.color');\n        outline-color: dt('message.warn.outlined.border.color');\n    }\n\n    .p-message-warn.p-message-simple {\n        color: dt('message.warn.simple.color');\n    }\n\n    .p-message-error {\n        background: dt('message.error.background');\n        outline-color: dt('message.error.border.color');\n        color: dt('message.error.color');\n        box-shadow: dt('message.error.shadow');\n    }\n\n    .p-message-error .p-message-close-button:focus-visible {\n        outline-color: dt('message.error.close.button.focus.ring.color');\n        box-shadow: dt('message.error.close.button.focus.ring.shadow');\n    }\n\n    .p-message-error .p-message-close-button:hover {\n        background: dt('message.error.close.button.hover.background');\n    }\n\n    .p-message-error.p-message-outlined {\n        color: dt('message.error.outlined.color');\n        outline-color: dt('message.error.outlined.border.color');\n    }\n\n    .p-message-error.p-message-simple {\n        color: dt('message.error.simple.color');\n    }\n\n    .p-message-secondary {\n        background: dt('message.secondary.background');\n        outline-color: dt('message.secondary.border.color');\n        color: dt('message.secondary.color');\n        box-shadow: dt('message.secondary.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:focus-visible {\n        outline-color: dt('message.secondary.close.button.focus.ring.color');\n        box-shadow: dt('message.secondary.close.button.focus.ring.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:hover {\n        background: dt('message.secondary.close.button.hover.background');\n    }\n\n    .p-message-secondary.p-message-outlined {\n        color: dt('message.secondary.outlined.color');\n        outline-color: dt('message.secondary.outlined.border.color');\n    }\n\n    .p-message-secondary.p-message-simple {\n        color: dt('message.secondary.simple.color');\n    }\n\n    .p-message-contrast {\n        background: dt('message.contrast.background');\n        outline-color: dt('message.contrast.border.color');\n        color: dt('message.contrast.color');\n        box-shadow: dt('message.contrast.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:focus-visible {\n        outline-color: dt('message.contrast.close.button.focus.ring.color');\n        box-shadow: dt('message.contrast.close.button.focus.ring.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:hover {\n        background: dt('message.contrast.close.button.hover.background');\n    }\n\n    .p-message-contrast.p-message-outlined {\n        color: dt('message.contrast.outlined.color');\n        outline-color: dt('message.contrast.outlined.border.color');\n    }\n\n    .p-message-contrast.p-message-simple {\n        color: dt('message.contrast.simple.color');\n    }\n\n    .p-message-text {\n        font-size: dt('message.text.font.size');\n        font-weight: dt('message.text.font.weight');\n    }\n\n    .p-message-icon {\n        font-size: dt('message.icon.size');\n        width: dt('message.icon.size');\n        height: dt('message.icon.size');\n    }\n\n    .p-message-sm .p-message-content {\n        padding: dt('message.content.sm.padding');\n    }\n\n    .p-message-sm .p-message-text {\n        font-size: dt('message.text.sm.font.size');\n    }\n\n    .p-message-sm .p-message-icon {\n        font-size: dt('message.icon.sm.size');\n        width: dt('message.icon.sm.size');\n        height: dt('message.icon.sm.size');\n    }\n\n    .p-message-sm .p-message-close-icon {\n        font-size: dt('message.close.icon.sm.size');\n        width: dt('message.close.icon.sm.size');\n        height: dt('message.close.icon.sm.size');\n    }\n\n    .p-message-lg .p-message-content {\n        padding: dt('message.content.lg.padding');\n    }\n\n    .p-message-lg .p-message-text {\n        font-size: dt('message.text.lg.font.size');\n    }\n\n    .p-message-lg .p-message-icon {\n        font-size: dt('message.icon.lg.size');\n        width: dt('message.icon.lg.size');\n        height: dt('message.icon.lg.size');\n    }\n\n    .p-message-lg .p-message-close-icon {\n        font-size: dt('message.close.icon.lg.size');\n        width: dt('message.close.icon.lg.size');\n        height: dt('message.close.icon.lg.size');\n    }\n\n    .p-message-outlined {\n        background: transparent;\n        outline-width: dt('message.outlined.border.width');\n    }\n\n    .p-message-simple {\n        background: transparent;\n        outline-color: transparent;\n        box-shadow: none;\n    }\n\n    .p-message-simple .p-message-content {\n        padding: dt('message.simple.content.padding');\n    }\n\n    .p-message-outlined .p-message-close-button:hover,\n    .p-message-simple .p-message-close-button:hover {\n        background: transparent;\n    }\n\n    .p-message-enter-active {\n        animation: p-animate-message-enter 0.3s ease-out forwards;\n        overflow: hidden;\n    }\n\n    .p-message-leave-active {\n        animation: p-animate-message-leave 0.15s ease-in forwards;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-message-enter {\n        from {\n            opacity: 0;\n            grid-template-rows: 0fr;\n        }\n        to {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-message-leave {\n        from {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n        to {\n            opacity: 0;\n            margin: 0;\n            grid-template-rows: 0fr;\n        }\n    }\n";
-var classes$e = {
+script$u.render = render$s;
+var style$f = "\n    .p-message {\n        display: grid;\n        grid-template-rows: 1fr;\n        border-radius: dt('message.border.radius');\n        outline-width: dt('message.border.width');\n        outline-style: solid;\n    }\n\n    .p-message-content-wrapper {\n        min-height: 0;\n    }\n\n    .p-message-content {\n        display: flex;\n        align-items: center;\n        padding: dt('message.content.padding');\n        gap: dt('message.content.gap');\n    }\n\n    .p-message-icon {\n        flex-shrink: 0;\n    }\n\n    .p-message-close-button {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        margin-inline-start: auto;\n        overflow: hidden;\n        position: relative;\n        width: dt('message.close.button.width');\n        height: dt('message.close.button.height');\n        border-radius: dt('message.close.button.border.radius');\n        background: transparent;\n        transition:\n            background dt('message.transition.duration'),\n            color dt('message.transition.duration'),\n            outline-color dt('message.transition.duration'),\n            box-shadow dt('message.transition.duration'),\n            opacity 0.3s;\n        outline-color: transparent;\n        color: inherit;\n        padding: 0;\n        border: none;\n        cursor: pointer;\n        user-select: none;\n    }\n\n    .p-message-close-icon {\n        font-size: dt('message.close.icon.size');\n        width: dt('message.close.icon.size');\n        height: dt('message.close.icon.size');\n    }\n\n    .p-message-close-button:focus-visible {\n        outline-width: dt('message.close.button.focus.ring.width');\n        outline-style: dt('message.close.button.focus.ring.style');\n        outline-offset: dt('message.close.button.focus.ring.offset');\n    }\n\n    .p-message-info {\n        background: dt('message.info.background');\n        outline-color: dt('message.info.border.color');\n        color: dt('message.info.color');\n        box-shadow: dt('message.info.shadow');\n    }\n\n    .p-message-info .p-message-close-button:focus-visible {\n        outline-color: dt('message.info.close.button.focus.ring.color');\n        box-shadow: dt('message.info.close.button.focus.ring.shadow');\n    }\n\n    .p-message-info .p-message-close-button:hover {\n        background: dt('message.info.close.button.hover.background');\n    }\n\n    .p-message-info.p-message-outlined {\n        color: dt('message.info.outlined.color');\n        outline-color: dt('message.info.outlined.border.color');\n    }\n\n    .p-message-info.p-message-simple {\n        color: dt('message.info.simple.color');\n    }\n\n    .p-message-success {\n        background: dt('message.success.background');\n        outline-color: dt('message.success.border.color');\n        color: dt('message.success.color');\n        box-shadow: dt('message.success.shadow');\n    }\n\n    .p-message-success .p-message-close-button:focus-visible {\n        outline-color: dt('message.success.close.button.focus.ring.color');\n        box-shadow: dt('message.success.close.button.focus.ring.shadow');\n    }\n\n    .p-message-success .p-message-close-button:hover {\n        background: dt('message.success.close.button.hover.background');\n    }\n\n    .p-message-success.p-message-outlined {\n        color: dt('message.success.outlined.color');\n        outline-color: dt('message.success.outlined.border.color');\n    }\n\n    .p-message-success.p-message-simple {\n        color: dt('message.success.simple.color');\n    }\n\n    .p-message-warn {\n        background: dt('message.warn.background');\n        outline-color: dt('message.warn.border.color');\n        color: dt('message.warn.color');\n        box-shadow: dt('message.warn.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:focus-visible {\n        outline-color: dt('message.warn.close.button.focus.ring.color');\n        box-shadow: dt('message.warn.close.button.focus.ring.shadow');\n    }\n\n    .p-message-warn .p-message-close-button:hover {\n        background: dt('message.warn.close.button.hover.background');\n    }\n\n    .p-message-warn.p-message-outlined {\n        color: dt('message.warn.outlined.color');\n        outline-color: dt('message.warn.outlined.border.color');\n    }\n\n    .p-message-warn.p-message-simple {\n        color: dt('message.warn.simple.color');\n    }\n\n    .p-message-error {\n        background: dt('message.error.background');\n        outline-color: dt('message.error.border.color');\n        color: dt('message.error.color');\n        box-shadow: dt('message.error.shadow');\n    }\n\n    .p-message-error .p-message-close-button:focus-visible {\n        outline-color: dt('message.error.close.button.focus.ring.color');\n        box-shadow: dt('message.error.close.button.focus.ring.shadow');\n    }\n\n    .p-message-error .p-message-close-button:hover {\n        background: dt('message.error.close.button.hover.background');\n    }\n\n    .p-message-error.p-message-outlined {\n        color: dt('message.error.outlined.color');\n        outline-color: dt('message.error.outlined.border.color');\n    }\n\n    .p-message-error.p-message-simple {\n        color: dt('message.error.simple.color');\n    }\n\n    .p-message-secondary {\n        background: dt('message.secondary.background');\n        outline-color: dt('message.secondary.border.color');\n        color: dt('message.secondary.color');\n        box-shadow: dt('message.secondary.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:focus-visible {\n        outline-color: dt('message.secondary.close.button.focus.ring.color');\n        box-shadow: dt('message.secondary.close.button.focus.ring.shadow');\n    }\n\n    .p-message-secondary .p-message-close-button:hover {\n        background: dt('message.secondary.close.button.hover.background');\n    }\n\n    .p-message-secondary.p-message-outlined {\n        color: dt('message.secondary.outlined.color');\n        outline-color: dt('message.secondary.outlined.border.color');\n    }\n\n    .p-message-secondary.p-message-simple {\n        color: dt('message.secondary.simple.color');\n    }\n\n    .p-message-contrast {\n        background: dt('message.contrast.background');\n        outline-color: dt('message.contrast.border.color');\n        color: dt('message.contrast.color');\n        box-shadow: dt('message.contrast.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:focus-visible {\n        outline-color: dt('message.contrast.close.button.focus.ring.color');\n        box-shadow: dt('message.contrast.close.button.focus.ring.shadow');\n    }\n\n    .p-message-contrast .p-message-close-button:hover {\n        background: dt('message.contrast.close.button.hover.background');\n    }\n\n    .p-message-contrast.p-message-outlined {\n        color: dt('message.contrast.outlined.color');\n        outline-color: dt('message.contrast.outlined.border.color');\n    }\n\n    .p-message-contrast.p-message-simple {\n        color: dt('message.contrast.simple.color');\n    }\n\n    .p-message-text {\n        font-size: dt('message.text.font.size');\n        font-weight: dt('message.text.font.weight');\n    }\n\n    .p-message-icon {\n        font-size: dt('message.icon.size');\n        width: dt('message.icon.size');\n        height: dt('message.icon.size');\n    }\n\n    .p-message-sm .p-message-content {\n        padding: dt('message.content.sm.padding');\n    }\n\n    .p-message-sm .p-message-text {\n        font-size: dt('message.text.sm.font.size');\n    }\n\n    .p-message-sm .p-message-icon {\n        font-size: dt('message.icon.sm.size');\n        width: dt('message.icon.sm.size');\n        height: dt('message.icon.sm.size');\n    }\n\n    .p-message-sm .p-message-close-icon {\n        font-size: dt('message.close.icon.sm.size');\n        width: dt('message.close.icon.sm.size');\n        height: dt('message.close.icon.sm.size');\n    }\n\n    .p-message-lg .p-message-content {\n        padding: dt('message.content.lg.padding');\n    }\n\n    .p-message-lg .p-message-text {\n        font-size: dt('message.text.lg.font.size');\n    }\n\n    .p-message-lg .p-message-icon {\n        font-size: dt('message.icon.lg.size');\n        width: dt('message.icon.lg.size');\n        height: dt('message.icon.lg.size');\n    }\n\n    .p-message-lg .p-message-close-icon {\n        font-size: dt('message.close.icon.lg.size');\n        width: dt('message.close.icon.lg.size');\n        height: dt('message.close.icon.lg.size');\n    }\n\n    .p-message-outlined {\n        background: transparent;\n        outline-width: dt('message.outlined.border.width');\n    }\n\n    .p-message-simple {\n        background: transparent;\n        outline-color: transparent;\n        box-shadow: none;\n    }\n\n    .p-message-simple .p-message-content {\n        padding: dt('message.simple.content.padding');\n    }\n\n    .p-message-outlined .p-message-close-button:hover,\n    .p-message-simple .p-message-close-button:hover {\n        background: transparent;\n    }\n\n    .p-message-enter-active {\n        animation: p-animate-message-enter 0.3s ease-out forwards;\n        overflow: hidden;\n    }\n\n    .p-message-leave-active {\n        animation: p-animate-message-leave 0.15s ease-in forwards;\n        overflow: hidden;\n    }\n\n    @keyframes p-animate-message-enter {\n        from {\n            opacity: 0;\n            grid-template-rows: 0fr;\n        }\n        to {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n    }\n\n    @keyframes p-animate-message-leave {\n        from {\n            opacity: 1;\n            grid-template-rows: 1fr;\n        }\n        to {\n            opacity: 0;\n            margin: 0;\n            grid-template-rows: 0fr;\n        }\n    }\n";
+var classes$f = {
   root: function root11(_ref) {
     var props = _ref.props;
     return ["p-message p-component p-message-" + props.severity, {
@@ -20644,12 +20658,12 @@ var classes$e = {
 };
 var MessageStyle = BaseStyle.extend({
   name: "message",
-  style: style$e,
-  classes: classes$e
+  style: style$f,
+  classes: classes$f
 });
-var script$1$g = {
+var script$1$h = {
   name: "BaseMessage",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     severity: {
       type: String,
@@ -20717,9 +20731,9 @@ function _toPrimitive$1$2(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$s = {
+var script$t = {
   name: "Message",
-  "extends": script$1$g,
+  "extends": script$1$h,
   inheritAttrs: false,
   emits: ["close", "life-end"],
   timeout: null,
@@ -20758,7 +20772,7 @@ var script$s = {
     ripple: Ripple
   },
   components: {
-    TimesIcon: script$H
+    TimesIcon: script$I
   }
 };
 function _typeof$c(o2) {
@@ -20807,12 +20821,12 @@ function _toPrimitive$c(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var _hoisted_1$q = ["data-p"];
-var _hoisted_2$m = ["data-p"];
-var _hoisted_3$l = ["data-p"];
-var _hoisted_4$i = ["aria-label", "data-p"];
-var _hoisted_5$e = ["data-p"];
-function render$q(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$r = ["data-p"];
+var _hoisted_2$n = ["data-p"];
+var _hoisted_3$m = ["data-p"];
+var _hoisted_4$j = ["aria-label", "data-p"];
+var _hoisted_5$f = ["data-p"];
+function render$r(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_TimesIcon = resolveComponent("TimesIcon");
   var _directive_ripple = resolveDirective("ripple");
   return openBlock(), createBlock(Transition, mergeProps({
@@ -20847,7 +20861,7 @@ function render$q(_ctx, _cache, $props, $setup, $data, $options) {
         key: 0,
         "class": _ctx.cx("text"),
         "data-p": $options.dataP
-      }, _ctx.ptm("text")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_3$l)) : createCommentVNode("", true), _ctx.closable ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
+      }, _ctx.ptm("text")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_3$m)) : createCommentVNode("", true), _ctx.closable ? withDirectives((openBlock(), createElementBlock("button", mergeProps({
         key: 1,
         "class": _ctx.cx("closeButton"),
         "aria-label": $options.closeAriaLabel,
@@ -20861,19 +20875,19 @@ function render$q(_ctx, _cache, $props, $setup, $data, $options) {
           key: 0,
           "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
           "data-p": $options.dataP
-        }, _ctx.ptm("closeIcon")), null, 16, _hoisted_5$e)) : (openBlock(), createBlock(_component_TimesIcon, mergeProps({
+        }, _ctx.ptm("closeIcon")), null, 16, _hoisted_5$f)) : (openBlock(), createBlock(_component_TimesIcon, mergeProps({
           key: 1,
           "class": [_ctx.cx("closeIcon"), _ctx.closeIcon],
           "data-p": $options.dataP
         }, _ctx.ptm("closeIcon")), null, 16, ["class", "data-p"]))];
-      })], 16, _hoisted_4$i)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_2$m))], 16)], 16, _hoisted_1$q)) : createCommentVNode("", true)];
+      })], 16, _hoisted_4$j)), [[_directive_ripple]]) : createCommentVNode("", true)], 16, _hoisted_2$n))], 16)], 16, _hoisted_1$r)) : createCommentVNode("", true)];
     }),
     _: 3
   }, 16);
 }
-script$s.render = render$q;
-var style$d = "\n    .p-textarea {\n        font-family: inherit;\n        font-feature-settings: inherit;\n        font-size: 1rem;\n        color: dt('textarea.color');\n        background: dt('textarea.background');\n        padding-block: dt('textarea.padding.y');\n        padding-inline: dt('textarea.padding.x');\n        border: 1px solid dt('textarea.border.color');\n        transition:\n            background dt('textarea.transition.duration'),\n            color dt('textarea.transition.duration'),\n            border-color dt('textarea.transition.duration'),\n            outline-color dt('textarea.transition.duration'),\n            box-shadow dt('textarea.transition.duration');\n        appearance: none;\n        border-radius: dt('textarea.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('textarea.shadow');\n    }\n\n    .p-textarea:enabled:hover {\n        border-color: dt('textarea.hover.border.color');\n    }\n\n    .p-textarea:enabled:focus {\n        border-color: dt('textarea.focus.border.color');\n        box-shadow: dt('textarea.focus.ring.shadow');\n        outline: dt('textarea.focus.ring.width') dt('textarea.focus.ring.style') dt('textarea.focus.ring.color');\n        outline-offset: dt('textarea.focus.ring.offset');\n    }\n\n    .p-textarea.p-invalid {\n        border-color: dt('textarea.invalid.border.color');\n    }\n\n    .p-textarea.p-variant-filled {\n        background: dt('textarea.filled.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:hover {\n        background: dt('textarea.filled.hover.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:focus {\n        background: dt('textarea.filled.focus.background');\n    }\n\n    .p-textarea:disabled {\n        opacity: 1;\n        background: dt('textarea.disabled.background');\n        color: dt('textarea.disabled.color');\n    }\n\n    .p-textarea::placeholder {\n        color: dt('textarea.placeholder.color');\n    }\n\n    .p-textarea.p-invalid::placeholder {\n        color: dt('textarea.invalid.placeholder.color');\n    }\n\n    .p-textarea-fluid {\n        width: 100%;\n    }\n\n    .p-textarea-resizable {\n        overflow: hidden;\n        resize: none;\n    }\n\n    .p-textarea-sm {\n        font-size: dt('textarea.sm.font.size');\n        padding-block: dt('textarea.sm.padding.y');\n        padding-inline: dt('textarea.sm.padding.x');\n    }\n\n    .p-textarea-lg {\n        font-size: dt('textarea.lg.font.size');\n        padding-block: dt('textarea.lg.padding.y');\n        padding-inline: dt('textarea.lg.padding.x');\n    }\n";
-var classes$d = {
+script$t.render = render$r;
+var style$e = "\n    .p-textarea {\n        font-family: inherit;\n        font-feature-settings: inherit;\n        font-size: 1rem;\n        color: dt('textarea.color');\n        background: dt('textarea.background');\n        padding-block: dt('textarea.padding.y');\n        padding-inline: dt('textarea.padding.x');\n        border: 1px solid dt('textarea.border.color');\n        transition:\n            background dt('textarea.transition.duration'),\n            color dt('textarea.transition.duration'),\n            border-color dt('textarea.transition.duration'),\n            outline-color dt('textarea.transition.duration'),\n            box-shadow dt('textarea.transition.duration');\n        appearance: none;\n        border-radius: dt('textarea.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('textarea.shadow');\n    }\n\n    .p-textarea:enabled:hover {\n        border-color: dt('textarea.hover.border.color');\n    }\n\n    .p-textarea:enabled:focus {\n        border-color: dt('textarea.focus.border.color');\n        box-shadow: dt('textarea.focus.ring.shadow');\n        outline: dt('textarea.focus.ring.width') dt('textarea.focus.ring.style') dt('textarea.focus.ring.color');\n        outline-offset: dt('textarea.focus.ring.offset');\n    }\n\n    .p-textarea.p-invalid {\n        border-color: dt('textarea.invalid.border.color');\n    }\n\n    .p-textarea.p-variant-filled {\n        background: dt('textarea.filled.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:hover {\n        background: dt('textarea.filled.hover.background');\n    }\n\n    .p-textarea.p-variant-filled:enabled:focus {\n        background: dt('textarea.filled.focus.background');\n    }\n\n    .p-textarea:disabled {\n        opacity: 1;\n        background: dt('textarea.disabled.background');\n        color: dt('textarea.disabled.color');\n    }\n\n    .p-textarea::placeholder {\n        color: dt('textarea.placeholder.color');\n    }\n\n    .p-textarea.p-invalid::placeholder {\n        color: dt('textarea.invalid.placeholder.color');\n    }\n\n    .p-textarea-fluid {\n        width: 100%;\n    }\n\n    .p-textarea-resizable {\n        overflow: hidden;\n        resize: none;\n    }\n\n    .p-textarea-sm {\n        font-size: dt('textarea.sm.font.size');\n        padding-block: dt('textarea.sm.padding.y');\n        padding-inline: dt('textarea.sm.padding.x');\n    }\n\n    .p-textarea-lg {\n        font-size: dt('textarea.lg.font.size');\n        padding-block: dt('textarea.lg.padding.y');\n        padding-inline: dt('textarea.lg.padding.x');\n    }\n";
+var classes$e = {
   root: function root12(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-textarea p-component", {
@@ -20889,12 +20903,12 @@ var classes$d = {
 };
 var TextareaStyle = BaseStyle.extend({
   name: "textarea",
-  style: style$d,
-  classes: classes$d
+  style: style$e,
+  classes: classes$e
 });
-var script$1$f = {
+var script$1$g = {
   name: "BaseTextarea",
-  "extends": script$L,
+  "extends": script$M,
   props: {
     autoResize: Boolean
   },
@@ -20931,9 +20945,9 @@ function _toPrimitive$b(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$r = {
+var script$s = {
   name: "Textarea",
-  "extends": script$1$f,
+  "extends": script$1$g,
   inheritAttrs: false,
   observer: null,
   mounted: function mounted9() {
@@ -20997,8 +21011,8 @@ var script$r = {
     }
   }
 };
-var _hoisted_1$p = ["value", "name", "disabled", "aria-invalid", "data-p"];
-function render$p(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$q = ["value", "name", "disabled", "aria-invalid", "data-p"];
+function render$q(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("textarea", mergeProps({
     "class": _ctx.cx("root"),
     value: _ctx.d_value,
@@ -21009,9 +21023,9 @@ function render$p(_ctx, _cache, $props, $setup, $data, $options) {
     onInput: _cache[0] || (_cache[0] = function() {
       return $options.onInput && $options.onInput.apply($options, arguments);
     })
-  }, $options.attrs), null, 16, _hoisted_1$p);
+  }, $options.attrs), null, 16, _hoisted_1$q);
 }
-script$r.render = render$p;
+script$s.render = render$q;
 const BASE_URL = "/api";
 async function request(endpoint, options3) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -21125,11 +21139,11 @@ const configApi = {
     });
   }
 };
-const _hoisted_1$o = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
-const _hoisted_2$l = { class: "space-y-4" };
-const _hoisted_3$k = { class: "flex items-center justify-between p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_4$h = { class: "flex items-center gap-2" };
-const _hoisted_5$d = {
+const _hoisted_1$p = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
+const _hoisted_2$m = { class: "space-y-4" };
+const _hoisted_3$l = { class: "flex items-center justify-between p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_4$i = { class: "flex items-center gap-2" };
+const _hoisted_5$e = {
   key: 0,
   class: "p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3"
 };
@@ -21232,13 +21246,13 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
       llmLoading.value = true;
       llmError.value = "";
       try {
-        const data21 = await configApi.getLlmConfig();
+        const data22 = await configApi.getLlmConfig();
         llmConfig.value = {
-          baseURL: data21.llm.baseURL || "",
-          model: data21.llm.model || "",
-          apiKey: data21.llm.apiKey || "",
-          maxTokens: data21.llm.maxTokens || 4096,
-          maxConcurrentRequests: data21.llm.maxConcurrentRequests || 2
+          baseURL: data22.llm.baseURL || "",
+          model: data22.llm.model || "",
+          apiKey: data22.llm.apiKey || "",
+          maxTokens: data22.llm.maxTokens || 4096,
+          maxConcurrentRequests: data22.llm.maxConcurrentRequests || 2
         };
         originalLlmConfig.value = { ...llmConfig.value };
       } catch (err) {
@@ -21388,8 +21402,8 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
     const loadLlmServices = async () => {
       servicesLoading.value = true;
       try {
-        const data21 = await configApi.getLlmServicesConfig();
-        llmServices.value = data21.services || [];
+        const data22 = await configApi.getLlmServicesConfig();
+        llmServices.value = data22.services || [];
       } catch (err) {
         console.warn("加载 LLM 服务列表失败:", err);
         llmServices.value = [];
@@ -21402,15 +21416,15 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
       loadLlmServices();
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$o, [
-        createVNode(unref(script$C), {
+      return openBlock(), createElementBlock("div", _hoisted_1$p, [
+        createVNode(unref(script$D), {
           value: "llm",
           class: "h-full flex flex-col"
         }, {
           default: withCtx(() => [
-            createVNode(unref(script$z), { class: "px-4 border-b border-[var(--border)]" }, {
+            createVNode(unref(script$A), { class: "px-4 border-b border-[var(--border)]" }, {
               default: withCtx(() => [
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$y), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$z), {
                   key: 0,
                   value: "general",
                   class: "flex items-center gap-2"
@@ -21421,7 +21435,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                createVNode(unref(script$y), {
+                createVNode(unref(script$z), {
                   value: "llm",
                   class: "flex items-center gap-2"
                 }, {
@@ -21431,7 +21445,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$y), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$z), {
                   key: 1,
                   value: "services",
                   class: "flex items-center gap-2"
@@ -21442,7 +21456,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$y), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$z), {
                   key: 2,
                   value: "about",
                   class: "flex items-center gap-2;"
@@ -21456,9 +21470,9 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }),
-            createVNode(unref(script$x), { class: "flex-grow overflow-y-auto !p-0" }, {
+            createVNode(unref(script$y), { class: "flex-grow overflow-y-auto !p-0" }, {
               default: withCtx(() => [
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$w), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$x), {
                   key: 0,
                   value: "general",
                   class: "p-6 space-y-8"
@@ -21466,15 +21480,15 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   default: withCtx(() => [
                     createBaseVNode("section", null, [
                       _cache[21] || (_cache[21] = createBaseVNode("h3", { class: "text-sm font-bold text-[var(--text-1)] mb-4 flex items-center gap-2" }, " 外观展示 ", -1)),
-                      createBaseVNode("div", _hoisted_2$l, [
-                        createBaseVNode("div", _hoisted_3$k, [
+                      createBaseVNode("div", _hoisted_2$m, [
+                        createBaseVNode("div", _hoisted_3$l, [
                           _cache[20] || (_cache[20] = createBaseVNode("div", null, [
                             createBaseVNode("p", { class: "font-medium text-[var(--text-1)]" }, "深色模式"),
                             createBaseVNode("p", { class: "text-xs text-[var(--text-3)]" }, "调整应用界面的显示主题")
                           ], -1)),
-                          createBaseVNode("div", _hoisted_4$h, [
+                          createBaseVNode("div", _hoisted_4$i, [
                             (openBlock(true), createElementBlock(Fragment, null, renderList(themeOptions.value, (opt) => {
-                              return openBlock(), createBlock(unref(script$N), {
+                              return openBlock(), createBlock(unref(script$O), {
                                 key: opt.value,
                                 variant: unref(appStore).theme === opt.value ? "primary" : "text",
                                 size: "small",
@@ -21495,19 +21509,19 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                createVNode(unref(script$w), {
+                createVNode(unref(script$x), {
                   value: "llm",
                   class: "p-6 space-y-6"
                 }, {
                   default: withCtx(() => [
-                    isFirstRun.value ? (openBlock(), createElementBlock("div", _hoisted_5$d, [
+                    isFirstRun.value ? (openBlock(), createElementBlock("div", _hoisted_5$e, [
                       createVNode(unref(CircleAlert), { class: "w-5 h-5 text-blue-500 shrink-0 mt-0.5" }),
                       _cache[22] || (_cache[22] = createBaseVNode("div", null, [
                         createBaseVNode("p", { class: "font-medium text-blue-700" }, "首次运行配置"),
                         createBaseVNode("p", { class: "text-sm text-blue-600 mt-1" }, " 这是您第一次运行系统。请配置大模型参数后保存，系统将创建 app.local.json 配置文件。 配置保存后系统将自动连接大模型服务。 ")
                       ], -1))
                     ])) : createCommentVNode("", true),
-                    llmError.value ? (openBlock(), createBlock(unref(script$s), {
+                    llmError.value ? (openBlock(), createBlock(unref(script$t), {
                       key: 1,
                       severity: "error",
                       class: "mb-4"
@@ -21517,7 +21531,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                       ]),
                       _: 1
                     })) : createCommentVNode("", true),
-                    llmSuccess.value ? (openBlock(), createBlock(unref(script$s), {
+                    llmSuccess.value ? (openBlock(), createBlock(unref(script$t), {
                       key: 2,
                       severity: "success",
                       class: "mb-4"
@@ -21535,7 +21549,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                           createVNode(unref(Globe), { class: "w-4 h-4 inline-block mr-1" }),
                           _cache[24] || (_cache[24] = createTextVNode(" API 地址 ", -1))
                         ]),
-                        createVNode(unref(script$K), {
+                        createVNode(unref(script$L), {
                           modelValue: llmConfig.value.baseURL,
                           "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => llmConfig.value.baseURL = $event),
                           placeholder: "http://127.0.0.1:1234/v1",
@@ -21548,7 +21562,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                           createVNode(unref(Server), { class: "w-4 h-4 inline-block mr-1" }),
                           _cache[26] || (_cache[26] = createTextVNode(" 模型名称 ", -1))
                         ]),
-                        createVNode(unref(script$K), {
+                        createVNode(unref(script$L), {
                           modelValue: llmConfig.value.model,
                           "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => llmConfig.value.model = $event),
                           placeholder: "model-name",
@@ -21561,7 +21575,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                           createVNode(unref(Key), { class: "w-4 h-4 inline-block mr-1" }),
                           _cache[28] || (_cache[28] = createTextVNode(" API Key ", -1))
                         ]),
-                        createVNode(unref(script$K), {
+                        createVNode(unref(script$L), {
                           modelValue: llmConfig.value.apiKey,
                           "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => llmConfig.value.apiKey = $event),
                           placeholder: "sk-...",
@@ -21573,7 +21587,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", _hoisted_11$a, [
                         createBaseVNode("div", null, [
                           _cache[30] || (_cache[30] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 最大 Token 数 ", -1)),
-                          createVNode(unref(script$t), {
+                          createVNode(unref(script$u), {
                             modelValue: llmConfig.value.maxTokens,
                             "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => llmConfig.value.maxTokens = $event),
                             min: 1,
@@ -21583,7 +21597,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                         ]),
                         createBaseVNode("div", null, [
                           _cache[31] || (_cache[31] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 最大并发请求 ", -1)),
-                          createVNode(unref(script$t), {
+                          createVNode(unref(script$u), {
                             modelValue: llmConfig.value.maxConcurrentRequests,
                             "onUpdate:modelValue": _cache[4] || (_cache[4] = ($event) => llmConfig.value.maxConcurrentRequests = $event),
                             min: 1,
@@ -21593,7 +21607,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                         ])
                       ]),
                       createBaseVNode("div", _hoisted_12$a, [
-                        createVNode(unref(script$N), {
+                        createVNode(unref(script$O), {
                           variant: "primary",
                           disabled: !hasLlmChanges.value || llmSaving.value,
                           loading: llmSaving.value,
@@ -21605,7 +21619,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                           ]),
                           _: 1
                         }, 8, ["disabled", "loading"]),
-                        createVNode(unref(script$N), {
+                        createVNode(unref(script$O), {
                           variant: "text",
                           disabled: !hasLlmChanges.value || llmSaving.value,
                           onClick: resetLlmConfig
@@ -21621,7 +21635,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$w), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$x), {
                   key: 1,
                   value: "services",
                   class: "p-6"
@@ -21630,7 +21644,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                     createBaseVNode("div", _hoisted_14$9, [
                       createBaseVNode("div", _hoisted_15$9, [
                         _cache[35] || (_cache[35] = createBaseVNode("h3", { class: "text-sm font-bold text-[var(--text-1)]" }, "模型服务列表", -1)),
-                        createVNode(unref(script$N), {
+                        createVNode(unref(script$O), {
                           variant: "text",
                           size: "small",
                           onClick: openAddServiceDialog
@@ -21670,7 +21684,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                                 ])
                               ]),
                               createBaseVNode("div", _hoisted_25$4, [
-                                createVNode(unref(script$N), {
+                                createVNode(unref(script$O), {
                                   variant: "text",
                                   size: "small",
                                   onClick: ($event) => openEditServiceDialog(service)
@@ -21680,7 +21694,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                                   ])]),
                                   _: 1
                                 }, 8, ["onClick"]),
-                                createVNode(unref(script$N), {
+                                createVNode(unref(script$O), {
                                   variant: "text",
                                   size: "small",
                                   class: "text-red-500",
@@ -21705,7 +21719,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 })) : createCommentVNode("", true),
-                !isFirstRun.value ? (openBlock(), createBlock(unref(script$w), {
+                !isFirstRun.value ? (openBlock(), createBlock(unref(script$x), {
                   key: 2,
                   value: "about",
                   class: "p-6 flex flex-col items-center justify-center space-y-4;"
@@ -21720,12 +21734,12 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                     ], -1)),
                     _cache[41] || (_cache[41] = createBaseVNode("p", { class: "text-sm text-center text-[var(--text-2)] max-w-[300px] leading-relaxed" }, " 一个基于大模型的智能体自组织社会化系统，致力于探索智能体协作的新边界。 ", -1)),
                     createBaseVNode("div", _hoisted_27$3, [
-                      createVNode(unref(script$N), {
+                      createVNode(unref(script$O), {
                         label: "检查更新",
                         variant: "text",
                         size: "small"
                       }),
-                      createVNode(unref(script$N), {
+                      createVNode(unref(script$O), {
                         label: "用户手册",
                         variant: "text",
                         size: "small"
@@ -21740,7 +21754,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
           ]),
           _: 1
         }),
-        createVNode(unref(script$D), {
+        createVNode(unref(script$E), {
           visible: serviceDialogVisible.value,
           "onUpdate:visible": _cache[15] || (_cache[15] = ($event) => serviceDialogVisible.value = $event),
           header: isEditingService.value ? "编辑服务" : "添加服务",
@@ -21752,7 +21766,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
         }, {
           footer: withCtx(() => [
             createBaseVNode("div", _hoisted_34$2, [
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "text",
                 disabled: serviceSaving.value,
                 onClick: _cache[14] || (_cache[14] = ($event) => serviceDialogVisible.value = false)
@@ -21762,7 +21776,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                 ])]),
                 _: 1
               }, 8, ["disabled"]),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "primary",
                 loading: serviceSaving.value,
                 onClick: saveService
@@ -21777,7 +21791,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
           ]),
           default: withCtx(() => [
             createBaseVNode("div", _hoisted_28$3, [
-              serviceError.value ? (openBlock(), createBlock(unref(script$s), {
+              serviceError.value ? (openBlock(), createBlock(unref(script$t), {
                 key: 0,
                 severity: "error"
               }, {
@@ -21791,7 +21805,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   createTextVNode(" 服务 ID "),
                   createBaseVNode("span", { class: "text-red-500" }, "*")
                 ], -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: serviceForm.value.id,
                   "onUpdate:modelValue": _cache[5] || (_cache[5] = ($event) => serviceForm.value.id = $event),
                   placeholder: "my-service",
@@ -21805,7 +21819,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   createTextVNode(" 服务名称 "),
                   createBaseVNode("span", { class: "text-red-500" }, "*")
                 ], -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: serviceForm.value.name,
                   "onUpdate:modelValue": _cache[6] || (_cache[6] = ($event) => serviceForm.value.name = $event),
                   placeholder: "我的服务",
@@ -21817,7 +21831,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   createTextVNode(" API 地址 "),
                   createBaseVNode("span", { class: "text-red-500" }, "*")
                 ], -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: serviceForm.value.baseURL,
                   "onUpdate:modelValue": _cache[7] || (_cache[7] = ($event) => serviceForm.value.baseURL = $event),
                   placeholder: "http://127.0.0.1:1234/v1",
@@ -21829,7 +21843,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   createTextVNode(" 模型名称 "),
                   createBaseVNode("span", { class: "text-red-500" }, "*")
                 ], -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: serviceForm.value.model,
                   "onUpdate:modelValue": _cache[8] || (_cache[8] = ($event) => serviceForm.value.model = $event),
                   placeholder: "model-name",
@@ -21838,7 +21852,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
               ]),
               createBaseVNode("section", null, [
                 _cache[47] || (_cache[47] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " API Key ", -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: serviceForm.value.apiKey,
                   "onUpdate:modelValue": _cache[9] || (_cache[9] = ($event) => serviceForm.value.apiKey = $event),
                   placeholder: "sk-...",
@@ -21850,7 +21864,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
               createBaseVNode("section", _hoisted_30$2, [
                 createBaseVNode("div", null, [
                   _cache[48] || (_cache[48] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " 最大 Token 数 ", -1)),
-                  createVNode(unref(script$t), {
+                  createVNode(unref(script$u), {
                     modelValue: serviceForm.value.maxTokens,
                     "onUpdate:modelValue": _cache[10] || (_cache[10] = ($event) => serviceForm.value.maxTokens = $event),
                     min: 1,
@@ -21860,7 +21874,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                 ]),
                 createBaseVNode("div", null, [
                   _cache[49] || (_cache[49] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " 最大并发请求 ", -1)),
-                  createVNode(unref(script$t), {
+                  createVNode(unref(script$u), {
                     modelValue: serviceForm.value.maxConcurrentRequests,
                     "onUpdate:modelValue": _cache[11] || (_cache[11] = ($event) => serviceForm.value.maxConcurrentRequests = $event),
                     min: 1,
@@ -21888,14 +21902,14 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
                   }), 128))
                 ]),
                 createBaseVNode("div", _hoisted_33$2, [
-                  createVNode(unref(script$K), {
+                  createVNode(unref(script$L), {
                     modelValue: serviceTagInput.value,
                     "onUpdate:modelValue": _cache[12] || (_cache[12] = ($event) => serviceTagInput.value = $event),
                     placeholder: "输入标签后按回车",
                     class: "flex-1",
                     onKeydown: withKeys(withModifiers(addCapabilityTag, ["prevent"]), ["enter"])
                   }, null, 8, ["modelValue", "onKeydown"]),
-                  createVNode(unref(script$N), {
+                  createVNode(unref(script$O), {
                     variant: "text",
                     size: "small",
                     onClick: addCapabilityTag
@@ -21909,7 +21923,7 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
               ]),
               createBaseVNode("section", null, [
                 _cache[51] || (_cache[51] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-1.5" }, " 描述 ", -1)),
-                createVNode(unref(script$r), {
+                createVNode(unref(script$s), {
                   modelValue: serviceForm.value.description,
                   "onUpdate:modelValue": _cache[13] || (_cache[13] = ($event) => serviceForm.value.description = $event),
                   placeholder: "服务描述...",
@@ -21925,8 +21939,8 @@ const _sfc_main$e = /* @__PURE__ */ defineComponent({
     };
   }
 });
-var style$c = "\n    .p-organizationchart-table {\n        border-spacing: 0;\n        border-collapse: separate;\n        margin: 0 auto;\n    }\n\n    .p-organizationchart-table > tbody > tr > td {\n        text-align: center;\n        vertical-align: top;\n        padding: 0 dt('organizationchart.gutter');\n    }\n\n    .p-organizationchart-node {\n        display: inline-block;\n        position: relative;\n        border: 1px solid dt('organizationchart.node.border.color');\n        background: dt('organizationchart.node.background');\n        color: dt('organizationchart.node.color');\n        padding: dt('organizationchart.node.padding');\n        border-radius: dt('organizationchart.node.border.radius');\n        transition:\n            background dt('organizationchart.transition.duration'),\n            border-color dt('organizationchart.transition.duration'),\n            color dt('organizationchart.transition.duration'),\n            box-shadow dt('organizationchart.transition.duration');\n    }\n\n    .p-organizationchart-node:has(.p-organizationchart-node-toggle-button) {\n        padding: dt('organizationchart.node.toggleable.padding');\n    }\n\n    .p-organizationchart-node.p-organizationchart-node-selectable:not(.p-organizationchart-node-selected):hover {\n        background: dt('organizationchart.node.hover.background');\n        color: dt('organizationchart.node.hover.color');\n    }\n\n    .p-organizationchart-node-selected {\n        background: dt('organizationchart.node.selected.background');\n        color: dt('organizationchart.node.selected.color');\n    }\n\n    .p-organizationchart-node-toggle-button {\n        position: absolute;\n        inset-block-end: calc(-1 * calc(dt('organizationchart.node.toggle.button.size') / 2));\n        margin-inline-start: calc(-1 * calc(dt('organizationchart.node.toggle.button.size') / 2));\n        z-index: 2;\n        inset-inline-start: 50%;\n        user-select: none;\n        cursor: pointer;\n        width: dt('organizationchart.node.toggle.button.size');\n        height: dt('organizationchart.node.toggle.button.size');\n        text-decoration: none;\n        background: dt('organizationchart.node.toggle.button.background');\n        color: dt('organizationchart.node.toggle.button.color');\n        border-radius: dt('organizationchart.node.toggle.button.border.radius');\n        border: 1px solid dt('organizationchart.node.toggle.button.border.color');\n        display: inline-flex;\n        justify-content: center;\n        align-items: center;\n        outline-color: transparent;\n        transition:\n            background dt('organizationchart.transition.duration'),\n            color dt('organizationchart.transition.duration'),\n            border-color dt('organizationchart.transition.duration'),\n            outline-color dt('organizationchart.transition.duration'),\n            box-shadow dt('organizationchart.transition.duration');\n    }\n\n    .p-organizationchart-node-toggle-button:hover {\n        background: dt('organizationchart.node.toggle.button.hover.background');\n        color: dt('organizationchart.node.toggle.button.hover.color');\n    }\n\n    .p-organizationchart-node-toggle-button:focus-visible {\n        box-shadow: dt('organizationchart.node.toggle.button.focus.ring.shadow');\n        outline: dt('organizationchart.node.toggle.button.focus.ring.width') dt('organizationchart.node.toggle.button.focus.ring.style') dt('organizationchart.node.toggle.button.focus.ring.color');\n        outline-offset: dt('organizationchart.node.toggle.button.focus.ring.offset');\n    }\n\n    .p-organizationchart-node-toggle-button-icon {\n        position: relative;\n        inset-block-start: 1px;\n    }\n\n    .p-organizationchart-connector-down {\n        margin: 0 auto;\n        height: dt('organizationchart.connector.height');\n        width: 1px;\n        background: dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-connector-right {\n        border-radius: 0;\n    }\n\n    .p-organizationchart-connector-left {\n        border-radius: 0;\n        border-inline-end: 1px solid dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-connector-top {\n        border-block-start: 1px solid dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-node-selectable {\n        cursor: pointer;\n    }\n\n    .p-organizationchart-connectors :nth-child(1 of .p-organizationchart-connector-left) {\n        border-inline-end: 0 none;\n    }\n\n    .p-organizationchart-connectors :nth-last-child(1 of .p-organizationchart-connector-left) {\n        border-start-end-radius: dt('organizationchart.connector.border.radius');\n    }\n\n    .p-organizationchart-connectors :nth-child(1 of .p-organizationchart-connector-right) {\n        border-inline-start: 1px solid dt('organizationchart.connector.color');\n        border-start-start-radius: dt('organizationchart.connector.border.radius');\n    }\n";
-var classes$c = {
+var style$d = "\n    .p-organizationchart-table {\n        border-spacing: 0;\n        border-collapse: separate;\n        margin: 0 auto;\n    }\n\n    .p-organizationchart-table > tbody > tr > td {\n        text-align: center;\n        vertical-align: top;\n        padding: 0 dt('organizationchart.gutter');\n    }\n\n    .p-organizationchart-node {\n        display: inline-block;\n        position: relative;\n        border: 1px solid dt('organizationchart.node.border.color');\n        background: dt('organizationchart.node.background');\n        color: dt('organizationchart.node.color');\n        padding: dt('organizationchart.node.padding');\n        border-radius: dt('organizationchart.node.border.radius');\n        transition:\n            background dt('organizationchart.transition.duration'),\n            border-color dt('organizationchart.transition.duration'),\n            color dt('organizationchart.transition.duration'),\n            box-shadow dt('organizationchart.transition.duration');\n    }\n\n    .p-organizationchart-node:has(.p-organizationchart-node-toggle-button) {\n        padding: dt('organizationchart.node.toggleable.padding');\n    }\n\n    .p-organizationchart-node.p-organizationchart-node-selectable:not(.p-organizationchart-node-selected):hover {\n        background: dt('organizationchart.node.hover.background');\n        color: dt('organizationchart.node.hover.color');\n    }\n\n    .p-organizationchart-node-selected {\n        background: dt('organizationchart.node.selected.background');\n        color: dt('organizationchart.node.selected.color');\n    }\n\n    .p-organizationchart-node-toggle-button {\n        position: absolute;\n        inset-block-end: calc(-1 * calc(dt('organizationchart.node.toggle.button.size') / 2));\n        margin-inline-start: calc(-1 * calc(dt('organizationchart.node.toggle.button.size') / 2));\n        z-index: 2;\n        inset-inline-start: 50%;\n        user-select: none;\n        cursor: pointer;\n        width: dt('organizationchart.node.toggle.button.size');\n        height: dt('organizationchart.node.toggle.button.size');\n        text-decoration: none;\n        background: dt('organizationchart.node.toggle.button.background');\n        color: dt('organizationchart.node.toggle.button.color');\n        border-radius: dt('organizationchart.node.toggle.button.border.radius');\n        border: 1px solid dt('organizationchart.node.toggle.button.border.color');\n        display: inline-flex;\n        justify-content: center;\n        align-items: center;\n        outline-color: transparent;\n        transition:\n            background dt('organizationchart.transition.duration'),\n            color dt('organizationchart.transition.duration'),\n            border-color dt('organizationchart.transition.duration'),\n            outline-color dt('organizationchart.transition.duration'),\n            box-shadow dt('organizationchart.transition.duration');\n    }\n\n    .p-organizationchart-node-toggle-button:hover {\n        background: dt('organizationchart.node.toggle.button.hover.background');\n        color: dt('organizationchart.node.toggle.button.hover.color');\n    }\n\n    .p-organizationchart-node-toggle-button:focus-visible {\n        box-shadow: dt('organizationchart.node.toggle.button.focus.ring.shadow');\n        outline: dt('organizationchart.node.toggle.button.focus.ring.width') dt('organizationchart.node.toggle.button.focus.ring.style') dt('organizationchart.node.toggle.button.focus.ring.color');\n        outline-offset: dt('organizationchart.node.toggle.button.focus.ring.offset');\n    }\n\n    .p-organizationchart-node-toggle-button-icon {\n        position: relative;\n        inset-block-start: 1px;\n    }\n\n    .p-organizationchart-connector-down {\n        margin: 0 auto;\n        height: dt('organizationchart.connector.height');\n        width: 1px;\n        background: dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-connector-right {\n        border-radius: 0;\n    }\n\n    .p-organizationchart-connector-left {\n        border-radius: 0;\n        border-inline-end: 1px solid dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-connector-top {\n        border-block-start: 1px solid dt('organizationchart.connector.color');\n    }\n\n    .p-organizationchart-node-selectable {\n        cursor: pointer;\n    }\n\n    .p-organizationchart-connectors :nth-child(1 of .p-organizationchart-connector-left) {\n        border-inline-end: 0 none;\n    }\n\n    .p-organizationchart-connectors :nth-last-child(1 of .p-organizationchart-connector-left) {\n        border-start-end-radius: dt('organizationchart.connector.border.radius');\n    }\n\n    .p-organizationchart-connectors :nth-child(1 of .p-organizationchart-connector-right) {\n        border-inline-start: 1px solid dt('organizationchart.connector.color');\n        border-start-start-radius: dt('organizationchart.connector.border.radius');\n    }\n";
+var classes$d = {
   root: "p-organizationchart p-component",
   table: "p-organizationchart-table",
   node: function node(_ref) {
@@ -21961,12 +21975,53 @@ var classes$c = {
 };
 var OrganizationChartStyle = BaseStyle.extend({
   name: "organizationchart",
-  style: style$c,
-  classes: classes$c
+  style: style$d,
+  classes: classes$d
 });
-var script$q = {
+var script$r = {
   name: "ChevronDownIcon",
-  "extends": script$Q
+  "extends": script$R
+};
+function _toConsumableArray$e(r2) {
+  return _arrayWithoutHoles$e(r2) || _iterableToArray$e(r2) || _unsupportedIterableToArray$e(r2) || _nonIterableSpread$e();
+}
+function _nonIterableSpread$e() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$e(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$e(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$e(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$e(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$e(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$e(r2);
+}
+function _arrayLikeToArray$e(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$p(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$e(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M7.01744 10.398C6.91269 10.3985 6.8089 10.378 6.71215 10.3379C6.61541 10.2977 6.52766 10.2386 6.45405 10.1641L1.13907 4.84913C1.03306 4.69404 0.985221 4.5065 1.00399 4.31958C1.02276 4.13266 1.10693 3.95838 1.24166 3.82747C1.37639 3.69655 1.55301 3.61742 1.74039 3.60402C1.92777 3.59062 2.11386 3.64382 2.26584 3.75424L7.01744 8.47394L11.769 3.75424C11.9189 3.65709 12.097 3.61306 12.2748 3.62921C12.4527 3.64535 12.6199 3.72073 12.7498 3.84328C12.8797 3.96582 12.9647 4.12842 12.9912 4.30502C13.0177 4.48162 12.9841 4.662 12.8958 4.81724L7.58083 10.1322C7.50996 10.2125 7.42344 10.2775 7.32656 10.3232C7.22968 10.3689 7.12449 10.3944 7.01744 10.398Z",
+    fill: "currentColor"
+  }, null, -1)])), 16);
+}
+script$r.render = render$p;
+var script$q = {
+  name: "ChevronUpIcon",
+  "extends": script$R
 };
 function _toConsumableArray$d(r2) {
   return _arrayWithoutHoles$d(r2) || _iterableToArray$d(r2) || _unsupportedIterableToArray$d(r2) || _nonIterableSpread$d();
@@ -22000,55 +22055,14 @@ function render$o(_ctx, _cache, $props, $setup, $data, $options) {
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
   }, _ctx.pti()), _toConsumableArray$d(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M7.01744 10.398C6.91269 10.3985 6.8089 10.378 6.71215 10.3379C6.61541 10.2977 6.52766 10.2386 6.45405 10.1641L1.13907 4.84913C1.03306 4.69404 0.985221 4.5065 1.00399 4.31958C1.02276 4.13266 1.10693 3.95838 1.24166 3.82747C1.37639 3.69655 1.55301 3.61742 1.74039 3.60402C1.92777 3.59062 2.11386 3.64382 2.26584 3.75424L7.01744 8.47394L11.769 3.75424C11.9189 3.65709 12.097 3.61306 12.2748 3.62921C12.4527 3.64535 12.6199 3.72073 12.7498 3.84328C12.8797 3.96582 12.9647 4.12842 12.9912 4.30502C13.0177 4.48162 12.9841 4.662 12.8958 4.81724L7.58083 10.1322C7.50996 10.2125 7.42344 10.2775 7.32656 10.3232C7.22968 10.3689 7.12449 10.3944 7.01744 10.398Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$q.render = render$o;
-var script$p = {
-  name: "ChevronUpIcon",
-  "extends": script$Q
-};
-function _toConsumableArray$c(r2) {
-  return _arrayWithoutHoles$c(r2) || _iterableToArray$c(r2) || _unsupportedIterableToArray$c(r2) || _nonIterableSpread$c();
-}
-function _nonIterableSpread$c() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$c(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$c(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$c(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$c(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$c(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$c(r2);
-}
-function _arrayLikeToArray$c(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$n(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$c(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M12.2097 10.4113C12.1057 10.4118 12.0027 10.3915 11.9067 10.3516C11.8107 10.3118 11.7237 10.2532 11.6506 10.1792L6.93602 5.46461L2.22139 10.1476C2.07272 10.244 1.89599 10.2877 1.71953 10.2717C1.54307 10.2556 1.3771 10.1808 1.24822 10.0593C1.11933 9.93766 1.035 9.77633 1.00874 9.6011C0.982477 9.42587 1.0158 9.2469 1.10338 9.09287L6.37701 3.81923C6.52533 3.6711 6.72639 3.58789 6.93602 3.58789C7.14565 3.58789 7.3467 3.6711 7.49502 3.81923L12.7687 9.09287C12.9168 9.24119 13 9.44225 13 9.65187C13 9.8615 12.9168 10.0626 12.7687 10.2109C12.616 10.3487 12.4151 10.4207 12.2097 10.4113Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$p.render = render$n;
-var script$2$2 = {
+script$q.render = render$o;
+var script$2$3 = {
   name: "BaseOrganizationChart",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     value: {
       type: null,
@@ -22079,10 +22093,10 @@ var script$2$2 = {
     };
   }
 };
-var script$1$e = {
+var script$1$f = {
   name: "OrganizationChartNode",
   hostName: "OrganizationChart",
-  "extends": script$R,
+  "extends": script$S,
   emits: ["node-click", "node-toggle"],
   props: {
     node: {
@@ -22179,14 +22193,14 @@ var script$1$e = {
     }
   },
   components: {
-    ChevronDownIcon: script$q,
-    ChevronUpIcon: script$p
+    ChevronDownIcon: script$r,
+    ChevronUpIcon: script$q
   }
 };
-var _hoisted_1$n = ["colspan"];
-var _hoisted_2$k = ["colspan"];
-var _hoisted_3$j = ["colspan"];
-function render$1$2(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$o = ["colspan"];
+var _hoisted_2$l = ["colspan"];
+var _hoisted_3$k = ["colspan"];
+function render$1$3(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_OrganizationChartNode = resolveComponent("OrganizationChartNode", true);
   return openBlock(), createElementBlock("table", mergeProps({
     "class": _ctx.cx("table")
@@ -22218,14 +22232,14 @@ function render$1$2(_ctx, _cache, $props, $setup, $data, $options) {
   }, $options.getPTOptions("nodeToggleButtonIcon")), null, 16, ["expanded", "class"])) : (openBlock(), createBlock(resolveDynamicComponent($options.expanded ? "ChevronDownIcon" : "ChevronUpIcon"), mergeProps({
     key: 1,
     "class": _ctx.cx("nodeToggleButtonIcon")
-  }, $options.getPTOptions("nodeToggleButtonIcon")), null, 16, ["class"]))], 16)) : createCommentVNode("", true)], 16)], 16, _hoisted_1$n)], 16)) : createCommentVNode("", true), createBaseVNode("tr", mergeProps({
+  }, $options.getPTOptions("nodeToggleButtonIcon")), null, 16, ["class"]))], 16)) : createCommentVNode("", true)], 16)], 16, _hoisted_1$o)], 16)) : createCommentVNode("", true), createBaseVNode("tr", mergeProps({
     style: $options.childStyle,
     "class": _ctx.cx("connectors")
   }, _ctx.ptm("connectors")), [createBaseVNode("td", mergeProps({
     colspan: $options.colspan
   }, _ctx.ptm("lineCell")), [createBaseVNode("div", mergeProps({
     "class": _ctx.cx("connectorDown")
-  }, _ctx.ptm("connectorDown")), null, 16)], 16, _hoisted_2$k)], 16), createBaseVNode("tr", mergeProps({
+  }, _ctx.ptm("connectorDown")), null, 16)], 16, _hoisted_2$l)], 16), createBaseVNode("tr", mergeProps({
     style: $options.childStyle,
     "class": _ctx.cx("connectors")
   }, _ctx.ptm("connectors")), [$props.node.children && $props.node.children.length === 1 ? (openBlock(), createElementBlock("td", mergeProps({
@@ -22233,7 +22247,7 @@ function render$1$2(_ctx, _cache, $props, $setup, $data, $options) {
     colspan: $options.colspan
   }, _ctx.ptm("lineCell")), [createBaseVNode("div", mergeProps({
     "class": _ctx.cx("connectorDown")
-  }, _ctx.ptm("connectorDown")), null, 16)], 16, _hoisted_3$j)) : createCommentVNode("", true), $props.node.children && $props.node.children.length > 1 ? (openBlock(true), createElementBlock(Fragment, {
+  }, _ctx.ptm("connectorDown")), null, 16)], 16, _hoisted_3$k)) : createCommentVNode("", true), $props.node.children && $props.node.children.length > 1 ? (openBlock(true), createElementBlock(Fragment, {
     key: 1
   }, renderList($props.node.children, function(child, i2) {
     return openBlock(), createElementBlock(Fragment, {
@@ -22274,7 +22288,7 @@ function render$1$2(_ctx, _cache, $props, $setup, $data, $options) {
     }, null, 8, ["node", "templates", "collapsedKeys", "onNodeToggle", "collapsible", "selectionMode", "selectionKeys", "onNodeClick", "pt", "unstyled"])], 16);
   }), 128))], 16)], 16)], 16);
 }
-script$1$e.render = render$1$2;
+script$1$f.render = render$1$3;
 function _typeof$a(o2) {
   "@babel/helpers - typeof";
   return _typeof$a = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o3) {
@@ -22321,9 +22335,9 @@ function _toPrimitive$a(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$o = {
+var script$p = {
   name: "OrganizationChart",
-  "extends": script$2$2,
+  "extends": script$2$3,
   inheritAttrs: false,
   emits: ["node-unselect", "node-select", "update:selectionKeys", "node-expand", "node-collapse", "update:collapsedKeys"],
   data: function data10() {
@@ -22368,10 +22382,10 @@ var script$o = {
     }
   },
   components: {
-    OrganizationChartNode: script$1$e
+    OrganizationChartNode: script$1$f
   }
 };
-function render$m(_ctx, _cache, $props, $setup, $data, $options) {
+function render$n(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_OrganizationChartNode = resolveComponent("OrganizationChartNode");
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root")
@@ -22388,10 +22402,53 @@ function render$m(_ctx, _cache, $props, $setup, $data, $options) {
     unstyled: _ctx.unstyled
   }, null, 8, ["node", "templates", "onNodeToggle", "collapsedKeys", "collapsible", "onNodeClick", "selectionMode", "selectionKeys", "pt", "unstyled"])], 16);
 }
+script$p.render = render$n;
+var script$o = {
+  name: "BlankIcon",
+  "extends": script$R
+};
+function _toConsumableArray$c(r2) {
+  return _arrayWithoutHoles$c(r2) || _iterableToArray$c(r2) || _unsupportedIterableToArray$c(r2) || _nonIterableSpread$c();
+}
+function _nonIterableSpread$c() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$c(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$c(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$c(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$c(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$c(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$c(r2);
+}
+function _arrayLikeToArray$c(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+function render$m(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("svg", mergeProps({
+    width: "14",
+    height: "14",
+    viewBox: "0 0 14 14",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, _ctx.pti()), _toConsumableArray$c(_cache[0] || (_cache[0] = [createBaseVNode("rect", {
+    width: "1",
+    height: "1",
+    fill: "currentColor",
+    "fill-opacity": "0"
+  }, null, -1)])), 16);
+}
 script$o.render = render$m;
 var script$n = {
-  name: "BlankIcon",
-  "extends": script$Q
+  name: "CheckIcon",
+  "extends": script$R
 };
 function _toConsumableArray$b(r2) {
   return _arrayWithoutHoles$b(r2) || _iterableToArray$b(r2) || _unsupportedIterableToArray$b(r2) || _nonIterableSpread$b();
@@ -22424,17 +22481,15 @@ function render$l(_ctx, _cache, $props, $setup, $data, $options) {
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$b(_cache[0] || (_cache[0] = [createBaseVNode("rect", {
-    width: "1",
-    height: "1",
-    fill: "currentColor",
-    "fill-opacity": "0"
+  }, _ctx.pti()), _toConsumableArray$b(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+    d: "M4.86199 11.5948C4.78717 11.5923 4.71366 11.5745 4.64596 11.5426C4.57826 11.5107 4.51779 11.4652 4.46827 11.4091L0.753985 7.69483C0.683167 7.64891 0.623706 7.58751 0.580092 7.51525C0.536478 7.44299 0.509851 7.36177 0.502221 7.27771C0.49459 7.19366 0.506156 7.10897 0.536046 7.03004C0.565935 6.95111 0.613367 6.88 0.674759 6.82208C0.736151 6.76416 0.8099 6.72095 0.890436 6.69571C0.970973 6.67046 1.05619 6.66385 1.13966 6.67635C1.22313 6.68886 1.30266 6.72017 1.37226 6.76792C1.44186 6.81567 1.4997 6.8786 1.54141 6.95197L4.86199 10.2503L12.6397 2.49483C12.7444 2.42694 12.8689 2.39617 12.9932 2.40745C13.1174 2.41873 13.2343 2.47141 13.3251 2.55705C13.4159 2.64268 13.4753 2.75632 13.4938 2.87973C13.5123 3.00315 13.4888 3.1292 13.4271 3.23768L5.2557 11.4091C5.20618 11.4652 5.14571 11.5107 5.07801 11.5426C5.01031 11.5745 4.9368 11.5923 4.86199 11.5948Z",
+    fill: "currentColor"
   }, null, -1)])), 16);
 }
 script$n.render = render$l;
 var script$m = {
-  name: "CheckIcon",
-  "extends": script$Q
+  name: "SearchIcon",
+  "extends": script$R
 };
 function _toConsumableArray$a(r2) {
   return _arrayWithoutHoles$a(r2) || _iterableToArray$a(r2) || _unsupportedIterableToArray$a(r2) || _nonIterableSpread$a();
@@ -22468,66 +22523,25 @@ function render$k(_ctx, _cache, $props, $setup, $data, $options) {
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
   }, _ctx.pti()), _toConsumableArray$a(_cache[0] || (_cache[0] = [createBaseVNode("path", {
-    d: "M4.86199 11.5948C4.78717 11.5923 4.71366 11.5745 4.64596 11.5426C4.57826 11.5107 4.51779 11.4652 4.46827 11.4091L0.753985 7.69483C0.683167 7.64891 0.623706 7.58751 0.580092 7.51525C0.536478 7.44299 0.509851 7.36177 0.502221 7.27771C0.49459 7.19366 0.506156 7.10897 0.536046 7.03004C0.565935 6.95111 0.613367 6.88 0.674759 6.82208C0.736151 6.76416 0.8099 6.72095 0.890436 6.69571C0.970973 6.67046 1.05619 6.66385 1.13966 6.67635C1.22313 6.68886 1.30266 6.72017 1.37226 6.76792C1.44186 6.81567 1.4997 6.8786 1.54141 6.95197L4.86199 10.2503L12.6397 2.49483C12.7444 2.42694 12.8689 2.39617 12.9932 2.40745C13.1174 2.41873 13.2343 2.47141 13.3251 2.55705C13.4159 2.64268 13.4753 2.75632 13.4938 2.87973C13.5123 3.00315 13.4888 3.1292 13.4271 3.23768L5.2557 11.4091C5.20618 11.4652 5.14571 11.5107 5.07801 11.5426C5.01031 11.5745 4.9368 11.5923 4.86199 11.5948Z",
-    fill: "currentColor"
-  }, null, -1)])), 16);
-}
-script$m.render = render$k;
-var script$l = {
-  name: "SearchIcon",
-  "extends": script$Q
-};
-function _toConsumableArray$9(r2) {
-  return _arrayWithoutHoles$9(r2) || _iterableToArray$9(r2) || _unsupportedIterableToArray$9(r2) || _nonIterableSpread$9();
-}
-function _nonIterableSpread$9() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$9(r2, a2) {
-  if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$9(r2, a2);
-    var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$9(r2, a2) : void 0;
-  }
-}
-function _iterableToArray$9(r2) {
-  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
-}
-function _arrayWithoutHoles$9(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$9(r2);
-}
-function _arrayLikeToArray$9(r2, a2) {
-  (null == a2 || a2 > r2.length) && (a2 = r2.length);
-  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
-  return n2;
-}
-function render$j(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("svg", mergeProps({
-    width: "14",
-    height: "14",
-    viewBox: "0 0 14 14",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$9(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     "fill-rule": "evenodd",
     "clip-rule": "evenodd",
     d: "M2.67602 11.0265C3.6661 11.688 4.83011 12.0411 6.02086 12.0411C6.81149 12.0411 7.59438 11.8854 8.32483 11.5828C8.87005 11.357 9.37808 11.0526 9.83317 10.6803L12.9769 13.8241C13.0323 13.8801 13.0983 13.9245 13.171 13.9548C13.2438 13.985 13.3219 14.0003 13.4007 14C13.4795 14.0003 13.5575 13.985 13.6303 13.9548C13.7031 13.9245 13.7691 13.8801 13.8244 13.8241C13.9367 13.7116 13.9998 13.5592 13.9998 13.4003C13.9998 13.2414 13.9367 13.089 13.8244 12.9765L10.6807 9.8328C11.053 9.37773 11.3573 8.86972 11.5831 8.32452C11.8857 7.59408 12.0414 6.81119 12.0414 6.02056C12.0414 4.8298 11.6883 3.66579 11.0268 2.67572C10.3652 1.68564 9.42494 0.913972 8.32483 0.45829C7.22472 0.00260857 6.01418 -0.116618 4.84631 0.115686C3.67844 0.34799 2.60568 0.921393 1.76369 1.76338C0.921698 2.60537 0.348296 3.67813 0.115991 4.84601C-0.116313 6.01388 0.00291375 7.22441 0.458595 8.32452C0.914277 9.42464 1.68595 10.3649 2.67602 11.0265ZM3.35565 2.0158C4.14456 1.48867 5.07206 1.20731 6.02086 1.20731C7.29317 1.20731 8.51338 1.71274 9.41304 2.6124C10.3127 3.51206 10.8181 4.73226 10.8181 6.00457C10.8181 6.95337 10.5368 7.88088 10.0096 8.66978C9.48251 9.45868 8.73328 10.0736 7.85669 10.4367C6.98011 10.7997 6.01554 10.8947 5.08496 10.7096C4.15439 10.5245 3.2996 10.0676 2.62869 9.39674C1.95778 8.72583 1.50089 7.87104 1.31579 6.94046C1.13068 6.00989 1.22568 5.04532 1.58878 4.16874C1.95187 3.29215 2.56675 2.54292 3.35565 2.0158Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$l.render = render$j;
-var style$b = "\n    .p-iconfield {\n        position: relative;\n        display: block;\n    }\n\n    .p-inputicon {\n        position: absolute;\n        top: 50%;\n        margin-top: calc(-1 * (dt('icon.size') / 2));\n        color: dt('iconfield.icon.color');\n        line-height: 1;\n        z-index: 1;\n    }\n\n    .p-iconfield .p-inputicon:first-child {\n        inset-inline-start: dt('form.field.padding.x');\n    }\n\n    .p-iconfield .p-inputicon:last-child {\n        inset-inline-end: dt('form.field.padding.x');\n    }\n\n    .p-iconfield .p-inputtext:not(:first-child),\n    .p-iconfield .p-inputwrapper:not(:first-child) .p-inputtext {\n        padding-inline-start: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-iconfield .p-inputtext:not(:last-child) {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-iconfield:has(.p-inputfield-sm) .p-inputicon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n        margin-top: calc(-1 * (dt('form.field.sm.font.size') / 2));\n    }\n\n    .p-iconfield:has(.p-inputfield-lg) .p-inputicon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n        margin-top: calc(-1 * (dt('form.field.lg.font.size') / 2));\n    }\n";
-var classes$b = {
+script$m.render = render$k;
+var style$c = "\n    .p-iconfield {\n        position: relative;\n        display: block;\n    }\n\n    .p-inputicon {\n        position: absolute;\n        top: 50%;\n        margin-top: calc(-1 * (dt('icon.size') / 2));\n        color: dt('iconfield.icon.color');\n        line-height: 1;\n        z-index: 1;\n    }\n\n    .p-iconfield .p-inputicon:first-child {\n        inset-inline-start: dt('form.field.padding.x');\n    }\n\n    .p-iconfield .p-inputicon:last-child {\n        inset-inline-end: dt('form.field.padding.x');\n    }\n\n    .p-iconfield .p-inputtext:not(:first-child),\n    .p-iconfield .p-inputwrapper:not(:first-child) .p-inputtext {\n        padding-inline-start: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-iconfield .p-inputtext:not(:last-child) {\n        padding-inline-end: calc((dt('form.field.padding.x') * 2) + dt('icon.size'));\n    }\n\n    .p-iconfield:has(.p-inputfield-sm) .p-inputicon {\n        font-size: dt('form.field.sm.font.size');\n        width: dt('form.field.sm.font.size');\n        height: dt('form.field.sm.font.size');\n        margin-top: calc(-1 * (dt('form.field.sm.font.size') / 2));\n    }\n\n    .p-iconfield:has(.p-inputfield-lg) .p-inputicon {\n        font-size: dt('form.field.lg.font.size');\n        width: dt('form.field.lg.font.size');\n        height: dt('form.field.lg.font.size');\n        margin-top: calc(-1 * (dt('form.field.lg.font.size') / 2));\n    }\n";
+var classes$c = {
   root: "p-iconfield"
 };
 var IconFieldStyle = BaseStyle.extend({
   name: "iconfield",
-  style: style$b,
-  classes: classes$b
+  style: style$c,
+  classes: classes$c
 });
-var script$1$d = {
+var script$1$e = {
   name: "BaseIconField",
-  "extends": script$R,
+  "extends": script$S,
   style: IconFieldStyle,
   provide: function provide19() {
     return {
@@ -22536,27 +22550,27 @@ var script$1$d = {
     };
   }
 };
-var script$k = {
+var script$l = {
   name: "IconField",
-  "extends": script$1$d,
+  "extends": script$1$e,
   inheritAttrs: false
 };
-function render$i(_ctx, _cache, $props, $setup, $data, $options) {
+function render$j(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root")
   }, _ctx.ptmi("root")), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$k.render = render$i;
-var classes$a = {
+script$l.render = render$j;
+var classes$b = {
   root: "p-inputicon"
 };
 var InputIconStyle = BaseStyle.extend({
   name: "inputicon",
-  classes: classes$a
+  classes: classes$b
 });
-var script$1$c = {
+var script$1$d = {
   name: "BaseInputIcon",
-  "extends": script$R,
+  "extends": script$S,
   style: InputIconStyle,
   props: {
     "class": null
@@ -22568,9 +22582,9 @@ var script$1$c = {
     };
   }
 };
-var script$j = {
+var script$k = {
   name: "InputIcon",
-  "extends": script$1$c,
+  "extends": script$1$d,
   inheritAttrs: false,
   computed: {
     containerClass: function containerClass() {
@@ -22578,25 +22592,25 @@ var script$j = {
     }
   }
 };
-function render$h(_ctx, _cache, $props, $setup, $data, $options) {
+function render$i(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("span", mergeProps({
     "class": $options.containerClass
   }, _ctx.ptmi("root"), {
     "aria-hidden": "true"
   }), [renderSlot(_ctx.$slots, "default")], 16);
 }
-script$j.render = render$h;
+script$k.render = render$i;
 var OverlayEventBus = s$b();
-var style$a = "\n    .p-virtualscroller-loader {\n        background: dt('virtualscroller.loader.mask.background');\n        color: dt('virtualscroller.loader.mask.color');\n    }\n\n    .p-virtualscroller-loading-icon {\n        font-size: dt('virtualscroller.loader.icon.size');\n        width: dt('virtualscroller.loader.icon.size');\n        height: dt('virtualscroller.loader.icon.size');\n    }\n";
+var style$b = "\n    .p-virtualscroller-loader {\n        background: dt('virtualscroller.loader.mask.background');\n        color: dt('virtualscroller.loader.mask.color');\n    }\n\n    .p-virtualscroller-loading-icon {\n        font-size: dt('virtualscroller.loader.icon.size');\n        width: dt('virtualscroller.loader.icon.size');\n        height: dt('virtualscroller.loader.icon.size');\n    }\n";
 var css2 = "\n.p-virtualscroller {\n    position: relative;\n    overflow: auto;\n    contain: strict;\n    transform: translateZ(0);\n    will-change: scroll-position;\n    outline: 0 none;\n}\n\n.p-virtualscroller-content {\n    position: absolute;\n    top: 0;\n    left: 0;\n    min-height: 100%;\n    min-width: 100%;\n    will-change: transform;\n}\n\n.p-virtualscroller-spacer {\n    position: absolute;\n    top: 0;\n    left: 0;\n    height: 1px;\n    width: 1px;\n    transform-origin: 0 0;\n    pointer-events: none;\n}\n\n.p-virtualscroller-loader {\n    position: sticky;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n}\n\n.p-virtualscroller-loader-mask {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.p-virtualscroller-horizontal > .p-virtualscroller-content {\n    display: flex;\n}\n\n.p-virtualscroller-inline .p-virtualscroller-content {\n    position: static;\n}\n\n.p-virtualscroller .p-virtualscroller-loading {\n    transform: none !important;\n    min-height: 0;\n    position: sticky;\n    inset-block-start: 0;\n    inset-inline-start: 0;\n}\n";
 var VirtualScrollerStyle = BaseStyle.extend({
   name: "virtualscroller",
   css: css2,
-  style: style$a
+  style: style$b
 });
-var script$1$b = {
+var script$1$c = {
   name: "BaseVirtualScroller",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     id: {
       type: String,
@@ -22739,9 +22753,9 @@ function _toPrimitive$9(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$i = {
+var script$j = {
   name: "VirtualScroller",
-  "extends": script$1$b,
+  "extends": script$1$c,
   inheritAttrs: false,
   emits: ["update:numToleratedItems", "scroll", "scroll-index-change", "lazy-load"],
   data: function data11() {
@@ -23435,8 +23449,8 @@ var script$i = {
     loadedItems: function loadedItems() {
       var _this10 = this;
       if (this.items && !this.d_loading) {
-        if (this.isBoth()) return this.items.slice(this.appendOnly ? 0 : this.first.rows, this.last.rows).map(function(item) {
-          return _this10.columns ? item : item.slice(_this10.appendOnly ? 0 : _this10.first.cols, _this10.last.cols);
+        if (this.isBoth()) return this.items.slice(this.appendOnly ? 0 : this.first.rows, this.last.rows).map(function(item2) {
+          return _this10.columns ? item2 : item2.slice(_this10.appendOnly ? 0 : _this10.first.cols, _this10.last.cols);
         });
         else if (this.isHorizontal() && this.columns) return this.items;
         else return this.items.slice(this.appendOnly ? 0 : this.first, this.last);
@@ -23458,11 +23472,11 @@ var script$i = {
     }
   },
   components: {
-    SpinnerIcon: script$P
+    SpinnerIcon: script$Q
   }
 };
-var _hoisted_1$m = ["tabindex"];
-function render$g(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$n = ["tabindex"];
+function render$h(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_SpinnerIcon = resolveComponent("SpinnerIcon");
   return !_ctx.disabled ? (openBlock(), createElementBlock("div", mergeProps({
     key: 0,
@@ -23493,10 +23507,10 @@ function render$g(_ctx, _cache, $props, $setup, $data, $options) {
       ref: $options.contentRef,
       "class": $options.contentClass,
       style: $data.contentStyle
-    }, _ctx.ptm("content")), [(openBlock(true), createElementBlock(Fragment, null, renderList($options.loadedItems, function(item, index2) {
+    }, _ctx.ptm("content")), [(openBlock(true), createElementBlock(Fragment, null, renderList($options.loadedItems, function(item2, index2) {
       return renderSlot(_ctx.$slots, "item", {
         key: index2,
-        item,
+        item: item2,
         options: $options.getOptions(index2)
       });
     }), 128))], 16)];
@@ -23521,7 +23535,7 @@ function render$g(_ctx, _cache, $props, $setup, $data, $options) {
       spin: "",
       "class": "p-virtualscroller-loading-icon"
     }, _ctx.ptm("loadingIcon")), null, 16)];
-  })], 16)) : createCommentVNode("", true)], 16, _hoisted_1$m)) : (openBlock(), createElementBlock(Fragment, {
+  })], 16)) : createCommentVNode("", true)], 16, _hoisted_1$n)) : (openBlock(), createElementBlock(Fragment, {
     key: 1
   }, [renderSlot(_ctx.$slots, "default"), renderSlot(_ctx.$slots, "content", {
     items: _ctx.items,
@@ -23529,9 +23543,9 @@ function render$g(_ctx, _cache, $props, $setup, $data, $options) {
     columns: $options.loadedColumns
   })], 64));
 }
-script$i.render = render$g;
-var style$9 = "\n    .p-select {\n        display: inline-flex;\n        cursor: pointer;\n        position: relative;\n        user-select: none;\n        background: dt('select.background');\n        border: 1px solid dt('select.border.color');\n        transition:\n            background dt('select.transition.duration'),\n            color dt('select.transition.duration'),\n            border-color dt('select.transition.duration'),\n            outline-color dt('select.transition.duration'),\n            box-shadow dt('select.transition.duration');\n        border-radius: dt('select.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('select.shadow');\n    }\n\n    .p-select:not(.p-disabled):hover {\n        border-color: dt('select.hover.border.color');\n    }\n\n    .p-select:not(.p-disabled).p-focus {\n        border-color: dt('select.focus.border.color');\n        box-shadow: dt('select.focus.ring.shadow');\n        outline: dt('select.focus.ring.width') dt('select.focus.ring.style') dt('select.focus.ring.color');\n        outline-offset: dt('select.focus.ring.offset');\n    }\n\n    .p-select.p-variant-filled {\n        background: dt('select.filled.background');\n    }\n\n    .p-select.p-variant-filled:not(.p-disabled):hover {\n        background: dt('select.filled.hover.background');\n    }\n\n    .p-select.p-variant-filled:not(.p-disabled).p-focus {\n        background: dt('select.filled.focus.background');\n    }\n\n    .p-select.p-invalid {\n        border-color: dt('select.invalid.border.color');\n    }\n\n    .p-select.p-disabled {\n        opacity: 1;\n        background: dt('select.disabled.background');\n    }\n\n    .p-select-clear-icon {\n        align-self: center;\n        color: dt('select.clear.icon.color');\n        inset-inline-end: dt('select.dropdown.width');\n    }\n\n    .p-select-dropdown {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        background: transparent;\n        color: dt('select.dropdown.color');\n        width: dt('select.dropdown.width');\n        border-start-end-radius: dt('select.border.radius');\n        border-end-end-radius: dt('select.border.radius');\n    }\n\n    .p-select-label {\n        display: block;\n        white-space: nowrap;\n        overflow: hidden;\n        flex: 1 1 auto;\n        width: 1%;\n        padding: dt('select.padding.y') dt('select.padding.x');\n        text-overflow: ellipsis;\n        cursor: pointer;\n        color: dt('select.color');\n        background: transparent;\n        border: 0 none;\n        outline: 0 none;\n        font-size: 1rem;\n    }\n\n    .p-select-label.p-placeholder {\n        color: dt('select.placeholder.color');\n    }\n\n    .p-select.p-invalid .p-select-label.p-placeholder {\n        color: dt('select.invalid.placeholder.color');\n    }\n\n    .p-select.p-disabled .p-select-label {\n        color: dt('select.disabled.color');\n    }\n\n    .p-select-label-empty {\n        overflow: hidden;\n        opacity: 0;\n    }\n\n    input.p-select-label {\n        cursor: default;\n    }\n\n    .p-select-overlay {\n        position: absolute;\n        top: 0;\n        left: 0;\n        background: dt('select.overlay.background');\n        color: dt('select.overlay.color');\n        border: 1px solid dt('select.overlay.border.color');\n        border-radius: dt('select.overlay.border.radius');\n        box-shadow: dt('select.overlay.shadow');\n        min-width: 100%;\n        transform-origin: inherit;\n        will-change: transform;\n    }\n\n    .p-select-header {\n        padding: dt('select.list.header.padding');\n    }\n\n    .p-select-filter {\n        width: 100%;\n    }\n\n    .p-select-list-container {\n        overflow: auto;\n    }\n\n    .p-select-option-group {\n        cursor: auto;\n        margin: 0;\n        padding: dt('select.option.group.padding');\n        background: dt('select.option.group.background');\n        color: dt('select.option.group.color');\n        font-weight: dt('select.option.group.font.weight');\n    }\n\n    .p-select-list {\n        margin: 0;\n        padding: 0;\n        list-style-type: none;\n        padding: dt('select.list.padding');\n        gap: dt('select.list.gap');\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-select-option {\n        cursor: pointer;\n        font-weight: normal;\n        white-space: nowrap;\n        position: relative;\n        overflow: hidden;\n        display: flex;\n        align-items: center;\n        padding: dt('select.option.padding');\n        border: 0 none;\n        color: dt('select.option.color');\n        background: transparent;\n        transition:\n            background dt('select.transition.duration'),\n            color dt('select.transition.duration'),\n            border-color dt('select.transition.duration'),\n            box-shadow dt('select.transition.duration'),\n            outline-color dt('select.transition.duration');\n        border-radius: dt('select.option.border.radius');\n    }\n\n    .p-select-option:not(.p-select-option-selected):not(.p-disabled).p-focus {\n        background: dt('select.option.focus.background');\n        color: dt('select.option.focus.color');\n    }\n\n    .p-select-option:not(.p-select-option-selected):not(.p-disabled):hover {\n        background: dt('select.option.focus.background');\n        color: dt('select.option.focus.color');\n    }\n\n    .p-select-option.p-select-option-selected {\n        background: dt('select.option.selected.background');\n        color: dt('select.option.selected.color');\n    }\n\n    .p-select-option.p-select-option-selected.p-focus {\n        background: dt('select.option.selected.focus.background');\n        color: dt('select.option.selected.focus.color');\n    }\n   \n    .p-select-option-blank-icon {\n        flex-shrink: 0;\n    }\n\n    .p-select-option-check-icon {\n        position: relative;\n        flex-shrink: 0;\n        margin-inline-start: dt('select.checkmark.gutter.start');\n        margin-inline-end: dt('select.checkmark.gutter.end');\n        color: dt('select.checkmark.color');\n    }\n\n    .p-select-empty-message {\n        padding: dt('select.empty.message.padding');\n    }\n\n    .p-select-fluid {\n        display: flex;\n        width: 100%;\n    }\n\n    .p-select-sm .p-select-label {\n        font-size: dt('select.sm.font.size');\n        padding-block: dt('select.sm.padding.y');\n        padding-inline: dt('select.sm.padding.x');\n    }\n\n    .p-select-sm .p-select-dropdown .p-icon {\n        font-size: dt('select.sm.font.size');\n        width: dt('select.sm.font.size');\n        height: dt('select.sm.font.size');\n    }\n\n    .p-select-lg .p-select-label {\n        font-size: dt('select.lg.font.size');\n        padding-block: dt('select.lg.padding.y');\n        padding-inline: dt('select.lg.padding.x');\n    }\n\n    .p-select-lg .p-select-dropdown .p-icon {\n        font-size: dt('select.lg.font.size');\n        width: dt('select.lg.font.size');\n        height: dt('select.lg.font.size');\n    }\n\n    .p-floatlabel-in .p-select-filter {\n        padding-block-start: dt('select.padding.y');\n        padding-block-end: dt('select.padding.y');\n    }\n";
-var classes$9 = {
+script$j.render = render$h;
+var style$a = "\n    .p-select {\n        display: inline-flex;\n        cursor: pointer;\n        position: relative;\n        user-select: none;\n        background: dt('select.background');\n        border: 1px solid dt('select.border.color');\n        transition:\n            background dt('select.transition.duration'),\n            color dt('select.transition.duration'),\n            border-color dt('select.transition.duration'),\n            outline-color dt('select.transition.duration'),\n            box-shadow dt('select.transition.duration');\n        border-radius: dt('select.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('select.shadow');\n    }\n\n    .p-select:not(.p-disabled):hover {\n        border-color: dt('select.hover.border.color');\n    }\n\n    .p-select:not(.p-disabled).p-focus {\n        border-color: dt('select.focus.border.color');\n        box-shadow: dt('select.focus.ring.shadow');\n        outline: dt('select.focus.ring.width') dt('select.focus.ring.style') dt('select.focus.ring.color');\n        outline-offset: dt('select.focus.ring.offset');\n    }\n\n    .p-select.p-variant-filled {\n        background: dt('select.filled.background');\n    }\n\n    .p-select.p-variant-filled:not(.p-disabled):hover {\n        background: dt('select.filled.hover.background');\n    }\n\n    .p-select.p-variant-filled:not(.p-disabled).p-focus {\n        background: dt('select.filled.focus.background');\n    }\n\n    .p-select.p-invalid {\n        border-color: dt('select.invalid.border.color');\n    }\n\n    .p-select.p-disabled {\n        opacity: 1;\n        background: dt('select.disabled.background');\n    }\n\n    .p-select-clear-icon {\n        align-self: center;\n        color: dt('select.clear.icon.color');\n        inset-inline-end: dt('select.dropdown.width');\n    }\n\n    .p-select-dropdown {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        background: transparent;\n        color: dt('select.dropdown.color');\n        width: dt('select.dropdown.width');\n        border-start-end-radius: dt('select.border.radius');\n        border-end-end-radius: dt('select.border.radius');\n    }\n\n    .p-select-label {\n        display: block;\n        white-space: nowrap;\n        overflow: hidden;\n        flex: 1 1 auto;\n        width: 1%;\n        padding: dt('select.padding.y') dt('select.padding.x');\n        text-overflow: ellipsis;\n        cursor: pointer;\n        color: dt('select.color');\n        background: transparent;\n        border: 0 none;\n        outline: 0 none;\n        font-size: 1rem;\n    }\n\n    .p-select-label.p-placeholder {\n        color: dt('select.placeholder.color');\n    }\n\n    .p-select.p-invalid .p-select-label.p-placeholder {\n        color: dt('select.invalid.placeholder.color');\n    }\n\n    .p-select.p-disabled .p-select-label {\n        color: dt('select.disabled.color');\n    }\n\n    .p-select-label-empty {\n        overflow: hidden;\n        opacity: 0;\n    }\n\n    input.p-select-label {\n        cursor: default;\n    }\n\n    .p-select-overlay {\n        position: absolute;\n        top: 0;\n        left: 0;\n        background: dt('select.overlay.background');\n        color: dt('select.overlay.color');\n        border: 1px solid dt('select.overlay.border.color');\n        border-radius: dt('select.overlay.border.radius');\n        box-shadow: dt('select.overlay.shadow');\n        min-width: 100%;\n        transform-origin: inherit;\n        will-change: transform;\n    }\n\n    .p-select-header {\n        padding: dt('select.list.header.padding');\n    }\n\n    .p-select-filter {\n        width: 100%;\n    }\n\n    .p-select-list-container {\n        overflow: auto;\n    }\n\n    .p-select-option-group {\n        cursor: auto;\n        margin: 0;\n        padding: dt('select.option.group.padding');\n        background: dt('select.option.group.background');\n        color: dt('select.option.group.color');\n        font-weight: dt('select.option.group.font.weight');\n    }\n\n    .p-select-list {\n        margin: 0;\n        padding: 0;\n        list-style-type: none;\n        padding: dt('select.list.padding');\n        gap: dt('select.list.gap');\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-select-option {\n        cursor: pointer;\n        font-weight: normal;\n        white-space: nowrap;\n        position: relative;\n        overflow: hidden;\n        display: flex;\n        align-items: center;\n        padding: dt('select.option.padding');\n        border: 0 none;\n        color: dt('select.option.color');\n        background: transparent;\n        transition:\n            background dt('select.transition.duration'),\n            color dt('select.transition.duration'),\n            border-color dt('select.transition.duration'),\n            box-shadow dt('select.transition.duration'),\n            outline-color dt('select.transition.duration');\n        border-radius: dt('select.option.border.radius');\n    }\n\n    .p-select-option:not(.p-select-option-selected):not(.p-disabled).p-focus {\n        background: dt('select.option.focus.background');\n        color: dt('select.option.focus.color');\n    }\n\n    .p-select-option:not(.p-select-option-selected):not(.p-disabled):hover {\n        background: dt('select.option.focus.background');\n        color: dt('select.option.focus.color');\n    }\n\n    .p-select-option.p-select-option-selected {\n        background: dt('select.option.selected.background');\n        color: dt('select.option.selected.color');\n    }\n\n    .p-select-option.p-select-option-selected.p-focus {\n        background: dt('select.option.selected.focus.background');\n        color: dt('select.option.selected.focus.color');\n    }\n   \n    .p-select-option-blank-icon {\n        flex-shrink: 0;\n    }\n\n    .p-select-option-check-icon {\n        position: relative;\n        flex-shrink: 0;\n        margin-inline-start: dt('select.checkmark.gutter.start');\n        margin-inline-end: dt('select.checkmark.gutter.end');\n        color: dt('select.checkmark.color');\n    }\n\n    .p-select-empty-message {\n        padding: dt('select.empty.message.padding');\n    }\n\n    .p-select-fluid {\n        display: flex;\n        width: 100%;\n    }\n\n    .p-select-sm .p-select-label {\n        font-size: dt('select.sm.font.size');\n        padding-block: dt('select.sm.padding.y');\n        padding-inline: dt('select.sm.padding.x');\n    }\n\n    .p-select-sm .p-select-dropdown .p-icon {\n        font-size: dt('select.sm.font.size');\n        width: dt('select.sm.font.size');\n        height: dt('select.sm.font.size');\n    }\n\n    .p-select-lg .p-select-label {\n        font-size: dt('select.lg.font.size');\n        padding-block: dt('select.lg.padding.y');\n        padding-inline: dt('select.lg.padding.x');\n    }\n\n    .p-select-lg .p-select-dropdown .p-icon {\n        font-size: dt('select.lg.font.size');\n        width: dt('select.lg.font.size');\n        height: dt('select.lg.font.size');\n    }\n\n    .p-floatlabel-in .p-select-filter {\n        padding-block-start: dt('select.padding.y');\n        padding-block-end: dt('select.padding.y');\n    }\n";
+var classes$a = {
   root: function root13(_ref) {
     var instance = _ref.instance, props = _ref.props, state = _ref.state;
     return ["p-select p-component p-inputwrapper", {
@@ -23581,12 +23595,12 @@ var classes$9 = {
 };
 var SelectStyle = BaseStyle.extend({
   name: "select",
-  style: style$9,
-  classes: classes$9
+  style: style$a,
+  classes: classes$a
 });
-var script$1$a = {
+var script$1$b = {
   name: "BaseSelect",
-  "extends": script$L,
+  "extends": script$M,
   props: {
     options: Array,
     optionLabel: [String, Function],
@@ -23768,26 +23782,26 @@ function _typeof$8(o2) {
     return o3 && "function" == typeof Symbol && o3.constructor === Symbol && o3 !== Symbol.prototype ? "symbol" : typeof o3;
   }, _typeof$8(o2);
 }
-function _toConsumableArray$8(r2) {
-  return _arrayWithoutHoles$8(r2) || _iterableToArray$8(r2) || _unsupportedIterableToArray$8(r2) || _nonIterableSpread$8();
+function _toConsumableArray$9(r2) {
+  return _arrayWithoutHoles$9(r2) || _iterableToArray$9(r2) || _unsupportedIterableToArray$9(r2) || _nonIterableSpread$9();
 }
-function _nonIterableSpread$8() {
+function _nonIterableSpread$9() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$8(r2, a2) {
+function _unsupportedIterableToArray$9(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$8(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$9(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$8(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$9(r2, a2) : void 0;
   }
 }
-function _iterableToArray$8(r2) {
+function _iterableToArray$9(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$8(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$8(r2);
+function _arrayWithoutHoles$9(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$9(r2);
 }
-function _arrayLikeToArray$8(r2, a2) {
+function _arrayLikeToArray$9(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
@@ -23830,9 +23844,9 @@ function _toPrimitive$8(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var script$h = {
+var script$i = {
   name: "Select",
-  "extends": script$1$a,
+  "extends": script$1$b,
   inheritAttrs: false,
   emits: ["change", "focus", "blur", "before-show", "before-hide", "show", "hide", "filter"],
   outsideClickListener: null,
@@ -24364,20 +24378,20 @@ var script$h = {
     bindLabelClickListener: function bindLabelClickListener() {
       var _this9 = this;
       if (!this.editable && !this.labelClickListener) {
-        var label5 = document.querySelector('label[for="'.concat(this.labelId, '"]'));
-        if (label5 && et(label5)) {
+        var label7 = document.querySelector('label[for="'.concat(this.labelId, '"]'));
+        if (label7 && et(label7)) {
           this.labelClickListener = function() {
             bt(_this9.$refs.focusInput);
           };
-          label5.addEventListener("click", this.labelClickListener);
+          label7.addEventListener("click", this.labelClickListener);
         }
       }
     },
     unbindLabelClickListener: function unbindLabelClickListener() {
       if (this.labelClickListener) {
-        var label5 = document.querySelector('label[for="'.concat(this.labelId, '"]'));
-        if (label5 && et(label5)) {
-          label5.removeEventListener("click", this.labelClickListener);
+        var label7 = document.querySelector('label[for="'.concat(this.labelId, '"]'));
+        if (label7 && et(label7)) {
+          label7.removeEventListener("click", this.labelClickListener);
         }
       }
     },
@@ -24569,10 +24583,10 @@ var script$h = {
           var filtered = [];
           optionGroups.forEach(function(group) {
             var groupChildren = _this17.getOptionGroupChildren(group);
-            var filteredItems = groupChildren.filter(function(item) {
-              return filteredOptions.includes(item);
+            var filteredItems = groupChildren.filter(function(item2) {
+              return filteredOptions.includes(item2);
             });
-            if (filteredItems.length > 0) filtered.push(_objectSpread$3(_objectSpread$3({}, group), {}, _defineProperty$8({}, typeof _this17.optionGroupChildren === "string" ? _this17.optionGroupChildren : "items", _toConsumableArray$8(filteredItems))));
+            if (filteredItems.length > 0) filtered.push(_objectSpread$3(_objectSpread$3({}, group), {}, _defineProperty$8({}, typeof _this17.optionGroupChildren === "string" ? _this17.optionGroupChildren : "items", _toConsumableArray$9(filteredItems))));
           });
           return this.flatOptions(filtered);
         }
@@ -24662,27 +24676,27 @@ var script$h = {
     ripple: Ripple
   },
   components: {
-    InputText: script$K,
-    VirtualScroller: script$i,
-    Portal: script$E,
-    InputIcon: script$j,
-    IconField: script$k,
-    TimesIcon: script$H,
-    ChevronDownIcon: script$q,
-    SpinnerIcon: script$P,
-    SearchIcon: script$l,
-    CheckIcon: script$m,
-    BlankIcon: script$n
+    InputText: script$L,
+    VirtualScroller: script$j,
+    Portal: script$F,
+    InputIcon: script$k,
+    IconField: script$l,
+    TimesIcon: script$I,
+    ChevronDownIcon: script$r,
+    SpinnerIcon: script$Q,
+    SearchIcon: script$m,
+    CheckIcon: script$n,
+    BlankIcon: script$o
   }
 };
-var _hoisted_1$l = ["id", "data-p"];
-var _hoisted_2$j = ["name", "id", "value", "placeholder", "tabindex", "disabled", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid", "data-p"];
-var _hoisted_3$i = ["name", "id", "tabindex", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid", "aria-disabled", "data-p"];
-var _hoisted_4$g = ["data-p"];
-var _hoisted_5$c = ["id"];
+var _hoisted_1$m = ["id", "data-p"];
+var _hoisted_2$k = ["name", "id", "value", "placeholder", "tabindex", "disabled", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid", "data-p"];
+var _hoisted_3$j = ["name", "id", "tabindex", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid", "aria-disabled", "data-p"];
+var _hoisted_4$h = ["data-p"];
+var _hoisted_5$d = ["id"];
 var _hoisted_6$b = ["id"];
 var _hoisted_7$b = ["id", "aria-label", "aria-selected", "aria-disabled", "aria-setsize", "aria-posinset", "onMousedown", "onMousemove", "data-p-selected", "data-p-focused", "data-p-disabled"];
-function render$f(_ctx, _cache, $props, $setup, $data, $options) {
+function render$g(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_SpinnerIcon = resolveComponent("SpinnerIcon");
   var _component_InputText = resolveComponent("InputText");
   var _component_SearchIcon = resolveComponent("SearchIcon");
@@ -24735,7 +24749,7 @@ function render$f(_ctx, _cache, $props, $setup, $data, $options) {
       return $options.onEditableInput && $options.onEditableInput.apply($options, arguments);
     }),
     "data-p": $options.labelDataP
-  }, _ctx.ptm("label")), null, 16, _hoisted_2$j)) : (openBlock(), createElementBlock("span", mergeProps({
+  }, _ctx.ptm("label")), null, 16, _hoisted_2$k)) : (openBlock(), createElementBlock("span", mergeProps({
     key: 1,
     ref: "focusInput",
     name: _ctx.name,
@@ -24768,7 +24782,7 @@ function render$f(_ctx, _cache, $props, $setup, $data, $options) {
   }, function() {
     var _$options$label;
     return [createTextVNode(toDisplayString($options.label === "p-emptylabel" ? " " : (_$options$label = $options.label) !== null && _$options$label !== void 0 ? _$options$label : "empty"), 1)];
-  })], 16, _hoisted_3$i)), $options.isClearIconVisible ? renderSlot(_ctx.$slots, "clearicon", {
+  })], 16, _hoisted_3$j)), $options.isClearIconVisible ? renderSlot(_ctx.$slots, "clearicon", {
     key: 2,
     "class": normalizeClass(_ctx.cx("clearIcon")),
     clearCallback: $options.onClearClick
@@ -25013,7 +25027,7 @@ function render$f(_ctx, _cache, $props, $setup, $data, $options) {
                 "data-p-hidden-accessible": true
               }), [renderSlot(_ctx.$slots, "empty", {}, function() {
                 return [createTextVNode(toDisplayString($options.emptyMessageText), 1)];
-              })], 16)) : createCommentVNode("", true)], 16, _hoisted_5$c)];
+              })], 16)) : createCommentVNode("", true)], 16, _hoisted_5$d)];
             }),
             _: 2
           }, [_ctx.$slots.loader ? {
@@ -25053,65 +25067,65 @@ function render$f(_ctx, _cache, $props, $setup, $data, $options) {
           }, _ctx.ptm("hiddenLastFocusableEl"), {
             "data-p-hidden-accessible": true,
             "data-p-hidden-focusable": true
-          }), null, 16)], 16, _hoisted_4$g)) : createCommentVNode("", true)];
+          }), null, 16)], 16, _hoisted_4$h)) : createCommentVNode("", true)];
         }),
         _: 3
       }, 16, ["onEnter", "onAfterEnter", "onLeave", "onAfterLeave"])];
     }),
     _: 3
-  }, 8, ["appendTo"])], 16, _hoisted_1$l);
+  }, 8, ["appendTo"])], 16, _hoisted_1$m);
 }
-script$h.render = render$f;
-var script$g = {
+script$i.render = render$g;
+var script$h = {
   name: "Dropdown",
-  "extends": script$h,
+  "extends": script$i,
   mounted: function mounted12() {
     console.warn("Deprecated since v4. Use Select component instead.");
   }
 };
-var script$f = {
+var script$g = {
   name: "MinusIcon",
-  "extends": script$Q
+  "extends": script$R
 };
-function _toConsumableArray$7(r2) {
-  return _arrayWithoutHoles$7(r2) || _iterableToArray$7(r2) || _unsupportedIterableToArray$7(r2) || _nonIterableSpread$7();
+function _toConsumableArray$8(r2) {
+  return _arrayWithoutHoles$8(r2) || _iterableToArray$8(r2) || _unsupportedIterableToArray$8(r2) || _nonIterableSpread$8();
 }
-function _nonIterableSpread$7() {
+function _nonIterableSpread$8() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$7(r2, a2) {
+function _unsupportedIterableToArray$8(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$7(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$8(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$7(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$8(r2, a2) : void 0;
   }
 }
-function _iterableToArray$7(r2) {
+function _iterableToArray$8(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$7(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$7(r2);
+function _arrayWithoutHoles$8(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$8(r2);
 }
-function _arrayLikeToArray$7(r2, a2) {
+function _arrayLikeToArray$8(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$e(_ctx, _cache, $props, $setup, $data, $options) {
+function render$f(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$7(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$8(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     d: "M13.2222 7.77778H0.777778C0.571498 7.77778 0.373667 7.69584 0.227806 7.54998C0.0819442 7.40412 0 7.20629 0 7.00001C0 6.79373 0.0819442 6.5959 0.227806 6.45003C0.373667 6.30417 0.571498 6.22223 0.777778 6.22223H13.2222C13.4285 6.22223 13.6263 6.30417 13.7722 6.45003C13.9181 6.5959 14 6.79373 14 7.00001C14 7.20629 13.9181 7.40412 13.7722 7.54998C13.6263 7.69584 13.4285 7.77778 13.2222 7.77778Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$f.render = render$e;
-var style$8 = "\n    .p-checkbox {\n        position: relative;\n        display: inline-flex;\n        user-select: none;\n        vertical-align: bottom;\n        width: dt('checkbox.width');\n        height: dt('checkbox.height');\n    }\n\n    .p-checkbox-input {\n        cursor: pointer;\n        appearance: none;\n        position: absolute;\n        inset-block-start: 0;\n        inset-inline-start: 0;\n        width: 100%;\n        height: 100%;\n        padding: 0;\n        margin: 0;\n        opacity: 0;\n        z-index: 1;\n        outline: 0 none;\n        border: 1px solid transparent;\n        border-radius: dt('checkbox.border.radius');\n    }\n\n    .p-checkbox-box {\n        display: flex;\n        justify-content: center;\n        align-items: center;\n        border-radius: dt('checkbox.border.radius');\n        border: 1px solid dt('checkbox.border.color');\n        background: dt('checkbox.background');\n        width: dt('checkbox.width');\n        height: dt('checkbox.height');\n        transition:\n            background dt('checkbox.transition.duration'),\n            color dt('checkbox.transition.duration'),\n            border-color dt('checkbox.transition.duration'),\n            box-shadow dt('checkbox.transition.duration'),\n            outline-color dt('checkbox.transition.duration');\n        outline-color: transparent;\n        box-shadow: dt('checkbox.shadow');\n    }\n\n    .p-checkbox-icon {\n        transition-duration: dt('checkbox.transition.duration');\n        color: dt('checkbox.icon.color');\n        font-size: dt('checkbox.icon.size');\n        width: dt('checkbox.icon.size');\n        height: dt('checkbox.icon.size');\n    }\n\n    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        border-color: dt('checkbox.hover.border.color');\n    }\n\n    .p-checkbox-checked .p-checkbox-box {\n        border-color: dt('checkbox.checked.border.color');\n        background: dt('checkbox.checked.background');\n    }\n\n    .p-checkbox-checked .p-checkbox-icon {\n        color: dt('checkbox.icon.checked.color');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        background: dt('checkbox.checked.hover.background');\n        border-color: dt('checkbox.checked.hover.border.color');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-icon {\n        color: dt('checkbox.icon.checked.hover.color');\n    }\n\n    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box {\n        border-color: dt('checkbox.focus.border.color');\n        box-shadow: dt('checkbox.focus.ring.shadow');\n        outline: dt('checkbox.focus.ring.width') dt('checkbox.focus.ring.style') dt('checkbox.focus.ring.color');\n        outline-offset: dt('checkbox.focus.ring.offset');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box {\n        border-color: dt('checkbox.checked.focus.border.color');\n    }\n\n    .p-checkbox.p-invalid > .p-checkbox-box {\n        border-color: dt('checkbox.invalid.border.color');\n    }\n\n    .p-checkbox.p-variant-filled .p-checkbox-box {\n        background: dt('checkbox.filled.background');\n    }\n\n    .p-checkbox-checked.p-variant-filled .p-checkbox-box {\n        background: dt('checkbox.checked.background');\n    }\n\n    .p-checkbox-checked.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        background: dt('checkbox.checked.hover.background');\n    }\n\n    .p-checkbox.p-disabled {\n        opacity: 1;\n    }\n\n    .p-checkbox.p-disabled .p-checkbox-box {\n        background: dt('checkbox.disabled.background');\n        border-color: dt('checkbox.checked.disabled.border.color');\n    }\n\n    .p-checkbox.p-disabled .p-checkbox-box .p-checkbox-icon {\n        color: dt('checkbox.icon.disabled.color');\n    }\n\n    .p-checkbox-sm,\n    .p-checkbox-sm .p-checkbox-box {\n        width: dt('checkbox.sm.width');\n        height: dt('checkbox.sm.height');\n    }\n\n    .p-checkbox-sm .p-checkbox-icon {\n        font-size: dt('checkbox.icon.sm.size');\n        width: dt('checkbox.icon.sm.size');\n        height: dt('checkbox.icon.sm.size');\n    }\n\n    .p-checkbox-lg,\n    .p-checkbox-lg .p-checkbox-box {\n        width: dt('checkbox.lg.width');\n        height: dt('checkbox.lg.height');\n    }\n\n    .p-checkbox-lg .p-checkbox-icon {\n        font-size: dt('checkbox.icon.lg.size');\n        width: dt('checkbox.icon.lg.size');\n        height: dt('checkbox.icon.lg.size');\n    }\n";
-var classes$8 = {
+script$g.render = render$f;
+var style$9 = "\n    .p-checkbox {\n        position: relative;\n        display: inline-flex;\n        user-select: none;\n        vertical-align: bottom;\n        width: dt('checkbox.width');\n        height: dt('checkbox.height');\n    }\n\n    .p-checkbox-input {\n        cursor: pointer;\n        appearance: none;\n        position: absolute;\n        inset-block-start: 0;\n        inset-inline-start: 0;\n        width: 100%;\n        height: 100%;\n        padding: 0;\n        margin: 0;\n        opacity: 0;\n        z-index: 1;\n        outline: 0 none;\n        border: 1px solid transparent;\n        border-radius: dt('checkbox.border.radius');\n    }\n\n    .p-checkbox-box {\n        display: flex;\n        justify-content: center;\n        align-items: center;\n        border-radius: dt('checkbox.border.radius');\n        border: 1px solid dt('checkbox.border.color');\n        background: dt('checkbox.background');\n        width: dt('checkbox.width');\n        height: dt('checkbox.height');\n        transition:\n            background dt('checkbox.transition.duration'),\n            color dt('checkbox.transition.duration'),\n            border-color dt('checkbox.transition.duration'),\n            box-shadow dt('checkbox.transition.duration'),\n            outline-color dt('checkbox.transition.duration');\n        outline-color: transparent;\n        box-shadow: dt('checkbox.shadow');\n    }\n\n    .p-checkbox-icon {\n        transition-duration: dt('checkbox.transition.duration');\n        color: dt('checkbox.icon.color');\n        font-size: dt('checkbox.icon.size');\n        width: dt('checkbox.icon.size');\n        height: dt('checkbox.icon.size');\n    }\n\n    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        border-color: dt('checkbox.hover.border.color');\n    }\n\n    .p-checkbox-checked .p-checkbox-box {\n        border-color: dt('checkbox.checked.border.color');\n        background: dt('checkbox.checked.background');\n    }\n\n    .p-checkbox-checked .p-checkbox-icon {\n        color: dt('checkbox.icon.checked.color');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        background: dt('checkbox.checked.hover.background');\n        border-color: dt('checkbox.checked.hover.border.color');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-icon {\n        color: dt('checkbox.icon.checked.hover.color');\n    }\n\n    .p-checkbox:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box {\n        border-color: dt('checkbox.focus.border.color');\n        box-shadow: dt('checkbox.focus.ring.shadow');\n        outline: dt('checkbox.focus.ring.width') dt('checkbox.focus.ring.style') dt('checkbox.focus.ring.color');\n        outline-offset: dt('checkbox.focus.ring.offset');\n    }\n\n    .p-checkbox-checked:not(.p-disabled):has(.p-checkbox-input:focus-visible) .p-checkbox-box {\n        border-color: dt('checkbox.checked.focus.border.color');\n    }\n\n    .p-checkbox.p-invalid > .p-checkbox-box {\n        border-color: dt('checkbox.invalid.border.color');\n    }\n\n    .p-checkbox.p-variant-filled .p-checkbox-box {\n        background: dt('checkbox.filled.background');\n    }\n\n    .p-checkbox-checked.p-variant-filled .p-checkbox-box {\n        background: dt('checkbox.checked.background');\n    }\n\n    .p-checkbox-checked.p-variant-filled:not(.p-disabled):has(.p-checkbox-input:hover) .p-checkbox-box {\n        background: dt('checkbox.checked.hover.background');\n    }\n\n    .p-checkbox.p-disabled {\n        opacity: 1;\n    }\n\n    .p-checkbox.p-disabled .p-checkbox-box {\n        background: dt('checkbox.disabled.background');\n        border-color: dt('checkbox.checked.disabled.border.color');\n    }\n\n    .p-checkbox.p-disabled .p-checkbox-box .p-checkbox-icon {\n        color: dt('checkbox.icon.disabled.color');\n    }\n\n    .p-checkbox-sm,\n    .p-checkbox-sm .p-checkbox-box {\n        width: dt('checkbox.sm.width');\n        height: dt('checkbox.sm.height');\n    }\n\n    .p-checkbox-sm .p-checkbox-icon {\n        font-size: dt('checkbox.icon.sm.size');\n        width: dt('checkbox.icon.sm.size');\n        height: dt('checkbox.icon.sm.size');\n    }\n\n    .p-checkbox-lg,\n    .p-checkbox-lg .p-checkbox-box {\n        width: dt('checkbox.lg.width');\n        height: dt('checkbox.lg.height');\n    }\n\n    .p-checkbox-lg .p-checkbox-icon {\n        font-size: dt('checkbox.icon.lg.size');\n        width: dt('checkbox.icon.lg.size');\n        height: dt('checkbox.icon.lg.size');\n    }\n";
+var classes$9 = {
   root: function root14(_ref) {
     var instance = _ref.instance, props = _ref.props;
     return ["p-checkbox p-component", {
@@ -25129,12 +25143,12 @@ var classes$8 = {
 };
 var CheckboxStyle = BaseStyle.extend({
   name: "checkbox",
-  style: style$8,
-  classes: classes$8
+  style: style$9,
+  classes: classes$9
 });
-var script$1$9 = {
+var script$1$a = {
   name: "BaseCheckbox",
-  "extends": script$L,
+  "extends": script$M,
   props: {
     value: null,
     binary: Boolean,
@@ -25216,33 +25230,33 @@ function _toPrimitive$7(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-function _toConsumableArray$6(r2) {
-  return _arrayWithoutHoles$6(r2) || _iterableToArray$6(r2) || _unsupportedIterableToArray$6(r2) || _nonIterableSpread$6();
+function _toConsumableArray$7(r2) {
+  return _arrayWithoutHoles$7(r2) || _iterableToArray$7(r2) || _unsupportedIterableToArray$7(r2) || _nonIterableSpread$7();
 }
-function _nonIterableSpread$6() {
+function _nonIterableSpread$7() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$6(r2, a2) {
+function _unsupportedIterableToArray$7(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$6(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$7(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$6(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$7(r2, a2) : void 0;
   }
 }
-function _iterableToArray$6(r2) {
+function _iterableToArray$7(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$6(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$6(r2);
+function _arrayWithoutHoles$7(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$7(r2);
 }
-function _arrayLikeToArray$6(r2, a2) {
+function _arrayLikeToArray$7(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-var script$e = {
+var script$f = {
   name: "Checkbox",
-  "extends": script$1$9,
+  "extends": script$1$a,
   inheritAttrs: false,
   emits: ["change", "focus", "blur", "update:indeterminate"],
   inject: {
@@ -25289,7 +25303,7 @@ var script$e = {
           if (this.checked || this.d_indeterminate) newModelValue = value2.filter(function(val) {
             return !k$5(val, _this.value);
           });
-          else newModelValue = value2 ? [].concat(_toConsumableArray$6(value2), [this.value]) : [this.value];
+          else newModelValue = value2 ? [].concat(_toConsumableArray$7(value2), [this.value]) : [this.value];
         }
         if (this.d_indeterminate) {
           this.d_indeterminate = false;
@@ -25331,14 +25345,14 @@ var script$e = {
     }
   },
   components: {
-    CheckIcon: script$m,
-    MinusIcon: script$f
+    CheckIcon: script$n,
+    MinusIcon: script$g
   }
 };
-var _hoisted_1$k = ["data-p-checked", "data-p-indeterminate", "data-p-disabled", "data-p"];
-var _hoisted_2$i = ["id", "value", "name", "checked", "tabindex", "disabled", "readonly", "required", "aria-labelledby", "aria-label", "aria-invalid"];
-var _hoisted_3$h = ["data-p"];
-function render$d(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$l = ["data-p-checked", "data-p-indeterminate", "data-p-disabled", "data-p"];
+var _hoisted_2$j = ["id", "value", "name", "checked", "tabindex", "disabled", "readonly", "required", "aria-labelledby", "aria-label", "aria-invalid"];
+var _hoisted_3$i = ["data-p"];
+function render$e(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_CheckIcon = resolveComponent("CheckIcon");
   var _component_MinusIcon = resolveComponent("MinusIcon");
   return openBlock(), createElementBlock("div", mergeProps({
@@ -25373,7 +25387,7 @@ function render$d(_ctx, _cache, $props, $setup, $data, $options) {
     onChange: _cache[2] || (_cache[2] = function() {
       return $options.onChange && $options.onChange.apply($options, arguments);
     })
-  }, $options.getPTOptions("input")), null, 16, _hoisted_2$i), createBaseVNode("div", mergeProps({
+  }, $options.getPTOptions("input")), null, 16, _hoisted_2$j), createBaseVNode("div", mergeProps({
     "class": _ctx.cx("box")
   }, $options.getPTOptions("box"), {
     "data-p": $options.dataP
@@ -25394,54 +25408,54 @@ function render$d(_ctx, _cache, $props, $setup, $data, $options) {
     }, $options.getPTOptions("icon"), {
       "data-p": $options.dataP
     }), null, 16, ["class", "data-p"])) : createCommentVNode("", true)];
-  })], 16, _hoisted_3$h)], 16, _hoisted_1$k);
+  })], 16, _hoisted_3$i)], 16, _hoisted_1$l);
 }
-script$e.render = render$d;
-var script$d = {
+script$f.render = render$e;
+var script$e = {
   name: "TimesCircleIcon",
-  "extends": script$Q
+  "extends": script$R
 };
-function _toConsumableArray$5(r2) {
-  return _arrayWithoutHoles$5(r2) || _iterableToArray$5(r2) || _unsupportedIterableToArray$5(r2) || _nonIterableSpread$5();
+function _toConsumableArray$6(r2) {
+  return _arrayWithoutHoles$6(r2) || _iterableToArray$6(r2) || _unsupportedIterableToArray$6(r2) || _nonIterableSpread$6();
 }
-function _nonIterableSpread$5() {
+function _nonIterableSpread$6() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$5(r2, a2) {
+function _unsupportedIterableToArray$6(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$5(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$6(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$5(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$6(r2, a2) : void 0;
   }
 }
-function _iterableToArray$5(r2) {
+function _iterableToArray$6(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$5(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$5(r2);
+function _arrayWithoutHoles$6(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$6(r2);
 }
-function _arrayLikeToArray$5(r2, a2) {
+function _arrayLikeToArray$6(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-function render$c(_ctx, _cache, $props, $setup, $data, $options) {
+function render$d(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("svg", mergeProps({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, _ctx.pti()), _toConsumableArray$5(_cache[0] || (_cache[0] = [createBaseVNode("path", {
+  }, _ctx.pti()), _toConsumableArray$6(_cache[0] || (_cache[0] = [createBaseVNode("path", {
     "fill-rule": "evenodd",
     "clip-rule": "evenodd",
     d: "M7 14C5.61553 14 4.26215 13.5895 3.11101 12.8203C1.95987 12.0511 1.06266 10.9579 0.532846 9.67879C0.00303296 8.3997 -0.13559 6.99224 0.134506 5.63437C0.404603 4.2765 1.07129 3.02922 2.05026 2.05026C3.02922 1.07129 4.2765 0.404603 5.63437 0.134506C6.99224 -0.13559 8.3997 0.00303296 9.67879 0.532846C10.9579 1.06266 12.0511 1.95987 12.8203 3.11101C13.5895 4.26215 14 5.61553 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14ZM7 1.16667C5.84628 1.16667 4.71846 1.50879 3.75918 2.14976C2.79989 2.79074 2.05222 3.70178 1.61071 4.76768C1.16919 5.83358 1.05367 7.00647 1.27876 8.13803C1.50384 9.26958 2.05941 10.309 2.87521 11.1248C3.69102 11.9406 4.73042 12.4962 5.86198 12.7212C6.99353 12.9463 8.16642 12.8308 9.23232 12.3893C10.2982 11.9478 11.2093 11.2001 11.8502 10.2408C12.4912 9.28154 12.8333 8.15373 12.8333 7C12.8333 5.45291 12.2188 3.96918 11.1248 2.87521C10.0308 1.78125 8.5471 1.16667 7 1.16667ZM4.66662 9.91668C4.58998 9.91704 4.51404 9.90209 4.44325 9.87271C4.37246 9.84333 4.30826 9.8001 4.2544 9.74557C4.14516 9.6362 4.0838 9.48793 4.0838 9.33335C4.0838 9.17876 4.14516 9.0305 4.2544 8.92113L6.17553 7L4.25443 5.07891C4.15139 4.96832 4.09529 4.82207 4.09796 4.67094C4.10063 4.51982 4.16185 4.37563 4.26872 4.26876C4.3756 4.16188 4.51979 4.10066 4.67091 4.09799C4.82204 4.09532 4.96829 4.15142 5.07887 4.25446L6.99997 6.17556L8.92106 4.25446C9.03164 4.15142 9.1779 4.09532 9.32903 4.09799C9.48015 4.10066 9.62434 4.16188 9.73121 4.26876C9.83809 4.37563 9.89931 4.51982 9.90198 4.67094C9.90464 4.82207 9.84855 4.96832 9.74551 5.07891L7.82441 7L9.74554 8.92113C9.85478 9.0305 9.91614 9.17876 9.91614 9.33335C9.91614 9.48793 9.85478 9.6362 9.74554 9.74557C9.69168 9.8001 9.62748 9.84333 9.55669 9.87271C9.4859 9.90209 9.40996 9.91704 9.33332 9.91668C9.25668 9.91704 9.18073 9.90209 9.10995 9.87271C9.03916 9.84333 8.97495 9.8001 8.9211 9.74557L6.99997 7.82444L5.07884 9.74557C5.02499 9.8001 4.96078 9.84333 4.88999 9.87271C4.81921 9.90209 4.74326 9.91704 4.66662 9.91668Z",
     fill: "currentColor"
   }, null, -1)])), 16);
 }
-script$d.render = render$c;
-var style$7 = "\n    .p-chip {\n        display: inline-flex;\n        align-items: center;\n        background: dt('chip.background');\n        color: dt('chip.color');\n        border-radius: dt('chip.border.radius');\n        padding-block: dt('chip.padding.y');\n        padding-inline: dt('chip.padding.x');\n        gap: dt('chip.gap');\n    }\n\n    .p-chip-icon {\n        color: dt('chip.icon.color');\n        font-size: dt('chip.icon.size');\n        width: dt('chip.icon.size');\n        height: dt('chip.icon.size');\n    }\n\n    .p-chip-image {\n        border-radius: 50%;\n        width: dt('chip.image.width');\n        height: dt('chip.image.height');\n        margin-inline-start: calc(-1 * dt('chip.padding.y'));\n    }\n\n    .p-chip:has(.p-chip-remove-icon) {\n        padding-inline-end: dt('chip.padding.y');\n    }\n\n    .p-chip:has(.p-chip-image) {\n        padding-block-start: calc(dt('chip.padding.y') / 2);\n        padding-block-end: calc(dt('chip.padding.y') / 2);\n    }\n\n    .p-chip-remove-icon {\n        cursor: pointer;\n        font-size: dt('chip.remove.icon.size');\n        width: dt('chip.remove.icon.size');\n        height: dt('chip.remove.icon.size');\n        color: dt('chip.remove.icon.color');\n        border-radius: 50%;\n        transition:\n            outline-color dt('chip.transition.duration'),\n            box-shadow dt('chip.transition.duration');\n        outline-color: transparent;\n    }\n\n    .p-chip-remove-icon:focus-visible {\n        box-shadow: dt('chip.remove.icon.focus.ring.shadow');\n        outline: dt('chip.remove.icon.focus.ring.width') dt('chip.remove.icon.focus.ring.style') dt('chip.remove.icon.focus.ring.color');\n        outline-offset: dt('chip.remove.icon.focus.ring.offset');\n    }\n";
-var classes$7 = {
+script$e.render = render$d;
+var style$8 = "\n    .p-chip {\n        display: inline-flex;\n        align-items: center;\n        background: dt('chip.background');\n        color: dt('chip.color');\n        border-radius: dt('chip.border.radius');\n        padding-block: dt('chip.padding.y');\n        padding-inline: dt('chip.padding.x');\n        gap: dt('chip.gap');\n    }\n\n    .p-chip-icon {\n        color: dt('chip.icon.color');\n        font-size: dt('chip.icon.size');\n        width: dt('chip.icon.size');\n        height: dt('chip.icon.size');\n    }\n\n    .p-chip-image {\n        border-radius: 50%;\n        width: dt('chip.image.width');\n        height: dt('chip.image.height');\n        margin-inline-start: calc(-1 * dt('chip.padding.y'));\n    }\n\n    .p-chip:has(.p-chip-remove-icon) {\n        padding-inline-end: dt('chip.padding.y');\n    }\n\n    .p-chip:has(.p-chip-image) {\n        padding-block-start: calc(dt('chip.padding.y') / 2);\n        padding-block-end: calc(dt('chip.padding.y') / 2);\n    }\n\n    .p-chip-remove-icon {\n        cursor: pointer;\n        font-size: dt('chip.remove.icon.size');\n        width: dt('chip.remove.icon.size');\n        height: dt('chip.remove.icon.size');\n        color: dt('chip.remove.icon.color');\n        border-radius: 50%;\n        transition:\n            outline-color dt('chip.transition.duration'),\n            box-shadow dt('chip.transition.duration');\n        outline-color: transparent;\n    }\n\n    .p-chip-remove-icon:focus-visible {\n        box-shadow: dt('chip.remove.icon.focus.ring.shadow');\n        outline: dt('chip.remove.icon.focus.ring.width') dt('chip.remove.icon.focus.ring.style') dt('chip.remove.icon.focus.ring.color');\n        outline-offset: dt('chip.remove.icon.focus.ring.offset');\n    }\n";
+var classes$8 = {
   root: "p-chip p-component",
   image: "p-chip-image",
   icon: "p-chip-icon",
@@ -25450,12 +25464,12 @@ var classes$7 = {
 };
 var ChipStyle = BaseStyle.extend({
   name: "chip",
-  style: style$7,
-  classes: classes$7
+  style: style$8,
+  classes: classes$8
 });
-var script$1$8 = {
+var script$1$9 = {
   name: "BaseChip",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     label: {
       type: [String, Number],
@@ -25486,9 +25500,9 @@ var script$1$8 = {
     };
   }
 };
-var script$c = {
+var script$d = {
   name: "Chip",
-  "extends": script$1$8,
+  "extends": script$1$9,
   inheritAttrs: false,
   emits: ["remove"],
   data: function data14() {
@@ -25515,12 +25529,12 @@ var script$c = {
     }
   },
   components: {
-    TimesCircleIcon: script$d
+    TimesCircleIcon: script$e
   }
 };
-var _hoisted_1$j = ["aria-label", "data-p"];
-var _hoisted_2$h = ["src"];
-function render$b(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$k = ["aria-label", "data-p"];
+var _hoisted_2$i = ["src"];
+function render$c(_ctx, _cache, $props, $setup, $data, $options) {
   return $data.visible ? (openBlock(), createElementBlock("div", mergeProps({
     key: 0,
     "class": _ctx.cx("root"),
@@ -25533,7 +25547,7 @@ function render$b(_ctx, _cache, $props, $setup, $data, $options) {
       src: _ctx.image
     }, _ctx.ptm("image"), {
       "class": _ctx.cx("image")
-    }), null, 16, _hoisted_2$h)) : _ctx.$slots.icon ? (openBlock(), createBlock(resolveDynamicComponent(_ctx.$slots.icon), mergeProps({
+    }), null, 16, _hoisted_2$i)) : _ctx.$slots.icon ? (openBlock(), createBlock(resolveDynamicComponent(_ctx.$slots.icon), mergeProps({
       key: 1,
       "class": _ctx.cx("icon")
     }, _ctx.ptm("icon")), null, 16, ["class"])) : _ctx.icon ? (openBlock(), createElementBlock("span", mergeProps({
@@ -25553,10 +25567,10 @@ function render$b(_ctx, _cache, $props, $setup, $data, $options) {
       onClick: $options.close,
       onKeydown: $options.onKeydown
     }, _ctx.ptm("removeIcon")), null, 16, ["class", "onClick", "onKeydown"]))];
-  }) : createCommentVNode("", true)], 16, _hoisted_1$j)) : createCommentVNode("", true);
+  }) : createCommentVNode("", true)], 16, _hoisted_1$k)) : createCommentVNode("", true);
 }
-script$c.render = render$b;
-var style$6 = "\n    .p-multiselect {\n        display: inline-flex;\n        cursor: pointer;\n        position: relative;\n        user-select: none;\n        background: dt('multiselect.background');\n        border: 1px solid dt('multiselect.border.color');\n        transition:\n            background dt('multiselect.transition.duration'),\n            color dt('multiselect.transition.duration'),\n            border-color dt('multiselect.transition.duration'),\n            outline-color dt('multiselect.transition.duration'),\n            box-shadow dt('multiselect.transition.duration');\n        border-radius: dt('multiselect.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('multiselect.shadow');\n    }\n\n    .p-multiselect:not(.p-disabled):hover {\n        border-color: dt('multiselect.hover.border.color');\n    }\n\n    .p-multiselect:not(.p-disabled).p-focus {\n        border-color: dt('multiselect.focus.border.color');\n        box-shadow: dt('multiselect.focus.ring.shadow');\n        outline: dt('multiselect.focus.ring.width') dt('multiselect.focus.ring.style') dt('multiselect.focus.ring.color');\n        outline-offset: dt('multiselect.focus.ring.offset');\n    }\n\n    .p-multiselect.p-variant-filled {\n        background: dt('multiselect.filled.background');\n    }\n\n    .p-multiselect.p-variant-filled:not(.p-disabled):hover {\n        background: dt('multiselect.filled.hover.background');\n    }\n\n    .p-multiselect.p-variant-filled.p-focus {\n        background: dt('multiselect.filled.focus.background');\n    }\n\n    .p-multiselect.p-invalid {\n        border-color: dt('multiselect.invalid.border.color');\n    }\n\n    .p-multiselect.p-disabled {\n        opacity: 1;\n        background: dt('multiselect.disabled.background');\n    }\n\n    .p-multiselect-dropdown {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        background: transparent;\n        color: dt('multiselect.dropdown.color');\n        width: dt('multiselect.dropdown.width');\n        border-start-end-radius: dt('multiselect.border.radius');\n        border-end-end-radius: dt('multiselect.border.radius');\n    }\n\n    .p-multiselect-clear-icon {\n        align-self: center;\n        color: dt('multiselect.clear.icon.color');\n        inset-inline-end: dt('multiselect.dropdown.width');\n    }\n\n    .p-multiselect-label-container {\n        overflow: hidden;\n        flex: 1 1 auto;\n        cursor: pointer;\n    }\n\n    .p-multiselect-label {\n        white-space: nowrap;\n        cursor: pointer;\n        overflow: hidden;\n        text-overflow: ellipsis;\n        padding: dt('multiselect.padding.y') dt('multiselect.padding.x');\n        color: dt('multiselect.color');\n    }\n\n    .p-multiselect-display-chip .p-multiselect-label {\n        display: flex;\n        align-items: center;\n        gap: calc(dt('multiselect.padding.y') / 2);\n    }\n\n    .p-multiselect-label.p-placeholder {\n        color: dt('multiselect.placeholder.color');\n    }\n\n    .p-multiselect.p-invalid .p-multiselect-label.p-placeholder {\n        color: dt('multiselect.invalid.placeholder.color');\n    }\n\n    .p-multiselect.p-disabled .p-multiselect-label {\n        color: dt('multiselect.disabled.color');\n    }\n\n    .p-multiselect-label-empty {\n        overflow: hidden;\n        visibility: hidden;\n    }\n\n    .p-multiselect-overlay {\n        position: absolute;\n        top: 0;\n        left: 0;\n        background: dt('multiselect.overlay.background');\n        color: dt('multiselect.overlay.color');\n        border: 1px solid dt('multiselect.overlay.border.color');\n        border-radius: dt('multiselect.overlay.border.radius');\n        box-shadow: dt('multiselect.overlay.shadow');\n        min-width: 100%;\n    }\n\n    .p-multiselect-header {\n        display: flex;\n        align-items: center;\n        padding: dt('multiselect.list.header.padding');\n    }\n\n    .p-multiselect-header .p-checkbox {\n        margin-inline-end: dt('multiselect.option.gap');\n    }\n\n    .p-multiselect-filter-container {\n        flex: 1 1 auto;\n    }\n\n    .p-multiselect-filter {\n        width: 100%;\n    }\n\n    .p-multiselect-list-container {\n        overflow: auto;\n    }\n\n    .p-multiselect-list {\n        margin: 0;\n        padding: 0;\n        list-style-type: none;\n        padding: dt('multiselect.list.padding');\n        display: flex;\n        flex-direction: column;\n        gap: dt('multiselect.list.gap');\n    }\n\n    .p-multiselect-option {\n        cursor: pointer;\n        font-weight: normal;\n        white-space: nowrap;\n        position: relative;\n        overflow: hidden;\n        display: flex;\n        align-items: center;\n        gap: dt('multiselect.option.gap');\n        padding: dt('multiselect.option.padding');\n        border: 0 none;\n        color: dt('multiselect.option.color');\n        background: transparent;\n        transition:\n            background dt('multiselect.transition.duration'),\n            color dt('multiselect.transition.duration'),\n            border-color dt('multiselect.transition.duration'),\n            box-shadow dt('multiselect.transition.duration'),\n            outline-color dt('multiselect.transition.duration');\n        border-radius: dt('multiselect.option.border.radius');\n    }\n\n    .p-multiselect-option:not(.p-multiselect-option-selected):not(.p-disabled).p-focus {\n        background: dt('multiselect.option.focus.background');\n        color: dt('multiselect.option.focus.color');\n    }\n\n    .p-multiselect-option:not(.p-multiselect-option-selected):not(.p-disabled):hover {\n        background: dt('multiselect.option.focus.background');\n        color: dt('multiselect.option.focus.color');\n    }\n\n    .p-multiselect-option.p-multiselect-option-selected {\n        background: dt('multiselect.option.selected.background');\n        color: dt('multiselect.option.selected.color');\n    }\n\n    .p-multiselect-option.p-multiselect-option-selected.p-focus {\n        background: dt('multiselect.option.selected.focus.background');\n        color: dt('multiselect.option.selected.focus.color');\n    }\n\n    .p-multiselect-option-group {\n        cursor: auto;\n        margin: 0;\n        padding: dt('multiselect.option.group.padding');\n        background: dt('multiselect.option.group.background');\n        color: dt('multiselect.option.group.color');\n        font-weight: dt('multiselect.option.group.font.weight');\n    }\n\n    .p-multiselect-empty-message {\n        padding: dt('multiselect.empty.message.padding');\n    }\n\n    .p-multiselect-label .p-chip {\n        padding-block-start: calc(dt('multiselect.padding.y') / 2);\n        padding-block-end: calc(dt('multiselect.padding.y') / 2);\n        border-radius: dt('multiselect.chip.border.radius');\n    }\n\n    .p-multiselect-label:has(.p-chip) {\n        padding: calc(dt('multiselect.padding.y') / 2) calc(dt('multiselect.padding.x') / 2);\n    }\n\n    .p-multiselect-fluid {\n        display: flex;\n        width: 100%;\n    }\n\n    .p-multiselect-sm .p-multiselect-label {\n        font-size: dt('multiselect.sm.font.size');\n        padding-block: dt('multiselect.sm.padding.y');\n        padding-inline: dt('multiselect.sm.padding.x');\n    }\n\n    .p-multiselect-sm .p-multiselect-dropdown .p-icon {\n        font-size: dt('multiselect.sm.font.size');\n        width: dt('multiselect.sm.font.size');\n        height: dt('multiselect.sm.font.size');\n    }\n\n    .p-multiselect-lg .p-multiselect-label {\n        font-size: dt('multiselect.lg.font.size');\n        padding-block: dt('multiselect.lg.padding.y');\n        padding-inline: dt('multiselect.lg.padding.x');\n    }\n\n    .p-multiselect-lg .p-multiselect-dropdown .p-icon {\n        font-size: dt('multiselect.lg.font.size');\n        width: dt('multiselect.lg.font.size');\n        height: dt('multiselect.lg.font.size');\n    }\n\n    .p-floatlabel-in .p-multiselect-filter {\n        padding-block-start: dt('multiselect.padding.y');\n        padding-block-end: dt('multiselect.padding.y');\n    }\n";
+script$d.render = render$c;
+var style$7 = "\n    .p-multiselect {\n        display: inline-flex;\n        cursor: pointer;\n        position: relative;\n        user-select: none;\n        background: dt('multiselect.background');\n        border: 1px solid dt('multiselect.border.color');\n        transition:\n            background dt('multiselect.transition.duration'),\n            color dt('multiselect.transition.duration'),\n            border-color dt('multiselect.transition.duration'),\n            outline-color dt('multiselect.transition.duration'),\n            box-shadow dt('multiselect.transition.duration');\n        border-radius: dt('multiselect.border.radius');\n        outline-color: transparent;\n        box-shadow: dt('multiselect.shadow');\n    }\n\n    .p-multiselect:not(.p-disabled):hover {\n        border-color: dt('multiselect.hover.border.color');\n    }\n\n    .p-multiselect:not(.p-disabled).p-focus {\n        border-color: dt('multiselect.focus.border.color');\n        box-shadow: dt('multiselect.focus.ring.shadow');\n        outline: dt('multiselect.focus.ring.width') dt('multiselect.focus.ring.style') dt('multiselect.focus.ring.color');\n        outline-offset: dt('multiselect.focus.ring.offset');\n    }\n\n    .p-multiselect.p-variant-filled {\n        background: dt('multiselect.filled.background');\n    }\n\n    .p-multiselect.p-variant-filled:not(.p-disabled):hover {\n        background: dt('multiselect.filled.hover.background');\n    }\n\n    .p-multiselect.p-variant-filled.p-focus {\n        background: dt('multiselect.filled.focus.background');\n    }\n\n    .p-multiselect.p-invalid {\n        border-color: dt('multiselect.invalid.border.color');\n    }\n\n    .p-multiselect.p-disabled {\n        opacity: 1;\n        background: dt('multiselect.disabled.background');\n    }\n\n    .p-multiselect-dropdown {\n        display: flex;\n        align-items: center;\n        justify-content: center;\n        flex-shrink: 0;\n        background: transparent;\n        color: dt('multiselect.dropdown.color');\n        width: dt('multiselect.dropdown.width');\n        border-start-end-radius: dt('multiselect.border.radius');\n        border-end-end-radius: dt('multiselect.border.radius');\n    }\n\n    .p-multiselect-clear-icon {\n        align-self: center;\n        color: dt('multiselect.clear.icon.color');\n        inset-inline-end: dt('multiselect.dropdown.width');\n    }\n\n    .p-multiselect-label-container {\n        overflow: hidden;\n        flex: 1 1 auto;\n        cursor: pointer;\n    }\n\n    .p-multiselect-label {\n        white-space: nowrap;\n        cursor: pointer;\n        overflow: hidden;\n        text-overflow: ellipsis;\n        padding: dt('multiselect.padding.y') dt('multiselect.padding.x');\n        color: dt('multiselect.color');\n    }\n\n    .p-multiselect-display-chip .p-multiselect-label {\n        display: flex;\n        align-items: center;\n        gap: calc(dt('multiselect.padding.y') / 2);\n    }\n\n    .p-multiselect-label.p-placeholder {\n        color: dt('multiselect.placeholder.color');\n    }\n\n    .p-multiselect.p-invalid .p-multiselect-label.p-placeholder {\n        color: dt('multiselect.invalid.placeholder.color');\n    }\n\n    .p-multiselect.p-disabled .p-multiselect-label {\n        color: dt('multiselect.disabled.color');\n    }\n\n    .p-multiselect-label-empty {\n        overflow: hidden;\n        visibility: hidden;\n    }\n\n    .p-multiselect-overlay {\n        position: absolute;\n        top: 0;\n        left: 0;\n        background: dt('multiselect.overlay.background');\n        color: dt('multiselect.overlay.color');\n        border: 1px solid dt('multiselect.overlay.border.color');\n        border-radius: dt('multiselect.overlay.border.radius');\n        box-shadow: dt('multiselect.overlay.shadow');\n        min-width: 100%;\n    }\n\n    .p-multiselect-header {\n        display: flex;\n        align-items: center;\n        padding: dt('multiselect.list.header.padding');\n    }\n\n    .p-multiselect-header .p-checkbox {\n        margin-inline-end: dt('multiselect.option.gap');\n    }\n\n    .p-multiselect-filter-container {\n        flex: 1 1 auto;\n    }\n\n    .p-multiselect-filter {\n        width: 100%;\n    }\n\n    .p-multiselect-list-container {\n        overflow: auto;\n    }\n\n    .p-multiselect-list {\n        margin: 0;\n        padding: 0;\n        list-style-type: none;\n        padding: dt('multiselect.list.padding');\n        display: flex;\n        flex-direction: column;\n        gap: dt('multiselect.list.gap');\n    }\n\n    .p-multiselect-option {\n        cursor: pointer;\n        font-weight: normal;\n        white-space: nowrap;\n        position: relative;\n        overflow: hidden;\n        display: flex;\n        align-items: center;\n        gap: dt('multiselect.option.gap');\n        padding: dt('multiselect.option.padding');\n        border: 0 none;\n        color: dt('multiselect.option.color');\n        background: transparent;\n        transition:\n            background dt('multiselect.transition.duration'),\n            color dt('multiselect.transition.duration'),\n            border-color dt('multiselect.transition.duration'),\n            box-shadow dt('multiselect.transition.duration'),\n            outline-color dt('multiselect.transition.duration');\n        border-radius: dt('multiselect.option.border.radius');\n    }\n\n    .p-multiselect-option:not(.p-multiselect-option-selected):not(.p-disabled).p-focus {\n        background: dt('multiselect.option.focus.background');\n        color: dt('multiselect.option.focus.color');\n    }\n\n    .p-multiselect-option:not(.p-multiselect-option-selected):not(.p-disabled):hover {\n        background: dt('multiselect.option.focus.background');\n        color: dt('multiselect.option.focus.color');\n    }\n\n    .p-multiselect-option.p-multiselect-option-selected {\n        background: dt('multiselect.option.selected.background');\n        color: dt('multiselect.option.selected.color');\n    }\n\n    .p-multiselect-option.p-multiselect-option-selected.p-focus {\n        background: dt('multiselect.option.selected.focus.background');\n        color: dt('multiselect.option.selected.focus.color');\n    }\n\n    .p-multiselect-option-group {\n        cursor: auto;\n        margin: 0;\n        padding: dt('multiselect.option.group.padding');\n        background: dt('multiselect.option.group.background');\n        color: dt('multiselect.option.group.color');\n        font-weight: dt('multiselect.option.group.font.weight');\n    }\n\n    .p-multiselect-empty-message {\n        padding: dt('multiselect.empty.message.padding');\n    }\n\n    .p-multiselect-label .p-chip {\n        padding-block-start: calc(dt('multiselect.padding.y') / 2);\n        padding-block-end: calc(dt('multiselect.padding.y') / 2);\n        border-radius: dt('multiselect.chip.border.radius');\n    }\n\n    .p-multiselect-label:has(.p-chip) {\n        padding: calc(dt('multiselect.padding.y') / 2) calc(dt('multiselect.padding.x') / 2);\n    }\n\n    .p-multiselect-fluid {\n        display: flex;\n        width: 100%;\n    }\n\n    .p-multiselect-sm .p-multiselect-label {\n        font-size: dt('multiselect.sm.font.size');\n        padding-block: dt('multiselect.sm.padding.y');\n        padding-inline: dt('multiselect.sm.padding.x');\n    }\n\n    .p-multiselect-sm .p-multiselect-dropdown .p-icon {\n        font-size: dt('multiselect.sm.font.size');\n        width: dt('multiselect.sm.font.size');\n        height: dt('multiselect.sm.font.size');\n    }\n\n    .p-multiselect-lg .p-multiselect-label {\n        font-size: dt('multiselect.lg.font.size');\n        padding-block: dt('multiselect.lg.padding.y');\n        padding-inline: dt('multiselect.lg.padding.x');\n    }\n\n    .p-multiselect-lg .p-multiselect-dropdown .p-icon {\n        font-size: dt('multiselect.lg.font.size');\n        width: dt('multiselect.lg.font.size');\n        height: dt('multiselect.lg.font.size');\n    }\n\n    .p-floatlabel-in .p-multiselect-filter {\n        padding-block-start: dt('multiselect.padding.y');\n        padding-block-end: dt('multiselect.padding.y');\n    }\n";
 var inlineStyles$1 = {
   root: function root15(_ref) {
     var props = _ref.props;
@@ -25565,7 +25579,7 @@ var inlineStyles$1 = {
     };
   }
 };
-var classes$6 = {
+var classes$7 = {
   root: function root16(_ref2) {
     var instance = _ref2.instance, props = _ref2.props;
     return ["p-multiselect p-component p-inputwrapper", {
@@ -25616,13 +25630,13 @@ var classes$6 = {
 };
 var MultiSelectStyle = BaseStyle.extend({
   name: "multiselect",
-  style: style$6,
-  classes: classes$6,
+  style: style$7,
+  classes: classes$7,
   inlineStyles: inlineStyles$1
 });
-var script$1$7 = {
+var script$1$8 = {
   name: "BaseMultiSelect",
-  "extends": script$L,
+  "extends": script$M,
   props: {
     options: Array,
     optionLabel: null,
@@ -25846,33 +25860,33 @@ function _toPrimitive$1$1(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-function _toConsumableArray$4(r2) {
-  return _arrayWithoutHoles$4(r2) || _iterableToArray$4(r2) || _unsupportedIterableToArray$4(r2) || _nonIterableSpread$4();
+function _toConsumableArray$5(r2) {
+  return _arrayWithoutHoles$5(r2) || _iterableToArray$5(r2) || _unsupportedIterableToArray$5(r2) || _nonIterableSpread$5();
 }
-function _nonIterableSpread$4() {
+function _nonIterableSpread$5() {
   throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _unsupportedIterableToArray$4(r2, a2) {
+function _unsupportedIterableToArray$5(r2, a2) {
   if (r2) {
-    if ("string" == typeof r2) return _arrayLikeToArray$4(r2, a2);
+    if ("string" == typeof r2) return _arrayLikeToArray$5(r2, a2);
     var t2 = {}.toString.call(r2).slice(8, -1);
-    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$4(r2, a2) : void 0;
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$5(r2, a2) : void 0;
   }
 }
-function _iterableToArray$4(r2) {
+function _iterableToArray$5(r2) {
   if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
 }
-function _arrayWithoutHoles$4(r2) {
-  if (Array.isArray(r2)) return _arrayLikeToArray$4(r2);
+function _arrayWithoutHoles$5(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$5(r2);
 }
-function _arrayLikeToArray$4(r2, a2) {
+function _arrayLikeToArray$5(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
   return n2;
 }
-var script$b = {
+var script$c = {
   name: "MultiSelect",
-  "extends": script$1$7,
+  "extends": script$1$8,
   inheritAttrs: false,
   emits: ["change", "focus", "blur", "before-show", "before-hide", "show", "hide", "filter", "selectall-change"],
   inject: {
@@ -26106,7 +26120,7 @@ var script$b = {
       if (selected2) value2 = this.d_value.filter(function(val) {
         return !k$5(val, _this4.getOptionValue(option3), _this4.equalityKey);
       });
-      else value2 = [].concat(_toConsumableArray$4(this.d_value || []), [this.getOptionValue(option3)]);
+      else value2 = [].concat(_toConsumableArray$5(this.d_value || []), [this.getOptionValue(option3)]);
       this.updateModel(event, value2);
       index2 !== -1 && (this.focusedOptionIndex = index2);
       isFocus && bt(this.$refs.focusInput);
@@ -26677,10 +26691,10 @@ var script$b = {
           var filtered = [];
           optionGroups.forEach(function(group) {
             var groupChildren = _this23.getOptionGroupChildren(group);
-            var filteredItems = groupChildren.filter(function(item) {
-              return filteredOptions.includes(item);
+            var filteredItems = groupChildren.filter(function(item2) {
+              return filteredOptions.includes(item2);
             });
-            if (filteredItems.length > 0) filtered.push(_objectSpread$2(_objectSpread$2({}, group), {}, _defineProperty$1$1({}, typeof _this23.optionGroupChildren === "string" ? _this23.optionGroupChildren : "items", _toConsumableArray$4(filteredItems))));
+            if (filteredItems.length > 0) filtered.push(_objectSpread$2(_objectSpread$2({}, group), {}, _defineProperty$1$1({}, typeof _this23.optionGroupChildren === "string" ? _this23.optionGroupChildren : "items", _toConsumableArray$5(filteredItems))));
           });
           return this.flatOptions(filtered);
         }
@@ -26689,23 +26703,23 @@ var script$b = {
       return options3;
     },
     label: function label4() {
-      var label5;
+      var label7;
       if (this.d_value && this.d_value.length) {
         if (s$c(this.maxSelectedLabels) && this.d_value.length > this.maxSelectedLabels) {
           return this.getSelectedItemsLabel();
         } else {
-          label5 = "";
+          label7 = "";
           for (var i2 = 0; i2 < this.d_value.length; i2++) {
             if (i2 !== 0) {
-              label5 += ", ";
+              label7 += ", ";
             }
-            label5 += this.getLabelByValue(this.d_value[i2]);
+            label7 += this.getLabelByValue(this.d_value[i2]);
           }
         }
       } else {
-        label5 = this.placeholder;
+        label7 = this.placeholder;
       }
-      return label5;
+      return label7;
     },
     chipSelectedItems: function chipSelectedItems() {
       return s$c(this.maxSelectedLabels) && this.d_value && this.d_value.length > this.maxSelectedLabels;
@@ -26801,18 +26815,18 @@ var script$b = {
     ripple: Ripple
   },
   components: {
-    InputText: script$K,
-    Checkbox: script$e,
-    VirtualScroller: script$i,
-    Portal: script$E,
-    Chip: script$c,
-    IconField: script$k,
-    InputIcon: script$j,
-    TimesIcon: script$H,
-    SearchIcon: script$l,
-    ChevronDownIcon: script$q,
-    SpinnerIcon: script$P,
-    CheckIcon: script$m
+    InputText: script$L,
+    Checkbox: script$f,
+    VirtualScroller: script$j,
+    Portal: script$F,
+    Chip: script$d,
+    IconField: script$l,
+    InputIcon: script$k,
+    TimesIcon: script$I,
+    SearchIcon: script$m,
+    ChevronDownIcon: script$r,
+    SpinnerIcon: script$Q,
+    CheckIcon: script$n
   }
 };
 function _typeof$6(o2) {
@@ -26840,17 +26854,17 @@ function _toPrimitive$6(t2, r2) {
   }
   return ("string" === r2 ? String : Number)(t2);
 }
-var _hoisted_1$i = ["data-p"];
-var _hoisted_2$g = ["id", "disabled", "placeholder", "tabindex", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid"];
-var _hoisted_3$g = ["data-p"];
-var _hoisted_4$f = {
+var _hoisted_1$j = ["data-p"];
+var _hoisted_2$h = ["id", "disabled", "placeholder", "tabindex", "aria-label", "aria-labelledby", "aria-expanded", "aria-controls", "aria-activedescendant", "aria-invalid"];
+var _hoisted_3$h = ["data-p"];
+var _hoisted_4$g = {
   key: 0
 };
-var _hoisted_5$b = ["data-p"];
+var _hoisted_5$c = ["data-p"];
 var _hoisted_6$a = ["id", "aria-label"];
 var _hoisted_7$a = ["id"];
 var _hoisted_8$a = ["id", "aria-label", "aria-selected", "aria-disabled", "aria-setsize", "aria-posinset", "onClick", "onMousemove", "data-p-selected", "data-p-focused", "data-p-disabled"];
-function render$a(_ctx, _cache, $props, $setup, $data, $options) {
+function render$b(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_Chip = resolveComponent("Chip");
   var _component_SpinnerIcon = resolveComponent("SpinnerIcon");
   var _component_Checkbox = resolveComponent("Checkbox");
@@ -26898,7 +26912,7 @@ function render$a(_ctx, _cache, $props, $setup, $data, $options) {
     onKeydown: _cache[2] || (_cache[2] = function() {
       return $options.onKeyDown && $options.onKeyDown.apply($options, arguments);
     })
-  }, _ctx.ptm("hiddenInput")), null, 16, _hoisted_2$g)], 16), createBaseVNode("div", mergeProps({
+  }, _ctx.ptm("hiddenInput")), null, 16, _hoisted_2$h)], 16), createBaseVNode("div", mergeProps({
     "class": _ctx.cx("labelContainer")
   }, _ctx.ptm("labelContainer")), [createBaseVNode("div", mergeProps({
     "class": _ctx.cx("label"),
@@ -26911,37 +26925,37 @@ function render$a(_ctx, _cache, $props, $setup, $data, $options) {
       key: 0
     }, [createTextVNode(toDisplayString($options.label || "empty"), 1)], 64)) : _ctx.display === "chip" ? (openBlock(), createElementBlock(Fragment, {
       key: 1
-    }, [$options.chipSelectedItems ? (openBlock(), createElementBlock("span", _hoisted_4$f, toDisplayString($options.label), 1)) : (openBlock(true), createElementBlock(Fragment, {
+    }, [$options.chipSelectedItems ? (openBlock(), createElementBlock("span", _hoisted_4$g, toDisplayString($options.label), 1)) : (openBlock(true), createElementBlock(Fragment, {
       key: 1
-    }, renderList(_ctx.d_value, function(item, idx) {
+    }, renderList(_ctx.d_value, function(item2, idx) {
       return openBlock(), createElementBlock("span", mergeProps({
-        key: "chip-".concat(_ctx.optionValue ? item : $options.getLabelByValue(item), "_").concat(idx),
+        key: "chip-".concat(_ctx.optionValue ? item2 : $options.getLabelByValue(item2), "_").concat(idx),
         "class": _ctx.cx("chipItem")
       }, {
         ref_for: true
       }, _ctx.ptm("chipItem")), [renderSlot(_ctx.$slots, "chip", {
-        value: item,
+        value: item2,
         removeCallback: function removeCallback(event) {
-          return $options.removeOption(event, item);
+          return $options.removeOption(event, item2);
         }
       }, function() {
         return [createVNode(_component_Chip, {
           "class": normalizeClass(_ctx.cx("pcChip")),
-          label: $options.getLabelByValue(item),
+          label: $options.getLabelByValue(item2),
           removeIcon: _ctx.chipIcon || _ctx.removeTokenIcon,
           removable: "",
           unstyled: _ctx.unstyled,
           onRemove: function onRemove2($event) {
-            return $options.removeOption($event, item);
+            return $options.removeOption($event, item2);
           },
           pt: _ctx.ptm("pcChip")
         }, {
           removeicon: withCtx(function() {
             return [renderSlot(_ctx.$slots, _ctx.$slots.chipicon ? "chipicon" : "removetokenicon", {
               "class": normalizeClass(_ctx.cx("chipIcon")),
-              item,
+              item: item2,
               removeCallback: function removeCallback(event) {
-                return $options.removeOption(event, item);
+                return $options.removeOption(event, item2);
               }
             })];
           }),
@@ -26951,7 +26965,7 @@ function render$a(_ctx, _cache, $props, $setup, $data, $options) {
     }), 128)), !_ctx.d_value || _ctx.d_value.length === 0 ? (openBlock(), createElementBlock(Fragment, {
       key: 2
     }, [createTextVNode(toDisplayString(_ctx.placeholder || "empty"), 1)], 64)) : createCommentVNode("", true)], 64)) : createCommentVNode("", true)];
-  })], 16, _hoisted_3$g)], 16), $options.isClearIconVisible ? renderSlot(_ctx.$slots, "clearicon", {
+  })], 16, _hoisted_3$h)], 16), $options.isClearIconVisible ? renderSlot(_ctx.$slots, "clearicon", {
     key: 0,
     "class": normalizeClass(_ctx.cx("clearIcon")),
     clearCallback: $options.onClearClick
@@ -27268,29 +27282,29 @@ function render$a(_ctx, _cache, $props, $setup, $data, $options) {
           }, _ctx.ptm("hiddenLastFocusableEl"), {
             "data-p-hidden-accessible": true,
             "data-p-hidden-focusable": true
-          }), null, 16)], 16, _hoisted_5$b)) : createCommentVNode("", true)];
+          }), null, 16)], 16, _hoisted_5$c)) : createCommentVNode("", true)];
         }),
         _: 3
       }, 16, ["onEnter", "onAfterEnter", "onLeave", "onAfterLeave"])];
     }),
     _: 3
-  }, 8, ["appendTo"])], 16, _hoisted_1$i);
+  }, 8, ["appendTo"])], 16, _hoisted_1$j);
 }
-script$b.render = render$a;
-const _hoisted_1$h = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
-const _hoisted_2$f = {
+script$c.render = render$b;
+const _hoisted_1$i = { class: "flex flex-col h-[600px] bg-transparent overflow-hidden rounded-b-xl text-[var(--text-1)]" };
+const _hoisted_2$g = {
   key: 0,
   class: "flex items-center justify-center py-12"
 };
-const _hoisted_3$f = {
+const _hoisted_3$g = {
   key: 1,
   class: "p-4"
 };
-const _hoisted_4$e = {
+const _hoisted_4$f = {
   key: 2,
   class: "flex flex-col h-full"
 };
-const _hoisted_5$a = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_5$b = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
 const _hoisted_6$9 = { class: "text-sm text-[var(--text-1)] font-mono" };
 const _hoisted_7$9 = { class: "px-3 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]" };
 const _hoisted_8$9 = { class: "text-sm text-[var(--text-1)]" };
@@ -27312,11 +27326,11 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
     const loading2 = /* @__PURE__ */ ref(true);
     const error = /* @__PURE__ */ ref("");
     const saving = /* @__PURE__ */ ref(false);
-    const data21 = dialogRef?.value?.data || {};
-    const roleId = /* @__PURE__ */ ref(data21?.roleId || "");
+    const data22 = dialogRef?.value?.data || {};
+    const roleId = /* @__PURE__ */ ref(data22?.roleId || "");
     console.log("RoleDetailDialog - dialogRef:", dialogRef);
     console.log("RoleDetailDialog - dialogRef.value:", dialogRef?.value);
-    console.log("RoleDetailDialog - data:", data21);
+    console.log("RoleDetailDialog - data:", data22);
     console.log("RoleDetailDialog - roleId:", roleId.value);
     const roleData = /* @__PURE__ */ ref(null);
     const originalRoleData = /* @__PURE__ */ ref(null);
@@ -27370,7 +27384,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
       loading2.value = true;
       error.value = "";
       console.log("loadRole - roleId.value:", roleId.value);
-      console.log("loadRole - data:", data21);
+      console.log("loadRole - data:", data22);
       try {
         const role = await apiService.getRole(roleId.value);
         roleData.value = role;
@@ -27509,26 +27523,26 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
       loadToolGroups();
     });
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$h, [
-        loading2.value ? (openBlock(), createElementBlock("div", _hoisted_2$f, [
+      return openBlock(), createElementBlock("div", _hoisted_1$i, [
+        loading2.value ? (openBlock(), createElementBlock("div", _hoisted_2$g, [
           createVNode(unref(LoaderCircle), { class: "w-8 h-8 animate-spin text-[var(--primary)]" }),
           _cache[4] || (_cache[4] = createBaseVNode("span", { class: "ml-3 text-[var(--text-2)]" }, "加载中...", -1))
-        ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_3$f, [
-          createVNode(unref(script$s), { severity: "error" }, {
+        ])) : error.value ? (openBlock(), createElementBlock("div", _hoisted_3$g, [
+          createVNode(unref(script$t), { severity: "error" }, {
             default: withCtx(() => [
               createTextVNode(toDisplayString(error.value), 1)
             ]),
             _: 1
           })
-        ])) : (openBlock(), createElementBlock("div", _hoisted_4$e, [
-          createVNode(unref(script$C), {
+        ])) : (openBlock(), createElementBlock("div", _hoisted_4$f, [
+          createVNode(unref(script$D), {
             value: "info",
             class: "flex-grow flex flex-col"
           }, {
             default: withCtx(() => [
-              createVNode(unref(script$z), { class: "px-4 border-b border-[var(--border)]" }, {
+              createVNode(unref(script$A), { class: "px-4 border-b border-[var(--border)]" }, {
                 default: withCtx(() => [
-                  createVNode(unref(script$y), {
+                  createVNode(unref(script$z), {
                     value: "info",
                     class: "flex items-center gap-2"
                   }, {
@@ -27538,7 +27552,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                     ]),
                     _: 1
                   }),
-                  createVNode(unref(script$y), {
+                  createVNode(unref(script$z), {
                     value: "prompt",
                     class: "flex items-center gap-2"
                   }, {
@@ -27548,7 +27562,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                     ]),
                     _: 1
                   }),
-                  createVNode(unref(script$y), {
+                  createVNode(unref(script$z), {
                     value: "config",
                     class: "flex items-center gap-2"
                   }, {
@@ -27561,16 +27575,16 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                 ]),
                 _: 1
               }),
-              createVNode(unref(script$x), { class: "flex-grow overflow-y-auto" }, {
+              createVNode(unref(script$y), { class: "flex-grow overflow-y-auto" }, {
                 default: withCtx(() => [
-                  createVNode(unref(script$w), {
+                  createVNode(unref(script$x), {
                     value: "info",
                     class: "p-6 space-y-6"
                   }, {
                     default: withCtx(() => [
                       createBaseVNode("section", null, [
                         _cache[8] || (_cache[8] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)] mb-2" }, " 岗位ID ", -1)),
-                        createBaseVNode("div", _hoisted_5$a, [
+                        createBaseVNode("div", _hoisted_5$b, [
                           createBaseVNode("code", _hoisted_6$9, toDisplayString(roleData.value?.id), 1)
                         ])
                       ]),
@@ -27595,7 +27609,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                     ]),
                     _: 1
                   }),
-                  createVNode(unref(script$w), {
+                  createVNode(unref(script$x), {
                     value: "prompt",
                     class: "p-6 space-y-6"
                   }, {
@@ -27603,7 +27617,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", null, [
                         createBaseVNode("div", _hoisted_13$8, [
                           _cache[13] || (_cache[13] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 职责提示词 ", -1)),
-                          hasPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                          hasPromptChanges.value ? (openBlock(), createBlock(unref(script$O), {
                             key: 0,
                             variant: "text",
                             size: "small",
@@ -27618,7 +27632,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                             _: 1
                           }, 8, ["loading"])) : createCommentVNode("", true)
                         ]),
-                        createVNode(unref(script$r), {
+                        createVNode(unref(script$s), {
                           modelValue: roleForm.value.rolePrompt,
                           "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => roleForm.value.rolePrompt = $event),
                           rows: 8,
@@ -27631,7 +27645,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", null, [
                         createBaseVNode("div", _hoisted_14$8, [
                           _cache[16] || (_cache[16] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 组织架构提示词 ", -1)),
-                          hasOrgPromptChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                          hasOrgPromptChanges.value ? (openBlock(), createBlock(unref(script$O), {
                             key: 0,
                             variant: "text",
                             size: "small",
@@ -27646,7 +27660,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                             _: 1
                           }, 8, ["loading"])) : createCommentVNode("", true)
                         ]),
-                        createVNode(unref(script$r), {
+                        createVNode(unref(script$s), {
                           modelValue: roleForm.value.orgPrompt,
                           "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => roleForm.value.orgPrompt = $event),
                           rows: 6,
@@ -27659,7 +27673,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                     ]),
                     _: 1
                   }),
-                  createVNode(unref(script$w), {
+                  createVNode(unref(script$x), {
                     value: "config",
                     class: "p-6 space-y-6"
                   }, {
@@ -27667,7 +27681,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", null, [
                         createBaseVNode("div", _hoisted_15$8, [
                           _cache[19] || (_cache[19] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " LLM 服务 ", -1)),
-                          hasLlmServiceChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                          hasLlmServiceChanges.value ? (openBlock(), createBlock(unref(script$O), {
                             key: 0,
                             variant: "text",
                             size: "small",
@@ -27682,7 +27696,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                             _: 1
                           }, 8, ["loading"])) : createCommentVNode("", true)
                         ]),
-                        createVNode(unref(script$g), {
+                        createVNode(unref(script$h), {
                           modelValue: roleForm.value.llmServiceId,
                           "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => roleForm.value.llmServiceId = $event),
                           options: llmServiceOptions.value,
@@ -27697,7 +27711,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                       createBaseVNode("section", null, [
                         createBaseVNode("div", _hoisted_16$8, [
                           _cache[22] || (_cache[22] = createBaseVNode("label", { class: "block text-sm font-medium text-[var(--text-1)]" }, " 工具组 ", -1)),
-                          hasToolGroupsChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                          hasToolGroupsChanges.value ? (openBlock(), createBlock(unref(script$O), {
                             key: 0,
                             variant: "text",
                             size: "small",
@@ -27712,7 +27726,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
                             _: 1
                           }, 8, ["loading"])) : createCommentVNode("", true)
                         ]),
-                        createVNode(unref(script$b), {
+                        createVNode(unref(script$c), {
                           modelValue: roleForm.value.toolGroups,
                           "onUpdate:modelValue": _cache[3] || (_cache[3] = ($event) => roleForm.value.toolGroups = $event),
                           options: toolGroupOptions.value,
@@ -27736,7 +27750,7 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
         ])),
         createBaseVNode("div", _hoisted_17$8, [
           createBaseVNode("div", _hoisted_18$8, [
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               variant: "text",
               onClick: onClose,
               disabled: saving.value
@@ -27753,11 +27767,11 @@ const _sfc_main$d = /* @__PURE__ */ defineComponent({
   }
 });
 const RoleDetailDialog = /* @__PURE__ */ _export_sfc(_sfc_main$d, [["__scopeId", "data-v-3192a84d"]]);
-const _hoisted_1$g = { class: "flex flex-col h-[70vh] bg-transparent overflow-hidden rounded-b-xl relative text-[var(--text-1)]" };
-const _hoisted_2$e = { class: "grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20" };
-const _hoisted_3$e = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
-const _hoisted_4$d = { class: "text-xl font-bold text-[var(--text-1)]" };
-const _hoisted_5$9 = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_1$h = { class: "flex flex-col h-[70vh] bg-transparent overflow-hidden rounded-b-xl relative text-[var(--text-1)]" };
+const _hoisted_2$f = { class: "grid grid-cols-3 gap-4 p-4 border-b border-[var(--border)] bg-[var(--surface-1)] z-20" };
+const _hoisted_3$f = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
+const _hoisted_4$e = { class: "text-xl font-bold text-[var(--text-1)]" };
+const _hoisted_5$a = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
 const _hoisted_6$8 = { class: "text-xl font-bold text-[var(--text-1)]" };
 const _hoisted_7$8 = { class: "flex flex-col items-center p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]" };
 const _hoisted_8$8 = { class: "text-xl font-bold text-[var(--text-1)]" };
@@ -27797,7 +27811,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     const toast = useToast();
     const dialog = useDialog();
     const loading2 = /* @__PURE__ */ ref(true);
-    const containerRef2 = /* @__PURE__ */ ref(null);
+    const containerRef3 = /* @__PURE__ */ ref(null);
     const roleTree = /* @__PURE__ */ ref(null);
     const totalRoles = /* @__PURE__ */ ref(0);
     const totalAgents = /* @__PURE__ */ ref(0);
@@ -27810,7 +27824,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     const toggleFullscreen = async () => {
       try {
         if (!document.fullscreenElement) {
-          await containerRef2.value?.requestFullscreen();
+          await containerRef3.value?.requestFullscreen();
           isFullscreen.value = true;
         } else {
           await document.exitFullscreen();
@@ -27831,8 +27845,8 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     };
     const onWheel = (e2) => {
       e2.preventDefault();
-      if (!containerRef2.value) return;
-      const rect = containerRef2.value.getBoundingClientRect();
+      if (!containerRef3.value) return;
+      const rect = containerRef3.value.getBoundingClientRect();
       const mouseX = e2.clientX - rect.left;
       const mouseY = e2.clientY - rect.top;
       const contentX = (mouseX - offset.x) / scale.value;
@@ -27857,8 +27871,8 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
       isDragging.value = false;
     };
     const zoomAtCenter = (delta) => {
-      if (!containerRef2.value) return;
-      const rect = containerRef2.value.getBoundingClientRect();
+      if (!containerRef3.value) return;
+      const rect = containerRef3.value.getBoundingClientRect();
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const contentX = (centerX - offset.x) / scale.value;
@@ -27875,8 +27889,8 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     const centerChart = async () => {
       await nextTick();
       await new Promise((resolve2) => setTimeout(resolve2, 100));
-      if (!containerRef2.value) return;
-      const container = containerRef2.value;
+      if (!containerRef3.value) return;
+      const container = containerRef3.value;
       const chartContent = container.querySelector(".p-organizationchart");
       if (chartContent) {
         const containerWidth = container.clientWidth;
@@ -28046,14 +28060,14 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
     });
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$g, [
-        createBaseVNode("div", _hoisted_2$e, [
-          createBaseVNode("div", _hoisted_3$e, [
+      return openBlock(), createElementBlock("div", _hoisted_1$h, [
+        createBaseVNode("div", _hoisted_2$f, [
+          createBaseVNode("div", _hoisted_3$f, [
             createVNode(unref(Network), { class: "w-5 h-5 text-[var(--primary)] mb-1" }),
             _cache[2] || (_cache[2] = createBaseVNode("span", { class: "text-xs text-[var(--text-3)]" }, "总岗位数", -1)),
-            createBaseVNode("span", _hoisted_4$d, toDisplayString(totalRoles.value), 1)
+            createBaseVNode("span", _hoisted_4$e, toDisplayString(totalRoles.value), 1)
           ]),
-          createBaseVNode("div", _hoisted_5$9, [
+          createBaseVNode("div", _hoisted_5$a, [
             createVNode(unref(Users), { class: "w-5 h-5 text-blue-500 mb-1" }),
             _cache[3] || (_cache[3] = createBaseVNode("span", { class: "text-xs text-[var(--text-3)]" }, "总智能体", -1)),
             createBaseVNode("span", _hoisted_6$8, toDisplayString(totalAgents.value), 1)
@@ -28066,7 +28080,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
         ]),
         createBaseVNode("div", {
           ref_key: "containerRef",
-          ref: containerRef2,
+          ref: containerRef3,
           class: normalizeClass(["flex-grow overflow-hidden relative cursor-grab active:cursor-grabbing bg-[var(--bg)] select-none", { "fixed inset-0 z-[9999]": isFullscreen.value }]),
           onWheel,
           onMousedown: onMouseDown2,
@@ -28079,7 +28093,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
           ])) : !roleTree.value || Array.isArray(roleTree.value) && roleTree.value.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_10$8, [
             createVNode(unref(Network), { class: "w-12 h-12 mb-4" }),
             _cache[6] || (_cache[6] = createBaseVNode("p", null, "暂无组织架构数据", -1)),
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               variant: "text",
               size: "small",
               class: "mt-4",
@@ -28100,7 +28114,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
             })
           }, [
             createBaseVNode("div", _hoisted_11$8, [
-              createVNode(unref(script$o), { value: roleTree.value }, {
+              createVNode(unref(script$p), { value: roleTree.value }, {
                 default: withCtx((slotProps) => [
                   createBaseVNode("div", {
                     class: normalizeClass(["role-node-card", { "virtual-root": slotProps.node.data?.isVirtual }])
@@ -28152,7 +28166,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
           createBaseVNode("div", _hoisted_21$5, [
             _cache[7] || (_cache[7] = createBaseVNode("div", { class: "px-3 py-1.5 rounded-full bg-[var(--surface-1)] border border-[var(--border)] text-[10px] text-[var(--text-3)] shadow-lg" }, " 滚轮缩放 | 按住拖动 ", -1)),
             createBaseVNode("div", _hoisted_22$5, [
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 onClick: _cache[0] || (_cache[0] = ($event) => zoomAtCenter(-0.1)),
                 variant: "text",
                 size: "small",
@@ -28163,7 +28177,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                 ]),
                 _: 1
               }),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 onClick: resetView,
                 variant: "text",
                 size: "small",
@@ -28174,7 +28188,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                 ]),
                 _: 1
               }),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 onClick: _cache[1] || (_cache[1] = ($event) => zoomAtCenter(0.1)),
                 variant: "text",
                 size: "small",
@@ -28185,7 +28199,7 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
                 ]),
                 _: 1
               }),
-              withDirectives((openBlock(), createBlock(unref(script$N), {
+              withDirectives((openBlock(), createBlock(unref(script$O), {
                 onClick: toggleFullscreen,
                 variant: "text",
                 size: "small",
@@ -28217,8 +28231,8 @@ const _sfc_main$c = /* @__PURE__ */ defineComponent({
   }
 });
 const RoleTreeView = /* @__PURE__ */ _export_sfc(_sfc_main$c, [["__scopeId", "data-v-8a77c08f"]]);
-var style$5 = "\n    .p-scrollpanel-content-container {\n        overflow: hidden;\n        width: 100%;\n        height: 100%;\n        position: relative;\n        z-index: 1;\n        float: left;\n    }\n\n    .p-scrollpanel-content {\n        height: calc(100% + calc(2 * dt('scrollpanel.bar.size')));\n        width: calc(100% + calc(2 * dt('scrollpanel.bar.size')));\n        padding-inline: 0 calc(2 * dt('scrollpanel.bar.size'));\n        padding-block: 0 calc(2 * dt('scrollpanel.bar.size'));\n        position: relative;\n        overflow: auto;\n        box-sizing: border-box;\n        scrollbar-width: none;\n    }\n\n    .p-scrollpanel-content::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-scrollpanel-bar {\n        position: relative;\n        border-radius: dt('scrollpanel.bar.border.radius');\n        z-index: 2;\n        cursor: pointer;\n        opacity: 0;\n        outline-color: transparent;\n        background: dt('scrollpanel.bar.background');\n        border: 0 none;\n        transition:\n            outline-color dt('scrollpanel.transition.duration'),\n            opacity dt('scrollpanel.transition.duration');\n    }\n\n    .p-scrollpanel-bar:focus-visible {\n        box-shadow: dt('scrollpanel.bar.focus.ring.shadow');\n        outline: dt('scrollpanel.barfocus.ring.width') dt('scrollpanel.bar.focus.ring.style') dt('scrollpanel.bar.focus.ring.color');\n        outline-offset: dt('scrollpanel.barfocus.ring.offset');\n    }\n\n    .p-scrollpanel-bar-y {\n        width: dt('scrollpanel.bar.size');\n        inset-block-start: 0;\n    }\n\n    .p-scrollpanel-bar-x {\n        height: dt('scrollpanel.bar.size');\n        inset-block-end: 0;\n    }\n\n    .p-scrollpanel-hidden {\n        visibility: hidden;\n    }\n\n    .p-scrollpanel:hover .p-scrollpanel-bar,\n    .p-scrollpanel:active .p-scrollpanel-bar {\n        opacity: 1;\n    }\n\n    .p-scrollpanel-grabbed {\n        user-select: none;\n    }\n";
-var classes$5 = {
+var style$6 = "\n    .p-scrollpanel-content-container {\n        overflow: hidden;\n        width: 100%;\n        height: 100%;\n        position: relative;\n        z-index: 1;\n        float: left;\n    }\n\n    .p-scrollpanel-content {\n        height: calc(100% + calc(2 * dt('scrollpanel.bar.size')));\n        width: calc(100% + calc(2 * dt('scrollpanel.bar.size')));\n        padding-inline: 0 calc(2 * dt('scrollpanel.bar.size'));\n        padding-block: 0 calc(2 * dt('scrollpanel.bar.size'));\n        position: relative;\n        overflow: auto;\n        box-sizing: border-box;\n        scrollbar-width: none;\n    }\n\n    .p-scrollpanel-content::-webkit-scrollbar {\n        display: none;\n    }\n\n    .p-scrollpanel-bar {\n        position: relative;\n        border-radius: dt('scrollpanel.bar.border.radius');\n        z-index: 2;\n        cursor: pointer;\n        opacity: 0;\n        outline-color: transparent;\n        background: dt('scrollpanel.bar.background');\n        border: 0 none;\n        transition:\n            outline-color dt('scrollpanel.transition.duration'),\n            opacity dt('scrollpanel.transition.duration');\n    }\n\n    .p-scrollpanel-bar:focus-visible {\n        box-shadow: dt('scrollpanel.bar.focus.ring.shadow');\n        outline: dt('scrollpanel.barfocus.ring.width') dt('scrollpanel.bar.focus.ring.style') dt('scrollpanel.bar.focus.ring.color');\n        outline-offset: dt('scrollpanel.barfocus.ring.offset');\n    }\n\n    .p-scrollpanel-bar-y {\n        width: dt('scrollpanel.bar.size');\n        inset-block-start: 0;\n    }\n\n    .p-scrollpanel-bar-x {\n        height: dt('scrollpanel.bar.size');\n        inset-block-end: 0;\n    }\n\n    .p-scrollpanel-hidden {\n        visibility: hidden;\n    }\n\n    .p-scrollpanel:hover .p-scrollpanel-bar,\n    .p-scrollpanel:active .p-scrollpanel-bar {\n        opacity: 1;\n    }\n\n    .p-scrollpanel-grabbed {\n        user-select: none;\n    }\n";
+var classes$6 = {
   root: "p-scrollpanel p-component",
   contentContainer: "p-scrollpanel-content-container",
   content: "p-scrollpanel-content",
@@ -28227,12 +28241,12 @@ var classes$5 = {
 };
 var ScrollPanelStyle = BaseStyle.extend({
   name: "scrollpanel",
-  style: style$5,
-  classes: classes$5
+  style: style$6,
+  classes: classes$6
 });
-var script$1$6 = {
+var script$1$7 = {
   name: "BaseScrollPanel",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     step: {
       type: Number,
@@ -28247,9 +28261,9 @@ var script$1$6 = {
     };
   }
 };
-var script$a = {
+var script$b = {
   name: "ScrollPanel",
-  "extends": script$1$6,
+  "extends": script$1$7,
   inheritAttrs: false,
   initialized: false,
   documentResizeListener: null,
@@ -28540,10 +28554,10 @@ var script$a = {
     }
   }
 };
-var _hoisted_1$f = ["id"];
-var _hoisted_2$d = ["aria-controls", "aria-valuenow"];
-var _hoisted_3$d = ["aria-controls", "aria-valuenow"];
-function render$9(_ctx, _cache, $props, $setup, $data, $options) {
+var _hoisted_1$g = ["id"];
+var _hoisted_2$e = ["aria-controls", "aria-valuenow"];
+var _hoisted_3$e = ["aria-controls", "aria-valuenow"];
+function render$a(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock("div", mergeProps({
     "class": _ctx.cx("root")
   }, _ctx.ptmi("root")), [createBaseVNode("div", mergeProps({
@@ -28558,7 +28572,7 @@ function render$9(_ctx, _cache, $props, $setup, $data, $options) {
     onMouseenter: _cache[1] || (_cache[1] = function() {
       return $options.moveBar && $options.moveBar.apply($options, arguments);
     })
-  }, _ctx.ptm("content")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_1$f)], 16), createBaseVNode("div", mergeProps({
+  }, _ctx.ptm("content")), [renderSlot(_ctx.$slots, "default")], 16, _hoisted_1$g)], 16), createBaseVNode("div", mergeProps({
     ref: "xBar",
     "class": _ctx.cx("barx"),
     tabindex: "0",
@@ -28583,7 +28597,7 @@ function render$9(_ctx, _cache, $props, $setup, $data, $options) {
     })
   }, _ctx.ptm("barx"), {
     "data-pc-group-section": "bar"
-  }), null, 16, _hoisted_2$d), createBaseVNode("div", mergeProps({
+  }), null, 16, _hoisted_2$e), createBaseVNode("div", mergeProps({
     ref: "yBar",
     "class": _ctx.cx("bary"),
     tabindex: "0",
@@ -28605,17 +28619,17 @@ function render$9(_ctx, _cache, $props, $setup, $data, $options) {
     })
   }, _ctx.ptm("bary"), {
     "data-pc-group-section": "bar"
-  }), null, 16, _hoisted_3$d)], 16);
+  }), null, 16, _hoisted_3$e)], 16);
 }
-script$a.render = render$9;
-const _hoisted_1$e = { class: "flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-1)]" };
-const _hoisted_2$c = {
+script$b.render = render$a;
+const _hoisted_1$f = { class: "flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-1)]" };
+const _hoisted_2$d = {
   key: 0,
   class: "p-4 bg-red-50 border-b border-red-200 flex items-center gap-2 text-red-600 shrink-0"
 };
-const _hoisted_3$c = { class: "text-sm" };
-const _hoisted_4$c = { class: "flex flex-1 overflow-hidden" };
-const _hoisted_5$8 = { class: "w-64 flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]" };
+const _hoisted_3$d = { class: "text-sm" };
+const _hoisted_4$d = { class: "flex flex-1 overflow-hidden" };
+const _hoisted_5$9 = { class: "w-64 flex flex-col border-r border-[var(--border)] bg-[var(--surface-2)]" };
 const _hoisted_6$7 = { class: "p-4 border-b border-[var(--border)]" };
 const _hoisted_7$7 = { class: "flex items-center justify-between" };
 const _hoisted_8$7 = { class: "flex items-center gap-2 text-[var(--text-1)]" };
@@ -28733,10 +28747,10 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
       loading2.value = true;
       error.value = "";
       try {
-        const data21 = await templateApi.getTemplates();
-        templates2.value = data21;
-        if (data21.length > 0 && !selectedTemplateId.value) {
-          selectedTemplateId.value = data21[0].id;
+        const data22 = await templateApi.getTemplates();
+        templates2.value = data22;
+        if (data22.length > 0 && !selectedTemplateId.value) {
+          selectedTemplateId.value = data22[0].id;
         }
       } catch (err) {
         error.value = err instanceof Error ? err.message : "加载模板列表失败";
@@ -28881,11 +28895,11 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
     });
     return (_ctx, _cache) => {
       const _directive_tooltip = resolveDirective("tooltip");
-      return openBlock(), createElementBlock("div", _hoisted_1$e, [
-        error.value ? (openBlock(), createElementBlock("div", _hoisted_2$c, [
+      return openBlock(), createElementBlock("div", _hoisted_1$f, [
+        error.value ? (openBlock(), createElementBlock("div", _hoisted_2$d, [
           createVNode(unref(CircleAlert), { class: "w-5 h-5" }),
-          createBaseVNode("span", _hoisted_3$c, toDisplayString(error.value), 1),
-          createVNode(unref(script$N), {
+          createBaseVNode("span", _hoisted_3$d, toDisplayString(error.value), 1),
+          createVNode(unref(script$O), {
             variant: "text",
             size: "small",
             class: "ml-auto text-red-600",
@@ -28897,15 +28911,15 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
             _: 1
           })
         ])) : createCommentVNode("", true),
-        createBaseVNode("div", _hoisted_4$c, [
-          createBaseVNode("div", _hoisted_5$8, [
+        createBaseVNode("div", _hoisted_4$d, [
+          createBaseVNode("div", _hoisted_5$9, [
             createBaseVNode("div", _hoisted_6$7, [
               createBaseVNode("div", _hoisted_7$7, [
                 createBaseVNode("div", _hoisted_8$7, [
                   createVNode(unref(Folder), { class: "w-5 h-5 text-[var(--primary)]" }),
                   _cache[6] || (_cache[6] = createBaseVNode("span", { class: "font-semibold" }, "组织模板", -1))
                 ]),
-                withDirectives((openBlock(), createBlock(unref(script$N), {
+                withDirectives((openBlock(), createBlock(unref(script$O), {
                   variant: "text",
                   size: "small",
                   onClick: openAddDialog
@@ -28931,7 +28945,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
               createVNode(unref(Folder), { class: "w-12 h-12 text-[var(--text-3)] mb-3 opacity-50" }),
               _cache[7] || (_cache[7] = createBaseVNode("p", { class: "text-sm text-[var(--text-2)]" }, "暂无组织模板", -1)),
               _cache[8] || (_cache[8] = createBaseVNode("p", { class: "text-xs text-[var(--text-3)] mt-1" }, "在 org 目录下添加模板文件夹", -1))
-            ])) : (openBlock(), createBlock(unref(script$a), {
+            ])) : (openBlock(), createBlock(unref(script$b), {
               key: 2,
               class: "flex-1"
             }, {
@@ -28996,7 +29010,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                   })),
                   createTextVNode(" " + toDisplayString(saveMessage.value), 1)
                 ], 2)) : createCommentVNode("", true),
-                selectedTemplate.value && hasChanges.value ? (openBlock(), createBlock(unref(script$N), {
+                selectedTemplate.value && hasChanges.value ? (openBlock(), createBlock(unref(script$O), {
                   key: 1,
                   variant: "text",
                   size: "small",
@@ -29009,7 +29023,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }, 8, ["disabled"])) : createCommentVNode("", true),
-                selectedTemplate.value ? (openBlock(), createBlock(unref(script$N), {
+                selectedTemplate.value ? (openBlock(), createBlock(unref(script$O), {
                   key: 2,
                   variant: "primary",
                   size: "small",
@@ -29024,7 +29038,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                   ]),
                   _: 1
                 }, 8, ["disabled", "loading"])) : createCommentVNode("", true),
-                selectedTemplate.value ? withDirectives((openBlock(), createBlock(unref(script$N), {
+                selectedTemplate.value ? withDirectives((openBlock(), createBlock(unref(script$O), {
                   key: 3,
                   variant: "text",
                   size: "small",
@@ -29044,7 +29058,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                     { top: true }
                   ]
                 ]) : createCommentVNode("", true),
-                selectedTemplate.value ? withDirectives((openBlock(), createBlock(unref(script$N), {
+                selectedTemplate.value ? withDirectives((openBlock(), createBlock(unref(script$O), {
                   key: 4,
                   variant: "text",
                   size: "small",
@@ -29067,7 +29081,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
               ])
             ]),
             selectedTemplate.value ? (openBlock(), createElementBlock("div", _hoisted_25$3, [
-              createVNode(unref(script$a), { class: "h-full" }, {
+              createVNode(unref(script$b), { class: "h-full" }, {
                 default: withCtx(() => [
                   createBaseVNode("div", _hoisted_26$2, [
                     createBaseVNode("div", _hoisted_27$2, [
@@ -29079,7 +29093,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                       createBaseVNode("div", _hoisted_29$1, [
                         contentLoading.value ? (openBlock(), createElementBlock("div", _hoisted_30$1, [
                           createVNode(unref(LoaderCircle), { class: "w-5 h-5 animate-spin text-[var(--text-3)]" })
-                        ])) : (openBlock(), createBlock(unref(script$r), {
+                        ])) : (openBlock(), createBlock(unref(script$s), {
                           key: 1,
                           modelValue: templateInfo.value,
                           "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => templateInfo.value = $event),
@@ -29098,7 +29112,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                       createBaseVNode("div", _hoisted_33$1, [
                         contentLoading.value ? (openBlock(), createElementBlock("div", _hoisted_34$1, [
                           createVNode(unref(LoaderCircle), { class: "w-5 h-5 animate-spin text-[var(--text-3)]" })
-                        ])) : (openBlock(), createBlock(unref(script$r), {
+                        ])) : (openBlock(), createBlock(unref(script$s), {
                           key: 1,
                           modelValue: templateOrg.value,
                           "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => templateOrg.value = $event),
@@ -29141,7 +29155,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
             createBaseVNode("div", _hoisted_39$1, [
               createBaseVNode("div", null, [
                 _cache[19] || (_cache[19] = createBaseVNode("label", { class: "block text-xs text-[var(--text-2)] mb-1.5" }, " 模板名称 ", -1)),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: newTemplateName.value,
                   "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => newTemplateName.value = $event),
                   placeholder: "请输入模板名称",
@@ -29154,7 +29168,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
               addError.value ? (openBlock(), createElementBlock("div", _hoisted_40$1, toDisplayString(addError.value), 1)) : createCommentVNode("", true)
             ]),
             createBaseVNode("div", _hoisted_41$1, [
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "text",
                 size: "small",
                 disabled: adding.value,
@@ -29165,7 +29179,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                 ])]),
                 _: 1
               }, 8, ["disabled"]),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "primary",
                 size: "small",
                 loading: adding.value,
@@ -29207,7 +29221,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
               deleteError.value ? (openBlock(), createElementBlock("div", _hoisted_47$1, toDisplayString(deleteError.value), 1)) : createCommentVNode("", true)
             ]),
             createBaseVNode("div", _hoisted_48$1, [
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "text",
                 size: "small",
                 disabled: deleting.value,
@@ -29218,7 +29232,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
                 ])]),
                 _: 1
               }, 8, ["disabled"]),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 variant: "primary",
                 size: "small",
                 severity: "danger",
@@ -29238,7 +29252,7 @@ const _sfc_main$b = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const _hoisted_1$d = ["innerHTML"];
+const _hoisted_1$e = ["innerHTML"];
 const _sfc_main$a = /* @__PURE__ */ defineComponent({
   __name: "ModulePanelContent",
   props: {
@@ -29249,20 +29263,20 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const containerRef2 = /* @__PURE__ */ ref(null);
-    const styleId = /* @__PURE__ */ ref("");
+    const containerRef3 = /* @__PURE__ */ ref(null);
+    let styleId = "";
     const injectStyles = () => {
       if (!props.css) return;
       removeStyles();
       const styleEl = document.createElement("style");
-      styleId.value = `module-style-${props.moduleName}-${Date.now()}`;
-      styleEl.id = styleId.value;
+      styleId = `module-style-${props.moduleName}-${Date.now()}`;
+      styleEl.id = styleId;
       styleEl.textContent = props.css;
       document.head.appendChild(styleEl);
     };
     const removeStyles = () => {
-      if (styleId.value) {
-        const oldStyle = document.getElementById(styleId.value);
+      if (styleId) {
+        const oldStyle = document.getElementById(styleId);
         if (oldStyle) {
           oldStyle.remove();
         }
@@ -29271,28 +29285,22 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
       oldStyles.forEach((el) => el.remove());
     };
     const executeScript = () => {
-      if (!props.js || !containerRef2.value) return;
+      if (!props.js || !containerRef3.value) return;
       const scriptEl = document.createElement("script");
-      scriptEl.type = "module";
-      const wrappedCode = `
-    (function() {
-      'use strict';
-      ${props.js}
-    })();
-  `;
-      scriptEl.textContent = wrappedCode;
-      containerRef2.value.appendChild(scriptEl);
-      nextTick(() => {
+      scriptEl.type = "text/javascript";
+      scriptEl.textContent = props.js;
+      containerRef3.value.appendChild(scriptEl);
+      setTimeout(() => {
         scriptEl.remove();
-      });
+      }, 100);
     };
     const initializeContent = async () => {
-      if (!containerRef2.value) return;
+      if (!containerRef3.value) return;
       injectStyles();
       await nextTick();
       setTimeout(() => {
         executeScript();
-      }, 0);
+      }, 50);
     };
     watch(() => [props.html, props.css, props.js], () => {
       initializeContent();
@@ -29306,19 +29314,19 @@ const _sfc_main$a = /* @__PURE__ */ defineComponent({
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", {
         ref_key: "containerRef",
-        ref: containerRef2,
+        ref: containerRef3,
         class: "module-panel-wrapper",
         innerHTML: __props.html
-      }, null, 8, _hoisted_1$d);
+      }, null, 8, _hoisted_1$e);
     };
   }
 });
-const ModulePanelContent = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-f4b4a16d"]]);
-const _hoisted_1$c = { class: "flex items-center gap-2" };
-const _hoisted_2$b = { class: "flex items-center" };
-const _hoisted_3$b = { class: "flex flex-1 overflow-hidden" };
-const _hoisted_4$b = { class: "w-[200px] flex-shrink-0 border-r border-[var(--border)] bg-[var(--surface-2)] flex flex-col" };
-const _hoisted_5$7 = { class: "p-2 space-y-1" };
+const ModulePanelContent = /* @__PURE__ */ _export_sfc(_sfc_main$a, [["__scopeId", "data-v-1e516edd"]]);
+const _hoisted_1$d = { class: "flex items-center gap-2" };
+const _hoisted_2$c = { class: "flex items-center" };
+const _hoisted_3$c = { class: "flex flex-1 overflow-hidden" };
+const _hoisted_4$c = { class: "w-[200px] flex-shrink-0 border-r border-[var(--border)] bg-[var(--surface-2)] flex flex-col" };
+const _hoisted_5$8 = { class: "p-2 space-y-1" };
 const _hoisted_6$6 = {
   key: 0,
   class: "flex justify-center py-4"
@@ -29445,7 +29453,7 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
       saveWindowState();
       emit2("update:modelValue", false);
     };
-    const toggle2 = () => {
+    const toggle3 = () => {
       emit2("update:modelValue", !props.modelValue);
     };
     const toggleMaximize = () => {
@@ -29528,7 +29536,7 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
       window.addEventListener("resize", handleResize);
     });
     __expose({
-      toggle: toggle2,
+      toggle: toggle3,
       loadModules
     });
     return (_ctx, _cache) => {
@@ -29560,12 +29568,12 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
                 style: normalizeStyle(isDragging.value ? "cursor: move;" : "cursor: default;"),
                 onMousedown: startDrag
               }, [
-                createBaseVNode("div", _hoisted_1$c, [
+                createBaseVNode("div", _hoisted_1$d, [
                   createVNode(unref(GripVertical), { class: "w-4 h-4 text-[var(--text-3)]" }),
                   _cache[0] || (_cache[0] = createBaseVNode("span", { class: "font-semibold text-sm text-[var(--text-1)]" }, "模块管理", -1))
                 ]),
-                createBaseVNode("div", _hoisted_2$b, [
-                  withDirectives((openBlock(), createBlock(unref(script$N), {
+                createBaseVNode("div", _hoisted_2$c, [
+                  withDirectives((openBlock(), createBlock(unref(script$O), {
                     variant: "text",
                     rounded: "",
                     class: "!p-1.5 !w-8 !h-8",
@@ -29583,7 +29591,7 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
                       { bottom: true }
                     ]
                   ]),
-                  withDirectives((openBlock(), createBlock(unref(script$N), {
+                  withDirectives((openBlock(), createBlock(unref(script$O), {
                     variant: "text",
                     rounded: "",
                     class: "!p-1.5 !w-8 !h-8",
@@ -29601,7 +29609,7 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
                       { bottom: true }
                     ]
                   ]),
-                  withDirectives((openBlock(), createBlock(unref(script$N), {
+                  withDirectives((openBlock(), createBlock(unref(script$O), {
                     variant: "text",
                     rounded: "",
                     class: "!p-1.5 !w-8 !h-8",
@@ -29621,14 +29629,14 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
                   ])
                 ])
               ], 38),
-              createBaseVNode("div", _hoisted_3$b, [
-                createBaseVNode("div", _hoisted_4$b, [
-                  createVNode(unref(script$a), {
+              createBaseVNode("div", _hoisted_3$c, [
+                createBaseVNode("div", _hoisted_4$c, [
+                  createVNode(unref(script$b), {
                     class: "flex-1",
                     style: { "width": "100%" }
                   }, {
                     default: withCtx(() => [
-                      createBaseVNode("div", _hoisted_5$7, [
+                      createBaseVNode("div", _hoisted_5$8, [
                         loading2.value ? (openBlock(), createElementBlock("div", _hoisted_6$6, [..._cache[1] || (_cache[1] = [
                           createBaseVNode("div", { class: "animate-spin w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" }, null, -1)
                         ])])) : modulesWithPanel.value.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_7$6, " 暂无管理界面 ")) : createCommentVNode("", true),
@@ -29655,7 +29663,7 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
                 createBaseVNode("div", _hoisted_13$5, [
                   createBaseVNode("div", _hoisted_14$5, [
                     createBaseVNode("span", _hoisted_15$5, toDisplayString(webComponent.value?.displayName || selectedModule.value?.name || "模块详情"), 1),
-                    withDirectives((openBlock(), createBlock(unref(script$N), {
+                    withDirectives((openBlock(), createBlock(unref(script$O), {
                       variant: "text",
                       rounded: "",
                       class: "!p-1.5",
@@ -29705,17 +29713,17 @@ const _sfc_main$9 = /* @__PURE__ */ defineComponent({
   }
 });
 const ModuleWindow = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["__scopeId", "data-v-07b33b39"]]);
-const _hoisted_1$b = { class: "p-4 flex items-center justify-between" };
-const _hoisted_2$a = {
+const _hoisted_1$c = { class: "p-4 flex items-center justify-between" };
+const _hoisted_2$b = {
   key: 0,
   class: "font-bold text-lg text-primary truncate"
 };
-const _hoisted_3$a = { class: "p-2" };
-const _hoisted_4$a = {
+const _hoisted_3$b = { class: "p-2" };
+const _hoisted_4$b = {
   key: 0,
   class: "px-3 py-2 text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider"
 };
-const _hoisted_5$6 = { class: "flex-grow overflow-y-auto p-2 space-y-1" };
+const _hoisted_5$7 = { class: "flex-grow overflow-y-auto p-2 space-y-1" };
 const _hoisted_6$5 = {
   key: 0,
   class: "px-3 py-2 flex items-center justify-between"
@@ -29880,9 +29888,9 @@ ${content.org}
         createBaseVNode("aside", {
           class: normalizeClass(["flex flex-col bg-[var(--surface-2)] border-r border-[var(--border)] transition-all duration-300 ease-in-out h-full", [unref(appStore).isSidebarCollapsed ? "w-16" : "w-64"]])
         }, [
-          createBaseVNode("div", _hoisted_1$b, [
-            !unref(appStore).isSidebarCollapsed ? (openBlock(), createElementBlock("span", _hoisted_2$a, "Agent Society")) : createCommentVNode("", true),
-            createVNode(unref(script$N), {
+          createBaseVNode("div", _hoisted_1$c, [
+            !unref(appStore).isSidebarCollapsed ? (openBlock(), createElementBlock("span", _hoisted_2$b, "Agent Society")) : createCommentVNode("", true),
+            createVNode(unref(script$O), {
               variant: "text",
               rounded: "",
               class: "!p-1 min-w-8 active:translate-y-[1px] active:scale-[0.98] transition-all",
@@ -29894,13 +29902,13 @@ ${content.org}
               _: 1
             })
           ]),
-          createBaseVNode("div", _hoisted_3$a, [
-            !unref(appStore).isSidebarCollapsed ? (openBlock(), createElementBlock("div", _hoisted_4$a, "工具栏")) : createCommentVNode("", true),
+          createBaseVNode("div", _hoisted_3$b, [
+            !unref(appStore).isSidebarCollapsed ? (openBlock(), createElementBlock("div", _hoisted_4$b, "工具栏")) : createCommentVNode("", true),
             createBaseVNode("div", {
               class: normalizeClass(["flex items-center gap-1 px-2", [unref(appStore).isSidebarCollapsed ? "flex-wrap justify-center" : "overflow-x-auto no-scrollbar"]])
             }, [
               (openBlock(), createElementBlock(Fragment, null, renderList(tools, (tool) => {
-                return withDirectives(createVNode(unref(script$N), {
+                return withDirectives(createVNode(unref(script$O), {
                   key: tool.id,
                   variant: "text",
                   rounded: "",
@@ -29924,12 +29932,12 @@ ${content.org}
               }), 64))
             ], 2)
           ]),
-          createBaseVNode("div", _hoisted_5$6, [
+          createBaseVNode("div", _hoisted_5$7, [
             !unref(appStore).isSidebarCollapsed ? (openBlock(), createElementBlock("div", _hoisted_6$5, [
               _cache[4] || (_cache[4] = createBaseVNode("span", { class: "text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider shrink-0" }, "组织列表", -1)),
               createBaseVNode("div", _hoisted_7$5, [
                 createVNode(unref(Search), { class: "absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-3)]" }),
-                createVNode(unref(script$K), {
+                createVNode(unref(script$L), {
                   modelValue: searchQuery.value,
                   "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => searchQuery.value = $event),
                   placeholder: "搜索...",
@@ -29948,7 +29956,7 @@ ${content.org}
               createVNode(unref(LoaderCircle), { class: "w-5 h-5 animate-spin text-[var(--text-3)]" })
             ])) : createCommentVNode("", true),
             (openBlock(true), createElementBlock(Fragment, null, renderList(filteredOrgs.value, (org) => {
-              return withDirectives((openBlock(), createBlock(unref(script$N), {
+              return withDirectives((openBlock(), createBlock(unref(script$O), {
                 key: org.id,
                 variant: "text",
                 class: normalizeClass(["w-full !justify-start !px-3 !py-2 text-[var(--text-2)] hover:text-[var(--text-1)] active:translate-y-[1px] active:scale-[0.98] transition-all group", { "!bg-[var(--surface-3)] !text-[var(--primary)]": unref(appStore).currentTabId === org.id }]),
@@ -29967,7 +29975,7 @@ ${content.org}
                     createBaseVNode("span", _hoisted_11$5, toDisplayString(org.name), 1),
                     org.role ? (openBlock(), createElementBlock("span", _hoisted_12$5, toDisplayString(org.role), 1)) : createCommentVNode("", true)
                   ])) : createCommentVNode("", true),
-                  !unref(appStore).isSidebarCollapsed && org.id !== "home" ? withDirectives((openBlock(), createBlock(unref(script$N), {
+                  !unref(appStore).isSidebarCollapsed && org.id !== "home" ? withDirectives((openBlock(), createBlock(unref(script$O), {
                     key: 1,
                     variant: "text",
                     rounded: "",
@@ -30086,11 +30094,11 @@ const useAgentStore = /* @__PURE__ */ defineStore("agent", () => {
     agentCount
   };
 });
-const _hoisted_1$a = { class: "flex flex-col h-full" };
-const _hoisted_2$9 = { class: "p-2 border-b border-[var(--border)] bg-[var(--surface-1)]" };
-const _hoisted_3$9 = { class: "flex items-center space-x-1 mb-1 px-1" };
-const _hoisted_4$9 = { class: "px-2 pb-1 flex items-center justify-between" };
-const _hoisted_5$5 = { class: "text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider" };
+const _hoisted_1$b = { class: "flex flex-col h-full" };
+const _hoisted_2$a = { class: "p-2 border-b border-[var(--border)] bg-[var(--surface-1)]" };
+const _hoisted_3$a = { class: "flex items-center space-x-1 mb-1 px-1" };
+const _hoisted_4$a = { class: "px-2 pb-1 flex items-center justify-between" };
+const _hoisted_5$6 = { class: "text-xs font-semibold text-[var(--text-3)] uppercase tracking-wider" };
 const _hoisted_6$4 = { class: "flex-grow overflow-y-auto" };
 const _hoisted_7$4 = {
   key: 0,
@@ -30181,10 +30189,10 @@ const _sfc_main$7 = /* @__PURE__ */ defineComponent({
       await agentStore.abortAgent(agentId);
     };
     return (_ctx, _cache) => {
-      return openBlock(), createElementBlock("div", _hoisted_1$a, [
-        createBaseVNode("div", _hoisted_2$9, [
-          createBaseVNode("div", _hoisted_3$9, [
-            props.orgId !== "home" ? (openBlock(), createBlock(unref(script$N), {
+      return openBlock(), createElementBlock("div", _hoisted_1$b, [
+        createBaseVNode("div", _hoisted_2$a, [
+          createBaseVNode("div", _hoisted_3$a, [
+            props.orgId !== "home" ? (openBlock(), createBlock(unref(script$O), {
               key: 0,
               variant: "text",
               size: "small",
@@ -30198,8 +30206,8 @@ const _sfc_main$7 = /* @__PURE__ */ defineComponent({
               _: 1
             })) : createCommentVNode("", true)
           ]),
-          createBaseVNode("div", _hoisted_4$9, [
-            createBaseVNode("span", _hoisted_5$5, " 智能体 (" + toDisplayString(currentAgentCount.value) + ") ", 1)
+          createBaseVNode("div", _hoisted_4$a, [
+            createBaseVNode("span", _hoisted_5$6, " 智能体 (" + toDisplayString(currentAgentCount.value) + ") ", 1)
           ])
         ]),
         createBaseVNode("div", _hoisted_6$4, [
@@ -30267,6 +30275,647 @@ const _sfc_main$7 = /* @__PURE__ */ defineComponent({
   }
 });
 const AgentList = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["__scopeId", "data-v-0ce92f97"]]);
+var style$5 = "\n    .p-menu {\n        background: dt('menu.background');\n        color: dt('menu.color');\n        border: 1px solid dt('menu.border.color');\n        border-radius: dt('menu.border.radius');\n        min-width: 12.5rem;\n    }\n\n    .p-menu-list {\n        margin: 0;\n        padding: dt('menu.list.padding');\n        outline: 0 none;\n        list-style: none;\n        display: flex;\n        flex-direction: column;\n        gap: dt('menu.list.gap');\n    }\n\n    .p-menu-item-content {\n        transition:\n            background dt('menu.transition.duration'),\n            color dt('menu.transition.duration');\n        border-radius: dt('menu.item.border.radius');\n        color: dt('menu.item.color');\n        overflow: hidden;\n    }\n\n    .p-menu-item-link {\n        cursor: pointer;\n        display: flex;\n        align-items: center;\n        text-decoration: none;\n        overflow: hidden;\n        position: relative;\n        color: inherit;\n        padding: dt('menu.item.padding');\n        gap: dt('menu.item.gap');\n        user-select: none;\n        outline: 0 none;\n    }\n\n    .p-menu-item-label {\n        line-height: 1;\n    }\n\n    .p-menu-item-icon {\n        color: dt('menu.item.icon.color');\n    }\n\n    .p-menu-item.p-focus .p-menu-item-content {\n        color: dt('menu.item.focus.color');\n        background: dt('menu.item.focus.background');\n    }\n\n    .p-menu-item.p-focus .p-menu-item-icon {\n        color: dt('menu.item.icon.focus.color');\n    }\n\n    .p-menu-item:not(.p-disabled) .p-menu-item-content:hover {\n        color: dt('menu.item.focus.color');\n        background: dt('menu.item.focus.background');\n    }\n\n    .p-menu-item:not(.p-disabled) .p-menu-item-content:hover .p-menu-item-icon {\n        color: dt('menu.item.icon.focus.color');\n    }\n\n    .p-menu-overlay {\n        box-shadow: dt('menu.shadow');\n    }\n\n    .p-menu-submenu-label {\n        background: dt('menu.submenu.label.background');\n        padding: dt('menu.submenu.label.padding');\n        color: dt('menu.submenu.label.color');\n        font-weight: dt('menu.submenu.label.font.weight');\n    }\n\n    .p-menu-separator {\n        border-block-start: 1px solid dt('menu.separator.border.color');\n    }\n";
+var classes$5 = {
+  root: function root17(_ref) {
+    var props = _ref.props;
+    return ["p-menu p-component", {
+      "p-menu-overlay": props.popup
+    }];
+  },
+  start: "p-menu-start",
+  list: "p-menu-list",
+  submenuLabel: "p-menu-submenu-label",
+  separator: "p-menu-separator",
+  end: "p-menu-end",
+  item: function item(_ref2) {
+    var instance = _ref2.instance;
+    return ["p-menu-item", {
+      "p-focus": instance.id === instance.focusedOptionId,
+      "p-disabled": instance.disabled()
+    }];
+  },
+  itemContent: "p-menu-item-content",
+  itemLink: "p-menu-item-link",
+  itemIcon: "p-menu-item-icon",
+  itemLabel: "p-menu-item-label"
+};
+var MenuStyle = BaseStyle.extend({
+  name: "menu",
+  style: style$5,
+  classes: classes$5
+});
+var script$2$2 = {
+  name: "BaseMenu",
+  "extends": script$S,
+  props: {
+    popup: {
+      type: Boolean,
+      "default": false
+    },
+    model: {
+      type: Array,
+      "default": null
+    },
+    appendTo: {
+      type: [String, Object],
+      "default": "body"
+    },
+    autoZIndex: {
+      type: Boolean,
+      "default": true
+    },
+    baseZIndex: {
+      type: Number,
+      "default": 0
+    },
+    tabindex: {
+      type: Number,
+      "default": 0
+    },
+    ariaLabel: {
+      type: String,
+      "default": null
+    },
+    ariaLabelledby: {
+      type: String,
+      "default": null
+    }
+  },
+  style: MenuStyle,
+  provide: function provide27() {
+    return {
+      $pcMenu: this,
+      $parentInstance: this
+    };
+  }
+};
+var script$1$6 = {
+  name: "Menuitem",
+  hostName: "Menu",
+  "extends": script$S,
+  inheritAttrs: false,
+  emits: ["item-click", "item-mousemove"],
+  props: {
+    item: null,
+    templates: null,
+    id: null,
+    focusedOptionId: null,
+    index: null
+  },
+  methods: {
+    getItemProp: function getItemProp(processedItem, name) {
+      return processedItem && processedItem.item ? m$3(processedItem.item[name]) : void 0;
+    },
+    getPTOptions: function getPTOptions6(key) {
+      return this.ptm(key, {
+        context: {
+          item: this.item,
+          index: this.index,
+          focused: this.isItemFocused(),
+          disabled: this.disabled()
+        }
+      });
+    },
+    isItemFocused: function isItemFocused() {
+      return this.focusedOptionId === this.id;
+    },
+    onItemClick: function onItemClick(event) {
+      var command = this.getItemProp(this.item, "command");
+      command && command({
+        originalEvent: event,
+        item: this.item.item
+      });
+      this.$emit("item-click", {
+        originalEvent: event,
+        item: this.item,
+        id: this.id
+      });
+    },
+    onItemMouseMove: function onItemMouseMove(event) {
+      this.$emit("item-mousemove", {
+        originalEvent: event,
+        item: this.item,
+        id: this.id
+      });
+    },
+    visible: function visible() {
+      return typeof this.item.visible === "function" ? this.item.visible() : this.item.visible !== false;
+    },
+    disabled: function disabled2() {
+      return typeof this.item.disabled === "function" ? this.item.disabled() : this.item.disabled;
+    },
+    label: function label5() {
+      return typeof this.item.label === "function" ? this.item.label() : this.item.label;
+    },
+    getMenuItemProps: function getMenuItemProps(item2) {
+      return {
+        action: mergeProps({
+          "class": this.cx("itemLink"),
+          tabindex: "-1"
+        }, this.getPTOptions("itemLink")),
+        icon: mergeProps({
+          "class": [this.cx("itemIcon"), item2.icon]
+        }, this.getPTOptions("itemIcon")),
+        label: mergeProps({
+          "class": this.cx("itemLabel")
+        }, this.getPTOptions("itemLabel"))
+      };
+    }
+  },
+  computed: {
+    dataP: function dataP13() {
+      return f$a({
+        focus: this.isItemFocused(),
+        disabled: this.disabled()
+      });
+    }
+  },
+  directives: {
+    ripple: Ripple
+  }
+};
+var _hoisted_1$1$2 = ["id", "aria-label", "aria-disabled", "data-p-focused", "data-p-disabled", "data-p"];
+var _hoisted_2$1$1 = ["data-p"];
+var _hoisted_3$1$1 = ["href", "target"];
+var _hoisted_4$9 = ["data-p"];
+var _hoisted_5$5 = ["data-p"];
+function render$1$2(_ctx, _cache, $props, $setup, $data, $options) {
+  var _directive_ripple = resolveDirective("ripple");
+  return $options.visible() ? (openBlock(), createElementBlock("li", mergeProps({
+    key: 0,
+    id: $props.id,
+    "class": [_ctx.cx("item"), $props.item["class"]],
+    role: "menuitem",
+    style: $props.item.style,
+    "aria-label": $options.label(),
+    "aria-disabled": $options.disabled(),
+    "data-p-focused": $options.isItemFocused(),
+    "data-p-disabled": $options.disabled() || false,
+    "data-p": $options.dataP
+  }, $options.getPTOptions("item")), [createBaseVNode("div", mergeProps({
+    "class": _ctx.cx("itemContent"),
+    onClick: _cache[0] || (_cache[0] = function($event) {
+      return $options.onItemClick($event);
+    }),
+    onMousemove: _cache[1] || (_cache[1] = function($event) {
+      return $options.onItemMouseMove($event);
+    }),
+    "data-p": $options.dataP
+  }, $options.getPTOptions("itemContent")), [!$props.templates.item ? withDirectives((openBlock(), createElementBlock("a", mergeProps({
+    key: 0,
+    href: $props.item.url,
+    "class": _ctx.cx("itemLink"),
+    target: $props.item.target,
+    tabindex: "-1"
+  }, $options.getPTOptions("itemLink")), [$props.templates.itemicon ? (openBlock(), createBlock(resolveDynamicComponent($props.templates.itemicon), {
+    key: 0,
+    item: $props.item,
+    "class": normalizeClass(_ctx.cx("itemIcon"))
+  }, null, 8, ["item", "class"])) : $props.item.icon ? (openBlock(), createElementBlock("span", mergeProps({
+    key: 1,
+    "class": [_ctx.cx("itemIcon"), $props.item.icon],
+    "data-p": $options.dataP
+  }, $options.getPTOptions("itemIcon")), null, 16, _hoisted_4$9)) : createCommentVNode("", true), createBaseVNode("span", mergeProps({
+    "class": _ctx.cx("itemLabel"),
+    "data-p": $options.dataP
+  }, $options.getPTOptions("itemLabel")), toDisplayString($options.label()), 17, _hoisted_5$5)], 16, _hoisted_3$1$1)), [[_directive_ripple]]) : $props.templates.item ? (openBlock(), createBlock(resolveDynamicComponent($props.templates.item), {
+    key: 1,
+    item: $props.item,
+    label: $options.label(),
+    props: $options.getMenuItemProps($props.item)
+  }, null, 8, ["item", "label", "props"])) : createCommentVNode("", true)], 16, _hoisted_2$1$1)], 16, _hoisted_1$1$2)) : createCommentVNode("", true);
+}
+script$1$6.render = render$1$2;
+function _toConsumableArray$4(r2) {
+  return _arrayWithoutHoles$4(r2) || _iterableToArray$4(r2) || _unsupportedIterableToArray$4(r2) || _nonIterableSpread$4();
+}
+function _nonIterableSpread$4() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$4(r2, a2) {
+  if (r2) {
+    if ("string" == typeof r2) return _arrayLikeToArray$4(r2, a2);
+    var t2 = {}.toString.call(r2).slice(8, -1);
+    return "Object" === t2 && r2.constructor && (t2 = r2.constructor.name), "Map" === t2 || "Set" === t2 ? Array.from(r2) : "Arguments" === t2 || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t2) ? _arrayLikeToArray$4(r2, a2) : void 0;
+  }
+}
+function _iterableToArray$4(r2) {
+  if ("undefined" != typeof Symbol && null != r2[Symbol.iterator] || null != r2["@@iterator"]) return Array.from(r2);
+}
+function _arrayWithoutHoles$4(r2) {
+  if (Array.isArray(r2)) return _arrayLikeToArray$4(r2);
+}
+function _arrayLikeToArray$4(r2, a2) {
+  (null == a2 || a2 > r2.length) && (a2 = r2.length);
+  for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
+  return n2;
+}
+var script$a = {
+  name: "Menu",
+  "extends": script$2$2,
+  inheritAttrs: false,
+  emits: ["show", "hide", "focus", "blur"],
+  data: function data17() {
+    return {
+      overlayVisible: false,
+      focused: false,
+      focusedOptionIndex: -1,
+      selectedOptionIndex: -1
+    };
+  },
+  target: null,
+  outsideClickListener: null,
+  scrollHandler: null,
+  resizeListener: null,
+  container: null,
+  list: null,
+  mounted: function mounted16() {
+    if (!this.popup) {
+      this.bindResizeListener();
+      this.bindOutsideClickListener();
+    }
+  },
+  beforeUnmount: function beforeUnmount9() {
+    this.unbindResizeListener();
+    this.unbindOutsideClickListener();
+    if (this.scrollHandler) {
+      this.scrollHandler.destroy();
+      this.scrollHandler = null;
+    }
+    this.target = null;
+    if (this.container && this.autoZIndex) {
+      x.clear(this.container);
+    }
+    this.container = null;
+  },
+  methods: {
+    itemClick: function itemClick(event) {
+      var item2 = event.item;
+      if (this.disabled(item2)) {
+        return;
+      }
+      if (item2.command) {
+        item2.command(event);
+      }
+      if (this.overlayVisible) this.hide();
+      if (!this.popup && this.focusedOptionIndex !== event.id) {
+        this.focusedOptionIndex = event.id;
+      }
+    },
+    itemMouseMove: function itemMouseMove(event) {
+      if (this.focused) {
+        this.focusedOptionIndex = event.id;
+      }
+    },
+    onListFocus: function onListFocus(event) {
+      this.focused = true;
+      !this.popup && this.changeFocusedOptionIndex(0);
+      this.$emit("focus", event);
+    },
+    onListBlur: function onListBlur(event) {
+      this.focused = false;
+      this.focusedOptionIndex = -1;
+      this.$emit("blur", event);
+    },
+    onListKeyDown: function onListKeyDown(event) {
+      switch (event.code) {
+        case "ArrowDown":
+          this.onArrowDownKey(event);
+          break;
+        case "ArrowUp":
+          this.onArrowUpKey(event);
+          break;
+        case "Home":
+          this.onHomeKey(event);
+          break;
+        case "End":
+          this.onEndKey(event);
+          break;
+        case "Enter":
+        case "NumpadEnter":
+          this.onEnterKey(event);
+          break;
+        case "Space":
+          this.onSpaceKey(event);
+          break;
+        case "Escape":
+          if (this.popup) {
+            bt(this.target);
+            this.hide();
+          }
+        case "Tab":
+          this.overlayVisible && this.hide();
+          break;
+      }
+    },
+    onArrowDownKey: function onArrowDownKey3(event) {
+      var optionIndex = this.findNextOptionIndex(this.focusedOptionIndex);
+      this.changeFocusedOptionIndex(optionIndex);
+      event.preventDefault();
+    },
+    onArrowUpKey: function onArrowUpKey3(event) {
+      if (event.altKey && this.popup) {
+        bt(this.target);
+        this.hide();
+        event.preventDefault();
+      } else {
+        var optionIndex = this.findPrevOptionIndex(this.focusedOptionIndex);
+        this.changeFocusedOptionIndex(optionIndex);
+        event.preventDefault();
+      }
+    },
+    onHomeKey: function onHomeKey4(event) {
+      this.changeFocusedOptionIndex(0);
+      event.preventDefault();
+    },
+    onEndKey: function onEndKey4(event) {
+      this.changeFocusedOptionIndex(Y$1(this.container, 'li[data-pc-section="item"][data-p-disabled="false"]').length - 1);
+      event.preventDefault();
+    },
+    onEnterKey: function onEnterKey4(event) {
+      var element = z(this.list, 'li[id="'.concat("".concat(this.focusedOptionIndex), '"]'));
+      var anchorElement = element && z(element, 'a[data-pc-section="itemlink"]');
+      this.popup && bt(this.target);
+      anchorElement ? anchorElement.click() : element && element.click();
+      event.preventDefault();
+    },
+    onSpaceKey: function onSpaceKey2(event) {
+      this.onEnterKey(event);
+    },
+    findNextOptionIndex: function findNextOptionIndex3(index2) {
+      var links = Y$1(this.container, 'li[data-pc-section="item"][data-p-disabled="false"]');
+      var matchedOptionIndex = _toConsumableArray$4(links).findIndex(function(link) {
+        return link.id === index2;
+      });
+      return matchedOptionIndex > -1 ? matchedOptionIndex + 1 : 0;
+    },
+    findPrevOptionIndex: function findPrevOptionIndex3(index2) {
+      var links = Y$1(this.container, 'li[data-pc-section="item"][data-p-disabled="false"]');
+      var matchedOptionIndex = _toConsumableArray$4(links).findIndex(function(link) {
+        return link.id === index2;
+      });
+      return matchedOptionIndex > -1 ? matchedOptionIndex - 1 : 0;
+    },
+    changeFocusedOptionIndex: function changeFocusedOptionIndex3(index2) {
+      var links = Y$1(this.container, 'li[data-pc-section="item"][data-p-disabled="false"]');
+      var order = index2 >= links.length ? links.length - 1 : index2 < 0 ? 0 : index2;
+      order > -1 && (this.focusedOptionIndex = links[order].getAttribute("id"));
+    },
+    toggle: function toggle(event, target2) {
+      if (this.overlayVisible) this.hide();
+      else this.show(event, target2);
+    },
+    show: function show4(event, target2) {
+      this.overlayVisible = true;
+      this.target = target2 !== null && target2 !== void 0 ? target2 : event.currentTarget;
+    },
+    hide: function hide4() {
+      this.overlayVisible = false;
+      this.target = null;
+    },
+    onEnter: function onEnter2(el) {
+      S$1(el, {
+        position: "absolute",
+        top: "0"
+      });
+      this.alignOverlay();
+      this.bindOutsideClickListener();
+      this.bindResizeListener();
+      this.bindScrollListener();
+      if (this.autoZIndex) {
+        x.set("menu", el, this.baseZIndex + this.$primevue.config.zIndex.menu);
+      }
+      if (this.popup) {
+        bt(this.list);
+      }
+      this.$emit("show");
+    },
+    onLeave: function onLeave2() {
+      this.unbindOutsideClickListener();
+      this.unbindResizeListener();
+      this.unbindScrollListener();
+      this.$emit("hide");
+    },
+    onAfterLeave: function onAfterLeave2(el) {
+      if (this.autoZIndex) {
+        x.clear(el);
+      }
+    },
+    alignOverlay: function alignOverlay3() {
+      D(this.container, this.target);
+      var targetWidth = v$3(this.target);
+      if (targetWidth > v$3(this.container)) {
+        this.container.style.minWidth = v$3(this.target) + "px";
+      }
+    },
+    bindOutsideClickListener: function bindOutsideClickListener3() {
+      var _this = this;
+      if (!this.outsideClickListener) {
+        this.outsideClickListener = function(event) {
+          var isOutsideContainer = _this.container && !_this.container.contains(event.target);
+          var isOutsideTarget = !(_this.target && (_this.target === event.target || _this.target.contains(event.target)));
+          if (_this.overlayVisible && isOutsideContainer && isOutsideTarget) {
+            _this.hide();
+          } else if (!_this.popup && isOutsideContainer && isOutsideTarget) {
+            _this.focusedOptionIndex = -1;
+          }
+        };
+        document.addEventListener("click", this.outsideClickListener, true);
+      }
+    },
+    unbindOutsideClickListener: function unbindOutsideClickListener3() {
+      if (this.outsideClickListener) {
+        document.removeEventListener("click", this.outsideClickListener, true);
+        this.outsideClickListener = null;
+      }
+    },
+    bindScrollListener: function bindScrollListener4() {
+      var _this2 = this;
+      if (!this.scrollHandler) {
+        this.scrollHandler = new ConnectedOverlayScrollHandler(this.target, function() {
+          if (_this2.overlayVisible) {
+            _this2.hide();
+          }
+        });
+      }
+      this.scrollHandler.bindScrollListener();
+    },
+    unbindScrollListener: function unbindScrollListener4() {
+      if (this.scrollHandler) {
+        this.scrollHandler.unbindScrollListener();
+      }
+    },
+    bindResizeListener: function bindResizeListener4() {
+      var _this3 = this;
+      if (!this.resizeListener) {
+        this.resizeListener = function() {
+          if (_this3.overlayVisible && !Yt()) {
+            _this3.hide();
+          }
+        };
+        window.addEventListener("resize", this.resizeListener);
+      }
+    },
+    unbindResizeListener: function unbindResizeListener4() {
+      if (this.resizeListener) {
+        window.removeEventListener("resize", this.resizeListener);
+        this.resizeListener = null;
+      }
+    },
+    visible: function visible2(item2) {
+      return typeof item2.visible === "function" ? item2.visible() : item2.visible !== false;
+    },
+    disabled: function disabled3(item2) {
+      return typeof item2.disabled === "function" ? item2.disabled() : item2.disabled;
+    },
+    label: function label6(item2) {
+      return typeof item2.label === "function" ? item2.label() : item2.label;
+    },
+    onOverlayClick: function onOverlayClick3(event) {
+      OverlayEventBus.emit("overlay-click", {
+        originalEvent: event,
+        target: this.target
+      });
+    },
+    containerRef: function containerRef2(el) {
+      this.container = el;
+    },
+    listRef: function listRef3(el) {
+      this.list = el;
+    }
+  },
+  computed: {
+    focusedOptionId: function focusedOptionId3() {
+      return this.focusedOptionIndex !== -1 ? this.focusedOptionIndex : null;
+    },
+    dataP: function dataP14() {
+      return f$a({
+        popup: this.popup
+      });
+    }
+  },
+  components: {
+    PVMenuitem: script$1$6,
+    Portal: script$F
+  }
+};
+var _hoisted_1$a = ["id", "data-p"];
+var _hoisted_2$9 = ["id", "tabindex", "aria-activedescendant", "aria-label", "aria-labelledby"];
+var _hoisted_3$9 = ["id"];
+function render$9(_ctx, _cache, $props, $setup, $data, $options) {
+  var _component_PVMenuitem = resolveComponent("PVMenuitem");
+  var _component_Portal = resolveComponent("Portal");
+  return openBlock(), createBlock(_component_Portal, {
+    appendTo: _ctx.appendTo,
+    disabled: !_ctx.popup
+  }, {
+    "default": withCtx(function() {
+      return [createVNode(Transition, mergeProps({
+        name: "p-anchored-overlay",
+        onEnter: $options.onEnter,
+        onLeave: $options.onLeave,
+        onAfterLeave: $options.onAfterLeave
+      }, _ctx.ptm("transition")), {
+        "default": withCtx(function() {
+          return [(_ctx.popup ? $data.overlayVisible : true) ? (openBlock(), createElementBlock("div", mergeProps({
+            key: 0,
+            ref: $options.containerRef,
+            id: _ctx.$id,
+            "class": _ctx.cx("root"),
+            onClick: _cache[3] || (_cache[3] = function() {
+              return $options.onOverlayClick && $options.onOverlayClick.apply($options, arguments);
+            }),
+            "data-p": $options.dataP
+          }, _ctx.ptmi("root")), [_ctx.$slots.start ? (openBlock(), createElementBlock("div", mergeProps({
+            key: 0,
+            "class": _ctx.cx("start")
+          }, _ctx.ptm("start")), [renderSlot(_ctx.$slots, "start")], 16)) : createCommentVNode("", true), createBaseVNode("ul", mergeProps({
+            ref: $options.listRef,
+            id: _ctx.$id + "_list",
+            "class": _ctx.cx("list"),
+            role: "menu",
+            tabindex: _ctx.tabindex,
+            "aria-activedescendant": $data.focused ? $options.focusedOptionId : void 0,
+            "aria-label": _ctx.ariaLabel,
+            "aria-labelledby": _ctx.ariaLabelledby,
+            onFocus: _cache[0] || (_cache[0] = function() {
+              return $options.onListFocus && $options.onListFocus.apply($options, arguments);
+            }),
+            onBlur: _cache[1] || (_cache[1] = function() {
+              return $options.onListBlur && $options.onListBlur.apply($options, arguments);
+            }),
+            onKeydown: _cache[2] || (_cache[2] = function() {
+              return $options.onListKeyDown && $options.onListKeyDown.apply($options, arguments);
+            })
+          }, _ctx.ptm("list")), [(openBlock(true), createElementBlock(Fragment, null, renderList(_ctx.model, function(item2, i2) {
+            return openBlock(), createElementBlock(Fragment, {
+              key: $options.label(item2) + i2.toString()
+            }, [item2.items && $options.visible(item2) && !item2.separator ? (openBlock(), createElementBlock(Fragment, {
+              key: 0
+            }, [item2.items ? (openBlock(), createElementBlock("li", mergeProps({
+              key: 0,
+              id: _ctx.$id + "_" + i2,
+              "class": [_ctx.cx("submenuLabel"), item2["class"]],
+              role: "none"
+            }, {
+              ref_for: true
+            }, _ctx.ptm("submenuLabel")), [renderSlot(_ctx.$slots, _ctx.$slots.submenulabel ? "submenulabel" : "submenuheader", {
+              item: item2
+            }, function() {
+              return [createTextVNode(toDisplayString($options.label(item2)), 1)];
+            })], 16, _hoisted_3$9)) : createCommentVNode("", true), (openBlock(true), createElementBlock(Fragment, null, renderList(item2.items, function(child, j) {
+              return openBlock(), createElementBlock(Fragment, {
+                key: child.label + i2 + "_" + j
+              }, [$options.visible(child) && !child.separator ? (openBlock(), createBlock(_component_PVMenuitem, {
+                key: 0,
+                id: _ctx.$id + "_" + i2 + "_" + j,
+                item: child,
+                templates: _ctx.$slots,
+                focusedOptionId: $options.focusedOptionId,
+                unstyled: _ctx.unstyled,
+                onItemClick: $options.itemClick,
+                onItemMousemove: $options.itemMouseMove,
+                pt: _ctx.pt
+              }, null, 8, ["id", "item", "templates", "focusedOptionId", "unstyled", "onItemClick", "onItemMousemove", "pt"])) : $options.visible(child) && child.separator ? (openBlock(), createElementBlock("li", mergeProps({
+                key: "separator" + i2 + j,
+                "class": [_ctx.cx("separator"), item2["class"]],
+                style: child.style,
+                role: "separator"
+              }, {
+                ref_for: true
+              }, _ctx.ptm("separator")), null, 16)) : createCommentVNode("", true)], 64);
+            }), 128))], 64)) : $options.visible(item2) && item2.separator ? (openBlock(), createElementBlock("li", mergeProps({
+              key: "separator" + i2.toString(),
+              "class": [_ctx.cx("separator"), item2["class"]],
+              style: item2.style,
+              role: "separator"
+            }, {
+              ref_for: true
+            }, _ctx.ptm("separator")), null, 16)) : (openBlock(), createBlock(_component_PVMenuitem, {
+              key: $options.label(item2) + i2.toString(),
+              id: _ctx.$id + "_" + i2,
+              item: item2,
+              index: i2,
+              templates: _ctx.$slots,
+              focusedOptionId: $options.focusedOptionId,
+              unstyled: _ctx.unstyled,
+              onItemClick: $options.itemClick,
+              onItemMousemove: $options.itemMouseMove,
+              pt: _ctx.pt
+            }, null, 8, ["id", "item", "index", "templates", "focusedOptionId", "unstyled", "onItemClick", "onItemMousemove", "pt"]))], 64);
+          }), 128))], 16, _hoisted_2$9), _ctx.$slots.end ? (openBlock(), createElementBlock("div", mergeProps({
+            key: 1,
+            "class": _ctx.cx("end")
+          }, _ctx.ptm("end")), [renderSlot(_ctx.$slots, "end")], 16)) : createCommentVNode("", true)], 16, _hoisted_1$a)) : createCommentVNode("", true)];
+        }),
+        _: 3
+      }, 16, ["onEnter", "onLeave", "onAfterLeave"])];
+    }),
+    _: 3
+  }, 8, ["appendTo", "disabled"]);
+}
+script$a.render = render$9;
 const _hoisted_1$9 = { class: "space-y-6" };
 const _hoisted_2$8 = ["id"];
 const _hoisted_3$8 = { class: "w-8 h-8 rounded-full bg-[var(--surface-3)] border border-[var(--border)] flex items-center justify-center shrink-0" };
@@ -30482,11 +31131,11 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
       if (tooltipTimer.value) clearTimeout(tooltipTimer.value);
       hoveredAgentId.value = null;
     };
-    const handleReceiverMouseEnter = (event, item) => {
-      if (item._mergedReceivers && item._mergedReceivers.length > 1) {
-        showMultiReceiverPopup(event, item._mergedReceivers);
+    const handleReceiverMouseEnter = (event, item2) => {
+      if (item2._mergedReceivers && item2._mergedReceivers.length > 1) {
+        showMultiReceiverPopup(event, item2._mergedReceivers);
       } else {
-        handleMouseEnter2(event, item.receiverId);
+        handleMouseEnter2(event, item2.receiverId);
       }
     };
     const handleReceiverMouseLeave = () => {
@@ -30661,20 +31310,20 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
     };
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$9, [
-        (openBlock(true), createElementBlock(Fragment, null, renderList(currentMessages.value, (item) => {
+        (openBlock(true), createElementBlock(Fragment, null, renderList(currentMessages.value, (item2) => {
           return openBlock(), createElementBlock(Fragment, {
-            key: item.id
+            key: item2.id
           }, [
-            item.type !== "tool-group" ? (openBlock(), createElementBlock("div", {
+            item2.type !== "tool-group" ? (openBlock(), createElementBlock("div", {
               key: 0,
-              id: "msg-" + item.id,
-              class: normalizeClass(["flex group", item.senderType === "user" ? "justify-end" : "justify-start"])
+              id: "msg-" + item2.id,
+              class: normalizeClass(["flex group", item2.senderType === "user" ? "justify-end" : "justify-start"])
             }, [
               createBaseVNode("div", {
-                class: normalizeClass(["flex max-w-[90%] items-start space-x-3", item.senderType === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"])
+                class: normalizeClass(["flex max-w-[90%] items-start space-x-3", item2.senderType === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"])
               }, [
                 createBaseVNode("div", _hoisted_3$8, [
-                  item.senderType === "user" ? (openBlock(), createBlock(unref(User), {
+                  item2.senderType === "user" ? (openBlock(), createBlock(unref(User), {
                     key: 0,
                     class: "w-4 h-4 text-[var(--text-2)]"
                   })) : (openBlock(), createBlock(unref(Bot), {
@@ -30683,43 +31332,43 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                   }))
                 ]),
                 createBaseVNode("div", {
-                  class: normalizeClass(["flex flex-col min-w-0", item.senderType === "user" ? "items-end" : "items-start"])
+                  class: normalizeClass(["flex flex-col min-w-0", item2.senderType === "user" ? "items-end" : "items-start"])
                 }, [
                   createBaseVNode("div", _hoisted_4$8, [
                     createBaseVNode("div", _hoisted_5$4, [
                       createBaseVNode("span", {
                         class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
-                        onClick: ($event) => navigateToMessage(item.senderId, item.id),
-                        onMouseenter: ($event) => handleMouseEnter2($event, item.senderId),
+                        onClick: ($event) => navigateToMessage(item2.senderId, item2.id),
+                        onMouseenter: ($event) => handleMouseEnter2($event, item2.senderId),
                         onMouseleave: handleMouseLeave2
-                      }, toDisplayString(getSenderName(item)), 41, _hoisted_6$3),
-                      getReceiverName(item) ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
+                      }, toDisplayString(getSenderName(item2)), 41, _hoisted_6$3),
+                      getReceiverName(item2) ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
                         _cache[0] || (_cache[0] = createBaseVNode("span", { class: "opacity-50 mx-1" }, "→", -1)),
                         createBaseVNode("span", {
                           class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
-                          onClick: ($event) => navigateToMessage(item.receiverId, item.id),
-                          onMouseenter: (e2) => handleReceiverMouseEnter(e2, item),
+                          onClick: ($event) => navigateToMessage(item2.receiverId, item2.id),
+                          onMouseenter: (e2) => handleReceiverMouseEnter(e2, item2),
                           onMouseleave: handleReceiverMouseLeave
-                        }, toDisplayString(getReceiverName(item)), 41, _hoisted_7$3)
+                        }, toDisplayString(getReceiverName(item2)), 41, _hoisted_7$3)
                       ], 64)) : createCommentVNode("", true)
                     ]),
-                    createBaseVNode("span", _hoisted_8$3, toDisplayString(formatTime(item.timestamp)), 1)
+                    createBaseVNode("span", _hoisted_8$3, toDisplayString(formatTime(item2.timestamp)), 1)
                   ]),
                   createBaseVNode("div", {
                     class: normalizeClass(["px-4 py-2.5 rounded-2xl text-sm shadow-sm relative group/msg overflow-hidden", [
-                      item.senderType === "user" ? "bg-[var(--primary)] text-white rounded-tr-none" : "bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none",
-                      item.status === "sending" ? "opacity-70" : ""
+                      item2.senderType === "user" ? "bg-[var(--primary)] text-white rounded-tr-none" : "bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] rounded-tl-none",
+                      item2.status === "sending" ? "opacity-70" : ""
                     ]])
                   }, [
-                    item.reasoning ? (openBlock(), createElementBlock("div", _hoisted_9$3, [
+                    item2.reasoning ? (openBlock(), createElementBlock("div", _hoisted_9$3, [
                       createBaseVNode("div", {
                         class: "flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors opacity-80",
-                        onClick: ($event) => toggleReasoning(item.id)
+                        onClick: ($event) => toggleReasoning(item2.id)
                       }, [
                         createVNode(unref(Sparkles), { class: "w-3 h-3 text-[var(--primary)]" }),
                         _cache[1] || (_cache[1] = createBaseVNode("span", { class: "text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider" }, "思考过程", -1)),
                         _cache[2] || (_cache[2] = createBaseVNode("span", { class: "flex-grow" }, null, -1)),
-                        !expandedReasoning.value[item.id] ? (openBlock(), createBlock(unref(ChevronDown), {
+                        !expandedReasoning.value[item2.id] ? (openBlock(), createBlock(unref(ChevronDown), {
                           key: 0,
                           class: "w-3 h-3"
                         })) : (openBlock(), createBlock(unref(ChevronUp), {
@@ -30727,24 +31376,24 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                           class: "w-3 h-3"
                         }))
                       ], 8, _hoisted_10$3),
-                      expandedReasoning.value[item.id] ? (openBlock(), createElementBlock("div", _hoisted_11$3, [
+                      expandedReasoning.value[item2.id] ? (openBlock(), createElementBlock("div", _hoisted_11$3, [
                         __props.searchKeyword?.trim() ? (openBlock(), createElementBlock("span", {
                           key: 0,
-                          innerHTML: renderHighlightedContent(item.reasoning, item.id)
+                          innerHTML: renderHighlightedContent(item2.reasoning, item2.id)
                         }, null, 8, _hoisted_12$3)) : (openBlock(), createElementBlock(Fragment, { key: 1 }, [
-                          createTextVNode(toDisplayString(item.reasoning), 1)
+                          createTextVNode(toDisplayString(item2.reasoning), 1)
                         ], 64))
                       ])) : createCommentVNode("", true)
                     ])) : createCommentVNode("", true),
-                    item.toolCall ? (openBlock(), createElementBlock("div", _hoisted_13$3, [
+                    item2.toolCall ? (openBlock(), createElementBlock("div", _hoisted_13$3, [
                       createBaseVNode("div", {
                         class: "flex items-center space-x-2 py-1 px-2 rounded bg-[var(--surface-3)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-4)] transition-colors",
-                        onClick: ($event) => toggleToolCall(item.id)
+                        onClick: ($event) => toggleToolCall(item2.id)
                       }, [
                         createVNode(unref(Wrench), { class: "w-3 h-3 text-[var(--primary)]" }),
-                        createBaseVNode("span", _hoisted_15$3, toDisplayString(item.toolCall.name), 1),
+                        createBaseVNode("span", _hoisted_15$3, toDisplayString(item2.toolCall.name), 1),
                         _cache[3] || (_cache[3] = createBaseVNode("span", { class: "text-[10px] text-[var(--text-3)] flex-grow" }, "工具调用", -1)),
-                        !expandedToolCalls.value[item.id] ? (openBlock(), createBlock(unref(ChevronDown), {
+                        !expandedToolCalls.value[item2.id] ? (openBlock(), createBlock(unref(ChevronDown), {
                           key: 0,
                           class: "w-3 h-3"
                         })) : (openBlock(), createBlock(unref(ChevronUp), {
@@ -30752,42 +31401,42 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                           class: "w-3 h-3"
                         }))
                       ], 8, _hoisted_14$3),
-                      expandedToolCalls.value[item.id] ? (openBlock(), createElementBlock("div", _hoisted_16$3, [
+                      expandedToolCalls.value[item2.id] ? (openBlock(), createElementBlock("div", _hoisted_16$3, [
                         createBaseVNode("div", _hoisted_17$3, [
                           _cache[4] || (_cache[4] = createBaseVNode("div", { class: "text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1" }, "参数", -1)),
-                          createBaseVNode("pre", _hoisted_18$3, toDisplayString(JSON.stringify(parseJson(item.toolCall.args), null, 2)), 1)
+                          createBaseVNode("pre", _hoisted_18$3, toDisplayString(JSON.stringify(parseJson(item2.toolCall.args), null, 2)), 1)
                         ]),
-                        item.toolCall.result ? (openBlock(), createElementBlock("div", _hoisted_19$3, [
+                        item2.toolCall.result ? (openBlock(), createElementBlock("div", _hoisted_19$3, [
                           _cache[5] || (_cache[5] = createBaseVNode("div", { class: "text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider mb-1" }, "执行结果", -1)),
-                          createBaseVNode("pre", _hoisted_20$3, toDisplayString(JSON.stringify(parseJson(item.toolCall.result), null, 2)), 1)
+                          createBaseVNode("pre", _hoisted_20$3, toDisplayString(JSON.stringify(parseJson(item2.toolCall.result), null, 2)), 1)
                         ])) : createCommentVNode("", true)
                       ])) : createCommentVNode("", true)
                     ])) : createCommentVNode("", true),
-                    item.content && !item.toolCall ? (openBlock(), createElementBlock("div", _hoisted_21$3, [
+                    item2.content && !item2.toolCall ? (openBlock(), createElementBlock("div", _hoisted_21$3, [
                       __props.searchKeyword?.trim() ? (openBlock(), createElementBlock("span", {
                         key: 0,
-                        innerHTML: renderHighlightedContent(item.content, item.id)
+                        innerHTML: renderHighlightedContent(item2.content, item2.id)
                       }, null, 8, _hoisted_22$3)) : (openBlock(), createElementBlock(Fragment, { key: 1 }, [
-                        createTextVNode(toDisplayString(item.content), 1)
+                        createTextVNode(toDisplayString(item2.content), 1)
                       ], 64))
                     ])) : createCommentVNode("", true),
-                    item.content && item.toolCall && !item.content.startsWith("调用工具:") ? (openBlock(), createElementBlock("div", _hoisted_23$2, toDisplayString(item.content), 1)) : createCommentVNode("", true),
-                    item.payload && !item.content && !item.toolCall ? (openBlock(), createElementBlock("div", _hoisted_24$2, [
-                      createBaseVNode("pre", _hoisted_25$2, toDisplayString(typeof item.payload === "object" ? JSON.stringify(item.payload, null, 2) : item.payload), 1)
+                    item2.content && item2.toolCall && !item2.content.startsWith("调用工具:") ? (openBlock(), createElementBlock("div", _hoisted_23$2, toDisplayString(item2.content), 1)) : createCommentVNode("", true),
+                    item2.payload && !item2.content && !item2.toolCall ? (openBlock(), createElementBlock("div", _hoisted_24$2, [
+                      createBaseVNode("pre", _hoisted_25$2, toDisplayString(typeof item2.payload === "object" ? JSON.stringify(item2.payload, null, 2) : item2.payload), 1)
                     ])) : createCommentVNode("", true),
-                    item.usage && item.usage.totalTokens > 0 ? (openBlock(), createElementBlock("div", _hoisted_26$1, [
+                    item2.usage && item2.usage.totalTokens > 0 ? (openBlock(), createElementBlock("div", _hoisted_26$1, [
                       createBaseVNode("span", {
                         class: "text-[10px] text-[var(--text-3)] cursor-help",
-                        onMouseenter: ($event) => showTokenTooltip($event, item.usage),
+                        onMouseenter: ($event) => showTokenTooltip($event, item2.usage),
                         onMouseleave: hideTokenTooltip
-                      }, toDisplayString(item.usage.totalTokens) + " tokens ", 41, _hoisted_27$1)
+                      }, toDisplayString(item2.usage.totalTokens) + " tokens ", 41, _hoisted_27$1)
                     ])) : createCommentVNode("", true)
                   ], 2)
                 ], 2)
               ], 2)
             ], 10, _hoisted_2$8)) : (openBlock(), createElementBlock("div", {
               key: 1,
-              id: "msg-" + item.messages[0].id,
+              id: "msg-" + item2.messages[0].id,
               class: "flex justify-start group"
             }, [
               createBaseVNode("div", _hoisted_29, [
@@ -30799,34 +31448,34 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                     createBaseVNode("div", _hoisted_33, [
                       createBaseVNode("span", {
                         class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
-                        onClick: ($event) => navigateToMessage(item.senderId, item.messages[0].id),
-                        onMouseenter: ($event) => handleMouseEnter2($event, item.senderId),
+                        onClick: ($event) => navigateToMessage(item2.senderId, item2.messages[0].id),
+                        onMouseenter: ($event) => handleMouseEnter2($event, item2.senderId),
                         onMouseleave: handleMouseLeave2
-                      }, toDisplayString(getSenderName(item.messages[0])), 41, _hoisted_34),
-                      getReceiverName(item) ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
+                      }, toDisplayString(getSenderName(item2.messages[0])), 41, _hoisted_34),
+                      getReceiverName(item2) ? (openBlock(), createElementBlock(Fragment, { key: 0 }, [
                         _cache[6] || (_cache[6] = createBaseVNode("span", { class: "opacity-50 mx-1" }, "→", -1)),
                         createBaseVNode("span", {
                           class: "hover:text-[var(--primary)] cursor-pointer transition-colors",
-                          onClick: ($event) => navigateToMessage(item.receiverId, item.messages[0].id),
-                          onMouseenter: ($event) => handleMouseEnter2($event, item.receiverId),
+                          onClick: ($event) => navigateToMessage(item2.receiverId, item2.messages[0].id),
+                          onMouseenter: ($event) => handleMouseEnter2($event, item2.receiverId),
                           onMouseleave: handleMouseLeave2
-                        }, toDisplayString(getReceiverName(item)), 41, _hoisted_35)
+                        }, toDisplayString(getReceiverName(item2)), 41, _hoisted_35)
                       ], 64)) : createCommentVNode("", true)
                     ]),
-                    createBaseVNode("span", _hoisted_36, toDisplayString(formatTime(item.timestamp)), 1)
+                    createBaseVNode("span", _hoisted_36, toDisplayString(formatTime(item2.timestamp)), 1)
                   ]),
                   createBaseVNode("div", _hoisted_37, [
                     createBaseVNode("div", {
                       class: "px-4 py-2 bg-[var(--surface-3)] border-b border-[var(--border)] flex items-center justify-between cursor-pointer hover:bg-[var(--surface-4)] transition-colors",
-                      onClick: ($event) => toggleGroup(item.id)
+                      onClick: ($event) => toggleGroup(item2.id)
                     }, [
                       createBaseVNode("div", _hoisted_39, [
                         createVNode(unref(Wrench), { class: "w-4 h-4 text-[var(--primary)]" }),
-                        createBaseVNode("span", _hoisted_40, "连续执行了 " + toDisplayString(item.messages.length) + " 个工具", 1)
+                        createBaseVNode("span", _hoisted_40, "连续执行了 " + toDisplayString(item2.messages.length) + " 个工具", 1)
                       ]),
                       createBaseVNode("div", _hoisted_41, [
-                        createBaseVNode("span", _hoisted_42, toDisplayString(expandedGroups.value[item.id] ? "收起详情" : "展开详情"), 1),
-                        !expandedGroups.value[item.id] ? (openBlock(), createBlock(unref(ChevronDown), {
+                        createBaseVNode("span", _hoisted_42, toDisplayString(expandedGroups.value[item2.id] ? "收起详情" : "展开详情"), 1),
+                        !expandedGroups.value[item2.id] ? (openBlock(), createBlock(unref(ChevronDown), {
                           key: 0,
                           class: "w-3 h-3"
                         })) : (openBlock(), createBlock(unref(ChevronUp), {
@@ -30835,8 +31484,8 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                         }))
                       ])
                     ], 8, _hoisted_38),
-                    expandedGroups.value[item.id] ? (openBlock(), createElementBlock("div", _hoisted_43, [
-                      (openBlock(true), createElementBlock(Fragment, null, renderList(item.messages, (msg) => {
+                    expandedGroups.value[item2.id] ? (openBlock(), createElementBlock("div", _hoisted_43, [
+                      (openBlock(true), createElementBlock(Fragment, null, renderList(item2.messages, (msg) => {
                         return openBlock(), createElementBlock("div", {
                           key: msg.id,
                           class: "border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface-1)]"
@@ -30885,16 +31534,16 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
                         ]);
                       }), 128))
                     ])) : createCommentVNode("", true),
-                    getGroupTotalTokens(item.messages) > 0 ? (openBlock(), createElementBlock("div", _hoisted_56, [
+                    getGroupTotalTokens(item2.messages) > 0 ? (openBlock(), createElementBlock("div", _hoisted_56, [
                       createBaseVNode("span", {
                         class: "text-[10px] text-[var(--text-3)] cursor-help",
                         onMouseenter: ($event) => showTokenTooltip($event, {
-                          promptTokens: getGroupPromptTokens(item.messages),
-                          completionTokens: getGroupCompletionTokens(item.messages),
-                          totalTokens: getGroupTotalTokens(item.messages)
+                          promptTokens: getGroupPromptTokens(item2.messages),
+                          completionTokens: getGroupCompletionTokens(item2.messages),
+                          totalTokens: getGroupTotalTokens(item2.messages)
                         }),
                         onMouseleave: hideTokenTooltip
-                      }, " 总计 " + toDisplayString(getGroupTotalTokens(item.messages)) + " tokens ", 41, _hoisted_57)
+                      }, " 总计 " + toDisplayString(getGroupTotalTokens(item2.messages)) + " tokens ", 41, _hoisted_57)
                     ])) : createCommentVNode("", true)
                   ])
                 ])
@@ -31111,6 +31760,16 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
     const searchMatches = /* @__PURE__ */ ref([]);
     const currentMatchIndex = /* @__PURE__ */ ref(-1);
     const searchInputRef = /* @__PURE__ */ ref(null);
+    const moreMenuRef = /* @__PURE__ */ ref(null);
+    const isDeleting = /* @__PURE__ */ ref(false);
+    const moreMenuItems = computed(() => [
+      {
+        label: "删除智能体",
+        icon: "trash-2",
+        command: () => handleDeleteAgent(),
+        disabled: !activeAgent.value || activeAgent.value.id === "user" || isDeleting.value
+      }
+    ]);
     const handleScroll = () => {
       if (!messageContainer.value) return;
       const { scrollTop: scrollTop2, scrollHeight: scrollHeight2, clientHeight } = messageContainer.value;
@@ -31303,6 +31962,38 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
         }
       }
     };
+    const toggleMoreMenu = (event) => {
+      moreMenuRef.value?.toggle(event);
+    };
+    const handleDeleteAgent = async () => {
+      const agent = activeAgent.value;
+      if (!agent || agent.id === "user") return;
+      const confirmed = confirm(
+        `确定要删除智能体 "${agent.name}" 吗？
+
+删除后，该智能体将被终止且无法恢复。`
+      );
+      if (!confirmed) return;
+      isDeleting.value = true;
+      try {
+        await apiService.deleteAgent(agent.id, {
+          reason: "用户手动删除",
+          deletedBy: "user"
+        });
+        await agentStore.fetchAgentsByOrg(props.orgId);
+        await agentStore.fetchAllAgents(true);
+        if (chatStore.activeAgentIds[props.orgId] === agent.id) {
+          chatStore.setActiveAgent(props.orgId, "user");
+        }
+        alert(`智能体 "${agent.name}" 已删除`);
+      } catch (error) {
+        console.error("删除智能体失败:", error);
+        const message22 = error?.message || "删除失败，请重试";
+        alert(message22);
+      } finally {
+        isDeleting.value = false;
+      }
+    };
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$8, [
         createBaseVNode("header", _hoisted_2$7, [
@@ -31325,7 +32016,7 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
             ])
           ]),
           createBaseVNode("div", _hoisted_9$2, [
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               variant: "text",
               rounded: "",
               class: normalizeClass(["!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]", { "!text-[var(--primary)] !bg-[var(--primary-weak)]": isSearchActive.value }]),
@@ -31337,16 +32028,39 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }, 8, ["class"]),
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               variant: "text",
               rounded: "",
-              class: "!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]"
+              class: "!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]",
+              onClick: toggleMoreMenu,
+              disabled: isDeleting.value
             }, {
               default: withCtx(() => [
                 createVNode(unref(EllipsisVertical), { class: "w-4 h-4" })
               ]),
               _: 1
-            })
+            }, 8, ["disabled"]),
+            createVNode(unref(script$a), {
+              ref_key: "moreMenuRef",
+              ref: moreMenuRef,
+              model: moreMenuItems.value,
+              popup: ""
+            }, {
+              item: withCtx(({ item: item2 }) => [
+                createBaseVNode("div", {
+                  class: normalizeClass(["flex items-center px-3 py-2", { "opacity-50 cursor-not-allowed": item2.disabled }])
+                }, [
+                  item2.icon === "trash-2" ? (openBlock(), createBlock(unref(Trash2), {
+                    key: 0,
+                    class: "w-4 h-4 mr-2 text-red-500"
+                  })) : createCommentVNode("", true),
+                  createBaseVNode("span", {
+                    class: normalizeClass(["text-sm", item2.icon === "trash-2" ? "text-red-500" : "text-[var(--text-1)]"])
+                  }, toDisplayString(item2.label), 3)
+                ], 2)
+              ]),
+              _: 1
+            }, 8, ["model"])
           ])
         ]),
         createVNode(Transition, {
@@ -31378,7 +32092,7 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
                 searchMatches.value.length > 0 ? (openBlock(), createElementBlock("div", _hoisted_13$2, [
                   createBaseVNode("span", _hoisted_14$2, toDisplayString(currentMatchIndex.value + 1) + " / " + toDisplayString(searchMatches.value.length), 1),
                   createBaseVNode("div", _hoisted_15$2, [
-                    createVNode(unref(script$N), {
+                    createVNode(unref(script$O), {
                       variant: "text",
                       rounded: "",
                       class: "!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]",
@@ -31390,7 +32104,7 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
                       ]),
                       _: 1
                     }),
-                    createVNode(unref(script$N), {
+                    createVNode(unref(script$O), {
                       variant: "text",
                       rounded: "",
                       class: "!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]",
@@ -31404,7 +32118,7 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
                     })
                   ])
                 ])) : searchKeyword.value.trim() ? (openBlock(), createElementBlock("div", _hoisted_16$2, " 无匹配结果 ")) : createCommentVNode("", true),
-                createVNode(unref(script$N), {
+                createVNode(unref(script$O), {
                   variant: "text",
                   rounded: "",
                   class: "!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)] shrink-0",
@@ -31468,14 +32182,14 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
           createBaseVNode("div", _hoisted_24$1, [
             _cache[5] || (_cache[5] = createBaseVNode("div", { class: "absolute -inset-0.5 bg-gradient-to-r from-[var(--primary)] to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" }, null, -1)),
             createBaseVNode("div", _hoisted_25$1, [
-              createVNode(unref(script$K), {
+              createVNode(unref(script$L), {
                 modelValue: message3.value,
                 "onUpdate:modelValue": _cache[2] || (_cache[2] = ($event) => message3.value = $event),
                 placeholder: placeholder.value,
                 class: "flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm",
                 onKeyup: withKeys(sendMessage, ["enter"])
               }, null, 8, ["modelValue", "placeholder"]),
-              createVNode(unref(script$N), {
+              createVNode(unref(script$O), {
                 onClick: sendMessage,
                 disabled: !message3.value.trim() || isSending.value,
                 class: normalizeClass(["!rounded-xl !p-3 transition-all duration-200 min-w-[44px]", message3.value.trim() && !isSending.value ? "!bg-[var(--primary)] !text-white hover:!brightness-110 hover:!shadow-md" : "!bg-[var(--surface-3)] !text-[var(--text-3)]"])
@@ -31498,7 +32212,7 @@ const _sfc_main$5 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const ChatArea = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["__scopeId", "data-v-e2b4e781"]]);
+const ChatArea = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["__scopeId", "data-v-31e02829"]]);
 var style$4 = "\n    .p-card {\n        background: dt('card.background');\n        color: dt('card.color');\n        box-shadow: dt('card.shadow');\n        border-radius: dt('card.border.radius');\n        display: flex;\n        flex-direction: column;\n    }\n\n    .p-card-caption {\n        display: flex;\n        flex-direction: column;\n        gap: dt('card.caption.gap');\n    }\n\n    .p-card-body {\n        padding: dt('card.body.padding');\n        display: flex;\n        flex-direction: column;\n        gap: dt('card.body.gap');\n    }\n\n    .p-card-title {\n        font-size: dt('card.title.font.size');\n        font-weight: dt('card.title.font.weight');\n    }\n\n    .p-card-subtitle {\n        color: dt('card.subtitle.color');\n    }\n";
 var classes$4 = {
   root: "p-card p-component",
@@ -31517,9 +32231,9 @@ var CardStyle = BaseStyle.extend({
 });
 var script$1$5 = {
   name: "BaseCard",
-  "extends": script$R,
+  "extends": script$S,
   style: CardStyle,
-  provide: function provide27() {
+  provide: function provide28() {
     return {
       $pcCard: this,
       $parentInstance: this
@@ -31713,7 +32427,7 @@ const _sfc_main$4 = /* @__PURE__ */ defineComponent({
                 createBaseVNode("div", _hoisted_5$2, [
                   showChat.value ? (openBlock(), createElementBlock("div", _hoisted_6$1, [
                     createBaseVNode("div", _hoisted_7$1, [
-                      createVNode(unref(script$N), {
+                      createVNode(unref(script$O), {
                         variant: "text",
                         rounded: "",
                         class: "!p-1.5 !text-[var(--text-3)] hover:!bg-[var(--surface-3)] ml-1",
@@ -31748,7 +32462,7 @@ const _sfc_main$4 = /* @__PURE__ */ defineComponent({
                   ])) : createCommentVNode("", true),
                   createBaseVNode("div", _hoisted_9$1, [
                     createBaseVNode("div", _hoisted_10$1, [
-                      createVNode(unref(script$r), {
+                      createVNode(unref(script$s), {
                         modelValue: newGoal.value,
                         "onUpdate:modelValue": _cache[0] || (_cache[0] = ($event) => newGoal.value = $event),
                         autoResize: "",
@@ -31758,7 +32472,7 @@ const _sfc_main$4 = /* @__PURE__ */ defineComponent({
                         onKeydown: handleKeyDown
                       }, null, 8, ["modelValue"]),
                       createBaseVNode("div", _hoisted_11$1, [
-                        createVNode(unref(script$N), {
+                        createVNode(unref(script$O), {
                           onClick: createOrganization,
                           loading: isCreating.value,
                           class: "!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!brightness-110 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -31811,7 +32525,7 @@ const _sfc_main$4 = /* @__PURE__ */ defineComponent({
                         createBaseVNode("p", _hoisted_21$1, toDisplayString(org.role), 1)
                       ]),
                       createBaseVNode("div", _hoisted_22$1, [
-                        createVNode(unref(script$N), {
+                        createVNode(unref(script$O), {
                           size: "small",
                           variant: "text",
                           class: "!text-[var(--primary)] !p-0"
@@ -31849,27 +32563,27 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
     const appStore = useAppStore();
     return (_ctx, _cache) => {
       return openBlock(), createElementBlock("div", _hoisted_1$6, [
-        createVNode(unref(script$C), {
+        createVNode(unref(script$D), {
           value: unref(appStore).currentTabId,
           "onUpdate:value": _cache[0] || (_cache[0] = ($event) => unref(appStore).currentTabId = $event),
           class: "flex flex-col h-full !bg-transparent overflow-visible",
           pt: { root: { class: "bg-transparent border-none overflow-visible" } }
         }, {
           default: withCtx(() => [
-            createVNode(unref(script$z), {
+            createVNode(unref(script$A), {
               class: "px-3 py-2 !bg-[var(--bg)] gap-2 flex items-center border-b border-[var(--border)] relative z-10 [--tablist-bg:var(--bg)]",
               pt: { root: { class: "!bg-transparent border-none overflow-visible" }, content: { class: "!bg-transparent overflow-visible" } }
             }, {
               default: withCtx(() => [
                 (openBlock(true), createElementBlock(Fragment, null, renderList(unref(appStore).activeTabs, (tab) => {
-                  return openBlock(), createBlock(unref(script$y), {
+                  return openBlock(), createBlock(unref(script$z), {
                     key: tab.id,
                     value: tab.id,
                     class: "custom-tab group"
                   }, {
                     default: withCtx(() => [
                       createBaseVNode("span", _hoisted_2$5, toDisplayString(tab.title), 1),
-                      tab.id !== "home" ? (openBlock(), createBlock(unref(script$N), {
+                      tab.id !== "home" ? (openBlock(), createBlock(unref(script$O), {
                         key: 0,
                         variant: "text",
                         rounded: "",
@@ -31888,7 +32602,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
               ]),
               _: 1
             }),
-            createVNode(unref(script$x), { class: "!p-0 flex-grow overflow-hidden bg-transparent" }, {
+            createVNode(unref(script$y), { class: "!p-0 flex-grow overflow-hidden bg-transparent" }, {
               default: withCtx(() => [
                 unref(appStore).activeTabs.length === 0 ? (openBlock(), createElementBlock("div", _hoisted_3$5, [
                   createBaseVNode("div", _hoisted_4$5, [
@@ -31898,18 +32612,18 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                   _cache[2] || (_cache[2] = createBaseVNode("p", { class: "text-sm mt-1" }, "请从侧栏选择一个组织开始工作", -1))
                 ])) : createCommentVNode("", true),
                 (openBlock(true), createElementBlock(Fragment, null, renderList(unref(appStore).activeTabs, (tab) => {
-                  return openBlock(), createBlock(unref(script$w), {
+                  return openBlock(), createBlock(unref(script$x), {
                     key: tab.id,
                     value: tab.id,
                     class: "h-full"
                   }, {
                     default: withCtx(() => [
-                      tab.id === "home" ? (openBlock(), createBlock(HomeOverview, { key: 0 })) : (openBlock(), createBlock(unref(script$J), {
+                      tab.id === "home" ? (openBlock(), createBlock(HomeOverview, { key: 0 })) : (openBlock(), createBlock(unref(script$K), {
                         key: 1,
                         class: "h-full border-none rounded-none bg-transparent"
                       }, {
                         default: withCtx(() => [
-                          createVNode(unref(script$I), {
+                          createVNode(unref(script$J), {
                             size: 25,
                             minSize: 20,
                             class: "flex flex-col bg-[var(--surface-2)] border-r border-[var(--border)]"
@@ -31921,7 +32635,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                             ]),
                             _: 2
                           }, 1024),
-                          createVNode(unref(script$I), {
+                          createVNode(unref(script$J), {
                             size: 75,
                             class: "flex flex-col bg-[var(--bg)]"
                           }, {
@@ -31966,7 +32680,7 @@ var ConfirmDialogStyle = BaseStyle.extend({
 });
 var script$1$4 = {
   name: "BaseConfirmDialog",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     group: String,
     breakpoints: {
@@ -31979,7 +32693,7 @@ var script$1$4 = {
     }
   },
   style: ConfirmDialogStyle,
-  provide: function provide28() {
+  provide: function provide29() {
     return {
       $pcConfirmDialog: this,
       $parentInstance: this
@@ -31991,13 +32705,13 @@ var script$8 = {
   "extends": script$1$4,
   confirmListener: null,
   closeListener: null,
-  data: function data17() {
+  data: function data18() {
     return {
       visible: false,
       confirmation: null
     };
   },
-  mounted: function mounted16() {
+  mounted: function mounted17() {
     var _this = this;
     this.confirmListener = function(options3) {
       if (!options3) {
@@ -32018,7 +32732,7 @@ var script$8 = {
     ConfirmationEventBus.on("confirm", this.confirmListener);
     ConfirmationEventBus.on("close", this.closeListener);
   },
-  beforeUnmount: function beforeUnmount9() {
+  beforeUnmount: function beforeUnmount10() {
     ConfirmationEventBus.off("confirm", this.confirmListener);
     ConfirmationEventBus.off("close", this.closeListener);
   },
@@ -32099,8 +32813,8 @@ var script$8 = {
     }
   },
   components: {
-    Dialog: script$D,
-    Button: script$N
+    Dialog: script$E,
+    Button: script$O
   }
 };
 function render$7(_ctx, _cache, $props, $setup, $data, $options) {
@@ -32243,7 +32957,7 @@ function _toPrimitive$5(t2, r2) {
   return ("string" === r2 ? String : Number)(t2);
 }
 var inlineStyles = {
-  root: function root17(_ref) {
+  root: function root18(_ref) {
     var position2 = _ref.position;
     return {
       position: "fixed",
@@ -32255,7 +32969,7 @@ var inlineStyles = {
   }
 };
 var classes$2 = {
-  root: function root18(_ref2) {
+  root: function root19(_ref2) {
     var props = _ref2.props;
     return ["p-toast p-component p-toast-" + props.position];
   },
@@ -32289,7 +33003,7 @@ var ToastStyle = BaseStyle.extend({
 });
 var script$7 = {
   name: "ExclamationTriangleIcon",
-  "extends": script$Q
+  "extends": script$R
 };
 function _toConsumableArray$3(r2) {
   return _arrayWithoutHoles$3(r2) || _iterableToArray$3(r2) || _unsupportedIterableToArray$3(r2) || _nonIterableSpread$3();
@@ -32336,7 +33050,7 @@ function render$6(_ctx, _cache, $props, $setup, $data, $options) {
 script$7.render = render$6;
 var script$6 = {
   name: "InfoCircleIcon",
-  "extends": script$Q
+  "extends": script$R
 };
 function _toConsumableArray$2(r2) {
   return _arrayWithoutHoles$2(r2) || _iterableToArray$2(r2) || _unsupportedIterableToArray$2(r2) || _nonIterableSpread$2();
@@ -32379,7 +33093,7 @@ function render$5(_ctx, _cache, $props, $setup, $data, $options) {
 script$6.render = render$5;
 var script$2$1 = {
   name: "BaseToast",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     group: {
       type: String,
@@ -32439,7 +33153,7 @@ var script$2$1 = {
     }
   },
   style: ToastStyle,
-  provide: function provide29() {
+  provide: function provide30() {
     return {
       $pcToast: this,
       $parentInstance: this
@@ -32474,7 +33188,7 @@ function _toPrimitive$3(t2, r2) {
 var script$1$3 = {
   name: "ToastMessage",
   hostName: "Toast",
-  "extends": script$R,
+  "extends": script$S,
   emits: ["close"],
   closeTimeout: null,
   createdAt: null,
@@ -32525,13 +33239,13 @@ var script$1$3 = {
       "default": void 0
     }
   },
-  mounted: function mounted17() {
+  mounted: function mounted18() {
     if (this.message.life) {
       this.lifeRemaining = this.message.life;
       this.startTimeout();
     }
   },
-  beforeUnmount: function beforeUnmount10() {
+  beforeUnmount: function beforeUnmount11() {
     this.clearCloseTimeout();
   },
   methods: {
@@ -32603,24 +33317,24 @@ var script$1$3 = {
     iconComponent: function iconComponent() {
       return {
         info: !this.infoIcon && script$6,
-        success: !this.successIcon && script$m,
+        success: !this.successIcon && script$n,
         warn: !this.warnIcon && script$7,
-        error: !this.errorIcon && script$d
+        error: !this.errorIcon && script$e
       }[this.message.severity];
     },
     closeAriaLabel: function closeAriaLabel3() {
       return this.$primevue.config.locale.aria ? this.$primevue.config.locale.aria.close : void 0;
     },
-    dataP: function dataP13() {
+    dataP: function dataP15() {
       return f$a(_defineProperty$3({}, this.message.severity, this.message.severity));
     }
   },
   components: {
-    TimesIcon: script$H,
+    TimesIcon: script$I,
     InfoCircleIcon: script$6,
-    CheckIcon: script$m,
+    CheckIcon: script$n,
     ExclamationTriangleIcon: script$7,
-    TimesCircleIcon: script$d
+    TimesCircleIcon: script$e
   },
   directives: {
     ripple: Ripple
@@ -32790,13 +33504,13 @@ var script$5 = {
   "extends": script$2$1,
   inheritAttrs: false,
   emits: ["close", "life-end"],
-  data: function data18() {
+  data: function data19() {
     return {
       messages: []
     };
   },
   styleElement: null,
-  mounted: function mounted18() {
+  mounted: function mounted19() {
     ToastEventBus.on("add", this.onAdd);
     ToastEventBus.on("remove", this.onRemove);
     ToastEventBus.on("remove-group", this.onRemoveGroup);
@@ -32805,7 +33519,7 @@ var script$5 = {
       this.createStyle();
     }
   },
-  beforeUnmount: function beforeUnmount11() {
+  beforeUnmount: function beforeUnmount12() {
     this.destroyStyle();
     if (this.$refs.container && this.autoZIndex) {
       x.clear(this.$refs.container);
@@ -32858,12 +33572,12 @@ var script$5 = {
       });
       this.messages = [];
     },
-    onEnter: function onEnter2() {
+    onEnter: function onEnter3() {
       if (this.autoZIndex) {
         x.set("modal", this.$refs.container, this.baseZIndex || this.$primevue.config.zIndex.modal);
       }
     },
-    onLeave: function onLeave2() {
+    onLeave: function onLeave3() {
       var _this2 = this;
       if (this.$refs.container && this.autoZIndex && l$h(this.messages)) {
         setTimeout(function() {
@@ -32897,13 +33611,13 @@ var script$5 = {
     }
   },
   computed: {
-    dataP: function dataP14() {
+    dataP: function dataP16() {
       return f$a(_defineProperty$1({}, this.position, this.position));
     }
   },
   components: {
     ToastMessage: script$1$3,
-    Portal: script$E
+    Portal: script$F
   }
 };
 function _typeof$4(o2) {
@@ -33003,7 +33717,7 @@ function render$4(_ctx, _cache, $props, $setup, $data, $options) {
 script$5.render = render$4;
 var style$1 = "\n    .p-tag {\n        display: inline-flex;\n        align-items: center;\n        justify-content: center;\n        background: dt('tag.primary.background');\n        color: dt('tag.primary.color');\n        font-size: dt('tag.font.size');\n        font-weight: dt('tag.font.weight');\n        padding: dt('tag.padding');\n        border-radius: dt('tag.border.radius');\n        gap: dt('tag.gap');\n    }\n\n    .p-tag-icon {\n        font-size: dt('tag.icon.size');\n        width: dt('tag.icon.size');\n        height: dt('tag.icon.size');\n    }\n\n    .p-tag-rounded {\n        border-radius: dt('tag.rounded.border.radius');\n    }\n\n    .p-tag-success {\n        background: dt('tag.success.background');\n        color: dt('tag.success.color');\n    }\n\n    .p-tag-info {\n        background: dt('tag.info.background');\n        color: dt('tag.info.color');\n    }\n\n    .p-tag-warn {\n        background: dt('tag.warn.background');\n        color: dt('tag.warn.color');\n    }\n\n    .p-tag-danger {\n        background: dt('tag.danger.background');\n        color: dt('tag.danger.color');\n    }\n\n    .p-tag-secondary {\n        background: dt('tag.secondary.background');\n        color: dt('tag.secondary.color');\n    }\n\n    .p-tag-contrast {\n        background: dt('tag.contrast.background');\n        color: dt('tag.contrast.color');\n    }\n";
 var classes$1 = {
-  root: function root19(_ref) {
+  root: function root20(_ref) {
     var props = _ref.props;
     return ["p-tag p-component", {
       "p-tag-info": props.severity === "info",
@@ -33025,7 +33739,7 @@ var TagStyle = BaseStyle.extend({
 });
 var script$1$2 = {
   name: "BaseTag",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     value: null,
     severity: null,
@@ -33033,7 +33747,7 @@ var script$1$2 = {
     icon: String
   },
   style: TagStyle,
-  provide: function provide30() {
+  provide: function provide31() {
     return {
       $pcTag: this,
       $parentInstance: this
@@ -33070,7 +33784,7 @@ var script$4 = {
   "extends": script$1$2,
   inheritAttrs: false,
   computed: {
-    dataP: function dataP15() {
+    dataP: function dataP17() {
       return f$a(_defineProperty({
         rounded: this.rounded
       }, this.severity, this.severity));
@@ -33099,7 +33813,7 @@ function render$3(_ctx, _cache, $props, $setup, $data, $options) {
 script$4.render = render$3;
 var script$3 = {
   name: "PlusIcon",
-  "extends": script$Q
+  "extends": script$R
 };
 function _toConsumableArray(r2) {
   return _arrayWithoutHoles(r2) || _iterableToArray(r2) || _unsupportedIterableToArray(r2) || _nonIterableSpread();
@@ -33140,7 +33854,7 @@ function render$2(_ctx, _cache, $props, $setup, $data, $options) {
 script$3.render = render$2;
 var style = "\n    .p-panel {\n        display: block;\n        border: 1px solid dt('panel.border.color');\n        border-radius: dt('panel.border.radius');\n        background: dt('panel.background');\n        color: dt('panel.color');\n    }\n\n    .p-panel-header {\n        display: flex;\n        justify-content: space-between;\n        align-items: center;\n        padding: dt('panel.header.padding');\n        background: dt('panel.header.background');\n        color: dt('panel.header.color');\n        border-style: solid;\n        border-width: dt('panel.header.border.width');\n        border-color: dt('panel.header.border.color');\n        border-radius: dt('panel.header.border.radius');\n    }\n\n    .p-panel-toggleable .p-panel-header {\n        padding: dt('panel.toggleable.header.padding');\n    }\n\n    .p-panel-title {\n        line-height: 1;\n        font-weight: dt('panel.title.font.weight');\n    }\n\n    .p-panel-content-container {\n        display: grid;\n        grid-template-rows: 1fr;\n    }\n\n    .p-panel-content-wrapper {\n        min-height: 0;\n    }\n\n    .p-panel-content {\n        padding: dt('panel.content.padding');\n    }\n\n    .p-panel-footer {\n        padding: dt('panel.footer.padding');\n    }\n";
 var classes = {
-  root: function root20(_ref) {
+  root: function root21(_ref) {
     var props = _ref.props;
     return ["p-panel p-component", {
       "p-panel-toggleable": props.toggleable
@@ -33162,7 +33876,7 @@ var PanelStyle = BaseStyle.extend({
 });
 var script$1$1 = {
   name: "BasePanel",
-  "extends": script$R,
+  "extends": script$S,
   props: {
     header: String,
     toggleable: Boolean,
@@ -33179,7 +33893,7 @@ var script$1$1 = {
     }
   },
   style: PanelStyle,
-  provide: function provide31() {
+  provide: function provide32() {
     return {
       $pcPanel: this,
       $parentInstance: this
@@ -33191,7 +33905,7 @@ var script$2 = {
   "extends": script$1$1,
   inheritAttrs: false,
   emits: ["update:collapsed", "toggle"],
-  data: function data19() {
+  data: function data20() {
     return {
       d_collapsed: this.collapsed
     };
@@ -33202,7 +33916,7 @@ var script$2 = {
     }
   },
   methods: {
-    toggle: function toggle(event) {
+    toggle: function toggle2(event) {
       this.d_collapsed = !this.d_collapsed;
       this.$emit("update:collapsed", this.d_collapsed);
       this.$emit("toggle", {
@@ -33221,7 +33935,7 @@ var script$2 = {
     buttonAriaLabel: function buttonAriaLabel() {
       return this.toggleButtonProps && this.toggleButtonProps.ariaLabel ? this.toggleButtonProps.ariaLabel : this.header;
     },
-    dataP: function dataP16() {
+    dataP: function dataP18() {
       return f$a({
         toggleable: this.toggleable
       });
@@ -33229,8 +33943,8 @@ var script$2 = {
   },
   components: {
     PlusIcon: script$3,
-    MinusIcon: script$f,
-    Button: script$N
+    MinusIcon: script$g,
+    Button: script$O
   },
   directives: {
     ripple: Ripple
@@ -33501,14 +34215,14 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
           _: 1
         }),
         createBaseVNode("div", _hoisted_28, [
-          createVNode(unref(script$N), {
+          createVNode(unref(script$O), {
             label: "复制错误信息",
             icon: "pi pi-copy",
             severity: "secondary",
             onClick: copyError,
             class: "action-button"
           }),
-          createVNode(unref(script$N), {
+          createVNode(unref(script$O), {
             label: "关闭",
             onClick: close5,
             class: "action-button"
@@ -33705,7 +34419,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
           }, [
             createBaseVNode("div", _hoisted_2$1, [
               createBaseVNode("span", _hoisted_3$1, toDisplayString(slotProps.message.summary), 1),
-              withDirectives(createVNode(unref(script$N), {
+              withDirectives(createVNode(unref(script$O), {
                 icon: "pi pi-info-circle",
                 severity: "secondary",
                 text: "",
@@ -33736,10 +34450,10 @@ var DynamicDialogStyle = BaseStyle.extend({
 });
 var script$1 = {
   name: "BaseDynamicDialog",
-  "extends": script$R,
+  "extends": script$S,
   props: {},
   style: DynamicDialogStyle,
-  provide: function provide32() {
+  provide: function provide33() {
     return {
       $pcDynamicDialog: this,
       $parentInstance: this
@@ -33750,7 +34464,7 @@ var script = {
   name: "DynamicDialog",
   "extends": script$1,
   inheritAttrs: false,
-  data: function data20() {
+  data: function data21() {
     return {
       instanceMap: {}
     };
@@ -33758,7 +34472,7 @@ var script = {
   openListener: null,
   closeListener: null,
   currentInstance: null,
-  mounted: function mounted19() {
+  mounted: function mounted20() {
     var _this = this;
     this.openListener = function(_ref) {
       var instance = _ref.instance;
@@ -33783,7 +34497,7 @@ var script = {
     DynamicDialogEventBus.on("open", this.openListener);
     DynamicDialogEventBus.on("close", this.closeListener);
   },
-  beforeUnmount: function beforeUnmount12() {
+  beforeUnmount: function beforeUnmount13() {
     DynamicDialogEventBus.off("open", this.openListener);
     DynamicDialogEventBus.off("close", this.closeListener);
   },
@@ -33803,7 +34517,7 @@ var script = {
     }
   },
   components: {
-    DDialog: script$D
+    DDialog: script$E
   }
 };
 function render(_ctx, _cache, $props, $setup, $data, $options) {
@@ -33962,7 +34676,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
         createBaseVNode("main", _hoisted_3, [
           createBaseVNode("div", _hoisted_4, [
             createVNode(_component_ModuleManager, { ref: "moduleManagerRef" }, null, 512),
-            createVNode(unref(script$N), {
+            createVNode(unref(script$O), {
               variant: "text",
               rounded: "",
               onClick: toggleDarkMode,
@@ -34000,4 +34714,4 @@ app.use(ConfirmationService);
 app.use(ToastService);
 app.directive("tooltip", Tooltip);
 app.mount("#app");
-//# sourceMappingURL=index-C-IyTwWR.js.map
+//# sourceMappingURL=index-B-RMxEvu.js.map

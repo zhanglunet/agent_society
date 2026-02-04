@@ -23,6 +23,7 @@ import {
 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import ScrollPanel from 'primevue/scrollpanel';
+import ModulePanelContent from './ModulePanelContent.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -439,7 +440,12 @@ defineExpose({
               <div v-else class="absolute inset-0 overflow-auto">
                 <div class="module-panel-content p-4">
                   <!-- 注入模块的 HTML -->
-                  <div v-html="webComponent.html"></div>
+                  <ModulePanelContent 
+                    :html="webComponent.html" 
+                    :css="webComponent.css" 
+                    :js="webComponent.js"
+                    :module-name="selectedModule?.name || ''"
+                  />
                 </div>
               </div>
             </div>
@@ -451,7 +457,8 @@ defineExpose({
 </template>
 
 <style scoped>
-.module-panel-content :deep(*) {
-  color: inherit;
+.module-panel-content {
+  width: 100%;
+  height: 100%;
 }
 </style>

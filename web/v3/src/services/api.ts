@@ -347,6 +347,21 @@ export const apiService = {
   },
 
   /**
+   * 删除智能体（软删除）
+   * @param agentId 智能体ID
+   * @param options 删除选项
+   */
+  async deleteAgent(agentId: string, options: { reason?: string; deletedBy?: string } = {}): Promise<{ ok: boolean; agentId: string; termination?: any }> {
+    return request(`/agent/${encodeURIComponent(agentId)}`, {
+      method: 'DELETE',
+      body: JSON.stringify({
+        reason: options.reason || '用户删除',
+        deletedBy: options.deletedBy || 'user'
+      })
+    });
+  },
+
+  /**
    * 获取最近的事件（错误和重试）
    * @param since 可选的时间戳，只返回此时间之后的事件
    */

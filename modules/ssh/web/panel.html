@@ -1,52 +1,58 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SSH 连接与传输管理</title>
-  <link rel="stylesheet" href="panel.css">
-</head>
-<body>
-  <div class="ssh-module-panel">
-    <div class="panel-header">
-      <h3>🖧 SSH 连接与传输管理</h3>
-      <div class="header-actions">
-        <label class="toggle">
-          <input id="ssh-auto-refresh" type="checkbox" checked onchange="ModulePanel_Ssh.toggleAutoRefresh(this.checked)">
-          <span>自动刷新</span>
-        </label>
-        <button class="refresh-btn" onclick="ModulePanel_Ssh.refresh()">刷新</button>
-      </div>
-    </div>
-
-    <div id="ssh-summary" class="summary">
-      <div class="loading">加载中...</div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <h4>连接</h4>
-        <button class="mini-btn" onclick="ModulePanel_Ssh.openHosts()">查看主机</button>
-      </div>
-      <div id="ssh-connections" class="list">
-        <div class="loading">加载中...</div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <h4>文件传输</h4>
-        <label class="toggle small">
-          <input id="ssh-show-completed" type="checkbox" onchange="ModulePanel_Ssh.setShowCompleted(this.checked)">
-          <span>显示已完成</span>
-        </label>
-      </div>
-      <div id="ssh-transfers" class="list">
-        <div class="loading">加载中...</div>
-      </div>
+<!-- SSH 连接与传输管理面板 - 适配新框架 -->
+<div class="ssh-panel" id="ssh-panel">
+  <div class="panel-header">
+    <span class="header-title">🖧 SSH 连接与传输管理</span>
+    <div class="header-actions">
+      <label class="toggle">
+        <input id="ssh-auto-refresh" type="checkbox" checked>
+        <span>自动刷新</span>
+      </label>
+      <button class="btn-icon" id="btn-refresh" title="刷新">↻</button>
     </div>
   </div>
 
-  <script src="panel.js"></script>
-</body>
-</html>
+  <!-- 概览统计 -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">已配置主机</div>
+      <div class="stat-value" id="stat-hosts">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">活动连接</div>
+      <div class="stat-value" id="stat-connections">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">传输任务</div>
+      <div class="stat-value" id="stat-transfers">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">进行中传输</div>
+      <div class="stat-value" id="stat-active">-</div>
+    </div>
+  </div>
+
+  <!-- 连接列表 -->
+  <div class="panel-section">
+    <div class="section-header">
+      <span class="section-title">连接</span>
+      <button class="btn-secondary" id="btn-hosts">查看主机</button>
+    </div>
+    <div class="list-container" id="connections-list">
+      <div class="loading-text">加载中...</div>
+    </div>
+  </div>
+
+  <!-- 传输列表 -->
+  <div class="panel-section flex-1">
+    <div class="section-header">
+      <span class="section-title">文件传输</span>
+      <label class="toggle small">
+        <input id="ssh-show-completed" type="checkbox">
+        <span>显示已完成</span>
+      </label>
+    </div>
+    <div class="list-container scrollable" id="transfers-list">
+      <div class="loading-text">加载中...</div>
+    </div>
+  </div>
+</div>

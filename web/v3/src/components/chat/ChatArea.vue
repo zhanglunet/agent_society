@@ -1,10 +1,12 @@
 ﻿<script setup lang="ts">
-import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2, ChevronUp, ChevronDown, X } from 'lucide-vue-next';
+import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2, ChevronUp, ChevronDown, X, Trash2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import Menu from 'primevue/menu';
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
+import { apiService } from '../../services/api';
 import ChatMessageList from './ChatMessageList.vue';
 
 const props = defineProps<{
@@ -68,6 +70,22 @@ const searchKeyword = ref('');
 const searchMatches = ref<{ element: HTMLElement; messageId: string }[]>([]);
 const currentMatchIndex = ref(-1);
 const searchInputRef = ref<HTMLInputElement | null>(null);
+
+// 下拉菜单相关状态
+const moreMenuRef = ref<InstanceType<typeof Menu> | null>(null);
+const isDeleting = ref(false);
+
+/**
+ * 更多菜单项
+ */
+const moreMenuItems = computed(() => [
+  {
+    label: '删除智能体',
+    icon: 'trash-2',
+    command: () => handleDeleteAgent(),
+    disabled: !activeAgent.value || activeAgent.value.id === 'user' || isDeleting.value
+  }
+]);
 
 /**
  * 检查滚动位置，决定是否显示“返回底部”按钮
@@ -353,6 +371,53 @@ const handleSearchKeydown = (e: KeyboardEvent) => {
     }
   }
 };
+
+/**
+ * 切换更多菜单
+ */
+const toggleMoreMenu = (event: Event) => {
+  moreMenuRef.value?.toggle(event);
+};
+
+/**
+ * 处理删除智能体
+ */
+const handleDeleteAgent = async () => {
+  const agent = activeAgent.value;
+  if (!agent || agent.id === 'user') return;
+
+  // 确认对话框
+  const confirmed = confirm(
+    `确定要删除智能体 "${agent.name}" 吗？\n\n删除后，该智能体将被终止且无法恢复。`
+  );
+  if (!confirmed) return;
+
+  isDeleting.value = true;
+  try {
+    await apiService.deleteAgent(agent.id, {
+      reason: '用户手动删除',
+      deletedBy: 'user'
+    });
+    
+    // 删除成功后，刷新智能体列表
+    await agentStore.fetchAgentsByOrg(props.orgId);
+    await agentStore.fetchAllAgents(true);
+    
+    // 如果删除的是当前对话的智能体，切换到 user
+    if (chatStore.activeAgentIds[props.orgId] === agent.id) {
+      chatStore.setActiveAgent(props.orgId, 'user');
+    }
+    
+    // 显示成功提示（使用简单的 alert，后续可以替换为更好的 UI）
+    alert(`智能体 "${agent.name}" 已删除`);
+  } catch (error: any) {
+    console.error('删除智能体失败:', error);
+    const message = error?.message || '删除失败，请重试';
+    alert(message);
+  } finally {
+    isDeleting.value = false;
+  }
+};
 </script>
 
 <template>
@@ -383,9 +448,25 @@ const handleSearchKeydown = (e: KeyboardEvent) => {
         >
           <Search class="w-4 h-4" />
         </Button>
-        <Button variant="text" rounded class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]">
+        <Button 
+          variant="text" 
+          rounded 
+          class="!p-2 !text-[var(--text-3)] hover:!bg-[var(--surface-3)]"
+          @click="toggleMoreMenu"
+          :disabled="isDeleting"
+        >
           <MoreVertical class="w-4 h-4" />
         </Button>
+        <Menu ref="moreMenuRef" :model="moreMenuItems" popup>
+          <template #item="{ item }">
+            <div class="flex items-center px-3 py-2" :class="{ 'opacity-50 cursor-not-allowed': item.disabled }">
+              <Trash2 v-if="item.icon === 'trash-2'" class="w-4 h-4 mr-2 text-red-500" />
+              <span class="text-sm" :class="item.icon === 'trash-2' ? 'text-red-500' : 'text-[var(--text-1)]'">
+                {{ item.label }}
+              </span>
+            </div>
+          </template>
+        </Menu>
       </div>
     </header>
 

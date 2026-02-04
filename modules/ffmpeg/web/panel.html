@@ -1,54 +1,28 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FFmpeg 任务管理</title>
-  <link rel="stylesheet" href="panel.css">
-</head>
-<body>
-  <div class="ffmpeg-module-panel">
-    <div class="panel-header">
-      <h3>🎞️ FFmpeg 任务管理</h3>
-      <div class="header-actions">
-        <label class="toggle">
-          <input id="ffmpeg-auto-refresh" type="checkbox" checked onchange="ModulePanel_Ffmpeg.toggleAutoRefresh(this.checked)">
-          <span>自动刷新</span>
-        </label>
-        <button class="refresh-btn" onclick="ModulePanel_Ffmpeg.refresh()">刷新</button>
-      </div>
-    </div>
-
-    <div class="notice">
-      <div class="notice-title">注意</div>
-      <div class="notice-text">ffmpeg_run 返回的输出工件在任务 completed 前可能不完整。</div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <h4>新建任务</h4>
-        <button class="mini-btn" onclick="ModulePanel_Ffmpeg.submitTask()">提交</button>
-      </div>
-
-      <div class="form">
-        <label>vargs（完整参数字符串，不包含程序名）</label>
-        <textarea id="ffmpeg-vargs" rows="4" spellcheck="false">-i $FFMEPG_INPUT -c copy $FFMEPG_OUTPUT.mp4</textarea>
-
-        <label>artifacts（JSON 数组，按顺序替换 $FFMEPG_INPUT）</label>
-        <textarea id="ffmpeg-artifacts" rows="3" spellcheck="false">[]</textarea>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <h4>任务列表</h4>
-      </div>
-      <div id="ffmpeg-tasks" class="list">
-        <div class="loading">加载中...</div>
-      </div>
+<!-- FFmpeg 任务管理面板 - 适配新框架 -->
+<div class="ffmpeg-panel" id="ffmpeg-panel">
+  <div class="panel-header">
+    <span class="header-title">🎞️ FFmpeg 任务管理</span>
+    <div class="header-actions">
+      <label class="toggle">
+        <input id="ffmpeg-auto-refresh" type="checkbox" checked>
+        <span>自动刷新</span>
+      </label>
+      <button class="btn-icon" id="btn-refresh" title="刷新">↻</button>
     </div>
   </div>
 
-  <script src="panel.js"></script>
-</body>
-</html>
+  <div class="notice-box">
+    <span class="notice-icon">⚠️</span>
+    <span class="notice-text">ffmpeg_run 返回的输出工件在任务 completed 前可能不完整</span>
+  </div>
+
+  <div class="panel-section flex-1">
+    <div class="section-header">
+      <span class="section-title">任务列表</span>
+      <span class="task-count" id="task-count"></span>
+    </div>
+    <div class="task-list" id="task-list">
+      <div class="loading-text">加载中...</div>
+    </div>
+  </div>
+</div>

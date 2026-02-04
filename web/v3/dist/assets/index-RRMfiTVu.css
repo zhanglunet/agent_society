@@ -1128,6 +1128,10 @@
     cursor: move;
   }
 
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
+
   .cursor-pointer {
     cursor: pointer;
   }
@@ -3506,20 +3510,20 @@ iframe[data-v-2fa2d484] {
     border-width: 2px;
 }
 
-.module-panel-wrapper[data-v-f4b4a16d] {
+.module-panel-wrapper[data-v-1e516edd] {
   width: 100%;
   height: 100%;
 }
 
 /* 确保注入的内容不会溢出 */
-.module-panel-wrapper[data-v-f4b4a16d] * {
+.module-panel-wrapper[data-v-1e516edd] * {
   box-sizing: border-box;
 }
 
 /* 防止注入的样式影响外部 */
-.module-panel-wrapper[data-v-f4b4a16d] .chrome-panel,
-.module-panel-wrapper[data-v-f4b4a16d] .ffmpeg-panel,
-.module-panel-wrapper[data-v-f4b4a16d] .ssh-panel {
+.module-panel-wrapper[data-v-1e516edd] .chrome-panel,
+.module-panel-wrapper[data-v-1e516edd] .ffmpeg-panel,
+.module-panel-wrapper[data-v-1e516edd] .ssh-panel {
   width: 100%;
   height: 100%;
 }
@@ -3539,25 +3543,25 @@ iframe[data-v-2fa2d484] {
 }
 
 /* 自定义输入框样式，确保 PrimeVue 默认样式不冲突 */
-[data-v-e2b4e781] .p-inputtext {
+[data-v-31e02829] .p-inputtext {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 /* 搜索高亮样式 */
-[data-v-e2b4e781] .search-highlight {
+[data-v-31e02829] .search-highlight {
   background-color: rgba(250, 204, 21, 0.4);
   border-radius: 2px;
   padding: 0 2px;
   color: inherit;
 }
-[data-v-e2b4e781] .search-highlight-current {
+[data-v-31e02829] .search-highlight-current {
   background-color: rgba(250, 204, 21, 0.8);
   box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
-  animation: searchPulse-e2b4e781 1.5s ease-in-out infinite;
+  animation: searchPulse-31e02829 1.5s ease-in-out infinite;
 }
-@keyframes searchPulse-e2b4e781 {
+@keyframes searchPulse-31e02829 {
 0%, 100% {
     box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.5);
 }
@@ -3568,14 +3572,14 @@ iframe[data-v-2fa2d484] {
 
 /* 深色模式适配 */
 @media (prefers-color-scheme: dark) {
-[data-v-e2b4e781] .search-highlight {
+[data-v-31e02829] .search-highlight {
     background-color: rgba(234, 179, 8, 0.3);
 }
-[data-v-e2b4e781] .search-highlight-current {
+[data-v-31e02829] .search-highlight-current {
     background-color: rgba(234, 179, 8, 0.7);
     box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
 }
-@keyframes searchPulse-e2b4e781 {
+@keyframes searchPulse-31e02829 {
 0%, 100% {
       box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
 }
