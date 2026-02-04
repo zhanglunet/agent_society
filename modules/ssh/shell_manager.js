@@ -359,7 +359,7 @@ class ShellManager {
 
         return {
           output,
-          offset: offset + bytesRead,
+          offset: offset,
           totalLength
         };
 

@@ -116,7 +116,7 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_shell_read',
-        description: '读取shell会话输出窗口（从指定偏移位置读取最多5000字符）',
+        description: '读取shell会话输出窗口（从指定偏移位置读取最多5000字符）。如果连续多次读到空字符串，请向前移动偏移位置，看看是否错过了什么重要信息。',
         parameters: {
           type: 'object',
           properties: {
