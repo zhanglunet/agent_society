@@ -17,9 +17,10 @@ import { getMarkdownEngine } from './markdown';
 import './markdown/prism-theme.css';
 import './markdown/katex-theme.css';
 import type { RenderResult } from './markdown';
-import { renderAllMermaid } from './markdown/plugins/mermaid';
+import { renderAllMermaid, updateMermaidTheme } from './markdown/plugins/mermaid';
 import { renderAllMath } from './markdown/plugins/math';
 import { renderAllCodeBlocks } from './markdown/plugins/code-highlight';
+import { useAppStore } from '../../../stores/app';
 
 const props = defineProps<RendererProps>();
 const emit = defineEmits<{
@@ -43,6 +44,9 @@ const previewRef = ref<HTMLElement | null>(null);
 
 // Markdown 引擎
 const engine = getMarkdownEngine();
+
+// App Store（用于监听主题变化）
+const appStore = useAppStore();
 
 /**
  * Markdown 内容
@@ -294,6 +298,14 @@ watch(viewMode, (mode) => {
       renderAllCodeBlocks(previewRef.value);
     });
   }
+});
+
+// 监听主题变化，重新渲染 Mermaid 图表
+watch(() => appStore.theme, () => {
+  nextTick(() => {
+    if (!previewRef.value) return;
+    updateMermaidTheme();
+  });
 });
 
 onMounted(() => {

@@ -21,6 +21,21 @@ let translateY = 0;
 let scale = 1;
 
 /**
+ * 检测系统主题
+ * 项目使用 'my-app-dark' 类名标记暗色模式
+ */
+function detectTheme(): 'light' | 'dark' {
+  // 检查 document.documentElement 是否有 my-app-dark 类
+  if (document.documentElement.classList.contains('my-app-dark')) return 'dark';
+  // 检查是否有 data-theme 属性
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'dark') return 'dark';
+  // 检查 prefers-color-scheme（作为后备）
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+  return 'light';
+}
+
+/**
  * 加载 Mermaid 库
  */
 async function loadMermaid(): Promise<void> {
@@ -32,11 +47,9 @@ async function loadMermaid(): Promise<void> {
       const m = await import('mermaid');
       mermaid = m.default;
       
-      // 根据当前主题初始化
-      const isDark = getCurrentTheme() === 'dark';
+      // 初始化配置（不设置主题，每次渲染时动态设置）
       mermaid.initialize({
         startOnLoad: false,
-        theme: isDark ? 'dark' : 'default',
         securityLevel: 'loose',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       });
@@ -48,24 +61,6 @@ async function loadMermaid(): Promise<void> {
   })();
 
   return mermaidLoading;
-}
-
-/**
- * 获取当前主题模式
- */
-function getCurrentTheme(): 'light' | 'dark' {
-  // 检查文档根元素是否有 dark 类
-  if (document.documentElement.classList.contains('dark')) {
-    return 'dark';
-  }
-  // 检查是否有 data-theme 属性
-  const theme = document.documentElement.getAttribute('data-theme');
-  if (theme === 'dark') return 'dark';
-  // 检查 prefers-color-scheme
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  return 'light';
 }
 
 /**
@@ -82,7 +77,7 @@ function createFullscreenViewer(svgContent: string): void {
   translateY = 0;
   scale = 1;
   
-  const isDark = getCurrentTheme() === 'dark';
+  const isDark = detectTheme() === 'dark';
 
   // 创建遮罩层
   fullscreenViewer = document.createElement('div');
@@ -276,9 +271,20 @@ async function renderMermaid(element: HTMLElement): Promise<void> {
   // 清理内容：去除首尾空白行
   const cleanContent = content.trim();
   
+  // 根据当前主题动态设置
+  const isDark = detectTheme() === 'dark';
+  
   try {
     // 生成唯一 ID
     const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+    
+    // 动态设置主题
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDark ? 'dark' : 'default',
+      securityLevel: 'loose',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    });
     
     // 渲染
     const { svg } = await mermaid.render(id, cleanContent);
@@ -317,15 +323,8 @@ function escapeHtml(text: string): string {
 /**
  * 更新 Mermaid 主题
  */
-export async function updateMermaidTheme(isDark: boolean): Promise<void> {
+export async function updateMermaidTheme(_isDark?: boolean): Promise<void> {
   if (!mermaid) return;
-  
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: 'system-ui, -apple-system, sans-serif'
-  });
   
   // 重新渲染所有图表以应用新主题
   const containers = document.querySelectorAll('.mermaid-rendered');
