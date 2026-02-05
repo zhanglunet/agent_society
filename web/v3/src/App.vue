@@ -12,7 +12,6 @@
  */
 import GlobalSidebar from './components/layout/GlobalSidebar.vue';
 import WorkspaceTabs from './components/layout/WorkspaceTabs.vue';
-import SettingsDialog from './components/settings/SettingsDialog.vue';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
 import ErrorToast from './components/error/ErrorToast.vue';
@@ -23,7 +22,6 @@ import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
 import { useOrgStore } from './stores/org';
 import DynamicDialog from 'primevue/dynamicdialog';
-import { useDialog } from 'primevue/usedialog';
 import { configApi } from './services/configApi';
 import { errorNotificationService } from './services/errorNotification';
 import { uiCommandService } from './services/uiCommandService';
@@ -32,12 +30,14 @@ import { uiCommandService } from './services/uiCommandService';
 const appStore = useAppStore();
 const agentStore = useAgentStore();
 const orgStore = useOrgStore();
-const dialog = useDialog();
 const isDark = ref(false);
 
 // 将 dialog 挂载到全局，供 fileViewerService 使用
 import { registerOpenFileViewer } from './components/file-viewer/services/fileViewerService';
 import { openFileViewer } from './components/file-viewer';
+import { useDialog } from 'primevue/usedialog';
+
+const dialog = useDialog();
 
 onMounted(() => {
   // 注册全局 dialog
@@ -94,23 +94,21 @@ const stopGlobalSync = () => {
     }
 };
 
+import SettingsDialog from './components/settings/SettingsDialog.vue';
+
 /**
- * 打开首次运行配置对话框
+ * 打开设置对话框
  */
-const openFirstRunDialog = () => {
+const openSettings = () => {
     dialog.open(SettingsDialog, {
         props: {
-            header: '首次运行配置',
+            header: '系统设置',
             style: {
                 width: '600px',
             },
             modal: true,
             dismissableMask: false,
-            closable: false, // 首次运行时不能关闭
             closeOnEscape: false,
-        },
-        data: {
-            firstRun: true
         }
     });
 };
@@ -123,9 +121,9 @@ const checkConfigStatus = async () => {
         const status = await configApi.getConfigStatus();
         hasLocalConfig.value = status.hasLocalConfig;
         
-        // 如果没有本地配置，认为是首次运行，弹出配置对话框
+        // 如果没有本地配置，认为是首次运行，弹出设置对话框
         if (!status.hasLocalConfig) {
-            openFirstRunDialog();
+            openSettings();
         }
     } catch (err) {
         console.warn('检查配置状态失败:', err);
