@@ -186,8 +186,8 @@ export class Workspace {
 
     const total = stats.size;
     const offset = Math.max(0, options.offset || 0);
-    // 默认读取 5000 字节，最大支持 10MB
-    const length = Math.min(10 * 1024 * 1024, options.length || 5000);
+    // 默认读取 100000 字节，最大支持 10MB
+    const length = Math.min(10 * 1024 * 1024, options.length || 100000);
 
     const fsPromises = await import('node:fs/promises');
     const handle = await fsPromises.open(fullPath, 'r');

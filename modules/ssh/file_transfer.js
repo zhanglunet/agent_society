@@ -152,7 +152,7 @@ class FileTransfer {
       }
 
       const fileContent = fileResult.content;
-      const fileSize = fileResult.size;
+      const fileSize = fileResult.total;
 
       // 3. 创建传输任务
       const taskId = this._generateTaskId();

@@ -302,7 +302,7 @@ export class ToolExecutor {
             properties: {
               path: { type: "string", description: "文件的相对路径" },
               offset: { type: "number", description: "读取起始位置（字节/字符），默认为 0" },
-              length: { type: "number", description: "读取长度，默认为 5000。文本文件受字符数限制，二进制受字节数限制。" }
+              length: { type: "number", description: "读取长度，默认为 100000。文本文件受字符数限制，二进制受字节数限制。" }
             },
             required: ["path"]
           }
