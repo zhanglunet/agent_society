@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileCode, Folder, Loader2, Upload } from 'lucide-vue-next';
+import { FileCode, Folder, Loader2, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
@@ -16,6 +16,12 @@ const loading = ref(false);
 const uploading = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const expandedDirs = ref<Set<string>>(new Set());
+
+// 排序状态
+// sortField: 当前排序字段，可选值 'name' | 'size' | 'modifiedAt'
+// sortOrder: 当前排序方向，可选值 'asc' 升序 | 'desc' 降序
+const sortField = ref<'name' | 'size' | 'modifiedAt'>('name');
+const sortOrder = ref<'asc' | 'desc'>('asc');
 
 // 树形结构转换
 const fileTree = computed(() => {
@@ -75,7 +81,7 @@ const selectedId = ref('root'); // 默认选中根目录
 // 当前选中的目录
 const currentDir = ref<any>(null);
 
-// 当前目录下的文件列表（过滤掉文件夹）
+// 当前目录下的文件列表（过滤掉文件夹，并按当前排序状态排序）
 const currentItems = computed(() => {
   let items = [];
   if (currentDir.value) {
@@ -85,8 +91,42 @@ const currentItems = computed(() => {
     items = fileTree.value[0]?.children || [];
   }
   // 仅保留文件类型
-  return items.filter((item: any) => item.type === 'file');
+  items = items.filter((item: any) => item.type === 'file');
+  
+  // 应用排序
+  items.sort((a: any, b: any) => {
+    let comparison = 0;
+    switch (sortField.value) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case 'size':
+        comparison = (a.size || 0) - (b.size || 0);
+        break;
+      case 'modifiedAt':
+        comparison = new Date(a.modifiedAt || 0).getTime() - new Date(b.modifiedAt || 0).getTime();
+        break;
+    }
+    // 根据排序方向调整结果
+    return sortOrder.value === 'asc' ? comparison : -comparison;
+  });
+  
+  return items;
 });
+
+// 点击表头进行排序
+// 如果点击的是当前排序字段，则切换排序方向
+// 如果点击的是新的排序字段，则设置为该字段并默认升序
+const handleSort = (field: 'name' | 'size' | 'modifiedAt') => {
+  if (sortField.value === field) {
+    // 切换排序方向
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    // 切换排序字段，默认升序
+    sortField.value = field;
+    sortOrder.value = 'asc';
+  }
+};
 
 const toggleDir = (node: any) => {
   const path = node.path;
@@ -312,9 +352,39 @@ const handleFileUpload = async (event: Event) => {
                 <thead>
                   <tr class="border-b border-[var(--border)] bg-[var(--surface-1)] sticky top-0 z-10 shadow-sm">
                     <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-10"></th>
-                    <th class="py-2.5 px-2 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider">名称</th>
-                    <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-24">大小</th>
-                    <th class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-40">修改时间</th>
+                    <th 
+                      class="py-2.5 px-2 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider cursor-pointer select-none hover:bg-[var(--surface-3)] transition-colors group"
+                      @click="handleSort('name')"
+                    >
+                      <div class="flex items-center gap-1">
+                        名称
+                        <ArrowUpDown v-if="sortField !== 'name'" class="w-3 h-3 opacity-40" />
+                        <ArrowUp v-else-if="sortOrder === 'asc'" class="w-3 h-3 text-[var(--primary)]" />
+                        <ArrowDown v-else class="w-3 h-3 text-[var(--primary)]" />
+                      </div>
+                    </th>
+                    <th 
+                      class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-24 cursor-pointer select-none hover:bg-[var(--surface-3)] transition-colors"
+                      @click="handleSort('size')"
+                    >
+                      <div class="flex items-center gap-1">
+                        大小
+                        <ArrowUpDown v-if="sortField !== 'size'" class="w-3 h-3 opacity-40" />
+                        <ArrowUp v-else-if="sortOrder === 'asc'" class="w-3 h-3 text-[var(--primary)]" />
+                        <ArrowDown v-else class="w-3 h-3 text-[var(--primary)]" />
+                      </div>
+                    </th>
+                    <th 
+                      class="py-2.5 px-4 text-[10px] font-bold text-[var(--text-3)] uppercase tracking-wider w-40 cursor-pointer select-none hover:bg-[var(--surface-3)] transition-colors"
+                      @click="handleSort('modifiedAt')"
+                    >
+                      <div class="flex items-center gap-1">
+                        修改时间
+                        <ArrowUpDown v-if="sortField !== 'modifiedAt'" class="w-3 h-3 opacity-40" />
+                        <ArrowUp v-else-if="sortOrder === 'asc'" class="w-3 h-3 text-[var(--primary)]" />
+                        <ArrowDown v-else class="w-3 h-3 text-[var(--primary)]" />
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
