@@ -11,6 +11,13 @@ export class Agent {
     this.roleName = options.roleName;
     this.rolePrompt = options.rolePrompt;
     this._behavior = options.behavior;
+    /**
+     * system prompt 追加内容
+     * 每次请求大模型时，该内容会被追加到 system 提示词最后
+     * 由智能体通过工具函数 get_system_prompt_appendix / set_system_prompt_appendix 管理
+     * @type {string}
+     */
+    this.systemPromptAppendix = "";
   }
 
   /**

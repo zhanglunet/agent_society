@@ -765,7 +765,15 @@ export class RuntimeLlm {
       taskText: "",
       workspace: ctx.systemWorkspacePrompt ?? ""
     });
-    return composed + runtimeInfo + taskBriefText + contactsText + toolRules;
+    let finalPrompt = composed + runtimeInfo + taskBriefText + contactsText + toolRules;
+    
+    // 追加智能体自定义的 system prompt 内容
+    const agent = ctx.agent;
+    if (agent && agent.systemPromptAppendix && agent.systemPromptAppendix.trim()) {
+      finalPrompt += "\n\n" + agent.systemPromptAppendix.trim();
+    }
+    
+    return finalPrompt;
   }
 
   /**

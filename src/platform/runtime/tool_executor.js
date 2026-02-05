@@ -88,7 +88,7 @@ export class ToolExecutor {
               rolePrompt: { type: "string" },
               orgPrompt: {
                 type: "string",
-                description: "可选：用于描述组织架构的提示词。若传入，将被记录在该岗位上；后续由该岗位创建的下级岗位，在未显式传入 orgPrompt 时会默认继承该值。"
+                description: "仅用于root智能体：用于描述组织架构的提示词。若传入，将被记录在该岗位上；后续由该岗位创建的下级岗位，在未显式传入 orgPrompt 时会默认继承该值。"
               },
               toolGroups: { 
                 type: "array", 
@@ -390,6 +390,32 @@ export class ToolExecutor {
           }
         }
       },
+      // System Prompt 追加内容管理
+      {
+        type: "function",
+        function: {
+          name: "get_system_prompt_appendix",
+          description: "获取当前智能体的 system prompt 追加内容。",
+          parameters: { type: "object", properties: {} }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "set_system_prompt_appendix",
+          description: "设置当前智能体的 system prompt 追加内容。该内容会在每次请求大模型时自动追加到 system 提示词最后。可用于记忆环境或工作信息。",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "要追加的内容，空字符串表示清除"
+              }
+            },
+            required: ["content"]
+          }
+        }
+      },
       // 合并模块提供的工具定义
       ...runtime.moduleLoader.getToolDefinitions()
     ];
@@ -492,6 +518,10 @@ export class ToolExecutor {
           return await this._executeGetWorkspaceInfo(ctx, args);
         case "search_text":
           return await this._executeSearchText(ctx, args);
+        case "get_system_prompt_appendix":
+          return this._executeGetSystemPromptAppendix(ctx, args);
+        case "set_system_prompt_appendix":
+          return this._executeSetSystemPromptAppendix(ctx, args);
         default:
           void runtime.log?.warn?.("未知工具调用", { toolName });
           return { error: `unknown_tool:${toolName}` };
@@ -652,7 +682,7 @@ export class ToolExecutor {
     const callerRoleId = ctx.agent?.roleId ?? null;
     const callerRole = callerRoleId ? runtime.org.getRole(callerRoleId) : null;
     const inheritedOrgPrompt = callerRole?.orgPrompt ?? null;
-    const explicitOrgPrompt =
+    const explicitOrgPrompt =(!isRoot)? null :
       typeof args.orgPrompt === "string"
         ? (args.orgPrompt.trim() ? args.orgPrompt : null)
         : undefined;
@@ -1172,5 +1202,37 @@ export class ToolExecutor {
       path: args.path ?? ".",
       text: args.text
     };
+  }
+
+  /**
+   * 获取当前智能体的 system prompt 追加内容
+   * @param {object} ctx - 智能体上下文
+   * @returns {{content: string}}
+   */
+  _executeGetSystemPromptAppendix(ctx) {
+    const agent = ctx.agent;
+    if (!agent) {
+      return { error: "agent_not_found", message: "当前智能体不存在" };
+    }
+    const content = agent.systemPromptAppendix ?? "";
+    void this.runtime.log?.debug?.("工具调用完成", { toolName: "get_system_prompt_appendix", contentLength: content.length });
+    return { content };
+  }
+
+  /**
+   * 设置当前智能体的 system prompt 追加内容
+   * @param {object} ctx - 智能体上下文
+   * @param {{content: string}} args - 工具参数
+   * @returns {{success: boolean, content: string}}
+   */
+  _executeSetSystemPromptAppendix(ctx, args) {
+    const agent = ctx.agent;
+    if (!agent) {
+      return { error: "agent_not_found", message: "当前智能体不存在" };
+    }
+    const content = typeof args.content === "string" ? args.content : String(args.content ?? "");
+    agent.systemPromptAppendix = content;
+    void this.runtime.log?.debug?.("工具调用完成", { toolName: "set_system_prompt_appendix", contentLength: content.length });
+    return { success: true, content };
   }
 }

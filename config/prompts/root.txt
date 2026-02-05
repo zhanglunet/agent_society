@@ -34,8 +34,7 @@
 ```
 1. create_role({
    "name": "web_task_executor",
-   "rolePrompt": "负责执行网页相关任务，包括打开网站、截图、遍历链接等操作。需要向用户反馈进度，向上级汇报结果。",
-   "toolGroups": ["org_management", "workspace", "chrome"]
+   "rolePrompt": "负责执行网页相关任务，包括打开网站、截图、遍历链接等操作。需要向用户反馈进度，向上级汇报结果。"
 })
 // toolGroups 参数说明：
 // - 通过 toolGroups 可以限制该岗位可用的工具函数
