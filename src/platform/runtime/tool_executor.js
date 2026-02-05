@@ -686,7 +686,7 @@ export class ToolExecutor {
       typeof args.orgPrompt === "string"
         ? (args.orgPrompt.trim() ? args.orgPrompt : null)
         : undefined;
-    const effectiveOrgPrompt = explicitOrgPrompt === undefined ? inheritedOrgPrompt : explicitOrgPrompt;
+    const effectiveOrgPrompt = explicitOrgPrompt ? explicitOrgPrompt : inheritedOrgPrompt;
 
     const result = await ctx.tools.createRole({ 
       name: args.name, 
