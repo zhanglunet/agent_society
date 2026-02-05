@@ -280,7 +280,20 @@ export default {
         case 'ssh_upload': {
           const validationError = validateParams(args, ['connectionId', 'path', 'remotePath']);
           if (validationError) return validationError;
-          return await fileTransfer.upload(args.connectionId, args.path, args.remotePath, ctx);
+          log?.info?.('[SSH] 执行上传工具', { 
+            connectionId: args.connectionId, 
+            path: args.path, 
+            remotePath: args.remotePath,
+            agentId: ctx?.agent?.id 
+          });
+          const result = await fileTransfer.upload(args.connectionId, args.path, args.remotePath, ctx);
+          log?.info?.('[SSH] 上传工具执行完成', { 
+            connectionId: args.connectionId,
+            hasTaskId: !!result?.taskId,
+            hasError: !!result?.error,
+            error: result?.error 
+          });
+          return result;
         }
         
         case 'ssh_download': {

@@ -133,17 +133,36 @@ class FileTransfer {
         remotePath
       });
 
-      // 1. 获取工作区 ID 并获取工作区实例
+      // 1. 先检查连接是否存在（同步检查，不需要异步）
+      const connResult = this.connectionManager.getConnection(connectionId);
+      if (connResult.error) {
+        this.log.warn?.('[FileTransfer] 连接不存在，无法创建上传任务', { connectionId, error: connResult.error });
+        return {
+          error: 'connection_not_found',
+          message: `连接不存在：${connectionId}，请先使用 ssh_connect 建立连接`
+        };
+      }
+
+      // 2. 获取工作区 ID 并获取工作区实例
       const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
       if (!workspaceId) {
         return { error: 'workspace_not_assigned', message: '当前智能体未分配工作空间' };
       }
       const ws = await this.runtime.workspaceManager.getWorkspace(workspaceId);
 
-      // 2. 读取文件（不限制长度，用于完整上传）
-      // 注意：这里由于是后台执行且需要完整上传，我们直接通过工作区读取完整内容
-      // 如果文件很大，可能需要考虑分片读取或流式处理，但根据用户要求暂不使用流
-      const fileResult = await ws.readFile(workspacePath, { offset: 0, length: -1 });
+      // 3. 先获取文件信息以确定大小
+      const fileInfo = await ws.getFileInfo(workspacePath);
+      if (!fileInfo) {
+        return {
+          error: 'file_not_found',
+          message: `文件不存在：${workspacePath}`
+        };
+      }
+      const fileSize = fileInfo.size;
+
+      // 4. 读取完整文件内容
+      // 使用实际的文件大小作为读取长度，确保读取完整内容
+      const fileResult = await ws.readFile(workspacePath, { offset: 0, length: fileSize });
       if (fileResult.error) {
         return {
           error: fileResult.error,
@@ -152,9 +171,13 @@ class FileTransfer {
       }
 
       const fileContent = fileResult.content;
-      const fileSize = fileResult.total;
+      this.log.info?.('[FileTransfer] 文件内容已读取', { 
+        contentType: typeof fileContent, 
+        contentLength: fileContent?.length,
+        isBuffer: Buffer.isBuffer(fileContent)
+      });
 
-      // 3. 创建传输任务
+      // 5. 创建传输任务
       const taskId = this._generateTaskId();
       const task = {
         taskId,
@@ -181,7 +204,7 @@ class FileTransfer {
         totalTasks: this.tasks.size
       });
 
-      // 4. 后台执行上传
+      // 6. 后台执行上传
       this._executeUpload(task, fileContent).catch(error => {
         this.log.error?.('[FileTransfer] 后台上传失败', {
           taskId,
@@ -189,7 +212,7 @@ class FileTransfer {
         });
       });
 
-      // 5. 立即返回任务信息
+      // 7. 立即返回任务信息
       return {
         taskId,
         fileSize,
@@ -220,13 +243,22 @@ class FileTransfer {
    * @private
    */
   async _executeUpload(task, fileContent) {
+    this.log.info?.('[FileTransfer] 开始执行上传', {
+      taskId: task.taskId,
+      originalRemotePath: task.remotePath,
+      contentLength: fileContent?.length || 0,
+      contentType: typeof fileContent
+    });
+    
     try {
       // 更新任务状态为传输中
       task.status = 'transferring';
 
       // 获取SFTP会话
+      this.log.debug?.('[FileTransfer] 获取SFTP会话', { connectionId: task.connectionId });
       const sftpResult = await this._getSftpSession(task.connectionId);
       if (sftpResult.error) {
+        this.log.error?.('[FileTransfer] 获取SFTP会话失败', { error: sftpResult.message });
         task.status = 'failed';
         task.error = sftpResult.message;
         task.completedAt = new Date();
@@ -234,23 +266,201 @@ class FileTransfer {
       }
 
       const sftp = sftpResult.sftp;
+      this.log.info?.('[FileTransfer] SFTP会话获取成功');
+
+      // 解析远程路径（处理 ~ 为用户主目录）
+      let remotePath = task.remotePath;
+      this.log.debug?.('[FileTransfer] 处理远程路径', { originalPath: remotePath });
+      
+      if (remotePath.startsWith('~/')) {
+        // 获取用户主目录
+        const homeDir = await this._getRemoteHomeDir(sftp, task.connectionId);
+        this.log.info?.('[FileTransfer] 获取到主目录', { homeDir, originalPath: remotePath });
+        remotePath = remotePath.replace(/^~/, homeDir);
+        this.log.info?.('[FileTransfer] 远程路径已解析', { resolvedPath: remotePath });
+      }
+
+      // 【关键】必须先解析 ~ 再提取目录路径
+      const remoteDir = remotePath.substring(0, remotePath.lastIndexOf('/'));
+      this.log.debug?.('[FileTransfer] 检查远程目录', { remoteDir, remotePath });
+      
+      if (remoteDir) {
+        const mkdirResult = await this._ensureRemoteDir(sftp, remoteDir);
+        if (mkdirResult.error) {
+          this.log.error?.('[FileTransfer] 确保远程目录失败', { remoteDir, error: mkdirResult.message });
+          task.status = 'failed';
+          task.error = `创建远程目录失败: ${mkdirResult.message}`;
+          task.completedAt = new Date();
+          return;
+        }
+        this.log.debug?.('[FileTransfer] 远程目录准备就绪', { remoteDir });
+      }
 
       // 创建写入流
-      const writeStream = sftp.createWriteStream(task.remotePath);
-
-      // 监听进度
-      writeStream.on('drain', () => {
-        const bytesWritten = writeStream.bytesWritten || 0;
-        task.bytesTransferred = bytesWritten;
-        task.progress = Math.floor((bytesWritten / task.totalBytes) * 100);
-      });
+      this.log.info?.('[FileTransfer] 创建写入流', { remotePath });
+      
+      // 检查远程路径是否有效
+      if (!remotePath || remotePath.trim() === '') {
+        throw new Error('远程路径为空');
+      }
+      
+      let writeStream;
+      try {
+        writeStream = sftp.createWriteStream(remotePath);
+      } catch (createErr) {
+        this.log.error?.('[FileTransfer] 创建写入流失败', { error: createErr.message });
+        throw new Error(`创建写入流失败: ${createErr.message}`);
+      }
+      
+      if (!writeStream) {
+        throw new Error('createWriteStream 返回 null');
+      }
+      
+      this.log.info?.('[FileTransfer] 写入流创建成功', { hasWriteStream: !!writeStream });
+      
+      // 确保数据是 Buffer 类型
+      let dataToWrite = fileContent;
+      if (typeof fileContent === 'string') {
+        this.log.info?.('[FileTransfer] 将字符串转为 Buffer');
+        dataToWrite = Buffer.from(fileContent, 'utf8');
+      }
+      const dataLength = dataToWrite.length;
+      this.log.info?.('[FileTransfer] 准备写入', { dataLength, dataType: typeof dataToWrite });
 
       // 写入数据
+      this.log.info?.('[FileTransfer] 开始写入数据，设置事件监听器');
+      
       await new Promise((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-        writeStream.write(fileContent);
-        writeStream.end();
+        let finished = false;
+        let opened = false;
+        let lastBytesTransferred = 0;
+        let lastProgressTime = Date.now();
+        
+        // 检测传输是否卡住（30秒无进度则超时）
+        const checkStalled = () => {
+          if (finished) return;
+          
+          const now = Date.now();
+          const currentBytes = task.bytesTransferred;
+          const elapsed = now - lastProgressTime;
+          
+          // 如果有进度，更新时间和字节数
+          if (currentBytes > lastBytesTransferred) {
+            lastBytesTransferred = currentBytes;
+            lastProgressTime = now;
+          } else if (elapsed > 30000) {
+            // 30秒无进度，判定为卡住
+            finished = true;
+            this.log.error?.('[FileTransfer] 传输卡住', { 
+              elapsedMs: elapsed, 
+              bytesTransferred: currentBytes, 
+              totalBytes: task.totalBytes 
+            });
+            reject(new Error(`传输卡住：30秒无进度，已传输 ${currentBytes}/${task.totalBytes} 字节`));
+            return;
+          }
+          
+          // 继续检测
+          setTimeout(checkStalled, 1000);
+        };
+        
+        // 启动卡住检测
+        setTimeout(checkStalled, 1000);
+        
+        writeStream.on('open', (handle) => {
+          this.log.info?.('[FileTransfer] 写入流 open 事件', { handle: !!handle });
+          opened = true;
+        });
+        
+        writeStream.on('ready', () => {
+          this.log.info?.('[FileTransfer] 写入流 ready 事件');
+        });
+        
+        writeStream.on('finish', () => {
+          if (finished) return;
+          finished = true;
+          this.log.info?.('[FileTransfer] 写入流 finish 事件 - 上传成功');
+          task.bytesTransferred = task.totalBytes;
+          task.progress = 100;
+          resolve();
+        });
+        
+        writeStream.on('error', (err) => {
+          if (finished) return;
+          finished = true;
+          this.log.error?.('[FileTransfer] 写入流 error 事件', { 
+            error: err.message, 
+            code: err.code,
+            opened 
+          });
+          reject(err);
+        });
+        
+        writeStream.on('close', () => {
+          const bytesWritten = writeStream.bytesWritten || 0;
+          this.log.info?.('[FileTransfer] 写入流 close 事件', { finished, opened, bytesWritten, totalBytes: task.totalBytes });
+          // 如果 close 触发但 finish 没有触发，检查是否实际写入了数据
+          if (!finished) {
+            finished = true;
+            if (bytesWritten >= task.totalBytes) {
+              // 数据实际已写入，视为成功
+              this.log.info?.('[FileTransfer] close 事件发现数据已完整写入，视为成功');
+              task.bytesTransferred = task.totalBytes;
+              task.progress = 100;
+              resolve();
+            } else {
+              this.log.error?.('[FileTransfer] 流异常关闭，上传未完成', { bytesWritten, totalBytes: task.totalBytes });
+              reject(new Error(`流异常关闭，仅写入 ${bytesWritten}/${task.totalBytes} 字节`));
+            }
+          }
+        });
+        
+        // 监听进度
+        writeStream.on('drain', () => {
+          const bytesWritten = writeStream.bytesWritten || 0;
+          this.log.info?.('[FileTransfer] drain 事件', { bytesWritten });
+          task.bytesTransferred = bytesWritten;
+          task.progress = Math.floor((bytesWritten / task.totalBytes) * 100);
+        });
+        
+        // 延迟一点再写入，确保事件监听器已设置
+        setImmediate(() => {
+          try {
+            this.log.info?.('[FileTransfer] 调用 write()');
+            const canContinue = writeStream.write(dataToWrite, (err) => {
+              if (err) {
+                this.log.error?.('[FileTransfer] write 回调错误', { error: err.message });
+                if (!finished) {
+                  finished = true;
+                  cleanup();
+                  reject(err);
+                }
+                return;
+              }
+              this.log.info?.('[FileTransfer] write 回调成功');
+            });
+            
+            this.log.info?.('[FileTransfer] write() 返回', { canContinue });
+            
+            // 如果返回 false，表示缓冲区已满，需要等待 drain 事件
+            if (canContinue) {
+              this.log.info?.('[FileTransfer] 缓冲区未满，调用 end()');
+              writeStream.end();
+            } else {
+              this.log.info?.('[FileTransfer] 缓冲区已满，等待 drain 后 end()');
+              writeStream.once('drain', () => {
+                this.log.info?.('[FileTransfer] drain 后调用 end()');
+                writeStream.end();
+              });
+            }
+          } catch (writeErr) {
+            this.log.error?.('[FileTransfer] 写入时抛出异常', { error: writeErr.message });
+            if (!finished) {
+              finished = true;
+              reject(writeErr);
+            }
+          }
+        });
       });
 
       // 更新任务状态为完成
@@ -300,13 +510,23 @@ class FileTransfer {
         workspacePath
       });
 
-      // 1. 获取工作区 ID
+      // 1. 先检查连接是否存在（同步检查，不需要异步）
+      const connResult = this.connectionManager.getConnection(connectionId);
+      if (connResult.error) {
+        this.log.warn?.('[FileTransfer] 连接不存在，无法创建下载任务', { connectionId, error: connResult.error });
+        return {
+          error: 'connection_not_found',
+          message: `连接不存在：${connectionId}，请先使用 ssh_connect 建立连接`
+        };
+      }
+
+      // 2. 获取工作区 ID
       const workspaceId = this.runtime.findWorkspaceIdForAgent(ctx.agent?.id);
       if (!workspaceId) {
         return { error: 'workspace_not_assigned', message: '当前智能体未分配工作空间' };
       }
 
-      // 2. 获取SFTP会话
+      // 3. 获取SFTP会话
       const sftpResult = await this._getSftpSession(connectionId);
       if (sftpResult.error) {
         return sftpResult;
@@ -314,7 +534,7 @@ class FileTransfer {
 
       const sftp = sftpResult.sftp;
 
-      // 3. 获取远程文件大小
+      // 4. 获取远程文件大小
       let fileSize;
       try {
         const stats = await new Promise((resolve, reject) => {
@@ -335,7 +555,7 @@ class FileTransfer {
         };
       }
 
-      // 4. 创建传输任务
+      // 5. 创建传输任务
       const taskId = this._generateTaskId();
       const task = {
         taskId,
@@ -363,7 +583,7 @@ class FileTransfer {
         totalTasks: this.tasks.size
       });
 
-      // 5. 后台执行下载
+      // 6. 后台执行下载
       this._executeDownload(task).catch(error => {
         this.log.error?.('[FileTransfer] 后台下载失败', {
           taskId,
@@ -371,7 +591,7 @@ class FileTransfer {
         });
       });
 
-      // 6. 立即返回任务信息
+      // 7. 立即返回任务信息
       return {
         taskId,
         fileSize,
@@ -672,6 +892,135 @@ class FileTransfer {
         error: error.message,
         stack: error.stack
       });
+    }
+  }
+
+  /**
+   * 获取远程用户主目录
+   * @param {Object} sftp - SFTP会话
+   * @param {string} connectionId - 连接ID
+   * @returns {Promise<string>} 主目录路径
+   * @private
+   */
+  async _getRemoteHomeDir(sftp, connectionId) {
+    this.log.debug?.('[FileTransfer] 正在获取远程用户主目录');
+    
+    // 方法1: 使用 SFTP realpath
+    const homeDirFromSftp = await new Promise((resolve) => {
+      sftp.realpath('.', (err, path) => {
+        if (err) {
+          this.log.warn?.('[FileTransfer] sftp.realpath 失败', { error: err.message });
+          resolve(null);
+        } else {
+          this.log.debug?.('[FileTransfer] sftp.realpath 返回', { path });
+          resolve(path);
+        }
+      });
+    });
+    
+    if (homeDirFromSftp) {
+      return homeDirFromSftp;
+    }
+    
+    // 方法2: 通过 exec 获取 $HOME
+    try {
+      const connResult = this.connectionManager.getConnection(connectionId);
+      if (connResult.connection) {
+        const homeDirFromExec = await new Promise((resolve) => {
+          connResult.connection.client.exec('echo $HOME', (err, stream) => {
+            if (err) {
+              this.log.warn?.('[FileTransfer] exec echo $HOME 失败', { error: err.message });
+              resolve(null);
+              return;
+            }
+            let data = '';
+            stream.on('data', (chunk) => { data += chunk; });
+            stream.on('close', () => {
+              const home = data.trim();
+              this.log.debug?.('[FileTransfer] exec echo $HOME 返回', { home });
+              resolve(home || null);
+            });
+          });
+        });
+        
+        if (homeDirFromExec) {
+          return homeDirFromExec;
+        }
+      }
+    } catch (execErr) {
+      this.log.warn?.('[FileTransfer] 通过 exec 获取主目录失败', { error: execErr.message });
+    }
+    
+    // 方法3: 使用默认
+    this.log.warn?.('[FileTransfer] 无法获取主目录，使用默认值 /root');
+    return '/root';
+  }
+
+  /**
+   * 确保远程目录存在（递归创建）
+   * @param {Object} sftp - SFTP会话
+   * @param {string} remoteDir - 远程目录路径
+   * @returns {Promise<Object>} {ok: true} 或 {error, message}
+   * @private
+   */
+  async _ensureRemoteDir(sftp, remoteDir) {
+    this.log.debug?.('[FileTransfer] 确保远程目录存在', { remoteDir });
+    
+    try {
+      // 先检查目录是否存在
+      const stats = await new Promise((resolve, reject) => {
+        sftp.stat(remoteDir, (err, stats) => {
+          if (err) reject(err);
+          else resolve(stats);
+        });
+      });
+      
+      if (stats.isDirectory()) {
+        this.log.debug?.('[FileTransfer] 远程目录已存在', { remoteDir });
+        return { ok: true };
+      }
+      
+      this.log.error?.('[FileTransfer] 路径存在但不是目录', { remoteDir });
+      return { error: 'not_a_directory', message: `路径存在但不是目录: ${remoteDir}` };
+    } catch (err) {
+      // 目录不存在，需要创建
+      this.log.debug?.('[FileTransfer] 远程目录不存在，需要创建', { remoteDir, error: err.message });
+      
+      // 分解路径，逐级创建
+      const parts = remoteDir.split('/').filter(p => p);
+      let currentPath = remoteDir.startsWith('/') ? '' : '.';
+      
+      for (const part of parts) {
+        currentPath = currentPath ? `${currentPath}/${part}` : `/${part}`;
+        
+        try {
+          // 检查这一级是否存在
+          await new Promise((resolve, reject) => {
+            sftp.stat(currentPath, (err, stats) => {
+              if (err) reject(err);
+              else resolve(stats);
+            });
+          });
+          this.log.debug?.('[FileTransfer] 目录层级已存在', { currentPath });
+        } catch (statErr) {
+          // 这一级不存在，创建它
+          this.log.debug?.('[FileTransfer] 创建目录', { currentPath });
+          try {
+            await new Promise((resolve, reject) => {
+              sftp.mkdir(currentPath, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+            this.log.info?.('[FileTransfer] 目录创建成功', { currentPath });
+          } catch (mkdirErr) {
+            this.log.error?.('[FileTransfer] 创建目录失败', { currentPath, error: mkdirErr.message });
+            return { error: 'mkdir_failed', message: `创建目录 ${currentPath} 失败: ${mkdirErr.message}` };
+          }
+        }
+      }
+      
+      return { ok: true };
     }
   }
 
