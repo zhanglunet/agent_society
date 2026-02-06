@@ -13,58 +13,12 @@
  */
 export function getToolDefinitions() {
   return [
-    // 连接管理
+    // 主机管理
     {
       type: 'function',
       function: {
         name: 'ssh_list_hosts',
         description: '列出已配置的SSH主机',
-        parameters: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'ssh_connect',
-        description: '建立SSH连接（不需要提供安全凭证，已经处理好）',
-        parameters: {
-          type: 'object',
-          properties: {
-            hostName: {
-              type: 'string',
-              description: '主机名称（配置文件中定义的标识符）'
-            }
-          },
-          required: ['hostName']
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'ssh_disconnect',
-        description: '断开SSH连接',
-        parameters: {
-          type: 'object',
-          properties: {
-            connectionId: {
-              type: 'string',
-              description: '连接ID'
-            }
-          },
-          required: ['connectionId']
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'ssh_list_connections',
-        description: '列出所有活动的SSH连接',
         parameters: {
           type: 'object',
           properties: {},

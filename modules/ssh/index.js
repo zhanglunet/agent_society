@@ -228,27 +228,10 @@ export default {
 
       // 参数验证和路由到具体的工具实现
       switch (toolName) {
-        // 连接管理
+        // 主机管理
         case 'ssh_list_hosts': {
           // 无需参数验证
           return connectionManager.listHosts();
-        }
-        
-        case 'ssh_connect': {
-          const validationError = validateParams(args, ['hostName']);
-          if (validationError) return validationError;
-          return await connectionManager.connect(args.hostName);
-        }
-        
-        case 'ssh_disconnect': {
-          const validationError = validateParams(args, ['connectionId']);
-          if (validationError) return validationError;
-          return await connectionManager.disconnect(args.connectionId);
-        }
-        
-        case 'ssh_list_connections': {
-          // 无需参数验证
-          return connectionManager.listConnections();
         }
 
         // 交互式会话
