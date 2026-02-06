@@ -3,7 +3,7 @@ import { FileCode, Folder, Loader2, Upload, ArrowUpDown, ArrowUp, ArrowDown } fr
 import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
-import { ref, inject, onMounted, computed } from 'vue';
+import { ref, inject, onMounted, computed, watch } from 'vue';
 import { useDialog } from 'primevue/usedialog';
 import FileTreeNode from './FileTreeNode.vue';
 import { openFileViewer } from '../file-viewer';
@@ -20,8 +20,43 @@ const expandedDirs = ref<Set<string>>(new Set());
 // 排序状态
 // sortField: 当前排序字段，可选值 'name' | 'size' | 'modifiedAt'
 // sortOrder: 当前排序方向，可选值 'asc' 升序 | 'desc' 降序
-const sortField = ref<'name' | 'size' | 'modifiedAt'>('name');
-const sortOrder = ref<'asc' | 'desc'>('asc');
+const STORAGE_KEY = 'artifacts-sort-settings';
+
+// 从 sessionStorage 读取排序设置
+const loadSortSettings = () => {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const settings = JSON.parse(saved);
+      return {
+        field: settings.field || 'name',
+        order: settings.order || 'asc'
+      };
+    }
+  } catch {
+    // 忽略解析错误
+  }
+  return { field: 'name', order: 'asc' };
+};
+
+const initialSettings = loadSortSettings();
+const sortField = ref<'name' | 'size' | 'modifiedAt'>(initialSettings.field as any);
+const sortOrder = ref<'asc' | 'desc'>(initialSettings.order as any);
+
+// 保存排序设置到 sessionStorage
+const saveSortSettings = () => {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      field: sortField.value,
+      order: sortOrder.value
+    }));
+  } catch {
+    // 忽略存储错误
+  }
+};
+
+// 监听排序变化并保存
+watch([sortField, sortOrder], saveSortSettings, { immediate: false });
 
 // 树形结构转换
 const fileTree = computed(() => {
@@ -126,6 +161,8 @@ const handleSort = (field: 'name' | 'size' | 'modifiedAt') => {
     sortField.value = field;
     sortOrder.value = 'asc';
   }
+  // 保存设置（watch 会自动处理，但为了确保立即生效可以手动调用）
+  saveSortSettings();
 };
 
 const toggleDir = (node: any) => {

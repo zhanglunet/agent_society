@@ -122,3 +122,4 @@ config/app.local.json
 agent-society-data/
 config/llmservices.json
 config/llmservices.local.json
+config/localfile.local.json
