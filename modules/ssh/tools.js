@@ -18,7 +18,7 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_list_hosts',
-        description: '列出已配置的SSH主机',
+        description: '列出已配置的SSH主机。返回结构：{ ok: true, hosts: [{ hostName: "主机名称", description: "描述" }] }',
         parameters: {
           type: 'object',
           properties: {},
