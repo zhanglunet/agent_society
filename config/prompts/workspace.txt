@@ -12,12 +12,12 @@
 
 ### read_file - 读取文件
 ```
-read_file({ path: "src/main.js", offset: 0, length: 5000 })
+read_file({ path: "src/main.js", offset: 0, length: 100000 })
 ```
 返回：{ content: "文件内容" } 或 { error: "错误类型" }
 - 支持分段读取大文件
 - offset: 读取起始位置（字节/字符），默认为 0
-- length: 读取长度，默认为 5000
+- length: 读取长度，默认为 100000
 
 ### write_file - 写入文件
 ```

@@ -126,7 +126,7 @@ export class PageActions {
     if ("error" in result) return result;
     
     const { page } = result;
-    const { fullPage = false, selector, ctx, workspacePath, runtime } = options;
+    const { fullPage = false, selector, ctx, workspacePath } = options;
 
     // 清理选择器（如果提供）
     let cleanedSelector = selector;
@@ -142,7 +142,7 @@ export class PageActions {
       }
     }
 
-    this.log.info?.("获取截图", { tabId, fullPage, selector: cleanedSelector });
+    this.log.info?.("获取截图", { tabId, fullPage, selector: cleanedSelector, workspacePath });
 
     try {
       let screenshotBuffer;
@@ -161,42 +161,43 @@ export class PageActions {
         });
       }
 
-    // 如果提供了 workspacePath，则保存到工作区
-    if (workspacePath && ctx) {
-      const runtime = this.runtime;
-      if (runtime) {
-        const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
-        if (workspaceId) {
-          const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
-          await ws.writeFile(workspacePath, screenshotBuffer, {
-            mimeType: "image/jpeg",
-            operator: ctx.agent?.id,
-            messageId: ctx.currentMessage?.id,
-            meta: {
-              source: "chrome-screenshot",
+      // 如果提供了 workspacePath 和 ctx，则保存到工作区并返回 {files: [...]}
+      // 这是智能体工具调用的场景
+      if (workspacePath && ctx) {
+        const runtime = this.runtime;
+        if (runtime) {
+          const workspaceId = runtime.findWorkspaceIdForAgent(ctx.agent?.id);
+          if (workspaceId) {
+            const ws = await runtime.workspaceManager.getWorkspace(workspaceId);
+            await ws.writeFile(workspacePath, screenshotBuffer, {
+              mimeType: "image/jpeg",
+              operator: ctx.agent?.id,
+              messageId: ctx.currentMessage?.id,
+              meta: {
+                source: "chrome-screenshot",
+                url: page.url(),
+                title: await page.title(),
+                fullPage,
+                selector: cleanedSelector || null
+              }
+            });
+            return {
+              ok: true,
+              files: [{
+                path: workspacePath,
+                mimeType: "image/jpeg"
+              }],
               url: page.url(),
               title: await page.title(),
               fullPage,
               selector: cleanedSelector || null
-            }
-          });
-          return {
-            ok: true,
-            files: [{
-              path: workspacePath,
-              mimeType: "image/jpeg"
-            }],
-            url: page.url(),
-            title: await page.title(),
-            fullPage,
-            selector: cleanedSelector || null
-          };
+            };
+          }
         }
       }
-    }
 
-    // 只有在没有保存到文件时才返回 base64（用于 HTTP API 预览或单次临时查看）
-    return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
+      // 没有提供 workspacePath 或 ctx，返回 base64（用于 HTTP API 预览场景）
+      return { ok: true, screenshot: screenshotBuffer.toString('base64'), format: "jpeg" };
     } catch (err) {
       const message = err?.message ?? String(err);
       return { error: "screenshot_failed", selector: cleanedSelector, originalSelector: selectorModified ? originalSelector : undefined, message };

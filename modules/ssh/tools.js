@@ -30,7 +30,7 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_connect',
-        description: '建立SSH连接',
+        description: '建立SSH连接（不需要提供安全凭证，已经处理好）',
         parameters: {
           type: 'object',
           properties: {

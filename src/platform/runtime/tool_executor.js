@@ -403,7 +403,7 @@ export class ToolExecutor {
         type: "function",
         function: {
           name: "set_system_prompt_appendix",
-          description: "设置当前智能体的 system prompt 追加内容。该内容会在每次请求大模型时自动追加到 system 提示词最后。可用于记忆环境或工作信息。",
+          description: "设置当前智能体的 system prompt 追加内容。该内容会在每次请求大模型时自动追加到 system 提示词最后。可用于记忆、环境、工作信息、技能、任务、行为模式等。",
           parameters: {
             type: "object",
             properties: {

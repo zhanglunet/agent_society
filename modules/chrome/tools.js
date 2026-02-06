@@ -184,9 +184,9 @@ export function getToolDefinitions() {
             tabId: { type: "string", description: "标签页 ID" },
             fullPage: { type: "boolean", description: "是否全页面截图（包括滚动区域），默认 false（仅可视区域）" },
             selector: { type: "string", description: "截取特定元素（CSS 选择器），不指定则截取整个页面" },
-            workspacePath: { type: "string", description: "保存到工作区的路径（如 'screenshots/page.jpg'）。如果未提供，将返回 base64 数据而不保存到文件。" }
+            workspacePath: { type: "string", description: "保存到工作区的路径（如 'screenshots/page.jpg'）。" }
           },
-          required: ["tabId"]
+          required: ["tabId","workspacePath"]
         }
       }
     },
