@@ -149,10 +149,7 @@ const initializeGuide = async () => {
 
     // 2. 检查是否需要显示引导
     if (guideStore.shouldShowGuide()) {
-      // 延迟 1 秒显示引导，让用户先看到界面
-      setTimeout(() => {
-        guideStore.showGuide();
-      }, 1000);
+      guideStore.showGuide();
     }
   } catch (error) {
     console.error('初始化新手引导失败:', error);

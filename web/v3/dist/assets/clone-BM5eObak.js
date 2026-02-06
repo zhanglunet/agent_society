@@ -1,9 +1,0 @@
-import { b as baseClone } from "./graph-B58XoF6s.js";
-var CLONE_SYMBOLS_FLAG = 4;
-function clone(value) {
-  return baseClone(value, CLONE_SYMBOLS_FLAG);
-}
-export {
-  clone as c
-};
-//# sourceMappingURL=clone-BM5eObak.js.map
