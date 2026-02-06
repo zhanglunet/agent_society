@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地文件访问管理</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>📁 本地文件访问管理</h1>
+      <p class="subtitle">管理智能体可以访问的本地文件夹授权</p>
+    </header>
+
+    <!-- 统计概览 -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="folderCount">-</div>
+          <div class="stat-label">授权文件夹</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="readOnlyCount">-</div>
+          <div class="stat-label">只读权限</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="readWriteCount">-</div>
+          <div class="stat-label">读写权限</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="todayAccessCount">-</div>
+          <div class="stat-label">今日访问</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 文件夹管理 -->
+    <section class="folders-section">
+      <div class="section-header">
+        <h2>授权文件夹列表</h2>
+        <button class="btn btn-primary" id="addFolderBtn">+ 添加文件夹</button>
+      </div>
+      
+      <div class="folders-list" id="foldersList">
+        <div class="loading">加载中...</div>
+      </div>
+    </section>
+
+    <!-- 访问日志 -->
+    <section class="logs-section">
+      <div class="section-header">
+        <h2>访问日志</h2>
+        <div class="log-filters">
+          <select id="operationFilter">
+            <option value="">所有操作</option>
+            <option value="read">读取</option>
+            <option value="write">写入</option>
+            <option value="list">列目录</option>
+            <option value="copy_to_workspace">复制到工作区</option>
+            <option value="copy_from_workspace">从工作区复制</option>
+            <option value="check_permission">权限检查</option>
+          </select>
+          <input type="text" id="agentFilter" placeholder="智能体名称/ID">
+          <button class="btn btn-secondary" id="refreshLogsBtn">刷新</button>
+        </div>
+      </div>
+      
+      <div class="logs-table-container">
+        <table class="logs-table" id="logsTable">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>智能体</th>
+              <th>操作</th>
+              <th>路径</th>
+              <th>结果</th>
+            </tr>
+          </thead>
+          <tbody id="logsBody">
+            <tr>
+              <td colspan="5" class="loading">加载中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="pagination" id="pagination">
+        <!-- 分页控件 -->
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="settings-section">
+      <div class="section-header">
+        <h2>设置</h2>
+      </div>
+      
+      <div class="setting-item">
+        <label for="retentionDays">日志保留天数</label>
+        <div class="setting-control">
+          <input type="number" id="retentionDays" min="1" max="365" value="30">
+          <button class="btn btn-secondary" id="saveRetentionBtn">保存</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 添加/编辑文件夹模态框 -->
+  <div class="modal" id="folderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">添加授权文件夹</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="folderForm">
+          <input type="hidden" id="folderId">
+          
+          <div class="form-group">
+            <label for="folderPath">文件夹路径 <span class="required">*</span></label>
+            <input type="text" id="folderPath" placeholder="/path/to/folder" required>
+            <span class="form-hint">绝对路径，如 /home/user/documents</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="folderDescription">描述</label>
+            <input type="text" id="folderDescription" placeholder="文件夹用途描述">
+          </div>
+          
+          <div class="form-group">
+            <label>权限</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="permRead" checked>
+                <span>允许读取</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="permWrite">
+                <span>允许写入</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="testPathBtn">测试路径</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="panel.js"></script>
+</body>
+</html>
