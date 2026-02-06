@@ -15,7 +15,9 @@
       @keydown.esc="handleEsc"
     >
       <div class="guide-bubble__content">
-        <div class="guide-bubble__header">
+        <div class="guide-bubble__header"> <svg v-if="showArrow" class="guide-bubble__arrow-svg" :style="arrowStyle" viewBox="-10 0 30 40" preserveAspectRatio="none">
+        <polygon points="-100,0 -10,80 20,-50" fill="var(--surface-1)" stroke="var(--border)" stroke-width="1"/>
+      </svg>
           <div class="guide-bubble__icon guide-bubble__icon--animated">
             <Rocket class="w-6 h-6" />
           </div>
@@ -42,7 +44,7 @@
         </Button>
       </div>
 
-      <div v-if="showArrow" class="guide-bubble__arrow guide-bubble__arrow--top-right"></div>
+     
     </div>
   </Teleport>
 </template>
@@ -83,6 +85,7 @@ const emit = defineEmits<GuideBubbleEmits>();
 
 const bubbleRef = ref<HTMLElement | null>(null);
 const bubblePosition = ref<{ x: number; y: number }>({ x: 0, y: 0 });
+const arrowTopPosition = ref<string>('50%');
 
 const updateBubblePosition = () => {
   if (!props.targetSelector || !bubbleRef.value) return;
@@ -93,23 +96,21 @@ const updateBubblePosition = () => {
   const targetRect = targetElement.getBoundingClientRect();
   const bubbleRect = bubbleRef.value.getBoundingClientRect();
   
-  if (props.position === 'bottom') {
-    // 气泡在目标左下方24px
-    bubblePosition.value = {
-      x: targetRect.left - bubbleRect.width - 24,
-      y: targetRect.bottom + 24
-    };
-  } else if (props.position === 'top') {
-    bubblePosition.value = {
-      x: targetRect.left - bubbleRect.width - 24,
-      y: targetRect.bottom + 24
-    };
-  } else {
-    bubblePosition.value = {
-      x: targetRect.left - bubbleRect.width - 24,
-      y: targetRect.bottom + 24
-    };
-  }
+  // 气泡在目标左下方24px（保持原有逻辑不变）
+  const bubbleX = targetRect.left - bubbleRect.width - 24;
+  const bubbleY = targetRect.bottom + 24;
+  
+  bubblePosition.value = {
+    x: bubbleX,
+    y: bubbleY
+  };
+  
+  // 箭头垂直对齐目标中心
+  const targetCenterY = targetRect.top + targetRect.height / 2;
+  const relativeY = targetCenterY - bubbleY;
+  // 限制箭头在气泡范围内（留出边距）
+  const clampedY = Math.max(20, Math.min(bubbleRect.height - 20, relativeY));
+  arrowTopPosition.value = `${clampedY}px`;
 };
 
 const bubbleStyle = computed(() => {
@@ -119,6 +120,13 @@ const bubbleStyle = computed(() => {
   };
 
   return style;
+});
+
+const arrowStyle = computed(() => {
+  return {
+    top: arrowTopPosition.value,
+    transform: 'translateY(-50%)'
+  };
 });
 
 let updateTimer: number | null = null;
@@ -170,7 +178,7 @@ const handleEsc = () => {
   top: 0 !important;
   bottom: auto !important;
   right: auto !important;
-  z-index: 100 !important;
+  z-index: 300 !important;
   width: 320px;
   max-width: 320px;
   min-width: 280px;
@@ -314,25 +322,45 @@ const handleEsc = () => {
   outline-offset: 2px;
 }
 
-.guide-bubble__arrow {
+/* SVG 箭头样式 */
+.guide-bubble__arrow-svg {
   position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
+  width: 16px;
+  height: 40px;
   z-index: 101 !important;
+  overflow: visible;
 }
 
-.guide-bubble__arrow--top-right {
-  top: -8px;
-  right: -8px;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  border-top: 8px solid #000;
-  border-right: 8px solid #000;
-  border-bottom: none;
-  border-left: 8px solid transparent;
+.guide-bubble__arrow-svg polygon {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+/* position="bottom" - 气泡在目标左侧，箭头在右侧指向右 */
+.guide-bubble--bottom .guide-bubble__arrow-svg {
+  right: -16px;
+}
+
+/* position="top" - 气泡在目标左侧偏上，箭头在右侧指向右 */
+.guide-bubble--top .guide-bubble__arrow-svg {
+  right: -16px;
+}
+
+/* position="left" - 气泡在目标右侧，箭头在左侧指向左 */
+.guide-bubble--left .guide-bubble__arrow-svg {
+  left: -16px;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* position="right" - 气泡在目标左侧，箭头在右侧指向右 */
+.guide-bubble--right .guide-bubble__arrow-svg {
+  right: -16px;
+}
+
+/* 深色模式适配 */
+.my-app-dark .guide-bubble__arrow-svg polygon {
+  fill: var(--surface-1);
+  stroke: var(--border);
 }
 
 @keyframes bubble-float-in {
