@@ -407,16 +407,49 @@ export class FileService {
       const agentId = ctx?.agent?.id;
       if (!agentId) return null;
 
-      // 使用 runtime 的工作区服务
-      const workspaceInfo = await this.runtime.getWorkspaceInfo?.(agentId);
-      if (workspaceInfo?.path) {
-        return workspaceInfo.path;
+      // 首先尝试通过 workspaceManager 获取
+      if (this.runtime.workspaceManager) {
+        // 方法1: 通过 agentId 获取工作区
+        if (this.runtime.workspaceManager.checkWorkspaceExists?.(agentId)) {
+          const ws = await this.runtime.workspaceManager.getWorkspace?.(agentId);
+          if (ws?.path) {
+            return ws.path;
+          }
+        }
+
+        // 方法2: 通过 taskId 获取工作区路径
+        const taskId = ctx?.currentMessage?.taskId;
+        if (taskId) {
+          // 先检查是否存在
+          if (this.runtime.workspaceManager.checkWorkspaceExists?.(taskId)) {
+            const path = this.runtime.workspaceManager.getWorkspacePath?.(taskId);
+            if (path) {
+              return path;
+            }
+          }
+        }
+
+        // 方法3: 通过 agentManager 查找工作区
+        if (this.runtime._agentManager?.findWorkspaceIdForAgent) {
+          const wsId = this.runtime._agentManager.findWorkspaceIdForAgent(agentId);
+          if (wsId && this.runtime.workspaceManager.checkWorkspaceExists?.(wsId)) {
+            const path = this.runtime.workspaceManager.getWorkspacePath?.(wsId);
+            if (path) {
+              return path;
+            }
+          }
+        }
       }
 
-      // 备选方案：通过 taskId 获取工作区
+      // 备选：直接使用 taskId 拼接路径（如果不存在则创建）
       const taskId = ctx?.currentMessage?.taskId;
-      if (taskId && this.runtime.getWorkspacePathByTaskId) {
-        return await this.runtime.getWorkspacePathByTaskId(taskId);
+      if (taskId && this.runtime.workspaceManager?.getWorkspacePath) {
+        const wsPath = this.runtime.workspaceManager.getWorkspacePath(taskId);
+        // 确保工作区存在
+        if (this.runtime.workspaceManager.createWorkspace) {
+          await this.runtime.workspaceManager.createWorkspace(taskId);
+        }
+        return wsPath;
       }
 
       return null;
