@@ -171,7 +171,44 @@ memory_data/
 └── ...
 ```
 
-### 2.3 索引需求
+### 2.3 持久化实现
+
+**初始化流程**：
+```
+MemoryManager.initialize(agentId)
+    │
+    ▼ 构造数据库路径：memory_data/{agentId}/
+    │
+    ▼ 检查路径是否存在
+    │
+    ├─ 存在 → 打开已有LevelGraph数据库，加载数据
+    │
+    └─ 不存在 → 创建新文件夹，初始化空数据库
+    │
+    ▼ 启动队列处理器
+    │
+    ▼ 返回初始化完成
+```
+
+**关闭流程**：
+```
+MemoryManager.close()
+    │
+    ▼ 停止队列处理器（等待当前任务完成）
+    │
+    ▼ 确保内存中数据写入硬盘
+    │
+    ▼ 关闭LevelGraph数据库连接
+    │
+    ▼ 返回关闭完成
+```
+
+**持久化特性**：
+- 数据实时写入LevelDB（LevelDB保证数据持久性）
+- 系统崩溃后可通过重新初始化恢复数据
+- 每个智能体数据完全隔离，支持独立备份/迁移
+
+### 2.4 索引需求
 
 LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
@@ -198,11 +235,11 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 | 方法 | 输入 | 输出 | 说明 |
 |------|------|------|------|
-| `initialize()` | - | Promise<void> | 【待讨论】初始化系统，加载关注点，启动队列处理器 |
+| `initialize(agentId: string)` | 智能体唯一标识 | Promise<void> | 初始化系统，加载数据，启动队列处理器。使用agentId作为数据库文件夹名 |
 | `remember(messages)` | 与大模型通信的聊天记录数组 | void | 将记忆创建任务加入队列，立即返回，无返回值 |
 | `recall(keywords, relations, depth)` | 关键词数组、关系筛选、搜索深度 | Promise<string> | 将回忆任务加入队列，返回语义化文本 |
 | `triggerCompression()` | - | Promise<void> | 【内部使用】每次 remember 完成后自动触发，外部无需调用 |
-| `close()` | - | Promise<void> | 【待讨论】关闭数据库连接，停止队列处理器 |
+| `close()` | - | Promise<void> | 关闭数据库连接，确保数据持久化到硬盘，停止队列处理器 |
 
 **MemoryManager 内部私有方法**（由内部队列处理器调用）：
 
