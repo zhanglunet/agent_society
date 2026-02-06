@@ -647,13 +647,11 @@ const handleDeleteAgent = async () => {
 /* 输入区域容器 */
 .input-area-container {
   position: relative;
-  z-index: 101;  /* 高于气泡（z-index: 100），确保可点击 */
   pointer-events: auto;  /* 始终可交互 */
 }
 
 .input-area {
   position: relative;
-  z-index: 101;  /* 高于气泡 */
   pointer-events: auto;  /* 始终可交互 */
 }
 
@@ -661,7 +659,6 @@ const handleDeleteAgent = async () => {
 .input-area > :deep(.p-inputtext),
 .input-area > button {
   position: relative;
-  z-index: 101;  /* 高于气泡 */
   pointer-events: auto;  /* 始终可交互 */
 }
 
