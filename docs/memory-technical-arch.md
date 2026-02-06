@@ -198,17 +198,17 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 | 方法 | 输入 | 输出 | 说明 |
 |------|------|------|------|
-| `initialize()` | - | Promise<void> | 初始化系统，加载关注点，启动队列处理器 |
+| `initialize()` | - | Promise<void> | 【待讨论】初始化系统，加载关注点，启动队列处理器 |
 | `remember(messages)` | 与大模型通信的聊天记录数组 | void | 将记忆创建任务加入队列，立即返回，无返回值 |
 | `recall(keywords, relations, depth)` | 关键词数组、关系筛选、搜索深度 | Promise<string> | 将回忆任务加入队列，返回语义化文本 |
 | `triggerCompression()` | - | Promise<void> | 触发一次压缩（由外部调度调用） |
-| `close()` | - | Promise<void> | 关闭数据库连接，停止队列处理器 |
+| `close()` | - | Promise<void> | 【待讨论】关闭数据库连接，停止队列处理器 |
 
-**内部接口**（由队列处理器调用）：
+**MemoryManager 内部私有方法**（由内部队列处理器调用）：
 
 | 方法 | 输入 | 输出 | 说明 |
 |------|------|------|------|
-| `store(segments, phrases, keywords)` | 小模型处理后的切割结果 | Promise<string[]> | 创建记忆节点，返回节点ID列表 |
+| `store(segments, phrases, keywords)` | 小模型处理后的切割结果 | Promise<string[]> | 创建记忆节点，返回节点ID列表。外部不直接调用，通过 remember() 入队后由队列处理器调用 |
 
 **调用约定**：
 - 所有接口均为异步，返回Promise
@@ -260,7 +260,7 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 ### 3.4 FocusManager（关注点管理）
 
-**职责**：LRU维护关注点列表，关注点保护
+**职责**：从聊天记录中提取关键实体，LRU维护关注点列表，关注点保护
 
 #### 接口
 
@@ -269,7 +269,12 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 | `initialize()` | - | Promise<void> | 从存储加载关注点列表 |
 | `getFocusList()` | - | string[] | 获取当前关注点ID列表（LRU顺序） |
 | `isFocus(nodeId)` | 节点ID | boolean | 判断是否为关注点 |
-| `addFocus(nodeId)` | 节点ID | Promise<void> | 添加关注点（触发LRU淘汰） |
+| `extractAndUpdateFocus(segments)` | 文本片段数组 | Promise<void> | 从segments提取关键实体，更新关注点列表 |
+
+**关注点来源**：
+- 从聊天记录（segments）中提取关键实体（名词、代词等）
+- 在 remember 时调用 extractAndUpdateFocus 更新
+- recall 不更新关注点
 
 **关注点行为**：
 - 添加已存在的关注点：移到最新位置
@@ -285,7 +290,23 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 | 方法 | 输入 | 输出 | 说明 |
 |------|------|------|------|
 | `search(keywords, relations, depth)` | 关键词数组、关系筛选、搜索深度 | Promise<SearchResult[]> | BFS搜索，返回匹配结果 |
-| `formatResults(results)` | 搜索结果数组 | string | 格式化为语义化文本 |
+| `formatResults(results)` | 搜索结果数组 | string | 格式化为语义化文本，包含悬空关联的感知描述 |
+
+**SearchResult 结构**：
+```typescript
+interface SearchResult {
+    node: Node;              // 匹配的记忆节点
+    depth: number;           // 距离关注点的深度（BFS层级）
+    matchedKeywords: string[]; // 匹配的关键词
+}
+```
+
+**悬空关联感知**：
+- 搜索过程中检测到悬空关联（指向已删除节点的关联）时，记录该信息
+- `formatResults` 格式化时，对悬空关联生成感知描述：
+  - 示例：`"[记忆] 它有个XX，但我想不起来了"`
+  - 示例：`"[记忆] 与某个已遗忘的事物有关联"`
+- 这体现"记得曾经记得"的语义，让智能体感知自己的遗忘
 
 **搜索行为**：
 - 起点：所有当前关注点
@@ -295,12 +316,17 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 **返回格式**（语义透明，不含技术细节）：
 ```
-[记忆] 记忆内容1
+[记忆] 昨天讨论了用户系统的登录模块设计，决定采用JWT方案。
 ---
-[记忆] 记忆内容2
+[记忆] 前端组提到需要支持第三方登录，这个需求优先级待定。
 ---
-[记忆] 记忆内容3
+[记忆] 架构评审时强调了安全性，建议使用短时效token。
 ```
+
+- 每段记忆以 `[记忆]` 开头
+- 记忆之间用 `---` 分隔
+- 内容保持原始语义，不包含节点ID、匹配度等技术信息
+- 格式对大模型友好，无需额外解析
 
 ### 3.6 CompressionScheduler（压缩调度器）
 
@@ -330,7 +356,7 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 2. 重要性 ≥ 1：跳过（受保护）
 3. 重要性 = 0：删除节点
 4. 计算目标字数 = 原始字数 × min(重要性, 1)
-5. 目标字数 < 删除阈值（10字符）：删除节点
+5. 目标字数 < 删除阈值：删除节点
 6. 目标字数 ≥ 原始字数：跳过（无需压缩）
 7. 调用小模型压缩内容
 8. 更新节点内容、短语、关键词
@@ -347,27 +373,44 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 **流程**：
 ```
-外部系统传入聊天记录
+外部系统调用 MemoryManager.remember(messages)
     │
-    ▼ 调用小模型语义切割
-    │   输入：原始聊天记录
-    │   输出：segments[]（文本片段）
+    ▼ 立即返回（无返回值，不阻塞）
     │
-    ▼ 对每个segment调用小模型提取phrase和keywords
-    │   输出：phrases[]、keywords[][]
+    ▼ 将任务加入内部队列
+    │   任务类型：MEMORY_CREATE
+    │   任务数据：messages
     │
-    ▼ MemoryManager.store(segments, phrases, keywords)
+    ▼ 队列处理器（串行执行）
         │
-        ▼ 对每个segment创建节点
+        ▼ 调用小模型语义切割
+        │   输入：原始聊天记录
+        │   输出：segments[]（文本片段）
+        │
+        ▼ 对每个segment调用小模型提取phrase和keywords
+        │   输出：phrases[]、keywords[][]
+        │
+        ▼ 提取关键实体作为关注点
+        │   从segments中提取名词、代词等关键实体
+        │   更新关注点列表（LRU维护）
+        │
+        ▼ MemoryManager.store(segments, phrases, keywords)
             │
-            ├─► 创建节点（content, phrase, keywords）
-            ├─► 与当前所有关注点建立双向关联（强度1.0）
-            └─► 与同一切割来源的先前节点建立双向关联（强度0.5）
+            ▼ 对每个segment创建节点
+                │
+                ├─► 创建节点（content, phrase, keywords）
+                ├─► 与当前所有关注点建立双向关联（强度1.0）
+                └─► 与同一切割来源的先前节点建立双向关联（强度0.5）
 ```
 
 **关联建立规则**：
 - 与关注点关联：强度1.0，不随压缩衰减（关注点保护）
 - 切割节点间关联：强度0.5，正常衰减（语义连贯性）
+
+**关注点更新规则**：
+- 从聊天记录中提取关键实体（名词、代词等）
+- 已存在的关注点：移到最新位置（LRU更新）
+- 新关注点：如数量<5则添加，否则淘汰最老的
 
 ### 4.2 回忆检索流程
 
@@ -385,19 +428,14 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
         ├─► 匹配检查：keywords在content/keywords中匹配
         ├─► 关系筛选：如提供relations，检查关联类型
         │
-    ▼ 更新关注点
-        │
-        ├─► 所有匹配节点加入关注点（LRU维护，最多5个）
-        ├─► 新关注点与现有关注点建立强度1.0关联
-        │
     ▼ 格式化结果
         │
         └─► 返回语义化文本（[记忆]...\n---\n[记忆]...）
 ```
 
-**副作用**：
-- 匹配节点成为新的关注点
-- 关注点更新会影响后续压缩行为
+**注意**：
+- 回忆过程**不更新关注点**
+- 关注点只在 remember 时从聊天记录中更新
 
 ### 4.3 压缩调度流程
 
@@ -442,7 +480,7 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 | `maxFocusCount` | 5 | 关注点数量上限 | 决定智能体能同时关注多少事物，影响保护范围 |
 | `decayRate` | 0.97 | 关联衰减速率（每次压缩） | 决定遗忘速度，越小遗忘越快 |
 | `linkInitialStrength` | 0.5 | 新建关联初始强度 | 决定新记忆的初始保护程度 |
-| `deleteThreshold` | 10 | 删除阈值（字符数） | 压缩后低于此值直接删除节点 |
+| `deleteThreshold` | 5 | 删除阈值（字符数） | 压缩后低于此值直接删除节点 |
 | `linkBreakThreshold` | 0.01 | 关联断裂阈值 | 强度低于此值删除关联 |
 
 ### 5.2 压缩调度参数
