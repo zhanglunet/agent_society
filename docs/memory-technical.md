@@ -569,34 +569,56 @@ class LinkStore {
   }
   
   /**
-   * 懒删除检测（访问时清理）
+   * 悬空关联检测（访问时标记）
    * 
    * 当从nodeId出发遍历时，检查所有出边关联的目标节点是否存在。
-   * 如果目标节点已被删除（重要性=0时被删除），则清理这条悬垂关联。
+   * 如果目标节点已被删除（重要性=0时被删除），该关联成为"悬空关联"，
+   * 但不会被删除——悬空关联表达了"曾经知道但已遗忘"的语义。
    * 
-   * 这种设计避免了在删除节点时进行昂贵的级联删除操作。
+   * 返回值中包含悬空关联信息，供调用方感知"曾经记得"的状态。
    */
-  async cleanupBrokenLinks(nodeId: string): Promise<void> {
+  async detectBrokenLinks(nodeId: string): Promise<{
+    validLinks: Link[];
+    danglingLinks: Array<{ to: string; strength: number; relation?: string }>;
+  }> {
     const outgoing = await this.db.get({ 
       subject: `node:${nodeId}`, 
       predicate: "memory:link" 
     });
     
+    const validLinks: Link[] = [];
+    const danglingLinks: Array<{ to: string; strength: number; relation?: string }> = [];
+    
     for (const triple of outgoing) {
       const toId = triple.object.replace("node:", "");
+      const linkId = `link:${nodeId}:${toId}`;
+      const strength = await this.getLinkStrength(nodeId, toId);
+      const relation = await this.getLinkRelation(nodeId, toId);
+      
       const targetExists = await this.nodeExists(toId);
       
       if (!targetExists) {
-        // 目标节点已被删除（重要性=0时删除），清理此悬垂关联
-        await this.db.del(triple);
-        // 清理link:xxx三元组
-        const linkId = `link:${nodeId}:${toId}`;
-        const linkTriples = await this.db.get({ subject: linkId });
-        for (const lt of linkTriples) {
-          await this.db.del(lt);
-        }
+        // 目标节点已不存在，记录为悬空关联
+        // 不删除，保留"曾经知道"的语义
+        danglingLinks.push({ to: toId, strength, relation });
+      } else if (strength >= 0.01) {
+        // 目标存在且强度未断裂
+        validLinks.push({ from: nodeId, to: toId, strength, relation });
       }
+      // 强度 < 0.01 的关联已在衰减时删除，不会走到这里
     }
+    
+    return { validLinks, danglingLinks };
+  }
+  
+  // 获取关联的关系名称
+  private async getLinkRelation(from: string, to: string): Promise<string | undefined> {
+    const linkId = `link:${from}:${to}`;
+    const triples = await this.db.get({ subject: linkId, predicate: "memory:relation" });
+    
+    if (triples.length === 0) return undefined;
+    const relation = triples[0].object;
+    return relation || undefined;
   }
   
   private async nodeExists(nodeId: string): Promise<boolean> {
