@@ -208,6 +208,44 @@ export function extractExtension(filename) {
 }
 
 /**
+ * 清理 MIME 类型字符串
+ * 处理大模型调用时可能产生的格式错误：
+ * - 去除两侧的空格、单引号、双引号
+ * - 提取中间符合 MIME 格式的部分（type/subtype 格式）
+ * 
+ * @param {string} mimeType - 原始 MIME 类型
+ * @returns {string} 清理后的 MIME 类型，如果无效则返回空字符串
+ */
+export function sanitizeMimeType(mimeType) {
+  if (!mimeType || typeof mimeType !== 'string') {
+    return '';
+  }
+  
+  // 去除两侧的空格、单引号、双引号
+  let cleaned = mimeType.trim().replace(/^['"]+|['"]+$/g, '');
+  
+  // 提取中间符合 MIME 格式的部分：type/subtype
+  // MIME 类型格式：主类型/子类型，如 text/plain, application/json
+  // 主类型和子类型只能包含字母、数字、连字符、加号、点号
+  const mimePattern = /^[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_+.]*$/;
+  
+  // 如果整个字符串符合 MIME 格式，直接返回
+  if (mimePattern.test(cleaned)) {
+    return cleaned.toLowerCase();
+  }
+  
+  // 尝试从字符串中提取符合 MIME 格式的部分
+  // 匹配 type/subtype 格式的子字符串
+  const match = cleaned.match(/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_+.]+/);
+  if (match) {
+    return match[0].toLowerCase();
+  }
+  
+  // 如果都不符合，返回空字符串表示清理失败
+  return '';
+}
+
+/**
  * Get friendly type name for MIME type
  * 
  * @param {string} mimeType - MIME type

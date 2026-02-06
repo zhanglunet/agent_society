@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile, readdir, stat, unlink, rm } from "node:fs/p
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { createNoopModuleLogger } from "../../utils/logger/logger.js";
-import { extractExtension, MIME_TYPE_MAPPINGS } from "../../utils/content/content_type_utils.js";
+import { extractExtension, MIME_TYPE_MAPPINGS, sanitizeMimeType } from "../../utils/content/content_type_utils.js";
 
 /**
  * 工作区对象
@@ -121,7 +121,10 @@ export class Workspace {
     await mkdir(this.metaDir, { recursive: true });
 
     const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8');
-    const mimeType = options.mimeType || this._detectMimeType(relativePath, buffer);
+    
+    // 清理 mimeType 参数，处理大模型可能传入的格式错误（两侧多余引号、空格等）
+    const sanitizedMimeType = options.mimeType ? sanitizeMimeType(options.mimeType) : '';
+    const mimeType = sanitizedMimeType || this._detectMimeType(relativePath, buffer);
 
     // 写入文件
     await writeFile(fullPath, buffer);
