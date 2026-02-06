@@ -1,0 +1,455 @@
+<template>
+  <Teleport to="body">
+    <div
+      v-show="visible"
+      ref="bubbleRef"
+      class="guide-bubble"
+      :class="[
+        \`guide-bubble--\${position}\`,
+        { 'guide-bubble--no-arrow': !showArrow }
+      ]"
+      :style="bubbleStyle"
+      role="dialog"
+      aria-label="新手引导（可随时关闭）"
+      tabindex="-1"
+      @keydown.esc="handleEsc"
+    >
+      <div class="guide-bubble__content">
+        <!-- 图标和标题 -->
+        <div class="guide-bubble__header">
+          <div class="guide-bubble__icon guide-bubble__icon--animated">
+            <Rocket class="w-6 h-6" />
+          </div>
+          <h3 class="guide-bubble__title">{{ title || '开始使用' }}</h3>
+        </div>
+
+        <!-- 内容文本 -->
+        <div v-if="text" class="guide-bubble__text">
+          <p>{{ text }}</p>
+        </div>
+
+        <!-- 提示文本 -->
+        <div v-if="hintText" class="guide-bubble__hint">
+          <small>{{ hintText }}</small>
+        </div>
+
+        <!-- 关闭按钮 -->
+        <Button
+          v-if="showCloseButton"
+          class="guide-bubble__close"
+          severity="secondary"
+          text
+          :aria-label="'关闭提示'"
+          @click="handleClose"
+        >
+          <X class="w-4 h-4" />
+        </Button>
+      </div>
+
+      <!-- 箭头 -->
+      <div v-if="showArrow" class="guide-bubble__arrow guide-bubble__arrow--bottom"></div>
+    </div>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { Rocket, X } from 'lucide-vue-next';
+import Button from 'primevue/button';
+
+interface GuideBubbleProps {
+  visible: boolean;
+  position: 'top' | 'right' | 'left' | 'bottom';
+  title?: string;
+  text?: string;
+  hintText?: string;
+  icon?: string;
+  showCloseButton?: boolean;
+  showArrow?: boolean;
+  offset?: {
+    x?: number;
+    y?: number;
+  };
+  targetSelector?: string;
+}
+
+interface GuideBubbleEmits {
+  (e: 'close'): void;
+}
+
+const props = withDefaults(defineProps<GuideBubbleProps>(), {
+  showCloseButton: true,
+  showArrow: true,
+  offset: () => ({ x: 0, y: 0 }),
+  targetSelector: '.p-button-icon-only'
+});
+
+const emit = defineEmits<GuideBubbleEmits>();
+
+const bubbleRef = ref<HTMLElement | null>(null);
+const bubblePosition = ref({ left: '50%', top: '410px' });
+
+const updateBubblePosition = () => {
+  if (!props.visible) return;
+
+  nextTick(() => {
+    const targetElement = document.querySelector(props.targetSelector || '.p-button-icon-only') as HTMLElement;
+    if (!targetElement || !bubbleRef.value) {
+      bubblePosition.value = {
+        left: '50%',
+        top: '410px'
+      };
+      return;
+    }
+
+    const targetRect = targetElement.getBoundingClientRect();
+    const bubbleWidth = bubbleRef.value.offsetWidth || 320;
+    const bubbleHeight = bubbleRef.value.offsetHeight || 150;
+
+    let left = targetRect.left + targetRect.width / 2 - bubbleWidth / 2;
+    let top: number;
+
+    if (props.position === 'bottom') {
+      top = targetRect.bottom + 24;
+    } else if (props.position === 'top') {
+      top = targetRect.top - bubbleHeight - 24;
+    } else if (props.position === 'right') {
+      left = targetRect.right + 16;
+      top = targetRect.top + (targetRect.height - bubbleHeight) / 2;
+    } else {
+      left = targetRect.left - bubbleWidth - 16;
+      top = targetRect.top + (targetRect.height - bubbleHeight) / 2;
+    }
+
+    left += (props.offset.x || 0);
+    top += (props.offset.y || 0);
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    if (left < 16) {
+      left = 16;
+    }
+
+    if (left + bubbleWidth > viewportWidth - 16) {
+      left = viewportWidth - bubbleWidth - 16;
+    }
+
+    if (top < 16) {
+      top = 16;
+    }
+
+    if (top + bubbleHeight > viewportHeight - 16) {
+      top = viewportHeight - bubbleHeight - 16;
+    }
+
+    bubblePosition.value = {
+      left: `${left}px`,
+      top: `${top}px`
+    };
+  });
+};
+
+const bubbleStyle = computed(() => {
+  return {
+    left: bubblePosition.value.left,
+    top: bubblePosition.value.top,
+    transform: 'translateX(-50%)'
+  };
+});
+
+const handleClose = () => {
+  emit('close');
+};
+
+const handleEsc = () => {
+  emit('close');
+};
+
+watch(() => props.visible, () => {
+  if (props.visible) {
+    updateBubblePosition();
+  }
+});
+
+const handleResize = () => {
+  updateBubblePosition();
+};
+
+const handleScroll = () => {
+  updateBubblePosition();
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('scroll', handleScroll, true);
+  if (props.visible) {
+    updateBubblePosition();
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('scroll', handleScroll, true);
+});
+</script>
+
+<style scoped>
+.guide-bubble {
+  position: fixed !important;
+  z-index: 100 !important;
+  width: 320px;
+  max-width: 320px;
+  min-width: 280px;
+  padding: 20px;
+  margin: 0;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.08),
+    0 0 1px rgba(0, 0, 0, 0.04);
+  animation: bubble-float-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-1);
+}
+
+.guide-bubble__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.guide-bubble__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-4), var(--primary-5));
+  color: white;
+  font-size: 28px;
+  box-shadow: 0 4px 12px rgba(var(--primary-500), 0.3);
+}
+
+.guide-bubble__icon--animated {
+  animation: icon-float 3s ease-in-out infinite;
+}
+
+.guide-bubble__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+
+.guide-bubble__text {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.guide-bubble__text p {
+  margin: 0;
+}
+
+.guide-bubble__hint {
+  margin: 0 0 16px 0;
+  padding: 8px 12px;
+  background-color: var(--surface-2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+.guide-bubble__hint small {
+  display: block;
+  color: var(--text-3);
+}
+
+.guide-bubble__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 4px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 101;
+}
+
+.guide-bubble__close:hover {
+  background-color: var(--surface-3);
+  color: var(--text-1);
+  transform: scale(1.1);
+}
+
+.guide-bubble__arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  z-index: 101;
+}
+
+.guide-bubble__arrow--bottom {
+  bottom: -8px;
+  border-top: 8px solid var(--surface-1);
+}
+
+@keyframes icon-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes bubble-float-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-4px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bubble-fade-enter-active,
+.bubble-fade-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bubble-fade-enter-from,
+.bubble-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-16px) scale(0.9);
+}
+
+@media (max-width: 1024px) {
+  .guide-bubble {
+    width: auto;
+    max-width: calc(100vw - 48px);
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 768px) {
+  .guide-bubble {
+    padding: 16px;
+    max-width: calc(100vw - 48px);
+  }
+
+  .guide-bubble__title {
+    font-size: 16px;
+  }
+
+  .guide-bubble__text {
+    font-size: 13px;
+  }
+
+  .guide-bubble__hint {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .guide-bubble {
+    padding: 12px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .guide-bubble__icon {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+    margin: 0 12px;
+  }
+
+  .guide-bubble__title {
+    font-size: 15px;
+  }
+
+  .guide-bubble__text {
+    font-size: 12px;
+  }
+
+  .guide-bubble__hint {
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-bubble {
+    animation: none;
+  }
+
+  .guide-bubble__icon--animated {
+    animation: none;
+  }
+
+  .bubble-fade-enter-active,
+  .bubble-fade-leave-active {
+    transition: none;
+  }
+
+  .bubble-fade-enter-from,
+  .bubble-fade-leave-to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .guide-bubble {
+    border-width: 2px;
+    border-color: var(--text-1);
+  }
+
+  .guide-bubble__close {
+    background-color: var(--surface-3);
+    border: 1px solid var(--text-1);
+  }
+}
+
+.guide-bubble--no-arrow .guide-bubble__arrow {
+  display: none;
+}
+
+@media print {
+  .guide-bubble {
+    display: none;
+  }
+}
+</style>

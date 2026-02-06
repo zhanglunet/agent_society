@@ -1,0 +1,595 @@
+<template>
+  <Teleport to="body">
+    <div
+      v-show="visible"
+      class="guide-bubble"
+      :class="[
+        `guide-bubble--${position}`,
+        { 'guide-bubble--no-arrow': !showArrow }
+      ]"
+      :style="bubbleStyle"
+      role="dialog"
+      aria-label="新手引导（可随时关闭）"
+      tabindex="-1"
+      @keydown.esc="handleEsc"
+    >
+      <div class="guide-bubble__content">
+        <!-- 图标和标题 -->
+        <div class="guide-bubble__header">
+          <div class="guide-bubble__icon guide-bubble__icon--animated">
+            <Rocket class="w-6 h-6" />
+          </div>
+          <h3 class="guide-bubble__title">{{ title || '开始使用' }}</h3>
+        </div>
+
+        <!-- 内容文本 -->
+        <div v-if="text" class="guide-bubble__text">
+          <p>{{ text }}</p>
+        </div>
+
+        <!-- 提示文本 -->
+        <div v-if="hintText" class="guide-bubble__hint">
+          <small>{{ hintText }}</small>
+        </div>
+
+        <!-- 关闭按钮 -->
+        <Button
+          v-if="showCloseButton"
+          class="guide-bubble__close"
+          severity="secondary"
+          text
+          :aria-label="'关闭提示'"
+          @click="handleClose"
+        >
+          <X class="w-4 h-4" />
+        </Button>
+      </div>
+
+      <!-- 箭头 -->
+      <div v-if="showArrow" class="guide-bubble__arrow guide-bubble__arrow--bottom"></div>
+    </div>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { Rocket, X } from 'lucide-vue-next';
+import Button from 'primevue/button';
+
+/**
+ * 气泡组件Props接口
+ * 
+ * @author Agent Society
+ */
+interface GuideBubbleProps {
+  /** 是否显示 */
+  visible: boolean;
+  /** 位置：top/right/left/bottom */
+  position: 'top' | 'right' | 'left' | 'bottom';
+  /** 标题 */
+  title?: string;
+  /** 内容文本 */
+  text?: string;
+  /** 提示文本 */
+  hintText?: string;
+  /** 图标类型（如 'rocket'） */
+  icon?: string;
+  /** 是否显示关闭按钮 */
+  showCloseButton?: boolean;
+  /** 是否显示箭头 */
+  showArrow?: boolean;
+  /** 偏移量 */
+  offset?: {
+    x?: number;
+    y?: number;
+  };
+}
+
+/**
+ * 气泡组件Emits接口
+ */
+interface GuideBubbleEmits {
+  /** 关闭气泡 */
+  (e: 'close'): void;
+}
+
+// 定义props和emits
+const props = withDefaults(defineProps<GuideBubbleProps>(), {
+  showCloseButton: true,
+  showArrow: true,
+  offset: () => ({ x: 0, y: 0 }),
+});
+
+const emit = defineEmits<GuideBubbleEmits>();
+
+/**
+ * 计算气泡样式（JS逻辑：计算偏移量）
+ */
+const bubbleStyle = computed(() => {
+  const style: Record<string, string> = {};
+
+  // X轴偏移
+  if (props.offset.x !== undefined) {
+    style.transform = `translateX(${props.offset.x}px)`;
+  }
+
+  // Y轴偏移（根据位置不同，使用bottom或top）
+  if (props.offset.y !== undefined) {
+    if (props.position === 'top') {
+      style.bottom = `calc(100% + 24px + ${props.offset.y}px)`;
+    } else if (props.position === 'bottom') {
+      style.top = `calc(100% + 24px + ${props.offset.y}px)`;
+    }
+  }
+
+  return style;
+});
+
+/**
+ * 关闭气泡事件处理
+ */
+const handleClose = () => {
+  emit('close');
+};
+
+/**
+ * ESC键关闭
+ */
+const handleEsc = () => {
+  emit('close');
+};
+</script>
+
+<!-- 
+  关键修复：使用Teleport组件将气泡提升到body层级
+  - Teleport to="body" 将气泡直接挂载到document.body
+  - 完全脱离父容器层级
+  - 使用position: fixed相对于视口定位
+  - z-index: 100，在普通内容之上
+-->
+<style scoped>
+/* ============================================
+   CSS Variables - Design Tokens
+   基于ui-modern-theme-spec.md
+   ============================================ */
+
+.guide-bubble {
+  /* 定位 - fixed定位，脱离文档流 */
+  position: fixed !important;
+  z-index: 100 !important;  /* 气泡z-index: 100，在普通内容之上 */
+  
+  /* 尺寸 */
+  width: 320px;
+  max-width: 320px;
+  min-width: 280px;
+  
+  /* 间距和边距 */
+  padding: 20px;  /* var(--space-5) */
+  margin: 0;
+  
+  /* 背景和边框 */
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;  /* var(--radius-lg) */
+  
+  /* 阴影 - 使用layered shadows（双层阴影），增强立体感和漂浮感 */
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.12),  /* 第一层：较大的柔和阴影 */
+    0 4px 8px rgba(0, 0, 0, 0.08),   /* 第二层：较小的近阴影 */
+    0 0 1px rgba(0, 0, 0, 0.04);    /* 边框阴影 */
+  
+  /* 动画 - 使用cubic-bezier更平滑 */
+  animation: bubble-float-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* 交互 */
+  pointer-events: auto;  /* 气泡自身可交互 */
+  
+  /* 其他 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 暗黑主题适配 */
+.my-app-dark .guide-bubble {
+  background-color: var(--surface-1);
+  border-color: var(--border);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.4),  /* 更强的暗色阴影 */
+    0 4px 8px rgba(0, 0, 0, 0.24),
+    0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================
+   Bubble Content
+   ============================================ */
+
+.guide-bubble__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* ============================================
+   Bubble Header
+   ============================================ */
+
+.guide-bubble__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* ============================================
+   Bubble Icon
+   火箭图标，48px大图标
+   ============================================ */
+
+.guide-bubble__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 16px;  /* var(--space-4) */
+  
+  /* 图标 */
+  font-size: 32px;
+  line-height: 1;
+  color: var(--primary);
+}
+
+/* 箭头图标动画 - icon-float上下浮动 */
+.guide-bubble__icon--animated {
+  animation: icon-float 3s ease-in-out infinite;
+}
+
+@keyframes icon-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px); /* 向上浮动 */
+  }
+}
+
+/* ============================================
+   Bubble Title
+   大标题，18px
+   ============================================ */
+
+.guide-bubble__title {
+  margin: 0 0 12px;  /* var(--space-3) */
+  
+  /* 文本 */
+  color: var(--text-1);
+  font-size: 18px;  /* 更大，更醒目 */
+  font-weight: 600;  /* 更强 */
+  line-height: 1.3;
+  text-align: center;
+  
+  /* 其他 */
+  word-wrap: break-word;
+}
+
+/* ============================================
+   Bubble Text
+   正文文本，14px
+   ============================================ */
+
+.guide-bubble__text {
+  margin: 0 0 16px;  /* var(--space-4) */
+  
+  /* 文本 */
+  color: var(--text-2);
+  font-size: 14px;  /* 更大 */
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: center;
+  
+  /* 其他 */
+  word-wrap: break-word;
+}
+
+.guide-bubble__text p {
+  margin: 0;
+}
+
+/* ============================================
+   Bubble Hint
+   提示文本，12px，斜体
+   ============================================ */
+
+.guide-bubble__hint {
+  margin-bottom: 12px;  /* var(--space-3) */
+  
+  /* 文本 */
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  font-style: italic;
+  text-align: center;
+  
+  /* 其他 */
+  word-wrap: break-word;
+}
+
+.guide-bubble__hint small {
+  font-size: inherit;
+}
+
+/* ============================================
+   Bubble Close Button
+   关闭按钮，32px
+   z-index: 101，确保关闭按钮在气泡之上
+   ============================================ */
+
+.guide-bubble__close {
+  position: absolute;
+  top: 12px;  /* var(--space-3) */
+  right: 12px;  /* var(--space-3) */
+  z-index: 101 !important;  /* z-index: 101，确保在气泡之上 */
+  
+  /* 尺寸 */
+  width: 32px;  /* 更大，便于点击 */
+  height: 32px;
+  padding: 0;
+  
+  /* 背景 */
+  background-color: transparent;
+  border: none;
+  border-radius: 12px;  /* var(--radius-md) */
+  
+  /* 文本/图标 */
+  color: var(--text-3);
+  font-size: 16px;
+  line-height: 1;
+  
+  /* 交互 */
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  
+  /* 布局 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guide-bubble__close:hover {
+  background-color: var(--surface-3);
+  color: var(--text-1);
+}
+
+.guide-bubble__close:active {
+  transform: scale(0.95);
+}
+
+.guide-bubble__close:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Bubble Arrow
+   气泡箭头，8px
+   z-index: 101，确保箭头在气泡之上
+   ============================================ */
+
+.guide-bubble__arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  z-index: 101 !important;  /* z-index: 101，确保箭头在气泡之上 */
+}
+
+/* 箭头位置：底部，指向上 */
+.guide-bubble__arrow--bottom {
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top: 8px solid var(--surface-1);
+}
+
+/* ============================================
+   Animations
+   优化动画效果
+   ============================================ */
+
+/* 气泡淡入+缩放+上浮动画 - 同时实现淡入、缩放和上浮效果 */
+@keyframes bubble-float-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9); /* 从下方浮动上来，并稍微缩小 */
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-4px) scale(0.95); /* 中间状态 */
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1); /* 最终状态 */
+  }
+}
+
+/* 气泡淡出+缩放+下浮动画 */
+@keyframes bubble-float-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-4px) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9);
+  }
+}
+
+/* Vue Transition classes */
+.bubble-fade-enter-active,
+.bubble-fade-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bubble-fade-enter-from,
+.bubble-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-16px) scale(0.9);
+}
+
+/* ============================================
+   Responsive Design
+   响应式布局
+   ============================================ */
+
+/* 平板和移动端 */
+@media (max-width: 1024px) {
+  .guide-bubble {
+    width: auto;
+    max-width: calc(100vw - 48px);  /* var(--space-6) * 2 */
+    min-width: 260px;
+  }
+}
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .guide-bubble {
+    padding: 16px;  /* var(--space-4) */
+    max-width: calc(100vw - 48px);  /* var(--space-6) * 2 */
+  }
+  
+  .guide-bubble__title {
+    font-size: 16px;  /* 略小 */
+  }
+  
+  .guide-bubble__text {
+    font-size: 13px;  /* 略小 */
+  }
+  
+  .guide-bubble__hint {
+    font-size: 11px;  /* 略小 */
+  }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+  .guide-bubble {
+    padding: 12px;  /* var(--space-3) */
+    max-width: calc(100vw - 24px);  /* var(--space-3) * 2 */
+  }
+  
+  .guide-bubble__icon {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+    margin: 0 12px;  /* var(--space-3) */
+  }
+  
+  .guide-bubble__title {
+    font-size: 15px;
+  }
+  
+  .guide-bubble__text {
+    font-size: 12px;
+  }
+  
+  .guide-bubble__hint {
+    font-size: 11px;
+  }
+}
+
+/* ============================================
+   Accessibility
+   可访问性
+   ============================================ */
+
+/* 减少动画（用户系统偏好） */
+@media (prefers-reduced-motion: reduce) {
+  .guide-bubble {
+    animation: none;
+  }
+  
+  .guide-bubble__icon--animated {
+    animation: none;
+  }
+  
+  .bubble-fade-enter-active,
+  .bubble-fade-leave-active {
+    transition: none;
+  }
+  
+  .bubble-fade-enter-from,
+  .bubble-fade-leave-to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .guide-bubble {
+    border-width: 2px;
+    border-color: var(--text-1);
+  }
+  
+  .guide-bubble__close {
+    background-color: var(--surface-3);
+    border: 1px solid var(--text-1);
+  }
+}
+
+/* ============================================
+   Utility Classes
+   工具类
+   ============================================ */
+
+/* 隐藏箭头 */
+.guide-bubble--no-arrow .guide-bubble__arrow {
+  display: none;
+}
+
+/* 气泡位置：底部对齐（用于目标元素下方） */
+.guide-bubble--bottom {
+  bottom: calc(100% + 24px);
+}
+
+/* 气泡位置：顶部对齐（用于目标元素上方） */
+.guide-bubble--top {
+  top: calc(100% + 24px);
+}
+
+/* 气泡居中 */
+.guide-bubble--center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* 箭头位置调整 */
+.guide-bubble--bottom .guide-bubble__arrow--bottom {
+  bottom: -8px;
+  top: auto;
+}
+
+.guide-bubble--top .guide-bubble__arrow {
+  bottom: auto;
+  top: -8px;
+  border-top: none;
+  border-bottom: 8px solid var(--surface-1);
+}
+
+/* Print Styles */
+@media print {
+  .guide-bubble {
+    display: none;
+  }
+}
+</style>

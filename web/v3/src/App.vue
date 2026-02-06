@@ -7,6 +7,7 @@
  * - 主题管理（亮/暗模式切换）
  * - 全局数据同步轮询
  * - 首次运行配置检查
+ * - 新手引导初始化（v4.1新增）
  * 
  * @author Agent Society
  */
@@ -21,6 +22,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useAppStore } from './stores/app';
 import { useAgentStore } from './stores/agent';
 import { useOrgStore } from './stores/org';
+import { useGuideStore } from './stores/guide';
 import DynamicDialog from 'primevue/dynamicdialog';
 import { configApi } from './services/configApi';
 import { errorNotificationService } from './services/errorNotification';
@@ -30,6 +32,7 @@ import { uiCommandService } from './services/uiCommandService';
 const appStore = useAppStore();
 const agentStore = useAgentStore();
 const orgStore = useOrgStore();
+const guideStore = useGuideStore(); // v4.1新增：引导状态管理
 const isDark = ref(false);
 
 // 将 dialog 挂载到全局，供 fileViewerService 使用
@@ -132,6 +135,30 @@ const checkConfigStatus = async () => {
     }
 };
 
+/**
+ * 初始化新手引导（v4.1新增 JS逻辑）
+ * 
+ * 注意：预填输入框的逻辑已经移到HomeOverview.vue组件中，
+ * 通过watch监听guideStore.isVisible自动完成预填。
+ * 本函数只负责初始化引导的显示状态。
+ */
+const initializeGuide = async () => {
+  try {
+    // 1. 确保组织列表已加载
+    await orgStore.fetchOrgs();
+
+    // 2. 检查是否需要显示引导
+    if (guideStore.shouldShowGuide()) {
+      // 延迟 1 秒显示引导，让用户先看到界面
+      setTimeout(() => {
+        guideStore.showGuide();
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('初始化新手引导失败:', error);
+  }
+};
+
 onMounted(() => {
     appStore.initApp();
     
@@ -150,6 +177,9 @@ onMounted(() => {
     
     // 启动 UI 命令服务（处理智能体的页面操作请求）
     uiCommandService.start();
+
+    // v4.1新增：初始化新手引导（JS逻辑）
+    initializeGuide();
 });
 
 onUnmounted(() => {
