@@ -2,6 +2,30 @@
 
 ## 1. 技术架构概述
 
+### 1.0 核心设计原则
+
+#### 智能体隔离性
+
+**每个智能体拥有独立的记忆系统实例**：
+- 记忆系统不在智能体之间共享
+- 每个智能体的记忆网络完全独立演化
+- 智能体A的记忆遗忘不会影响智能体B
+- 隔离确保记忆与特定智能体的经历绑定
+
+#### 业务执行模型
+
+**线性执行 + 内部异步队列**：
+
+| 层级 | 执行模型 | 说明 |
+|------|----------|------|
+| **业务逻辑层** | 线性执行 | 智能体业务代码按顺序执行，不并发调用记忆 |
+| **记忆系统层** | 异步队列 | 记忆系统内部维护任务队列，独立调度处理 |
+
+**为什么这样设计**：
+- 业务层线性：保证智能体思维过程的逻辑一致性
+- 记忆层异步：压缩、检索等操作耗时，不阻塞主线程
+- 队列隔离：记忆系统自主管理内部状态，不受前端业务节奏影响
+
 ### 1.1 技术栈选型
 
 | 组件 | 选型 | 版本要求 | 说明 |
@@ -13,6 +37,25 @@
 | **序列化** | JSON | - | 节点内容存储格式 |
 
 ### 1.2 架构图
+
+#### 系统整体架构（多智能体隔离）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         系统层                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   智能体A    │  │   智能体B    │  │   智能体C    │  ... │
+│  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │      │
+│  │ │ 记忆系统A │ │  │ │ 记忆系统B │ │  │ │ 记忆系统C │ │      │
+│  │ │ (独立实例)│ │  │ │ (独立实例)│ │  │ │ (独立实例)│ │      │
+│  │ └──────────┘ │  │ └──────────┘ │  │ └──────────┘ │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                             │
+│  关键：每个智能体拥有完全独立的记忆系统实例，不共享数据        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 单个智能体记忆系统架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -28,13 +71,17 @@
 │  │  │  NodeStore  │  │ LinkStore   │  │ FocusManager │  │  │
 │  │  │  (节点存储)  │  │  (关联存储)  │  │ (关注点管理) │  │  │
 │  │  └──────┬──────┘  └──────┬──────┘  └──────┬───────┘  │  │
+│  │  ┌─────────────────────────────────────────────────┐ │  │
+│  │  │           TaskQueue (任务队列)                  │ │  │
+│  │  │  线性化处理所有记忆操作请求，保证内部状态一致性   │ │  │
+│  │  └─────────────────────────────────────────────────┘ │  │
 │  └─────────┼────────────────┼────────────────┼──────────┘  │
 │            │                │                │             │
 │  ┌─────────▼────────────────▼────────────────▼──────────┐  │
 │  │              LevelGraph (Graph DB)                   │  │
 │  │  ┌──────────────────────────────────────────────┐   │  │
 │  │  │           classic-level (LevelDB)            │   │  │
-│  │  │         (持久化存储，本地文件)                │   │  │
+│  │  │    (每个智能体独立的数据库文件/目录)          │   │  │
 │  │  └──────────────────────────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                             │
@@ -49,12 +96,53 @@
 
 | 模块 | 职责 | 核心功能 |
 |------|------|----------|
-| **MemoryManager** | 记忆管理入口 | 协调各模块，提供统一API |
+| **MemoryManager** | 记忆管理入口 | 协调各模块，提供统一API，管理任务队列 |
 | **NodeStore** | 节点存储管理 | CRUD、压缩更新、扫描计数 |
 | **LinkStore** | 关联存储管理 | 关联CRUD、衰减计算、断裂检测 |
 | **FocusManager** | 关注点管理 | LRU维护、关注点识别、保护机制 |
 | **SearchEngine** | 搜索引擎 | BFS实现、关键词匹配、层级控制 |
 | **CompressionWorker** | 压缩服务 | 异步压缩、小模型调用、重试机制 |
+| **TaskQueue** | 任务队列 | 线性化记忆操作请求，保证执行顺序 |
+
+### 1.4 执行模型详解
+
+#### 智能体侧：线性调用
+
+智能体业务代码按顺序调用记忆接口，不并发：
+
+```typescript
+// 正确：顺序调用
+const memory1 = await recall(["项目"], [], 2);
+// 先由小模型处理聊天记录，然后调用store
+await memory.store(segments, phrases, keywords);
+const memory2 = await recall(["进度"], [], 2);
+
+// 错误：并发调用（应避免）
+// Promise.all([recall(...), store(...), recall(...)])
+```
+
+业务层保证线性，确保思维过程的因果一致性。
+
+#### 记忆系统侧：异步队列
+
+记忆系统内部维护任务队列，所有操作入队后异步执行：
+
+```
+智能体调用 recall()
+    │
+    ▼ 封装为任务
+    │
+    ▼ 加入任务队列
+    │
+    ▼ 记忆系统独立调度执行
+    │
+    ▼ 完成后回调/Promise resolve
+```
+
+队列机制保证：
+- **顺序执行**：即使业务层并发调用，记忆操作也按顺序处理
+- **不阻塞业务**：调用后立即返回Promise，业务继续
+- **内部状态一致**：队列串行化所有状态变更操作
 
 ---
 
@@ -150,9 +238,9 @@ memory_data/
 ```typescript
 interface Node {
   id: string;                 // 唯一标识符
-  content: string;            // 内容文本
-  phrase: string;             // 短语摘要
-  keywords: string[];         // 关键词列表
+  content: string;            // 内容文本（来自聊天记录，经小模型压缩）
+  phrase: string;             // 短语摘要（小模型提取）
+  keywords: string[];         // 关键词列表（小模型提取）
   createdAt: number;          // 创建时间戳
   scanCount: number;          // 扫描次数
 }
@@ -161,12 +249,17 @@ class NodeStore {
   private db: LevelGraph;
   
   // 创建节点
-  async createNode(content: string, keywords: string[]): Promise<Node> {
+  // 注意：content/phrase/keywords 由小模型处理传入的聊天记录后提供
+  async createNode(
+    content: string, 
+    phrase: string, 
+    keywords: string[]
+  ): Promise<Node> {
     const id = generateUUID();
     const node: Node = {
       id,
       content,
-      phrase: await this.extractPhrase(content),
+      phrase,
       keywords,
       createdAt: Date.now(),
       scanCount: 0
@@ -176,7 +269,7 @@ class NodeStore {
     await this.db.put([
       { subject: `node:${id}`, predicate: "rdf:type", object: "memory:Node" },
       { subject: `node:${id}`, predicate: "memory:content", object: content },
-      { subject: `node:${id}`, predicate: "memory:phrase", object: node.phrase },
+      { subject: `node:${id}`, predicate: "memory:phrase", object: phrase },
       { subject: `node:${id}`, predicate: "memory:keywords", object: JSON.stringify(keywords) },
       { subject: `node:${id}`, predicate: "memory:createdAt", object: String(node.createdAt) },
       { subject: `node:${id}`, predicate: "memory:scanCount", object: "0" }
@@ -236,8 +329,14 @@ class NodeStore {
   }
   
   // 激活槽位（将空闲槽位变为可用节点）
-  async activateSlot(slotId: string, content: string, keywords: string[]): Promise<string> {
-    const nodeId = generateUUID();  // 生成新ID
+  // 参数：小模型处理后的数据
+  async activateSlot(
+    slotId: string, 
+    content: string, 
+    phrase: string, 
+    keywords: string[]
+  ): Promise<string> {
+    const nodeId = generateUUID();
     
     await this.db.put([
       { subject: `slot:${slotId}`, predicate: "memory:status", object: "active" },
@@ -245,6 +344,7 @@ class NodeStore {
       { subject: `node:${nodeId}`, predicate: "rdf:type", object: "memory:Node" },
       { subject: `node:${nodeId}`, predicate: "memory:slot", object: slotId },
       { subject: `node:${nodeId}`, predicate: "memory:content", object: content },
+      { subject: `node:${nodeId}`, predicate: "memory:phrase", object: phrase },
       { subject: `node:${nodeId}`, predicate: "memory:keywords", object: JSON.stringify(keywords) },
       { subject: `node:${nodeId}`, predicate: "memory:createdAt", object: String(Date.now()) }
     ]);
@@ -253,7 +353,13 @@ class NodeStore {
   }
   
   // 复用槽位（清空旧数据，生成新ID）
-  async reuseSlot(slotId: string, content: string, keywords: string[]): Promise<string> {
+  // 参数：小模型处理后的数据
+  async reuseSlot(
+    slotId: string, 
+    content: string, 
+    phrase: string, 
+    keywords: string[]
+  ): Promise<string> {
     // 1. 获取旧节点ID
     const oldTriples = await this.db.get({ 
       subject: `slot:${slotId}`, 
@@ -261,7 +367,7 @@ class NodeStore {
     });
     const oldNodeId = oldTriples[0]?.object;
     
-    // 2. 删除旧节点数据（关联不处理，变成悬垂关联）
+    // 2. 删除旧节点数据
     if (oldNodeId) {
       const nodeTriples = await this.db.get({ subject: `node:${oldNodeId}` });
       for (const triple of nodeTriples) {
@@ -269,7 +375,7 @@ class NodeStore {
       }
     }
     
-    // 3. 生成新ID，激活槽位
+    // 3. 生成新ID，写入新数据
     const newNodeId = generateUUID();
     
     await this.db.put([
@@ -277,6 +383,7 @@ class NodeStore {
       { subject: `node:${newNodeId}`, predicate: "rdf:type", object: "memory:Node" },
       { subject: `node:${newNodeId}`, predicate: "memory:slot", object: slotId },
       { subject: `node:${newNodeId}`, predicate: "memory:content", object: content },
+      { subject: `node:${newNodeId}`, predicate: "memory:phrase", object: phrase },
       { subject: `node:${newNodeId}`, predicate: "memory:keywords", object: JSON.stringify(keywords) },
       { subject: `node:${newNodeId}`, predicate: "memory:createdAt", object: String(Date.now()) }
     ]);
@@ -322,25 +429,40 @@ class NodeStore {
 **1. 关联创建的代码路径**
 
 ```typescript
-// 唯一入口：createMemory() 方法
-async createMemory(content: string, keywords: string[], relatedNodes?: string[]) {
-  // Step 1: 创建节点（调用小模型提取摘要和关键词）
-  const node = await this.nodeStore.createNode(content);
+// 记忆建立接口
+// 参数说明：
+//   segments: 小模型语义切割后的文本片段数组
+//   phrases:  小模型提取的短语摘要数组（与segments一一对应）
+//   keywords: 小模型提取的关键词数组（与segments一一对应）
+async function store(
+  segments: string[], 
+  phrases: string[], 
+  keywords: string[][]
+) {
+  const nodeIds: string[] = [];
   
-  // Step 2: 自动建立时间顺序关联
-  // 新节点与当前所有关注点建立双向强度1.0关联
-  const focusList = this.focusManager.getFocusList();
-  for (const focusId of focusList) {
-    await this.linkStore.createLink(node.id, focusId, 1.0, "focus-link");
-    await this.linkStore.createLink(focusId, node.id, 1.0, "focus-link");
-  }
-  
-  // Step 3: 自动建立语义连贯关联
-  // 与同一切割来源的节点建立双向强度0.5关联
-  if (relatedNodes) {
-    for (const relatedId of relatedNodes) {
-      await this.linkStore.createLink(node.id, relatedId, 0.5, "segment-link");
+  for (let i = 0; i < segments.length; i++) {
+    // Step 1: 创建节点（使用小模型处理后的数据）
+    const node = await this.nodeStore.createNode(
+      segments[i], 
+      phrases[i], 
+      keywords[i]
+    );
+    
+    // Step 2: 自动建立时间顺序关联（与当前关注点强度1.0）
+    const focusList = this.focusManager.getFocusList();
+    for (const focusId of focusList) {
+      await this.linkStore.createLink(node.id, focusId, 1.0, "focus-link");
+      await this.linkStore.createLink(focusId, node.id, 1.0, "focus-link");
     }
+    
+    // Step 3: 自动建立语义连贯关联（同一切割来源的节点间强度0.5）
+    for (const relatedId of nodeIds) {
+      await this.linkStore.createLink(node.id, relatedId, 0.5, "segment-link");
+      await this.linkStore.createLink(relatedId, node.id, 0.5, "segment-link");
+    }
+    
+    nodeIds.push(node.id);
   }
 }
 ```
@@ -376,21 +498,37 @@ class FocusManager {
 
 **3. 语义切割关联的技术实现**
 
-语义切割服务返回段落数组，建立段落间的线性关联：
+语义切割服务（小模型）返回段落数组及相关元数据：
 
 ```typescript
-// 语义切割后的关联建立
-const segments = await semanticCut(text);  // ["段1", "段2", "段3"]
+// 小模型语义切割结果
+interface SegmentationResult {
+  segments: string[];   // 文本片段
+  phrases: string[];    // 各片段的短语摘要
+  keywords: string[][]; // 各片段的关键词列表
+}
+
+// 调用小模型进行语义切割
+const result: SegmentationResult = await callSegmentationModel(聊天记录);
+
+// 依次创建节点，建立关联
 const nodeIds: string[] = [];
 
-for (let i = 0; i < segments.length; i++) {
-  // 创建节点，传入之前已创建的节点ID作为relatedNodes
-  const nodeId = await memory.createMemory(
-    segments[i], 
-    [], 
-    nodeIds  // 与之前所有段落建立关联
+for (let i = 0; i < result.segments.length; i++) {
+  // 创建节点（传入小模型处理后的完整数据）
+  const node = await nodeStore.createNode(
+    result.segments[i],
+    result.phrases[i], 
+    result.keywords[i]
   );
-  nodeIds.push(nodeId);
+  
+  // 与同一切割来源的先前节点建立关联
+  for (const prevId of nodeIds) {
+    await linkStore.createLink(node.id, prevId, 0.5, "segment-link");
+    await linkStore.createLink(prevId, node.id, 0.5, "segment-link");
+  }
+  
+  nodeIds.push(node.id);
 }
 ```
 
@@ -989,24 +1127,23 @@ class FixedNodeCompressionScheduler {
   }
   
   // 获取或创建节点（复用最不重要的槽位）
-  async getOrCreateNode(content: string, keywords: string[]): Promise<string> {
+  // 参数：小模型处理后的数据
+  async getOrCreateNode(
+    content: string, 
+    phrase: string, 
+    keywords: string[]
+  ): Promise<string> {
     // 1. 查找空闲槽位
     const freeSlot = await this.findFreeSlot();
     if (freeSlot) {
-      return await this.nodeStore.activateSlot(freeSlot, content, keywords);
+      return await this.nodeStore.activateSlot(freeSlot, content, phrase, keywords);
     }
     
     // 2. 无空闲槽位，找到最不重要的节点进行复用
     const slotToReuse = await this.findLeastImportantSlot();
     
-    // 3. 复用槽位：
-    // - 生成新ID（旧ID关联自然失效）
-    // - 清空旧数据
-    // - 断开旧关联（懒删除，实际在cleanup时处理）
-    // - 写入新数据
-    const newNodeId = await this.nodeStore.reuseSlot(slotToReuse, content, keywords);
-    
-    // 4. 旧关联指向旧ID，物理位置相同但ID已变，识别为"已遗忘"
+    // 3. 复用槽位
+    const newNodeId = await this.nodeStore.reuseSlot(slotToReuse, content, phrase, keywords);
     return newNodeId;
   }
   
@@ -1318,8 +1455,8 @@ interface ContentProcessResult {
 
 // Worker任务类型扩展
 type WorkerTask = 
-  | { type: "segment"; text: string }
-  | { type: "process"; text: string; targetLength?: number };
+  | { type: "segment"; text: string }  // 语义切割
+  | { type: "process"; text: string; targetLength?: number };  // 内容处理
 ```
 
 ### 5.5 Worker实现更新
@@ -1382,6 +1519,7 @@ async function segmentText(text: string): Promise<string[]> {
 }
 
 // 内容处理（创建/压缩通用）
+// 返回：小模型提取的短语和关键词
 async function processContent(
   text: string, 
   targetLength?: number
@@ -1555,6 +1693,16 @@ private async compressNode(nodeId: string): Promise<void> {
 ### 5.1 MemoryManager - 统一入口
 
 ```typescript
+// 任务类型定义
+type TaskType = "store" | "recall" | "compress";
+
+interface Task {
+  type: TaskType;
+  payload: any;
+  resolve: (value: any) => void;
+  reject: (reason: any) => void;
+}
+
 class MemoryManager {
   private nodeStore: NodeStore;
   private linkStore: LinkStore;
@@ -1562,6 +1710,8 @@ class MemoryManager {
   private searchEngine: SearchEngine;
   private compressionScheduler: CompressionScheduler;
   private db: LevelGraph;
+  private taskQueue: Task[] = [];  // 内部任务队列
+  private isProcessing: boolean = false;
   
   constructor(dbPath: string) {
     // 初始化LevelGraph
@@ -1592,52 +1742,92 @@ class MemoryManager {
     // 注意：不创建任何初始节点或示例数据
   }
   
-  // 创建记忆（从语义切割后的小段）
-  // 实现方案选择：
-  // 方案A（固定节点数）：调用getOrCreateNode()，自动复用最不重要的槽位
-  // 方案B（动态创建）：调用createNode()，创建新节点
-  async createMemory(
-    content: string, 
-    keywords: string[],
-    relatedNodes?: string[]  // 同一切割来源的其他节点
-  ): Promise<string> {
-    // 方案A实现：固定节点数，复用槽位
-    // const nodeId = await this.compressionScheduler.getOrCreateNode(content, keywords);
+  // 任务入队
+  private enqueueTask<T>(type: TaskType, payload: any): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.taskQueue.push({ type, payload, resolve, reject });
+      this.processQueue();
+    });
+  }
+  
+  // 处理任务队列（串行执行）
+  private async processQueue(): Promise<void> {
+    if (this.isProcessing || this.taskQueue.length === 0) return;
     
-    // 方案B实现：动态创建新节点
-    const node = await this.nodeStore.createNode(content, keywords);
-    const nodeId = node.id;
+    this.isProcessing = true;
     
-    // 2. 与当前关注点建立关联（强度1.0）
-    // 时间顺序关联自然蕴含：新节点与当前关注点关联，形成时间链条
-    const focusList = this.focusManager.getFocusList();
-    for (const focusId of focusList) {
-      await this.linkStore.createLink(nodeId, focusId, 1.0, "focus-link");
-      await this.linkStore.createLink(focusId, nodeId, 1.0, "focus-link");
-    }
-    
-    // 3. 与同一切割来源的节点建立关联（强度0.5）
-    // 语义连贯性关联：同一长文本切割出的节点相互关联
-    if (relatedNodes) {
-      for (const relatedId of relatedNodes) {
-        await this.linkStore.createLink(nodeId, relatedId, 0.5, "segment-link");
-        await this.linkStore.createLink(relatedId, nodeId, 0.5, "segment-link");
+    while (this.taskQueue.length > 0) {
+      const task = this.taskQueue.shift()!;
+      
+      try {
+        let result: any;
+        
+        switch (task.type) {
+          case "store":
+            result = await this.executeStore(task.payload);
+            break;
+          case "recall":
+            result = await this.executeRecall(task.payload);
+            break;
+          case "compress":
+            result = await this.executeCompress();
+            break;
+        }
+        
+        task.resolve(result);
+      } catch (error) {
+        task.reject(error);
       }
     }
     
-    // 注意：用户不需要主动声明关联
-    // 隐含关联通过节点相似性和共享关注点自然形成
-    // 当用户讨论相关话题时，会创建相似节点（副本），这些节点通过BFS搜索被发现
-    
-    return nodeId;
+    this.isProcessing = false;
   }
   
-  // 回忆（BFS搜索）
-  async recall(
-    keywords: string[],
-    relations: string[],
-    depth: number
-  ): Promise<string> {
+  // 实际执行建立记忆（在队列中串行调用）
+  // 参数：小模型处理后的数据（语义切割结果）
+  private async executeStore(payload: {
+    segments: string[];
+    phrases: string[];
+    keywords: string[][];
+  }): Promise<string[]> {
+    const { segments, phrases, keywords } = payload;
+    const nodeIds: string[] = [];
+    
+    for (let i = 0; i < segments.length; i++) {
+      // 创建节点（使用小模型处理后的数据）
+      const node = await this.nodeStore.createNode(
+        segments[i],
+        phrases[i],
+        keywords[i]
+      );
+      
+      // 与当前关注点建立关联（强度1.0）
+      const focusList = this.focusManager.getFocusList();
+      for (const focusId of focusList) {
+        await this.linkStore.createLink(node.id, focusId, 1.0, "focus-link");
+        await this.linkStore.createLink(focusId, node.id, 1.0, "focus-link");
+      }
+      
+      // 与同一切割来源的节点建立关联（强度0.5）
+      for (const relatedId of nodeIds) {
+        await this.linkStore.createLink(node.id, relatedId, 0.5, "segment-link");
+        await this.linkStore.createLink(relatedId, node.id, 0.5, "segment-link");
+      }
+      
+      nodeIds.push(node.id);
+    }
+    
+    return nodeIds;
+  }
+  
+  // 实际执行回忆（在队列中串行调用）
+  private async executeRecall(payload: {
+    keywords: string[];
+    relations: string[];
+    depth: number;
+  }): Promise<string> {
+    const { keywords, relations, depth } = payload;
+    
     // 1. 执行BFS搜索
     const results = await this.searchEngine.search(keywords, relations, depth);
     
@@ -1657,9 +1847,35 @@ class MemoryManager {
     return matchedContents.join("\n");
   }
   
-  // 触发压缩（由外部调度系统调用）
-  async triggerCompression(): Promise<void> {
+  // 实际执行压缩（在队列中串行调用）
+  private async executeCompress(): Promise<void> {
     await this.compressionScheduler.runCompressionSlice();
+  }
+  
+  // 建立记忆接口
+  // 参数：小模型语义切割后的结果
+  store(
+    segments: string[], 
+    phrases: string[], 
+    keywords: string[][]
+  ): Promise<string[]> {
+    return this.enqueueTask("store", { segments, phrases, keywords });
+  }
+  
+  // 回忆（BFS搜索）
+  // 外部调用入队，异步执行，立即返回Promise
+  recall(
+    keywords: string[],
+    relations: string[],
+    depth: number
+  ): Promise<string> {
+    return this.enqueueTask("recall", { keywords, relations, depth });
+  }
+  
+  // 触发压缩（由外部调度系统调用）
+  // 外部调用入队，异步执行，立即返回Promise
+  triggerCompression(): Promise<void> {
+    return this.enqueueTask("compress", {});
   }
   
   // 关闭
@@ -1672,25 +1888,58 @@ class MemoryManager {
 ### 5.2 使用示例
 
 ```typescript
-// 初始化
-const memory = new MemoryManager("./memory_data");
+// 每个智能体拥有独立的记忆系统实例
+const memory = new MemoryManager("./memory_data/agent_001");
 await memory.initialize();
-// 系统启动时网络为空，focusManager也为空
+// 系统启动时网络为空
 
-// 建立记忆（由外部系统传入聊天记录后调用）
-// 场景：大模型调度系统监控到上下文超过阈值，将超出部分提交给记忆系统
-// 1. 外部系统对聊天记录进行语义切割
-// 2. 将切割后的小段依次调用 createMemory 创建节点
-const nodeId1 = await memory.createMemory("我今天去了公园", ["公园", "今天"]);
-const nodeId2 = await memory.createMemory("看到了很多花", ["花"], [nodeId1]);
+// ===== 业务层：线性调用 =====
+// 智能体业务代码按顺序调用记忆接口，不并发
+
+// 场景1：外部系统传入聊天记录，建立记忆
+// 流程：
+// 1. 大模型调度系统监控到上下文超过阈值
+// 2. 调用小模型对聊天记录进行语义切割
+// 3. 小模型返回：segments, phrases, keywords
+// 4. 调用记忆系统 store 接口创建节点
+
+// 假设小模型已处理完毕，返回：
+const segments = ["我今天去了公园", "看到了很多花"];
+const phrases = ["去公园", "看花"];
+const keywords = [["公园", "今天"], ["花"]];
+
+// 建立记忆（传入小模型处理后的数据）
+const nodeIds = await memory.store(segments, phrases, keywords);
 // 节点创建时会自动与当前关注点建立关联，形成时间链条
 
-// 回忆
+// 场景2：回忆（智能体思考时需要相关记忆）
 const result = await memory.recall(["公园"], [], 2);
-console.log(result);  // "我今天去了公园"
+// 返回语义化文本："[记忆] 我今天去了公园\n---\n[记忆] 看到了很多花"
 
-// 触发压缩（定时或按Token阈值触发）
+// 场景3：再次建立记忆（基于新的对话）
+const segments2 = ["公园里有很多人"];
+const phrases2 = ["公园人多"];
+const keywords2 = [["公园", "人"]];
+await memory.store(segments2, phrases2, keywords2);
+
+// 场景4：再次回忆（关注点已更新）
+const result2 = await memory.recall(["公园"], [], 2);
+// 现在包含3条记忆
+
+// 场景5：触发压缩（由外部调度系统定期调用）
 await memory.triggerCompression();
+
+// ===== 关键设计说明 =====
+// 1. 业务层线性：代码顺序执行，每个await等待完成后再继续
+// 2. 记忆层异步：调用进入任务队列，串行处理，不阻塞业务逻辑
+// 3. 即使业务层意外并发调用，队列保证操作顺序执行
+
+// 错误示例（应避免）：
+// Promise.all([
+//   memory.recall(["公园"], [], 2),
+//   memory.store(segments, phrases, keywords),
+//   memory.recall(["人"], [], 2)
+// ]);
 
 // 关闭
 await memory.close();
@@ -1807,6 +2056,22 @@ const memory = new MemoryManager("./memory_data_backup");
 
 ---
 
-**文档版本**：1.0  
-**最后更新**：2026-02-05  
+## 10. 变更记录
+
+| 日期 | 变更内容 |
+|------|----------|
+| 2026-02-06 | 新增：核心设计原则（1.0）- 智能体隔离性、业务执行模型 |
+| 2026-02-06 | 更新：系统整体架构图（1.2）- 体现多智能体隔离 |
+| 2026-02-06 | 新增：TaskQueue模块到模块职责表（1.3） |
+| 2026-02-06 | 新增：执行模型详解（1.4）- 线性业务+异步队列 |
+| 2026-02-06 | 更新：MemoryManager实现 - 添加任务队列机制（5.1） |
+| 2026-02-06 | 更新：使用示例（5.2）- 体现业务层线性调用和队列设计 |
+| 2026-02-06 | **修正**：恢复正确的节点结构设计（content/phrase/keywords均由小模型处理） |
+| 2026-02-06 | **修正**：store接口参数明确为：segments, phrases, keywords（小模型输出） |
+| 2026-02-05 | 初始版本 - 基础架构与实现 |
+
+---
+
+**文档版本**：1.1  
+**最后更新**：2026-02-06  
 **技术栈**：Bun + LevelGraph + LevelDB
