@@ -754,23 +754,23 @@ class SearchEngine {
   private focusManager: FocusManager;
   
   // BFS搜索
+  // 返回：语义化的记忆文本，不含技术细节
   async search(
     keywords: string[],
     relations: string[],
     depth: number
-  ): Promise<Array<{ node: Node; matched: boolean }>> {
+  ): Promise<string> {
     const focusList = this.focusManager.getFocusList();
-    const results: Map<string, { node: Node; matched: boolean; distance: number }> = new Map();
+    const matchedNodes: Array<{ content: string; phrase: string }> = [];
+    const visited = new Set<string>();
     
     // 从每个关注点开始进行BFS
     for (const focusId of focusList) {
-      await this.bfsFromNode(focusId, depth, keywords, relations, results);
+      await this.bfsFromNode(focusId, depth, keywords, relations, matchedNodes, visited);
     }
     
-    // 转换为数组，按距离排序
-    return Array.from(results.values())
-      .sort((a, b) => a.distance - b.distance)
-      .map(({ node, matched }) => ({ node, matched }));
+    // 格式化为语义化文本输出
+    return this.formatResults(matchedNodes);
   }
   
   private async bfsFromNode(
@@ -778,9 +778,9 @@ class SearchEngine {
     maxDepth: number,
     keywords: string[],
     relations: string[],
-    results: Map<string, { node: Node; matched: boolean; distance: number }>
+    matchedNodes: Array<{ content: string; phrase: string }>,
+    globalVisited: Set<string>
   ): Promise<void> {
-    const visited = new Set<string>();
     const queue: Array<{ nodeId: string; distance: number }> = [
       { nodeId: startId, distance: 0 }
     ];
@@ -788,11 +788,11 @@ class SearchEngine {
     while (queue.length > 0) {
       const { nodeId, distance } = queue.shift()!;
       
-      if (visited.has(nodeId) || distance > maxDepth) continue;
-      visited.add(nodeId);
+      if (globalVisited.has(nodeId) || distance > maxDepth) continue;
+      globalVisited.add(nodeId);
       
-      // 懒删除检测
-      await this.linkStore.cleanupBrokenLinks(nodeId);
+      // 悬空关联检测（保留但不遍历）
+      const { validLinks } = await this.linkStore.detectBrokenLinks(nodeId);
       
       const node = await this.nodeStore.getNode(nodeId);
       if (!node) continue;  // 节点已被删除
@@ -800,17 +800,17 @@ class SearchEngine {
       // 检查是否匹配
       const matched = this.matchNode(node, keywords, relations);
       
-      // 如果未记录或距离更短，更新结果
-      const existing = results.get(nodeId);
-      if (!existing || existing.distance > distance) {
-        results.set(nodeId, { node, matched, distance });
+      if (matched) {
+        matchedNodes.push({
+          content: node.content,
+          phrase: node.phrase
+        });
       }
       
-      // 扩展到下一层
+      // 扩展到下一层（仅遍历有效关联）
       if (distance < maxDepth) {
-        const links = await this.linkStore.getNodeLinks(nodeId);
-        for (const link of links) {
-          if (!visited.has(link.to)) {
+        for (const link of validLinks) {
+          if (!globalVisited.has(link.to)) {
             queue.push({ nodeId: link.to, distance: distance + 1 });
           }
         }
@@ -818,7 +818,27 @@ class SearchEngine {
     }
   }
   
-  private matchNode(node: Node, keywords: string[], relations: string[]): boolean {
+  // 格式化为语义化输出
+  // 不包含：节点ID、匹配度、距离、深度等技术细节
+  private formatResults(
+    nodes: Array<{ content: string; phrase: string }>
+  ): string {
+    if (nodes.length === 0) {
+      return "";
+    }
+    
+    // 使用简单分隔符区分不同记忆点
+    // 不暴露任何内部结构信息
+    const memories = nodes.map(node => {
+      // 优先使用完整内容，内容为空时使用短语
+      const text = node.content || node.phrase;
+      return `[记忆] ${text}`;
+    });
+    
+    return memories.join("\n---\n");
+  }
+  
+  private async matchNode(node: Node, keywords: string[], relations: string[]): Promise<boolean> {
     // 关键词匹配
     if (keywords.length > 0) {
       const text = (node.content + " " + node.keywords.join(" ")).toLowerCase();
@@ -828,7 +848,6 @@ class SearchEngine {
     
     // 关系筛选（可选）
     if (relations.length > 0) {
-      // 获取节点的关联关系名称
       const nodeRelations = await this.linkStore.getNodeLinks(node.id);
       const hasRelation = nodeRelations.some(link => 
         link.relation && relations.includes(link.relation)
@@ -840,6 +859,26 @@ class SearchEngine {
   }
 }
 ```
+
+**语义透明性设计**：
+
+| 不暴露 | 原因 |
+|--------|------|
+| 节点ID | 内部标识，对语义理解无意义 |
+| 匹配度 | 大模型自行判断相关性更准确 |
+| 距离/深度 | 技术细节，不应影响语义理解 |
+| 关联强度 | 内部权重，不直接对应语义重要性 |
+
+**返回示例**：
+```
+[记忆] 昨天讨论了用户系统的登录模块设计，决定采用JWT方案。
+---
+[记忆] 前端组提到需要支持第三方登录，这个需求优先级待定。
+---
+[记忆] 架构评审时强调了安全性，建议使用短时效token。
+```
+
+大模型接收到的只是自然语言形式的记忆片段，以`---`分隔。这种设计使记忆系统对上层完全透明，大模型无需理解任何内部数据结构。
 
 ---
 
@@ -937,12 +976,14 @@ class FixedNodeCompressionScheduler {
   private maxNodes: number = 10000;  // 固定节点数上限
   private nodeSlots: string[] = [];   // 节点槽位数组
   
-  // 初始化时创建固定槽位
+  // 初始化时创建固定槽位（空槽位，不创建实际节点）
   async initialize(): Promise<void> {
+    // 系统启动时没有节点，网络为空
+    // 槽位仅为预分配的空间占位，不包含任何节点数据
     for (let i = 0; i < this.maxNodes; i++) {
       const slotId = `slot:${i}`;
       this.nodeSlots.push(slotId);
-      // 预创建空槽位标记
+      // 预创建空槽位标记（空闲状态，无节点数据）
       await this.nodeStore.createSlot(slotId);
     }
   }
@@ -1544,8 +1585,11 @@ class MemoryManager {
   }
   
   // 初始化
+  // 系统启动时网络为空，没有节点
+  // 所有节点均来自后续外部系统传入的聊天记录
   async initialize(): Promise<void> {
     await this.focusManager.initialize();
+    // 注意：不创建任何初始节点或示例数据
   }
   
   // 创建记忆（从语义切割后的小段）
@@ -1631,10 +1675,15 @@ class MemoryManager {
 // 初始化
 const memory = new MemoryManager("./memory_data");
 await memory.initialize();
+// 系统启动时网络为空，focusManager也为空
 
-// 建立记忆（语义切割后调用）
+// 建立记忆（由外部系统传入聊天记录后调用）
+// 场景：大模型调度系统监控到上下文超过阈值，将超出部分提交给记忆系统
+// 1. 外部系统对聊天记录进行语义切割
+// 2. 将切割后的小段依次调用 createMemory 创建节点
 const nodeId1 = await memory.createMemory("我今天去了公园", ["公园", "今天"]);
 const nodeId2 = await memory.createMemory("看到了很多花", ["花"], [nodeId1]);
+// 节点创建时会自动与当前关注点建立关联，形成时间链条
 
 // 回忆
 const result = await memory.recall(["公园"], [], 2);
