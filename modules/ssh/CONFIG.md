@@ -19,10 +19,10 @@
 | maxConnections | number | 10 | 最大并发连接数 |
 | connectionTimeout | number | 30000 | 连接超时时间（毫秒） |
 | commandTimeout | number | 30000 | 命令执行超时时间（毫秒） |
-| idleTimeout | number | 300000 | 连接空闲超时时间（毫秒） |
+| idleTimeout | number | 7200000 | 连接空闲超时时间（毫秒），默认2小时 |
 | maxOutputSize | number | 10485760 | 最大输出大小（字节，默认10MB） |
 | verifyHostKey | boolean | false | 是否验证主机密钥 |
-| keepaliveInterval | number | 10000 | 保活间隔（毫秒） |
+| keepaliveInterval | number | 30000 | SSH协议层保活间隔（毫秒），默认30秒 |
 
 ### 主机配置
 

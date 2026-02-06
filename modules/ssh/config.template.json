@@ -2,10 +2,10 @@
   "maxConnections": 10,
   "connectionTimeout": 30000,
   "commandTimeout": 30000,
-  "idleTimeout": 300000,
+  "idleTimeout": 7200000,
   "maxOutputSize": 10485760,
   "verifyHostKey": false,
-  "keepaliveInterval": 10000,
+  "keepaliveInterval": 30000,
   "hosts": {
     "production-server": {
       "description": "生产服务器",

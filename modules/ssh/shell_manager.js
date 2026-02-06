@@ -152,6 +152,8 @@ class ShellManager {
       // 5. 监听shell输出并写入文件
       stream.on('data', (data) => {
         writeStream.write(data.toString('utf8'));
+        // 更新连接的最后使用时间，防止被空闲清理机制断开
+        this.connectionManager.updateLastUsed?.(connectionId);
       });
 
       // 6. 处理stream关闭事件

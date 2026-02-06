@@ -104,8 +104,8 @@ class ConnectionManager {
     normalized.maxConnections = Number.isFinite(normalized.maxConnections) ? normalized.maxConnections : 10;
     normalized.connectionTimeout = Number.isFinite(normalized.connectionTimeout) ? normalized.connectionTimeout : 30000;
     normalized.commandTimeout = Number.isFinite(normalized.commandTimeout) ? normalized.commandTimeout : 30000;
-    normalized.idleTimeout = Number.isFinite(normalized.idleTimeout) ? normalized.idleTimeout : 300000;
-    normalized.keepaliveInterval = Number.isFinite(normalized.keepaliveInterval) ? normalized.keepaliveInterval : 10000;
+    normalized.idleTimeout = Number.isFinite(normalized.idleTimeout) ? normalized.idleTimeout : 7200000; // 默认2小时
+    normalized.keepaliveInterval = Number.isFinite(normalized.keepaliveInterval) ? normalized.keepaliveInterval : 30000; // 默认30秒保活
     normalized.keepaliveCountMax = Number.isFinite(normalized.keepaliveCountMax) ? normalized.keepaliveCountMax : 3;
     normalized.verifyHostKey = !!normalized.verifyHostKey;
     normalized.hosts = this._normalizeHosts(normalized.hosts);
@@ -486,6 +486,22 @@ class ConnectionManager {
         error: 'disconnect_failed',
         message: `断开连接失败: ${error.message}`
       };
+    }
+  }
+
+  /**
+   * 更新连接的最后使用时间
+   * 
+   * 设计说明：
+   * - 用于shell等长时间会话场景，接收数据时更新
+   * - 防止空闲清理机制误断活跃连接
+   * 
+   * @param {string} connectionId - 连接ID
+   */
+  updateLastUsed(connectionId) {
+    const conn = this.connections.get(connectionId);
+    if (conn) {
+      conn.lastUsedAt = new Date();
     }
   }
 
