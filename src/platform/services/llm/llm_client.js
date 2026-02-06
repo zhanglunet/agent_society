@@ -44,9 +44,12 @@ export class LlmClient {
     }
 
     // 创建 OpenAI 客户端
+    // timeout 单位为毫秒，默认30分钟（1800000毫秒），可在配置文件中通过 timeout 字段覆盖
+    const timeoutMs = typeof config.timeout === "number" && config.timeout > 0 ? config.timeout : 30 * 60 * 1000;
     this._client = new OpenAI({
       apiKey: config.apiKey ?? "",
-      baseURL: config.baseURL
+      baseURL: config.baseURL,
+      timeout: timeoutMs
     });
     this._clientConfig = { baseURL: config.baseURL, apiKey: config.apiKey, model: config.model };
 
@@ -84,9 +87,12 @@ export class LlmClient {
 
   /** @private */
   _updateClient(config) {
+    // timeout 单位为毫秒，默认30分钟（1800000毫秒），可在配置文件中通过 timeout 字段覆盖
+    const timeoutMs = typeof config.timeout === "number" && config.timeout > 0 ? config.timeout : 30 * 60 * 1000;
     this._client = new OpenAI({
       apiKey: config.apiKey ?? "",
-      baseURL: config.baseURL
+      baseURL: config.baseURL,
+      timeout: timeoutMs
     });
     this._clientConfig = { baseURL: config.baseURL, apiKey: config.apiKey, model: config.model };
   }
