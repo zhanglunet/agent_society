@@ -198,11 +198,17 @@ LevelGraph的Hexastore自动提供六重索引，满足以下查询模式：
 
 | 方法 | 输入 | 输出 | 说明 |
 |------|------|------|------|
-| `initialize()` | - | Promise<void> | 初始化系统，加载关注点 |
-| `store(segments, phrases, keywords)` | 小模型处理后的切割结果 | Promise<string[]> | 创建记忆节点，返回节点ID列表 |
-| `recall(keywords, relations, depth)` | 关键词数组、关系筛选、搜索深度 | Promise<string> | 回忆记忆，返回语义化文本 |
+| `initialize()` | - | Promise<void> | 初始化系统，加载关注点，启动队列处理器 |
+| `remember(messages)` | 与大模型通信的聊天记录数组 | void | 将记忆创建任务加入队列，立即返回，无返回值 |
+| `recall(keywords, relations, depth)` | 关键词数组、关系筛选、搜索深度 | Promise<string> | 将回忆任务加入队列，返回语义化文本 |
 | `triggerCompression()` | - | Promise<void> | 触发一次压缩（由外部调度调用） |
-| `close()` | - | Promise<void> | 关闭数据库连接 |
+| `close()` | - | Promise<void> | 关闭数据库连接，停止队列处理器 |
+
+**内部接口**（由队列处理器调用）：
+
+| 方法 | 输入 | 输出 | 说明 |
+|------|------|------|------|
+| `store(segments, phrases, keywords)` | 小模型处理后的切割结果 | Promise<string[]> | 创建记忆节点，返回节点ID列表 |
 
 **调用约定**：
 - 所有接口均为异步，返回Promise
