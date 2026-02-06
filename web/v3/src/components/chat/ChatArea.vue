@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2, ChevronUp, ChevronDown, X, Trash2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -6,9 +6,12 @@ import Menu from 'primevue/menu';
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
+import { useGuideStore } from '../../stores/guide';
+import { useOrgStore } from '../../stores/org';
 import { apiService } from '../../services/api';
 import ChatMessageList from './ChatMessageList.vue';
 import ConfirmDialog from '../common/ConfirmDialog.vue';
+import GuideBubble from './GuideBubble.vue';
 
 const props = defineProps<{
   orgId: string;
@@ -17,6 +20,15 @@ const props = defineProps<{
 
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
+const guideStore = useGuideStore();
+const orgStore = useOrgStore();
+
+// ========== 新手引导相关状态 ==========
+// 是否显示引导气泡（JS状态）
+const showGuideBubble = computed(() => guideStore.isVisible);
+// 发送按钮引用（用于定位气泡）
+const sendButtonRef = ref<InstanceType<typeof Button> | null>(null);
+// ====================================
 
 // 当前正在对话的智能体 ID
 const activeAgentId = computed(() => chatStore.getActiveAgentId(props.orgId));
@@ -63,7 +75,7 @@ const message = computed({
 const isSending = ref(false);
 const messageContainer = ref<HTMLElement | null>(null);
 const showScrollBottomButton = ref(false);
-const SCROLL_THRESHOLD = 150; // 距离底部小于 150px 视为“在底部”
+const SCROLL_THRESHOLD = 150; // 距离底部小于 150px 视为"在底部"
 
 // 搜索功能相关状态
 const isSearchActive = ref(false);
@@ -81,6 +93,14 @@ const showDeleteConfirm = ref(false);
 const deleteConfirmMessage = ref('');
 
 /**
+ * 预填输入框文字（JS逻辑）
+ */
+const prefillInput = () => {
+  const targetText = '建立一个私人助理';
+  chatStore.updateInputValue(activeAgentId.value, targetText);
+};
+
+/**
  * 更多菜单项
  */
 const moreMenuItems = computed(() => [
@@ -93,7 +113,7 @@ const moreMenuItems = computed(() => [
 ]);
 
 /**
- * 检查滚动位置，决定是否显示“返回底部”按钮
+ * 检查滚动位置，决定是否显示"返回底部"按钮
  */
 const handleScroll = () => {
   if (!messageContainer.value) return;
@@ -224,6 +244,12 @@ const sendMessage = async () => {
   if (!message.value.trim() || isSending.value) return;
   const text = message.value;
   chatStore.updateInputValue(activeAgentId.value, ''); // 清空当前对话的输入框
+  
+  // 如果正在显示引导，隐藏引导（JS逻辑）
+  if (guideStore.isVisible) {
+    guideStore.hideGuide();
+  }
+  
   isSending.value = true;
   
   try {
@@ -589,25 +615,45 @@ const handleDeleteAgent = async () => {
     <!-- 输入区域 -->
     <div class="p-6 border-t border-[var(--border)] bg-[var(--bg)]">
       <div class="max-w-4xl mx-auto relative group">
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-[var(--primary)] to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500"></div>
-        <div class="relative flex items-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)] group-focus-within:ring-4 group-focus-within:ring-[var(--primary-weak)]">
-          <InputText 
-            v-model="message" 
-            :placeholder="placeholder" 
-            class="flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm"
-            @keyup.enter="sendMessage"
-          />
-          <Button 
-            @click="sendMessage"
-            :disabled="!message.trim() || isSending"
-            class="!rounded-xl !p-3 transition-all duration-200 min-w-[44px]"
-            :class="message.trim() && !isSending 
-              ? '!bg-[var(--primary)] !text-white hover:!brightness-110 hover:!shadow-md' 
-              : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
-          >
-            <Loader2 v-if="isSending" class="w-4 h-4 animate-spin" />
-            <Send v-else class="w-4 h-4" />
-          </Button>
+        <!-- 非阻塞设计：输入区域容器 -->
+        <div class="input-area-container relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-[var(--primary)] to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500"></div>
+          <div class="input-area relative flex items-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)] group-focus-within:ring-4 group-focus-within:ring-[var(--primary-weak)]">
+            <InputText 
+              v-model="message" 
+              :placeholder="placeholder" 
+              class="flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm"
+              @keyup.enter="sendMessage"
+            />
+            <Button 
+              ref="sendButtonRef"
+              @click="sendMessage"
+              :disabled="!message.trim() || isSending"
+              class="!rounded-xl !p-3 transition-all duration-200 min-w-[44px]"
+              :class="message.trim() && !isSending 
+                ? '!bg-[var(--primary)] !text-white hover:!brightness-110 hover:!shadow-md' 
+                : '!bg-[var(--surface-3)] !text-[var(--text-3)]'"
+            >
+              <Loader2 v-if="isSending" class="w-4 h-4 animate-spin" />
+              <Send v-else class="w-4 h-4" />
+            </Button>
+
+            <!-- 发送按钮引导气泡容器 -->
+            <div class="guide-bubble-container guide-bubble-container--send">
+              <GuideBubble
+                v-if="showGuideBubble"
+                :visible="showGuideBubble"
+                position="bottom"
+                :offset="{ x: 0, y: 0 }"
+                title="开始使用"
+                :text="'我已经在输入框里为您准备好了创建私人助理的命令，点击发送按钮即可开始。'"
+                :hint="'您也可以修改文字内容，或者关闭此提示。'"
+                icon="rocket"
+                :show-close-button="true"
+                @close="guideStore.hideGuide()"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -627,14 +673,72 @@ const handleDeleteAgent = async () => {
 </template>
 
 <style scoped>
-/* 自定义输入框样式，确保 PrimeVue 默认样式不冲突 */
+/* ============================================
+   Non-Blocking Design
+   非阻塞设计：确保输入框和按钮始终可交互
+   基于docs/新手引导功能用户体验设计方案_v4.md
+   ============================================ */
+
+/* 输入区域容器 */
+.input-area-container {
+  position: relative;
+  z-index: 101;  /* 高于气泡（z-index: 100），确保可点击 */
+  pointer-events: auto;  /* 始终可交互 */
+}
+
+.input-area {
+  position: relative;
+  z-index: 101;  /* 高于气泡 */
+  pointer-events: auto;  /* 始终可交互 */
+}
+
+/* 输入框和发送按钮保持最高优先级 */
+.input-area > :deep(.p-inputtext),
+.input-area > button {
+  position: relative;
+  z-index: 101;  /* 高于气泡 */
+  pointer-events: auto;  /* 始终可交互 */
+}
+
+/* 气泡容器 */
+.guide-bubble-container {
+  position: absolute;
+  top: -100%;  /* 输入框上方 */
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;  /* 容器不拦截事件 */
+  z-index: 100;  /* 低于输入区域 */
+  margin-bottom: 24px;  /* 确保不遮挡输入框 */
+}
+
+.guide-bubble-container--send {
+  /* 指向发送按钮的引导 */
+}
+
+/* 确保气泡不遮挡输入框 */
+.guide-bubble-container :deep(.guide-bubble) {
+  position: absolute;
+  bottom: 24px;  /* 输入框上方24px */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: auto;  /* 气泡自身可交互 */
+}
+
+/* ============================================
+   自定义输入框样式，确保 PrimeVue 默认样式不冲突
+   ============================================ */
+
 :deep(.p-inputtext) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-/* 搜索高亮样式 */
+/* ============================================
+   搜索高亮样式
+   ============================================ */
+
 :deep(.search-highlight) {
   background-color: rgba(250, 204, 21, 0.4);
   border-radius: 2px;
@@ -658,16 +762,16 @@ const handleDeleteAgent = async () => {
 }
 
 /* 深色模式适配 */
-@media (prefers-color-scheme: dark) {
-  :deep(.search-highlight) {
-    background-color: rgba(234, 179, 8, 0.3);
-  }
-  
-  :deep(.search-highlight-current) {
-    background-color: rgba(234, 179, 8, 0.7);
-    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
-  }
-  
+.my-app-dark :deep(.search-highlight) {
+  background-color: rgba(234, 179, 8, 0.3);
+}
+
+.my-app-dark :deep(.search-highlight-current) {
+  background-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
+}
+
+.my-app-dark {
   @keyframes searchPulse {
     0%, 100% {
       box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4);
@@ -676,5 +780,44 @@ const handleDeleteAgent = async () => {
       box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.2);
     }
   }
+}
+
+/* ============================================
+   Responsive Design
+   响应式适配
+   ============================================ */
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .guide-bubble-container {
+    margin-bottom: 12px;  /* 紧凑但仍不遮挡 */
+  }
+  
+  .guide-bubble-container :deep(.guide-bubble) {
+    bottom: 12px;
+  }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+  .guide-bubble-container {
+    margin-bottom: 8px;
+  }
+  
+  .guide-bubble-container :deep(.guide-bubble) {
+    bottom: 8px;
+  }
+}
+
+/* ============================================
+   Accessibility
+   可访问性
+   ============================================ */
+
+/* 确保焦点样式正确 */
+.input-area > :deep(.p-inputtext:focus),
+.input-area > button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 </style>

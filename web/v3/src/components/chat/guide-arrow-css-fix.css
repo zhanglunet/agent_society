@@ -1,0 +1,11 @@
+.guide-bubble__arrow--top-right {
+  top: -8px;
+  right: -8px;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  border-top: 8px solid #000;
+  border-right: 8px solid #000;
+  border-bottom: none;
+  border-left: 8px solid transparent;
+}

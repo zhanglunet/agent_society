@@ -1,0 +1,975 @@
+bun test v1.3.8 (b64edcb4)
+
+test/e2e.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'puppeteer-core' from '/home/user/agent_society/src/platform/localllm/wllama_headless_launcher.js'
+-------------------------------
+
+
+test/start.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/start.test.js'
+-------------------------------
+
+
+test/packaging.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/packaging.test.js'
+-------------------------------
+
+
+test/platform/quick_replies_validation.test.js:
+
+# Unhandled error between tests
+-------------------------------
+41 |   test("Property 1: 超过10个元素的数组应返回错�?, async () => {
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/quick_replies_validation.test.js:41:8
+-------------------------------
+
+
+test/platform/config_concurrency.test.js:
+
+# Unhandled error between tests
+-------------------------------
+30 |     it("对于任何app.json配置文件，系统应正确读取maxConcurrentLlmRequest
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/config_concurrency.test.js:30:8
+-------------------------------
+
+
+test/platform/contact_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+13 |   test("Property 3: 联系人注册表初始�?- 普通智能体应自动包含父智�
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/contact_manager.test.js:13:8
+-------------------------------
+
+
+test/platform/runtime_workspace.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/runtime_workspace.test.js'
+-------------------------------
+
+
+test/platform/browser_javascript_executor.test.js:
+
+# Unhandled error between tests
+-------------------------------
+83 |     test("应该能执行异步代�?, async () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/browser_javascript_executor.test.js:83:10
+-------------------------------
+
+
+test/platform/task_brief.test.js:
+
+# Unhandled error between tests
+-------------------------------
+65 |   test("Property 1: Task Brief 验证 - constraints 必须是数�?, async () => {
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/task_brief.test.js:65:8
+-------------------------------
+
+
+test/platform/message_bus_stopped_send.test.js:
+(pass) MessageBus - stopped agent messaging > should allow sending to stopped/stopping agent (pause semantics) [3.00ms]
+(pass) MessageBus - stopped agent messaging > should reject sending to terminating agent [1.00ms]
+
+test/platform/runtime_llm_services.test.js:
+
+# Unhandled error between tests
+-------------------------------
+67 |   describe("Property 8: LlmClient 池实例复�?, () => {
+                ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime_llm_services.test.js:67:12
+-------------------------------
+
+
+test/platform/runtime_llm_persistence.test.js:
+
+# Unhandled error between tests
+-------------------------------
+7 | describe("RuntimeLlm 对话历史持久�?, () => {
+             ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime_llm_persistence.test.js:7:10
+-------------------------------
+
+
+test/platform/http_org_tree_custom_name.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'openai' from '/home/user/agent_society/src/platform/services/llm/llm_client.js'
+-------------------------------
+
+
+test/platform/http_server.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/http_server.test.js'
+-------------------------------
+
+
+test/platform/message-attachment.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/message-attachment.test.js'
+-------------------------------
+
+
+test/platform/verify_api.test.js:
+Fetching: /api/workspaces/899a4b15-e034-4dbe-b1a3-8aee214ae218
+Fetch failed. Is the server running? fetch() URL is invalid
+(pass) Verify API response for specific workspace
+
+test/platform/upload-api.test.js:
+
+# Unhandled error between tests
+-------------------------------
+49 |       return { valid: false, errors: ['响应必须是对�?] };
+                                           ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/upload-api.test.js:49:39
+-------------------------------
+
+
+test/platform/download_to_workspace.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/message_processor.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/runtime_interruption_queue.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/llm_client_concurrency.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/llm_client_concurrency.test.js'
+-------------------------------
+
+
+test/platform/runtime_events.test.js:
+
+# Unhandled error between tests
+-------------------------------
+24 |     test("注册和触发工具调用事�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime_events.test.js:24:10
+-------------------------------
+
+
+test/platform/agent_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/stop_agent_should_not_resume.test.js:
+85 |     const lifecycle = new RuntimeLifecycle(runtime);
+86 | 
+87 |     bus._push("a1", { id: "m1", from: "user", to: "a1", payload: { text: "hi" } });
+88 |     scheduler._ingestMessagesToTurns();
+89 |     scheduler._runOneStep();
+90 |     expect(statusByAgent.get("a1")).toBe("waiting_llm");
+                                         ^
+error: expect(received).toBe(expected)
+
+Expected: "waiting_llm"
+Received: undefined
+
+      at <anonymous> (/home/user/agent_society/test/platform/stop_agent_should_not_resume.test.js:90:37)
+(fail) Stop button semantics > stopped agent should ignore late llm result and not continue processing [2.00ms]
+177 |     runtime._computeScheduler = scheduler;
+178 |     const lifecycle = new RuntimeLifecycle(runtime);
+179 | 
+180 |     const stopResult = lifecycle.abortAgentLlmCall("a1");
+181 |     expect(stopResult.ok).toBe(true);
+182 |     expect(statusByAgent.get("a1")).toBe("stopped");
+                                          ^
+error: expect(received).toBe(expected)
+
+Expected: "stopped"
+Received: "idle"
+
+      at <anonymous> (/home/user/agent_society/test/platform/stop_agent_should_not_resume.test.js:182:37)
+(fail) Stop button semantics > stopped agent should resume processing on new message [3.00ms]
+
+test/platform/runtime_lifecycle.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/auto_compression_config.test.js:
+
+# Unhandled error between tests
+-------------------------------
+36 |     test('应该验证有效的配�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/auto_compression_config.test.js:36:10
+-------------------------------
+
+
+test/platform/tool_executor.test.js:
+
+# Unhandled error between tests
+-------------------------------
+200 |     expect(childSystemPrompt).toContain("【组织架构�?);
+                                              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/tool_executor.test.js:200:41
+-------------------------------
+
+
+test/platform/compute_scheduler_interruption_retry.test.js:
+94 |     const turnEngine = new TurnEngine(runtime);
+95 |     const scheduler = new ComputeScheduler(runtime, turnEngine);
+96 | 
+97 |     scheduler._ingestMessagesToTurns();
+98 |     scheduler._runOneStep();
+99 |     expect(chatCalls.length).toBe(1);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 0
+
+      at <anonymous> (/home/user/agent_society/test/platform/compute_scheduler_interruption_retry.test.js:99:30)
+(fail) ComputeScheduler - interruption triggers llm retry > should cancel in-flight llm and retry with merged interruption
+
+test/platform/turn_engine_tool_calls.test.js:
+26 |     const message = { id: "m1", from: "user", to: agentId, taskId: "t1", payload: { text: "hi" } };
+27 | 
+28 |     engine.enqueueMessageTurn(agentId, ctx, message);
+29 | 
+30 |     const first = engine.step(agentId, { epoch: 0, signal: new AbortController().signal, assertActive: () => {} });
+31 |     expect(first.kind).toBe("need_llm");
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: "need_llm"
+Received: undefined
+
+      at <anonymous> (/home/user/agent_society/test/platform/turn_engine_tool_calls.test.js:31:24)
+(fail) TurnEngine - tool_calls step progression > should turn tool_calls into need_tool and then request next LLM round
+
+test/platform/tool_group_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/tool_group_manager.test.js'
+-------------------------------
+
+
+test/platform/conversation_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+29 |     test("ensureConversation 创建新会�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/conversation_manager.test.js:29:10
+-------------------------------
+
+
+test/platform/agent_society.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/agent_society.test.js'
+-------------------------------
+
+
+test/platform/user_endpoint_not_scheduled.test.js:
+(pass) ComputeScheduler - user endpoint should not run LLM > should dispatch to user agent behavior and keep status idle
+
+test/platform/runtime_lifecycle_abort_not_found.test.js:
+(pass) RuntimeLifecycle - abortAgentLlmCall > should return agent_not_found when agent does not exist
+(pass) RuntimeLifecycle - abortAgentLlmCall > should not allow stopping user endpoint
+
+test/platform/runtime.test.js:
+
+# Unhandled error between tests
+-------------------------------
+56 |     expect(artifact.content).toContain("平台只提供能�?);
+                                            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime.test.js:56:40
+-------------------------------
+
+
+test/platform/model_selector.test.js:
+
+# Unhandled error between tests
+-------------------------------
+62 |       const result = await selector.selectService("测试岗位提示�?);
+                                                       ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/model_selector.test.js:62:51
+-------------------------------
+
+
+test/platform/compute_status_idle_after_turn.test.js:
+76 |     const turnEngine = new TurnEngine(runtime);
+77 |     const scheduler = new ComputeScheduler(runtime, turnEngine);
+78 | 
+79 |     scheduler._ingestMessagesToTurns();
+80 |     scheduler._runOneStep();
+81 |     expect(statusByAgent.get("a1")).toBe("waiting_llm");
+                                         ^
+error: expect(received).toBe(expected)
+
+Expected: "waiting_llm"
+Received: undefined
+
+      at <anonymous> (/home/user/agent_society/test/platform/compute_status_idle_after_turn.test.js:81:37)
+(fail) ComputeScheduler - computeStatus convergence > should return to idle after finishing a simple turn
+
+test/platform/message_validator.test.js:
+
+# Unhandled error between tests
+-------------------------------
+100 |   test("Property 10: introduction_response 消息必须包含目标智能体信�?, asy
+             ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/message_validator.test.js:100:8
+-------------------------------
+
+
+test/platform/http_workspace_endpoints.test.js:
+WorkspaceManager.js loaded
+(pass) HTTPServer workspace endpoints > GET /api/workspaces/:workspaceId 返回文件列表 [13.00ms]
+105 |       throw new Error("path_traversal_blocked");
+106 |     }
+107 | 
+108 |     // 先检查必需参数，避免文件写入后才发现参数缺失
+109 |     if (!options.operator) {
+110 |       throw new Error(`writeFile_missing_operator: ${relativePath}`);
+                      ^
+error: writeFile_missing_operator: test.txt
+      at writeFile (/home/user/agent_society/src/platform/services/workspace/workspace.js:110:17)
+      at writeFile (/home/user/agent_society/src/platform/services/workspace/workspace_manager.js:143:21)
+      at async <anonymous> (/home/user/agent_society/test/platform/http_workspace_endpoints.test.js:79:38)
+(fail) HTTPServer workspace endpoints > GET /api/workspaces/:workspaceId/file 获取文件内容 [2.00ms]
+105 |       throw new Error("path_traversal_blocked");
+106 |     }
+107 | 
+108 |     // 先检查必需参数，避免文件写入后才发现参数缺失
+109 |     if (!options.operator) {
+110 |       throw new Error(`writeFile_missing_operator: ${relativePath}`);
+                      ^
+error: writeFile_missing_operator: to-delete.txt
+      at writeFile (/home/user/agent_society/src/platform/services/workspace/workspace.js:110:17)
+      at writeFile (/home/user/agent_society/src/platform/services/workspace/workspace_manager.js:143:21)
+      at async <anonymous> (/home/user/agent_society/test/platform/http_workspace_endpoints.test.js:106:38)
+(fail) HTTPServer workspace endpoints > DELETE /api/workspaces/:workspaceId/file 删除文件 [1.00ms]
+
+test/platform/id-generator.test.js:
+
+# Unhandled error between tests
+-------------------------------
+27 |   it("生成的ID包含变体�?, async () => {
+          ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/id-generator.test.js:27:6
+-------------------------------
+
+
+test/platform/llm_client.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/runtime_llm.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/statistics_monitoring.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/statistics_monitoring.test.js'
+-------------------------------
+
+
+test/platform/cancellation.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/cancellation.test.js'
+-------------------------------
+
+
+test/platform/llm_service_registry.test.js:
+
+# Unhandled error between tests
+-------------------------------
+55 |     test("加载有效的配置文�?, async () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/llm_service_registry.test.js:55:10
+-------------------------------
+
+
+test/platform/runtime_state.test.js:
+
+# Unhandled error between tests
+-------------------------------
+65 |     test("设置和获取智能体元数�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime_state.test.js:65:10
+-------------------------------
+
+
+test/platform/conversation_reload_into_llm_messages.test.js:
+74 |       })
+75 |     };
+76 | 
+77 |     const llm = new RuntimeLlm(runtime);
+78 |     runtime._llm = llm;
+79 |     runtime._ensureConversation = (id, systemPrompt) => llm.ensureConversation(id, systemPrompt);
+                                                                 ^
+TypeError: llm.ensureConversation is not a function. (In 'llm.ensureConversation(id, systemPrompt)', 'llm.ensureConversation' is undefined)
+      at <anonymous> (/home/user/agent_society/test/platform/conversation_reload_into_llm_messages.test.js:79:61)
+      at enqueueMessageTurn (/home/user/agent_society/src/platform/runtime/turn_engine.js:36:31)
+      at _ingestMessagesToTurns (/home/user/agent_society/src/platform/runtime/compute_scheduler.js:131:25)
+      at <anonymous> (/home/user/agent_society/test/platform/conversation_reload_into_llm_messages.test.js:102:15)
+(fail) 重启后旧历史注入 LLM messages > TurnEngine 首次 ensureConversation 会从磁盘恢复历史 [3.00ms]
+
+test/platform/run_javascript_canvas.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/run_javascript_canvas.test.js'
+-------------------------------
+
+
+test/platform/message_bus.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/message_bus.test.js'
+-------------------------------
+
+
+test/platform/content_adapter.test.js:
+
+# Unhandled error between tests
+-------------------------------
+16 |     test("创建实例不抛出异�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/content_adapter.test.js:16:10
+-------------------------------
+
+
+test/platform/runtime_messaging.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/llm_concurrency_comprehensive.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/llm_concurrency_comprehensive.test.js'
+-------------------------------
+
+
+test/platform/auto_compression_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+37 |   describe('构造函�?, () => {
+                ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/auto_compression_manager.test.js:37:12
+-------------------------------
+
+
+test/platform/force_terminate_agent.test.js:
+(pass) RuntimeLifecycle - forceTerminateAgent > should cancel, clear, and remove agent and descendants [1.00ms]
+
+test/platform/compute_scheduler_fairness.test.js:
+ 98 |     scheduler._runOneStep();
+ 99 |     scheduler._runOneStep();
+100 |     await Promise.resolve();
+101 |     await Promise.resolve();
+102 | 
+103 |     expect(chatCalls.length).toBeGreaterThanOrEqual(2);
+                                   ^
+error: expect(received).toBeGreaterThanOrEqual(expected)
+
+Expected: >= 2
+Received: 0
+
+      at <anonymous> (/home/user/agent_society/test/platform/compute_scheduler_fairness.test.js:103:30)
+(fail) ComputeScheduler - fairness (basic) > should let multiple agents start LLM without being blocked by tool loop [2.00ms]
+
+test/platform/llm_client_integration.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/llm_client_integration.test.js'
+-------------------------------
+
+
+test/platform/message_bus_interruption_pbt.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/message_bus_interruption_pbt.test.js'
+-------------------------------
+
+
+test/platform/http_client.test.js:
+(pass) HttpClient > URL ��֤ > Ӧ¾ܾø HTTP URL
+(pass) HttpClient > URL ��֤ > Ӧ¾ܾø��Ч URL [1.00ms]
+(pass) HttpClient > URL ��֤ > Ӧ½��� HTTPS URL [1199.00ms]
+(pass) HttpClient > HTTP ·½·¨��֤ > Ӧ¾ܾø��Чµ� HTTP ·½·¨
+(pass) HttpClient > HTTP ·½·¨��֤ > Ӧ½�����Чµ� HTTP ·½·¨ [2610.01ms]
+(pass) HttpClient > ������־ > Ӧ¼�¼���� ID [229.00ms]
+(pass) HttpClient > ������־ > Ӧ¼�¼������ ID [249.00ms]
+(pass) HttpClient > ������־ > Ӧ¼�¼���󷽷¨º� URL [249.00ms]
+(pass) HttpClient > ������־ > Ӧ¼�¼����ͷ [250.00ms]
+(pass) HttpClient > ������־ > Ӧ¼�¼������ [231.00ms]
+(pass) HttpClient > createHttpClient ¹¤³§º¯�ý > Ӧ´´½¨ HttpClient ʵ�ý
+
+test/platform/llm-multimodal.test.js:
+
+# Unhandled error between tests
+-------------------------------
+118 |       expect(formatted).toContain("【来自用户的消息�?);
+                                        ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/llm-multimodal.test.js:118:35
+-------------------------------
+
+
+test/platform/prompt_loader.test.js:
+
+# Unhandled error between tests
+-------------------------------
+17 |     expect(content).toContain("rolePrompt 必须保持简�?);
+                                   ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/prompt_loader.test.js:17:31
+-------------------------------
+
+
+test/platform/message_bus_interruption.test.js:
+
+# Unhandled error between tests
+-------------------------------
+15 | describe("MessageBus 插话检�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/message_bus_interruption.test.js:15:10
+-------------------------------
+
+
+test/platform/message_formatter.test.js:
+
+# Unhandled error between tests
+-------------------------------
+44 |   test("Property 9: 消息格式�?- 用户消息应使用特殊格式且无回复提�
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/message_formatter.test.js:44:8
+-------------------------------
+
+
+test/platform/integration.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/runtime_interruption.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/org_templates.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/runtime_tool_delegation.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/http_client_abort.test.js:
+(pass) HttpClient - external abort signal > should return request_aborted when external signal aborts
+
+test/platform/config_service.test.js:
+
+# Unhandled error between tests
+-------------------------------
+49 |     it("Property 6: 对于有效长度 > 4 �?API Key，应只显示最�?4 个字�?,
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/config_service.test.js:49:8
+-------------------------------
+
+
+test/platform/workspace_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/workspace_manager.test.js'
+-------------------------------
+
+
+test/platform/llm_concurrency_final.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/llm_concurrency_final.test.js'
+-------------------------------
+
+
+test/platform/error_handling.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/error_handling.test.js'
+-------------------------------
+
+
+test/platform/module_loader.test.js:
+
+# Unhandled error between tests
+-------------------------------
+160 |     test("仅加载配置中启用的模�?, async () => {
+               ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/module_loader.test.js:160:10
+-------------------------------
+
+
+test/platform/concurrency_controller.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/platform/concurrency_controller.test.js'
+-------------------------------
+
+
+test/platform/org_primitives.test.js:
+
+# Unhandled error between tests
+-------------------------------
+86 |   test("Property 13: 组织状态持久化一致�?- 创建智能体后立即可读�?,
+            ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/org_primitives.test.js:86:8
+-------------------------------
+
+
+test/platform/runtime_tools.test.js:
+
+# Unhandled error between tests
+-------------------------------
+46 |     test("获取所有工具定�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/runtime_tools.test.js:46:10
+-------------------------------
+
+
+test/modules/ui_page.test.js:
+(pass) ui_page 模块工具 > ui_page_eval_js: 应投递 eval_js 并等待结果 [1.00ms]
+(pass) ui_page 模块工具 > ui_page_get_content: 应投递 get_content
+(pass) ui_page 模块工具 > ui_page_dom_patch: 应投递 dom_patch
+(pass) ui_page 模块工具 > 未连接 UI 时应返回 ui_client_not_connected
+(pass) ui_page 模块工具 > 等待超时应返回 ui_timeout [1.00ms]
+
+test/modules/chrome.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'puppeteer-core' from '/home/user/agent_society/modules/chrome/browser_manager.js'
+-------------------------------
+
+
+test/modules/ssh.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'ssh2' from '/home/user/agent_society/modules/ssh/connection_manager.js'
+-------------------------------
+
+
+test/modules/chrome_devtools.test.js:
+(pass) Chrome DevTools 调试采集 > enableDevtools 应注册 console/pageerror/requestfailed 监听（且只注册一次）
+(pass) Chrome DevTools 调试采集 > getDevtoolsContent 应按 maxEntries 做环形裁剪并累计 dropped
+(pass) Chrome DevTools 调试采集 > captureConsole=false 时不应写入 console 日志
+(pass) Chrome DevTools 调试采集 > clearAfterRead=true 应清空缓存并重置计数
+
+test/modules/chrome_selector_sanitization.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/modules/chrome_selector_sanitization.test.js'
+-------------------------------
+
+
+test/modules/ffmpeg.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/web/json-text-truncation.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/json-text-truncation.test.js'
+-------------------------------
+
+
+test/web/image-converter.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/image-converter.test.js'
+-------------------------------
+
+
+test/web/agent-list.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/agent-list.test.js'
+-------------------------------
+
+
+test/web/chat-image-and-modules.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/chat-image-and-modules.test.js'
+-------------------------------
+
+
+test/web/json-viewer.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/json-viewer.test.js'
+-------------------------------
+
+
+test/web/filter.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/filter.test.js'
+-------------------------------
+
+
+test/web/v2-agent-name-navigation.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../web/v2/app/controller.mjs' from '/home/user/agent_society/test/web/v2-agent-name-navigation.test.js'
+-------------------------------
+
+
+test/web/sort.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/sort.test.js'
+-------------------------------
+
+
+test/web/org-templates-api.test.js:
+error: Cannot find module '../../web/js/api.js' from '/home/user/agent_society/test/web/org-templates-api.test.js'
+(fail) Web API org-templates > API.org-templates：updateOrgTemplateInfo(PUT) 与 renameOrgTemplate(POST) 路由正确
+
+test/web/app-view-switch.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/app-view-switch.test.js'
+-------------------------------
+
+
+test/web/tree.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/tree.test.js'
+-------------------------------
+
+
+test/web/attachment-manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/attachment-manager.test.js'
+-------------------------------
+
+
+test/web/json-parser.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/json-parser.test.js'
+-------------------------------
+
+
+test/web/message.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/message.test.js'
+-------------------------------
+
+
+test/web/upload-service.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/upload-service.test.js'
+-------------------------------
+
+
+test/web/json-view-switch.test.js:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'fast-check' from '/home/user/agent_society/test/web/json-view-switch.test.js'
+-------------------------------
+
+
+test/platform/localllm/wllama_headless_launcher.test.js:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+test/platform/services/conversation/auto_compression_manager.test.js:
+
+# Unhandled error between tests
+-------------------------------
+107 |   describe('对话历史完整性验�?, () => {
+                 ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/services/conversation/auto_compression_manager.test.js:107:12
+-------------------------------
+
+
+test/platform/services/conversation/conversation_manager_auto_compression.test.js:
+
+# Unhandled error between tests
+-------------------------------
+37 |     test('设置自动压缩管理�?, () => {
+              ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/services/conversation/conversation_manager_auto_compression.test.js:37:10
+-------------------------------
+
+
+test/platform/services/ui/ui_command_broker.test.js:
+
+# Unhandled error between tests
+-------------------------------
+9 |   it("waitForNextCommand: 队列为空时可等待，enqueue 后立即返回命�?, a
+         ^
+error: Unterminated string literal
+    at /home/user/agent_society/test/platform/services/ui/ui_command_broker.test.js:9:6
+-------------------------------
+
+
+web/wllama/test/src/llm/utf8Decoder.test.ts:
+(pass) utf8 streaming decode > does not produce replacement chars when bytes split in middle
+
+web/wllama/test/src/app/llmChatApi.test.ts:
+(pass) llmChatApi > returns full text once and forces non-stream
+(pass) llmChatApi > serializes calls and waits until idle [6.00ms]
+(pass) llmChatApi > rejects when model is not loaded
+
+web/wllama/test/src/app/messageComposer.test.ts:
+(pass) planSendMessage > adds system message once and returns assistant placeholder only for UI [3.00ms]
+(pass) planSendMessage > replaces system prompt content on next send
+
+web/wllama/test/src/app/urlOverrides.test.ts:
+(pass) urlOverrides > reads overrides with aliases [3.00ms]
+(pass) urlOverrides > applies overrides to dom fields and stream toggle
+
+94 tests failed:
+(fail) Stop button semantics > stopped agent should ignore late llm result and not continue processing [2.00ms]
+(fail) Stop button semantics > stopped agent should resume processing on new message [3.00ms]
+(fail) ComputeScheduler - interruption triggers llm retry > should cancel in-flight llm and retry with merged interruption
+(fail) TurnEngine - tool_calls step progression > should turn tool_calls into need_tool and then request next LLM round
+(fail) ComputeScheduler - computeStatus convergence > should return to idle after finishing a simple turn
+(fail) HTTPServer workspace endpoints > GET /api/workspaces/:workspaceId/file 获取文件内容 [2.00ms]
+(fail) HTTPServer workspace endpoints > DELETE /api/workspaces/:workspaceId/file 删除文件 [1.00ms]
+(fail) 重启后旧历史注入 LLM messages > TurnEngine 首次 ensureConversation 会从磁盘恢复历史 [3.00ms]
+(fail) ComputeScheduler - fairness (basic) > should let multiple agents start LLM without being blocked by tool loop [2.00ms]
+(fail) Web API org-templates > API.org-templates：updateOrgTemplateInfo(PUT) 与 renameOrgTemplate(POST) 路由正确
+
+ 37 pass
+ 94 fail
+ 84 errors
+ 113 expect() calls
+Ran 131 tests across 105 files. [5.36s]
