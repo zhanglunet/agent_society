@@ -214,13 +214,87 @@ class NodeStore {
     ]);
   }
   
-  // 删除节点
+  // 删除节点（重要性=0时调用）
   async deleteNode(id: string): Promise<void> {
-    // 删除节点所有三元组（懒删除，关联不主动清理）
+    // 策略：直接删除节点三元组，不处理关联
+    // 指向该节点的关联变成"悬垂关联"，在遍历时发现并清理
     const triples = await this.db.get({ subject: `node:${id}` });
     for (const triple of triples) {
       await this.db.del(triple);
     }
+    // 注意：不删除指向该节点的关联（link:xxx三元组），由懒删除机制处理
+  }
+  
+  // ========== 固定节点数方案专用方法 ==========
+  
+  // 创建槽位（预分配固定节点池）
+  async createSlot(slotId: string): Promise<void> {
+    await this.db.put([
+      { subject: `slot:${slotId}`, predicate: "rdf:type", object: "memory:Slot" },
+      { subject: `slot:${slotId}`, predicate: "memory:status", object: "free" }
+    ]);
+  }
+  
+  // 激活槽位（将空闲槽位变为可用节点）
+  async activateSlot(slotId: string, content: string, keywords: string[]): Promise<string> {
+    const nodeId = generateUUID();  // 生成新ID
+    
+    await this.db.put([
+      { subject: `slot:${slotId}`, predicate: "memory:status", object: "active" },
+      { subject: `slot:${slotId}`, predicate: "memory:nodeId", object: nodeId },
+      { subject: `node:${nodeId}`, predicate: "rdf:type", object: "memory:Node" },
+      { subject: `node:${nodeId}`, predicate: "memory:slot", object: slotId },
+      { subject: `node:${nodeId}`, predicate: "memory:content", object: content },
+      { subject: `node:${nodeId}`, predicate: "memory:keywords", object: JSON.stringify(keywords) },
+      { subject: `node:${nodeId}`, predicate: "memory:createdAt", object: String(Date.now()) }
+    ]);
+    
+    return nodeId;
+  }
+  
+  // 复用槽位（清空旧数据，生成新ID）
+  async reuseSlot(slotId: string, content: string, keywords: string[]): Promise<string> {
+    // 1. 获取旧节点ID
+    const oldTriples = await this.db.get({ 
+      subject: `slot:${slotId}`, 
+      predicate: "memory:nodeId" 
+    });
+    const oldNodeId = oldTriples[0]?.object;
+    
+    // 2. 删除旧节点数据（关联不处理，变成悬垂关联）
+    if (oldNodeId) {
+      const nodeTriples = await this.db.get({ subject: `node:${oldNodeId}` });
+      for (const triple of nodeTriples) {
+        await this.db.del(triple);
+      }
+    }
+    
+    // 3. 生成新ID，激活槽位
+    const newNodeId = generateUUID();
+    
+    await this.db.put([
+      { subject: `slot:${slotId}`, predicate: "memory:nodeId", object: newNodeId },
+      { subject: `node:${newNodeId}`, predicate: "rdf:type", object: "memory:Node" },
+      { subject: `node:${newNodeId}`, predicate: "memory:slot", object: slotId },
+      { subject: `node:${newNodeId}`, predicate: "memory:content", object: content },
+      { subject: `node:${newNodeId}`, predicate: "memory:keywords", object: JSON.stringify(keywords) },
+      { subject: `node:${newNodeId}`, predicate: "memory:createdAt", object: String(Date.now()) }
+    ]);
+    
+    return newNodeId;
+  }
+  
+  // 获取所有槽位（用于固定节点数方案的随机采样）
+  async getAllSlots(): Promise<string[]> {
+    const stream = this.db.getStream({ predicate: "rdf:type", object: "memory:Slot" });
+    const slots: string[] = [];
+    
+    for await (const triple of stream) {
+      const slotId = triple.subject.replace("slot:", "");
+      slots.push(slotId);
+    }
+    
+    return slots;
   }
   
   // 获取所有节点（用于压缩扫描）
@@ -239,7 +313,156 @@ class NodeStore {
 }
 ```
 
-### 3.2 LinkStore - 关联存储
+### 3.2 关联建立机制设计（技术实现视角）
+
+记忆系统**不暴露关联创建API给用户**，所有关联在节点创建过程中由系统自动建立。
+
+#### 技术架构设计
+
+**1. 关联创建的代码路径**
+
+```typescript
+// 唯一入口：createMemory() 方法
+async createMemory(content: string, keywords: string[], relatedNodes?: string[]) {
+  // Step 1: 创建节点（调用小模型提取摘要和关键词）
+  const node = await this.nodeStore.createNode(content);
+  
+  // Step 2: 自动建立时间顺序关联
+  // 新节点与当前所有关注点建立双向强度1.0关联
+  const focusList = this.focusManager.getFocusList();
+  for (const focusId of focusList) {
+    await this.linkStore.createLink(node.id, focusId, 1.0, "focus-link");
+    await this.linkStore.createLink(focusId, node.id, 1.0, "focus-link");
+  }
+  
+  // Step 3: 自动建立语义连贯关联
+  // 与同一切割来源的节点建立双向强度0.5关联
+  if (relatedNodes) {
+    for (const relatedId of relatedNodes) {
+      await this.linkStore.createLink(node.id, relatedId, 0.5, "segment-link");
+    }
+  }
+}
+```
+
+**2. 时间顺序关联的技术实现**
+
+时间顺序不通过`createdAt`时间戳排序，而是通过**关注点链表**的LRU顺序体现：
+
+```typescript
+// FocusManager内部维护关注点链表
+class FocusManager {
+  private focusList: string[] = [];  // LRU顺序，最新在最后
+  
+  async addFocus(nodeId: string) {
+    // 如果已存在，移到队尾（最新）
+    this.focusList = this.focusList.filter(id => id !== nodeId);
+    this.focusList.push(nodeId);
+    
+    // 超过5个时，移除队首（最老）
+    if (this.focusList.length > 5) {
+      this.focusList.shift();
+    }
+  }
+}
+```
+
+**时间链条的形成**：
+```
+创建A → A成为关注点 [A]
+创建B → B关联A，A被挤出 [B]（如果A不再被提起）
+或     → B关联A，A保留 [A,B]（如果A仍是关注点）
+```
+
+**3. 语义切割关联的技术实现**
+
+语义切割服务返回段落数组，建立段落间的线性关联：
+
+```typescript
+// 语义切割后的关联建立
+const segments = await semanticCut(text);  // ["段1", "段2", "段3"]
+const nodeIds: string[] = [];
+
+for (let i = 0; i < segments.length; i++) {
+  // 创建节点，传入之前已创建的节点ID作为relatedNodes
+  const nodeId = await memory.createMemory(
+    segments[i], 
+    [], 
+    nodeIds  // 与之前所有段落建立关联
+  );
+  nodeIds.push(nodeId);
+}
+```
+
+形成的关联结构：
+```
+段1节点 ←→ 段2节点 ←→ 段3节点
+ (0.5)     (0.5)     (0.5)
+```
+
+**4. 副本独立性的数据模型**
+
+每个节点是独立的RDF资源，即使内容相似也是不同实体：
+
+```turtle
+# 节点A（旧记忆）
+node:abc memory:content "我喜欢苹果" .
+node:abc memory:keywords "["苹果", "喜欢"]" .
+
+# 节点B（新副本，内容相似但独立）
+node:def memory:content "我喜欢苹果" .
+node:def memory:keywords "["苹果", "喜欢"]" .
+
+# 两者都关联到同一个关注点（通过关键词映射）
+focus:current memory:member node:abc .
+focus:current memory:member node:def .
+```
+
+删除节点A的三元组不影响节点B的存在：
+```typescript
+// 删除节点A
+await db.del({ subject: "node:abc" });  // 只删除abc的三元组
+// node:def 的所有三元组保持不变
+```
+
+**5. 隐含关联的BFS发现机制**
+
+隐含关联不存储在数据库中，而是在查询时通过BFS遍历动态发现：
+
+```typescript
+async function searchFromFocus(focusId: string, depth: number) {
+  const queue = [{ nodeId: focusId, distance: 0 }];
+  const visited = new Set();
+  const results = [];
+  
+  while (queue.length > 0) {
+    const { nodeId, distance } = queue.shift()!;
+    if (visited.has(nodeId) || distance > depth) continue;
+    visited.add(nodeId);
+    
+    // 获取节点内容用于关键词匹配
+    const node = await nodeStore.getNode(nodeId);
+    results.push(node);
+    
+    // 沿关联扩展（发现隐含关联）
+    const links = await linkStore.getNodeLinks(nodeId);
+    for (const link of links) {
+      if (!visited.has(link.to)) {
+        queue.push({ nodeId: link.to, distance: distance + 1 });
+      }
+    }
+  }
+  
+  return results;
+}
+```
+
+**性能考虑**：
+- 不预计算所有节点间的隐含关联（避免O(n²)复杂度）
+- 查询时才遍历，利用LevelGraph的索引加速邻接节点查找
+- BFS深度限制（默认2层）控制查询复杂度
+
+### 3.3 LinkStore - 关联存储
 
 ```typescript
 interface Link {
@@ -345,7 +568,14 @@ class LinkStore {
     });
   }
   
-  // 懒删除检测（访问时清理）
+  /**
+   * 懒删除检测（访问时清理）
+   * 
+   * 当从nodeId出发遍历时，检查所有出边关联的目标节点是否存在。
+   * 如果目标节点已被删除（重要性=0时被删除），则清理这条悬垂关联。
+   * 
+   * 这种设计避免了在删除节点时进行昂贵的级联删除操作。
+   */
   async cleanupBrokenLinks(nodeId: string): Promise<void> {
     const outgoing = await this.db.get({ 
       subject: `node:${nodeId}`, 
@@ -357,8 +587,9 @@ class LinkStore {
       const targetExists = await this.nodeExists(toId);
       
       if (!targetExists) {
-        // 目标节点已删除，清理此关联
+        // 目标节点已被删除（重要性=0时删除），清理此悬垂关联
         await this.db.del(triple);
+        // 清理link:xxx三元组
         const linkId = `link:${nodeId}:${toId}`;
         const linkTriples = await this.db.get({ subject: linkId });
         for (const lt of linkTriples) {
@@ -378,7 +609,7 @@ class LinkStore {
 }
 ```
 
-### 3.3 FocusManager - 关注点管理
+### 3.4 FocusManager - 关注点管理
 
 ```typescript
 class FocusManager {
@@ -492,7 +723,7 @@ class FocusManager {
 }
 ```
 
-### 3.4 SearchEngine - 搜索引擎（BFS实现）
+### 3.5 SearchEngine - 搜索引擎（BFS实现）
 
 ```typescript
 class SearchEngine {
@@ -671,8 +902,117 @@ parentPort?.on("message", async (task: CompressionTask) => {
 
 ### 4.2 CompressionScheduler - 压缩调度器
 
+提供两种实现方案，根据性能和资源需求选择。
+
+#### 方案A：固定节点数（推荐，性能优先）
+
 ```typescript
-class CompressionScheduler {
+class FixedNodeCompressionScheduler {
+  private nodeStore: NodeStore;
+  private linkStore: LinkStore;
+  private focusManager: FocusManager;
+  private worker: Worker;
+  private maxNodes: number = 10000;  // 固定节点数上限
+  private nodeSlots: string[] = [];   // 节点槽位数组
+  
+  // 初始化时创建固定槽位
+  async initialize(): Promise<void> {
+    for (let i = 0; i < this.maxNodes; i++) {
+      const slotId = `slot:${i}`;
+      this.nodeSlots.push(slotId);
+      // 预创建空槽位标记
+      await this.nodeStore.createSlot(slotId);
+    }
+  }
+  
+  // 获取或创建节点（复用最不重要的槽位）
+  async getOrCreateNode(content: string, keywords: string[]): Promise<string> {
+    // 1. 查找空闲槽位
+    const freeSlot = await this.findFreeSlot();
+    if (freeSlot) {
+      return await this.nodeStore.activateSlot(freeSlot, content, keywords);
+    }
+    
+    // 2. 无空闲槽位，找到最不重要的节点进行复用
+    const slotToReuse = await this.findLeastImportantSlot();
+    
+    // 3. 复用槽位：
+    // - 生成新ID（旧ID关联自然失效）
+    // - 清空旧数据
+    // - 断开旧关联（懒删除，实际在cleanup时处理）
+    // - 写入新数据
+    const newNodeId = await this.nodeStore.reuseSlot(slotToReuse, content, keywords);
+    
+    // 4. 旧关联指向旧ID，物理位置相同但ID已变，识别为"已遗忘"
+    return newNodeId;
+  }
+  
+  // 找到最不重要的槽位（随机采样估计，无需精确排序）
+  private async findLeastImportantSlot(): Promise<string> {
+    // 策略1：随机采样100个节点，返回重要性最低的
+    const sampleSize = Math.min(100, this.nodeSlots.length);
+    const samples = this.getRandomSamples(this.nodeSlots, sampleSize);
+    
+    let minImportance = Infinity;
+    let leastImportantSlot = samples[0];
+    
+    for (const slot of samples) {
+      const importance = await this.linkStore.calculateImportance(slot);
+      if (importance < minImportance) {
+        minImportance = importance;
+        leastImportantSlot = slot;
+      }
+    }
+    
+    return leastImportantSlot;
+  }
+  
+  // 随机采样（无需加载全部节点）
+  private getRandomSamples<T>(array: T[], count: number): T[] {
+    const shuffled = [...array].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  }
+  
+  // 压缩流程：重要性低的优先压缩（同样采样估计）
+  async runCompressionSlice(): Promise<void> {
+    // 随机采样一批节点进行压缩
+    const sampleSize = 100;
+    const samples = this.getRandomSamples(this.nodeSlots, sampleSize);
+    
+    // 按重要性排序（近似排序，接受一定误差）
+    const nodesWithImportance = await Promise.all(
+      samples.map(async (slot) => ({
+        slot,
+        importance: await this.linkStore.calculateImportance(slot)
+      }))
+    );
+    
+    nodesWithImportance.sort((a, b) => a.importance - b.importance);
+    
+    // 压缩重要性低的节点
+    for (const { slot, importance } of nodesWithImportance) {
+      if (importance < 1) {  // 不压缩受保护的节点
+        await this.compressSlot(slot, importance);
+      }
+    }
+  }
+  
+  private async compressSlot(slot: string, importance: number): Promise<void> {
+    // 压缩逻辑：重要性越低，压缩比例越大
+    // ... 调用Worker进行压缩
+  }
+}
+```
+
+**方案A优势**：
+- 内存占用固定，无无限增长风险
+- 无需维护全局排序，O(1)采样即可
+- 旧ID自然失效，无需主动清理关联
+
+#### 方案B：扫描次数排序（精确优先）
+
+```typescript
+class ScanCountCompressionScheduler {
   private nodeStore: NodeStore;
   private linkStore: LinkStore;
   private focusManager: FocusManager;
@@ -681,6 +1021,7 @@ class CompressionScheduler {
   private deleteThreshold: number = 10;
   
   // 按扫描次数排序的节点队列（扫描次数少的优先）
+  // 注意：大数据量时性能可能下降，可考虑随机采样估计
   async getCompressionQueue(): Promise<string[]> {
     const nodes = await this.nodeStore.getAllNodes();
     
@@ -689,6 +1030,7 @@ class CompressionScheduler {
     const compressibleNodes = nodes.filter(n => !focusList.includes(n.id));
     
     // 按扫描次数排序（少的先处理）
+    // 性能优化：大数据量时可改用桶排序或随机采样
     compressibleNodes.sort((a, b) => a.scanCount - b.scanCount);
     
     return compressibleNodes.map(n => n.id);
@@ -724,8 +1066,10 @@ class CompressionScheduler {
       return;
     }
     
-    // 3. 重要性 = 0，直接删除
+    // 3. 重要性 = 0，直接删除节点（关联不处理，由懒删除机制清理）
     if (importance === 0) {
+      // NodeStore.deleteNode() 只删除节点三元组，不删除指向它的关联
+      // 指向该节点的关联将在下次遍历时通过cleanupBrokenLinks()清理
       await this.nodeStore.deleteNode(nodeId);
       return;
     }
@@ -1183,30 +1527,43 @@ class MemoryManager {
   }
   
   // 创建记忆（从语义切割后的小段）
+  // 实现方案选择：
+  // 方案A（固定节点数）：调用getOrCreateNode()，自动复用最不重要的槽位
+  // 方案B（动态创建）：调用createNode()，创建新节点
   async createMemory(
     content: string, 
     keywords: string[],
     relatedNodes?: string[]  // 同一切割来源的其他节点
   ): Promise<string> {
-    // 1. 创建节点
+    // 方案A实现：固定节点数，复用槽位
+    // const nodeId = await this.compressionScheduler.getOrCreateNode(content, keywords);
+    
+    // 方案B实现：动态创建新节点
     const node = await this.nodeStore.createNode(content, keywords);
+    const nodeId = node.id;
     
     // 2. 与当前关注点建立关联（强度1.0）
+    // 时间顺序关联自然蕴含：新节点与当前关注点关联，形成时间链条
     const focusList = this.focusManager.getFocusList();
     for (const focusId of focusList) {
-      await this.linkStore.createLink(node.id, focusId, 1.0, "focus-link");
-      await this.linkStore.createLink(focusId, node.id, 1.0, "focus-link");
+      await this.linkStore.createLink(nodeId, focusId, 1.0, "focus-link");
+      await this.linkStore.createLink(focusId, nodeId, 1.0, "focus-link");
     }
     
     // 3. 与同一切割来源的节点建立关联（强度0.5）
+    // 语义连贯性关联：同一长文本切割出的节点相互关联
     if (relatedNodes) {
       for (const relatedId of relatedNodes) {
-        await this.linkStore.createLink(node.id, relatedId, 0.5, "segment-link");
-        await this.linkStore.createLink(relatedId, node.id, 0.5, "segment-link");
+        await this.linkStore.createLink(nodeId, relatedId, 0.5, "segment-link");
+        await this.linkStore.createLink(relatedId, nodeId, 0.5, "segment-link");
       }
     }
     
-    return node.id;
+    // 注意：用户不需要主动声明关联
+    // 隐含关联通过节点相似性和共享关注点自然形成
+    // 当用户讨论相关话题时，会创建相似节点（副本），这些节点通过BFS搜索被发现
+    
+    return nodeId;
   }
   
   // 回忆（BFS搜索）
