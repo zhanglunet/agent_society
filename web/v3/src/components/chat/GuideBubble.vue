@@ -15,9 +15,7 @@
       @keydown.esc="handleEsc"
     >
       <div class="guide-bubble__content">
-        <div class="guide-bubble__header"> <svg v-if="showArrow" class="guide-bubble__arrow-svg" :style="arrowStyle" viewBox="-10 0 30 40" preserveAspectRatio="none">
-        <polygon points="-100,0 -10,80 20,-50" fill="var(--surface-1)" stroke="var(--border)" stroke-width="1"/>
-      </svg>
+        <div class="guide-bubble__header">
           <div class="guide-bubble__icon guide-bubble__icon--animated">
             <Rocket class="w-6 h-6" />
           </div>
@@ -44,7 +42,15 @@
         </Button>
       </div>
 
-     
+      <svg v-if="showArrow" class="guide-bubble__bg-svg" :style="arrowStyle" preserveAspectRatio="none">
+        <defs>
+          <filter id="bubble-shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.12)"/>
+            <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="rgba(0,0,0,0.08)"/>
+          </filter>
+        </defs>
+        <path :d="bubblePath" fill="var(--surface-1)" stroke="var(--border)" stroke-width="1" filter="url(#bubble-shadow)"/>
+      </svg>
     </div>
   </Teleport>
 </template>
@@ -129,6 +135,37 @@ const arrowStyle = computed(() => {
   };
 });
 
+// 计算气泡底板路径（圆角矩形 + 三角形箭头）
+const bubblePath = computed(() => {
+  const w = 320; // 气泡宽度
+  const h = bubbleRef.value?.getBoundingClientRect().height || 200; // 动态高度
+  const r = 16; // 圆角半径
+  const arrowSize = 12; // 箭头大小
+  const arrowY = parseFloat(arrowTopPosition.value) || h / 2; // 箭头垂直位置
+  
+  // 箭头在右侧指向右
+  const arrowRight = w + arrowSize;
+  const arrowTop = arrowY - arrowSize;
+  const arrowBottom = arrowY + arrowSize;
+  
+  // 绘制路径：从左上角开始顺时针
+  return `
+    M ${r},50
+    L ${w - r},50
+    Q ${w},50 ${w},${r+44}
+    L ${w},${arrowTop+50}
+    L ${arrowRight+28},${arrowY+10}
+    L ${w},${arrowBottom+50}
+    L ${w},${h - r +50 }
+    Q ${w},${h+50} ${w - r},${h+50}
+    L ${r},${h+50}
+    Q 0,${h+50} 0,${h - r +50}
+    L 0,${r+50}
+    Q 0,50 ${r},50
+    Z
+  `;
+});
+
 let updateTimer: number | null = null;
 const handleUpdate = () => {
   if (updateTimer) clearTimeout(updateTimer);
@@ -184,13 +221,9 @@ const handleEsc = () => {
   min-width: 280px;
   padding: 20px;
   margin: 0;
-  background-color: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 
-    0 12px 32px rgba(0, 0, 0, 0.12),
-    0 4px 8px rgba(0, 0, 0, 0.08),
-    0 0 1px rgba(0, 0, 0, 0.04);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   animation: bubble-float-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
   display: flex;
@@ -200,12 +233,16 @@ const handleEsc = () => {
 }
 
 .my-app-dark .guide-bubble {
-  background-color: var(--surface-1);
-  border-color: var(--border);
-  box-shadow: 
-    0 12px 32px rgba(0, 0, 0, 0.4),
-    0 4px 8px rgba(0, 0, 0, 0.24),
-    0 0 1px rgba(0, 0, 0, 0.12);
+  background: transparent;
+}
+
+.my-app-dark .guide-bubble__bg-svg path {
+  fill: var(--surface-1);
+  stroke: var(--border);
+}
+
+.my-app-dark .guide-bubble__bg-svg filter feDropShadow {
+  flood-color: rgba(0,0,0,0.4);
 }
 
 .guide-bubble__content {
@@ -322,46 +359,19 @@ const handleEsc = () => {
   outline-offset: 2px;
 }
 
-/* SVG 箭头样式 */
-.guide-bubble__arrow-svg {
+/* SVG 背景底板样式 */
+.guide-bubble__bg-svg {
   position: absolute;
-  width: 16px;
-  height: 40px;
-  z-index: 101 !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1 !important;
   overflow: visible;
+  pointer-events: none;
 }
 
-.guide-bubble__arrow-svg polygon {
-  stroke: var(--border);
-  stroke-width: 1;
-}
-
-/* position="bottom" - 气泡在目标左侧，箭头在右侧指向右 */
-.guide-bubble--bottom .guide-bubble__arrow-svg {
-  right: -16px;
-}
-
-/* position="top" - 气泡在目标左侧偏上，箭头在右侧指向右 */
-.guide-bubble--top .guide-bubble__arrow-svg {
-  right: -16px;
-}
-
-/* position="left" - 气泡在目标右侧，箭头在左侧指向左 */
-.guide-bubble--left .guide-bubble__arrow-svg {
-  left: -16px;
-  transform: translateY(-50%) scaleX(-1);
-}
-
-/* position="right" - 气泡在目标左侧，箭头在右侧指向右 */
-.guide-bubble--right .guide-bubble__arrow-svg {
-  right: -16px;
-}
-
-/* 深色模式适配 */
-.my-app-dark .guide-bubble__arrow-svg polygon {
-  fill: var(--surface-1);
-  stroke: var(--border);
-}
+/* 隐藏箭头相关样式已移除 - 现在使用 SVG 底板 */
 
 @keyframes bubble-float-in {
   0% {
@@ -490,7 +500,7 @@ const handleEsc = () => {
   }
 }
 
-.guide-bubble--no-arrow .guide-bubble__arrow {
+.guide-bubble--no-arrow .guide-bubble__bg-svg {
   display: none;
 }
 

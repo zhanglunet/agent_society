@@ -6,12 +6,11 @@ import Menu from 'primevue/menu';
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
-import { useGuideStore } from '../../stores/guide';
 // import { useOrgStore } from '../../stores/org';  // 暂时未使用，保留导入以备后续功能
 import { apiService } from '../../services/api';
 import ChatMessageList from './ChatMessageList.vue';
 import ConfirmDialog from '../common/ConfirmDialog.vue';
-import GuideBubble from './GuideBubble.vue';
+
 
 const props = defineProps<{
   orgId: string;
@@ -20,14 +19,6 @@ const props = defineProps<{
 
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
-const guideStore = useGuideStore();
-
-
-// ========== 新手引导相关状态 ==========
-// 是否显示引导气泡（JS状态）
-const showGuideBubble = computed(() => guideStore.isVisible);
-
-// ====================================
 
 // 当前正在对话的智能体 ID
 const activeAgentId = computed(() => chatStore.getActiveAgentId(props.orgId));
@@ -237,11 +228,6 @@ const sendMessage = async () => {
   if (!message.value.trim() || isSending.value) return;
   const text = message.value;
   chatStore.updateInputValue(activeAgentId.value, ''); // 清空当前对话的输入框
-  
-  // 如果正在显示引导，隐藏引导（JS逻辑）
-  if (guideStore.isVisible) {
-    guideStore.hideGuide();
-  }
   
   isSending.value = true;
   
@@ -631,21 +617,7 @@ const handleDeleteAgent = async () => {
               <Send v-else class="w-4 h-4" />
             </Button>
 
-            <!-- 发送按钮引导气泡容器 -->
-            <div class="guide-bubble-container guide-bubble-container--send">
-              <GuideBubble
-                v-if="showGuideBubble"
-                :visible="showGuideBubble"
-                position="bottom"
-                :offset="{ x: 0, y: 0 }"
-                title="开始使用"
-                :text="'我已经在输入框里为您准备好了创建私人助理的命令，点击发送按钮即可开始。'"
-                :hint="'您也可以修改文字内容，或者关闭此提示。'"
-                icon="rocket"
-                :show-close-button="true"
-                @close="guideStore.hideGuide()"
-              />
-            </div>
+
           </div>
         </div>
       </div>
@@ -691,31 +663,6 @@ const handleDeleteAgent = async () => {
   position: relative;
   z-index: 101;  /* 高于气泡 */
   pointer-events: auto;  /* 始终可交互 */
-}
-
-/* 气泡容器 */
-.guide-bubble-container {
-  position: absolute;
-  top: -100%;  /* 输入框上方 */
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;  /* 容器不拦截事件 */
-  z-index: 100;  /* 低于输入区域 */
-  margin-bottom: 24px;  /* 确保不遮挡输入框 */
-}
-
-.guide-bubble-container--send {
-  /* 指向发送按钮的引导 */
-}
-
-/* 确保气泡不遮挡输入框 */
-.guide-bubble-container :deep(.guide-bubble) {
-  position: absolute;
-  bottom: 24px;  /* 输入框上方24px */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  pointer-events: auto;  /* 气泡自身可交互 */
 }
 
 /* ============================================
@@ -782,24 +729,12 @@ const handleDeleteAgent = async () => {
 
 /* 移动端 */
 @media (max-width: 768px) {
-  .guide-bubble-container {
-    margin-bottom: 12px;  /* 紧凑但仍不遮挡 */
-  }
-  
-  .guide-bubble-container :deep(.guide-bubble) {
-    bottom: 12px;
-  }
+  /* 移动端特定样式 */
 }
 
 /* 小屏手机 */
 @media (max-width: 480px) {
-  .guide-bubble-container {
-    margin-bottom: 8px;
-  }
-  
-  .guide-bubble-container :deep(.guide-bubble) {
-    bottom: 8px;
-  }
+  /* 小屏手机特定样式 */
 }
 
 /* ============================================

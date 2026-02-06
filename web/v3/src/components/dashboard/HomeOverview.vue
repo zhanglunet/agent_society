@@ -274,7 +274,7 @@ watch(() => guideStore.isVisible, (isVisible) => {
                       position="bottom"
                       :offset="{ x: 0, y: 0 }"
                       title="开始使用"
-                      :text="'我已经在输入框里为您准备好了创建私人助理的命令，点击发送按钮即可开始。'"
+                      :text="'点击发送创建您的私人助理。'"
                       :hint="'您也可以修改文字内容，或者关闭此提示。'"
                       icon="rocket"
                       :show-close-button="true"
