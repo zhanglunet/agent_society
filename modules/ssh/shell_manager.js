@@ -89,7 +89,83 @@ class ShellManager {
   }
 
   /**
-   * 创建shell会话
+   * 通过主机名直接创建shell会话（自动管理连接）
+   * 
+   * 设计说明：
+   * - 优先复用已有的连接到该主机的连接
+   * - 如果没有可用连接，自动创建新连接
+   * - 连接由系统自动管理，用户无需关心connectionId
+   * 
+   * @param {string} hostName - 主机名称
+   * @returns {Promise<Object>} {shellId, hostName} 或 {error, message}
+   */
+  async createShellByHost(hostName) {
+    try {
+      this.log.debug?.('[ShellManager] 开始通过主机名创建shell', { hostName });
+
+      // 1. 尝试复用已有连接
+      let connectionId = null;
+      const connectionsResult = this.connectionManager.listConnections();
+      if (connectionsResult.ok) {
+        const existingConn = connectionsResult.connections.find(
+          c => c.hostName === hostName && c.status === 'connected'
+        );
+        if (existingConn) {
+          connectionId = existingConn.connectionId;
+          this.log.debug?.('[ShellManager] 复用已有连接', { connectionId, hostName });
+        }
+      }
+
+      // 2. 没有可用连接，创建新连接
+      if (!connectionId) {
+        this.log.debug?.('[ShellManager] 没有可用连接，创建新连接', { hostName });
+        const connectResult = await this.connectionManager.connect(hostName);
+        if (connectResult.error) {
+          return connectResult;
+        }
+        connectionId = connectResult.connectionId;
+      }
+
+      // 3. 用连接创建shell
+      const shellResult = await this.createShell(connectionId);
+      if (shellResult.error) {
+        return shellResult;
+      }
+
+      // 4. 记录shell与hostName的映射，用于关闭时清理
+      const shell = this.shells.get(shellResult.shellId);
+      if (shell) {
+        shell.hostName = hostName;
+        shell.autoManaged = true; // 标记为自动管理的连接
+      }
+
+      this.log.info?.('[ShellManager] 通过主机名创建shell成功', {
+        shellId: shellResult.shellId,
+        hostName,
+        connectionId
+      });
+
+      return {
+        shellId: shellResult.shellId,
+        hostName,
+        outputFile: shellResult.outputFile
+      };
+
+    } catch (error) {
+      this.log.error?.('[ShellManager] 通过主机名创建shell失败', {
+        hostName,
+        error: error.message,
+        stack: error.stack
+      });
+      return {
+        error: 'create_shell_by_host_failed',
+        message: `创建shell失败: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 创建shell会话（内部方法，通过connectionId）
    * 
    * 设计说明：
    * - 从ConnectionManager获取连接实例
@@ -431,6 +507,20 @@ class ShellManager {
 
       // 从会话池中移除
       this.shells.delete(shellId);
+
+      // 如果是自动管理的连接，检查是否还有其他shell使用，没有则断开
+      if (shell.autoManaged && shell.connectionId) {
+        const hasOtherShells = Array.from(this.shells.values()).some(
+          s => s.connectionId === shell.connectionId
+        );
+        if (!hasOtherShells) {
+          this.log.debug?.('[ShellManager] 自动断开空闲连接', { 
+            connectionId: shell.connectionId,
+            hostName: shell.hostName 
+          });
+          await this.connectionManager.disconnect(shell.connectionId);
+        }
+      }
 
       this.log.info?.('[ShellManager] Shell会话已关闭并移除', {
         shellId,

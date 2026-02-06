@@ -253,9 +253,9 @@ export default {
 
         // 交互式会话
         case 'ssh_shell_create': {
-          const validationError = validateParams(args, ['connectionId']);
+          const validationError = validateParams(args, ['hostName']);
           if (validationError) return validationError;
-          return await shellManager.createShell(args.connectionId);
+          return await shellManager.createShellByHost(args.hostName);
         }
         
         case 'ssh_shell_send': {
@@ -278,17 +278,17 @@ export default {
 
         // 文件传输
         case 'ssh_upload': {
-          const validationError = validateParams(args, ['connectionId', 'path', 'remotePath']);
+          const validationError = validateParams(args, ['hostName', 'path', 'remotePath']);
           if (validationError) return validationError;
           log?.info?.('[SSH] 执行上传工具', { 
-            connectionId: args.connectionId, 
+            hostName: args.hostName, 
             path: args.path, 
             remotePath: args.remotePath,
             agentId: ctx?.agent?.id 
           });
-          const result = await fileTransfer.upload(args.connectionId, args.path, args.remotePath, ctx);
+          const result = await fileTransfer.uploadByHost(args.hostName, args.path, args.remotePath, ctx);
           log?.info?.('[SSH] 上传工具执行完成', { 
-            connectionId: args.connectionId,
+            hostName: args.hostName,
             hasTaskId: !!result?.taskId,
             hasError: !!result?.error,
             error: result?.error 
@@ -297,9 +297,9 @@ export default {
         }
         
         case 'ssh_download': {
-          const validationError = validateParams(args, ['connectionId', 'remotePath', 'path']);
+          const validationError = validateParams(args, ['hostName', 'remotePath', 'path']);
           if (validationError) return validationError;
-          return await fileTransfer.download(args.connectionId, args.remotePath, args.path, ctx);
+          return await fileTransfer.downloadByHost(args.hostName, args.remotePath, args.path, ctx);
         }
         
         case 'ssh_transfer_status': {

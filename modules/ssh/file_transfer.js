@@ -111,7 +111,77 @@ class FileTransfer {
   }
 
   /**
-   * 启动上传任务（异步，立即返回）
+   * 通过主机名启动上传任务（自动管理连接）
+   * 
+   * 设计说明：
+   * - 优先复用已有连接，无则自动创建
+   * - 任务完成后自动清理连接
+   * 
+   * @param {string} hostName - 主机名称
+   * @param {string} workspacePath - 工作区文件路径
+   * @param {string} remotePath - 远程文件路径
+   * @param {Object} ctx - 上下文对象
+   * @returns {Promise<Object>} {taskId, fileSize, status: 'pending'} 或 {error, message}
+   */
+  async uploadByHost(hostName, workspacePath, remotePath, ctx) {
+    try {
+      this.log.debug?.('[FileTransfer] 开始通过主机名上传', { hostName, workspacePath, remotePath });
+
+      // 1. 尝试复用已有连接
+      let connectionId = null;
+      const connectionsResult = this.connectionManager.listConnections();
+      if (connectionsResult.ok) {
+        const existingConn = connectionsResult.connections.find(
+          c => c.hostName === hostName && c.status === 'connected'
+        );
+        if (existingConn) {
+          connectionId = existingConn.connectionId;
+          this.log.debug?.('[FileTransfer] 复用已有连接', { connectionId, hostName });
+        }
+      }
+
+      // 2. 没有可用连接，创建新连接
+      let autoCreatedConnection = false;
+      if (!connectionId) {
+        this.log.debug?.('[FileTransfer] 没有可用连接，创建新连接', { hostName });
+        const connectResult = await this.connectionManager.connect(hostName);
+        if (connectResult.error) {
+          return connectResult;
+        }
+        connectionId = connectResult.connectionId;
+        autoCreatedConnection = true;
+      }
+
+      // 3. 使用 connectionId 上传
+      const result = await this.upload(connectionId, workspacePath, remotePath, ctx);
+      
+      // 4. 如果连接是本次创建的，记录任务以便完成后清理
+      if (result.taskId && autoCreatedConnection) {
+        const task = this.tasks.get(result.taskId);
+        if (task) {
+          task.autoManagedConnection = true;
+          task.hostName = hostName;
+        }
+      }
+
+      return result;
+
+    } catch (error) {
+      this.log.error?.('[FileTransfer] 通过主机名上传失败', {
+        hostName,
+        workspacePath,
+        remotePath,
+        error: error.message
+      });
+      return {
+        error: 'upload_by_host_failed',
+        message: `上传失败: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 启动上传任务（内部方法，通过connectionId）
    * 
    * 设计说明：
    * - 从工作区读取文件内容
@@ -474,6 +544,12 @@ class FileTransfer {
         remotePath: task.remotePath
       });
 
+      // 如果是自动管理的连接，完成后断开
+      if (task.autoManagedConnection && task.connectionId) {
+        this.log.debug?.('[FileTransfer] 断开自动管理的连接', { connectionId: task.connectionId });
+        await this.connectionManager.disconnect(task.connectionId);
+      }
+
     } catch (error) {
       this.log.error?.('[FileTransfer] 上传失败', {
         taskId: task.taskId,
@@ -484,11 +560,87 @@ class FileTransfer {
       task.status = 'failed';
       task.error = error.message;
       task.completedAt = new Date();
+
+      // 失败时也要断开自动管理的连接
+      if (task.autoManagedConnection && task.connectionId) {
+        this.log.debug?.('[FileTransfer] 断开自动管理的连接（上传失败）', { connectionId: task.connectionId });
+        await this.connectionManager.disconnect(task.connectionId);
+      }
     }
   }
 
   /**
-   * 启动下载任务（异步，立即返回）
+   * 通过主机名启动下载任务（自动管理连接）
+   * 
+   * 设计说明：
+   * - 优先复用已有连接，无则自动创建
+   * - 任务完成后自动清理连接
+   * 
+   * @param {string} hostName - 主机名称
+   * @param {string} remotePath - 远程文件路径
+   * @param {string} workspacePath - 工作区路径
+   * @param {Object} ctx - 上下文对象
+   * @returns {Promise<Object>} {taskId, fileSize, status: 'pending'} 或 {error, message}
+   */
+  async downloadByHost(hostName, remotePath, workspacePath, ctx) {
+    try {
+      this.log.debug?.('[FileTransfer] 开始通过主机名下载', { hostName, remotePath, workspacePath });
+
+      // 1. 尝试复用已有连接
+      let connectionId = null;
+      const connectionsResult = this.connectionManager.listConnections();
+      if (connectionsResult.ok) {
+        const existingConn = connectionsResult.connections.find(
+          c => c.hostName === hostName && c.status === 'connected'
+        );
+        if (existingConn) {
+          connectionId = existingConn.connectionId;
+          this.log.debug?.('[FileTransfer] 复用已有连接', { connectionId, hostName });
+        }
+      }
+
+      // 2. 没有可用连接，创建新连接
+      let autoCreatedConnection = false;
+      if (!connectionId) {
+        this.log.debug?.('[FileTransfer] 没有可用连接，创建新连接', { hostName });
+        const connectResult = await this.connectionManager.connect(hostName);
+        if (connectResult.error) {
+          return connectResult;
+        }
+        connectionId = connectResult.connectionId;
+        autoCreatedConnection = true;
+      }
+
+      // 3. 使用 connectionId 下载
+      const result = await this.download(connectionId, remotePath, workspacePath, ctx);
+      
+      // 4. 如果连接是本次创建的，记录任务以便完成后清理
+      if (result.taskId && autoCreatedConnection) {
+        const task = this.tasks.get(result.taskId);
+        if (task) {
+          task.autoManagedConnection = true;
+          task.hostName = hostName;
+        }
+      }
+
+      return result;
+
+    } catch (error) {
+      this.log.error?.('[FileTransfer] 通过主机名下载失败', {
+        hostName,
+        remotePath,
+        workspacePath,
+        error: error.message
+      });
+      return {
+        error: 'download_by_host_failed',
+        message: `下载失败: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 启动下载任务（内部方法，通过connectionId）
    * 
    * 设计说明：
    * - 创建传输任务并返回任务ID
@@ -678,6 +830,12 @@ class FileTransfer {
         path: task.path
       });
 
+      // 如果是自动管理的连接，完成后断开
+      if (task.autoManagedConnection && task.connectionId) {
+        this.log.debug?.('[FileTransfer] 断开自动管理的连接', { connectionId: task.connectionId });
+        await this.connectionManager.disconnect(task.connectionId);
+      }
+
     } catch (error) {
       this.log.error?.('[FileTransfer] 下载失败', {
         taskId: task.taskId,
@@ -688,6 +846,12 @@ class FileTransfer {
       task.status = 'failed';
       task.error = error.message;
       task.completedAt = new Date();
+
+      // 失败时也要断开自动管理的连接
+      if (task.autoManagedConnection && task.connectionId) {
+        this.log.debug?.('[FileTransfer] 断开自动管理的连接（下载失败）', { connectionId: task.connectionId });
+        await this.connectionManager.disconnect(task.connectionId);
+      }
     }
   }
 

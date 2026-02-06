@@ -78,16 +78,16 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_shell_create',
-        description: '创建交互式shell会话',
+        description: '创建交互式shell会话（系统自动管理连接）',
         parameters: {
           type: 'object',
           properties: {
-            connectionId: {
+            hostName: {
               type: 'string',
-              description: '连接ID'
+              description: '主机名称（配置文件中定义的标识符，如 production-server）'
             }
           },
-          required: ['connectionId']
+          required: ['hostName']
         }
       }
     },
@@ -156,13 +156,13 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_upload',
-        description: '上传文件到远程服务器（异步，立即返回任务ID）传输过程不要停止连接或会话，否则文件不完整',
+        description: '上传文件到远程服务器（异步，立即返回任务ID，系统自动管理连接）',
         parameters: {
           type: 'object',
           properties: {
-            connectionId: {
+            hostName: {
               type: 'string',
-              description: '连接ID'
+              description: '主机名称（配置文件中定义的标识符，如 production-server）'
             },
             path: {
               type: 'string',
@@ -170,10 +170,10 @@ export function getToolDefinitions() {
             },
             remotePath: {
               type: 'string',
-              description: '远程文件路径'
+              description: '远程文件路径（支持 ~ 表示用户主目录）'
             }
           },
-          required: ['connectionId', 'path', 'remotePath']
+          required: ['hostName', 'path', 'remotePath']
         }
       }
     },
@@ -181,24 +181,24 @@ export function getToolDefinitions() {
       type: 'function',
       function: {
         name: 'ssh_download',
-        description: '从远程服务器下载文件（异步，立即返回任务ID）传输过程不要停止连接或会话，否则文件不完整',
+        description: '从远程服务器下载文件（异步，立即返回任务ID，系统自动管理连接）',
         parameters: {
           type: 'object',
           properties: {
-            connectionId: {
+            hostName: {
               type: 'string',
-              description: '连接ID'
+              description: '主机名称（配置文件中定义的标识符，如 production-server）'
             },
             remotePath: {
               type: 'string',
-              description: '远程文件路径'
+              description: '远程文件路径（支持 ~ 表示用户主目录）'
             },
             path: {
               type: 'string',
               description: '下载到工作区的路径'
             }
           },
-          required: ['connectionId', 'remotePath', 'path']
+          required: ['hostName', 'remotePath', 'path']
         }
       }
     },
