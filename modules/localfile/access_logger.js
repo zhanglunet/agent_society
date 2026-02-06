@@ -142,6 +142,24 @@ export class AccessLogger {
   }
 
   /**
+   * 记录创建目录操作
+   * @param {object} ctx - 智能体上下文
+   * @param {string} dirPath
+   * @param {boolean} success
+   * @param {string} [error]
+   */
+  async logCreateDir(ctx, dirPath, success, error = null) {
+    await this.log({
+      agentId: ctx?.agent?.id ?? "unknown",
+      agentName: ctx?.agent?.roleName ?? ctx?.agent?.id ?? "unknown",
+      operation: "create_dir",
+      path: dirPath,
+      success,
+      error
+    });
+  }
+
+  /**
    * 记录列目录操作
    * @param {object} ctx - 智能体上下文
    * @param {string} dirPath

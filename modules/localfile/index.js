@@ -293,6 +293,15 @@ export default {
           return await fileService.listDirectory(ctx, args.path);
         }
 
+        // 创建目录
+        case "localfile_create_dir": {
+          const validationError = validateParams(args, ["path"]);
+          if (validationError) return validationError;
+          return await fileService.createDirectory(ctx, args.path, {
+            recursive: args.recursive
+          });
+        }
+
         // 复制到工作区
         case "localfile_copy_to_workspace": {
           const validationError = validateParams(args, ["sourcePath", "destPath"]);

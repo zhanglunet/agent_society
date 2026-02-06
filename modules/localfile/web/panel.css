@@ -340,6 +340,11 @@ body {
   color: #fa8c16;
 }
 
+.log-operation.create-dir {
+  background: #e6fffb;
+  color: #13c2c2;
+}
+
 .log-operation.copy_to_workspace,
 .log-operation.copy_from_workspace {
   background: #f9f0ff;

@@ -551,6 +551,7 @@ function getOperationText(operation) {
     'read': '读取',
     'write': '写入',
     'list': '列目录',
+    'create_dir': '创建目录',
     'copy_to_workspace': '复制到工作区',
     'copy_from_workspace': '从工作区复制',
     'check_permission': '权限检查'

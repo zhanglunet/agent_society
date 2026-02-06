@@ -7,7 +7,7 @@
 ## 功能
 
 - 文件夹授权管理：可配置多个授权文件夹，每个文件夹独立设置读/写权限
-- 文件操作：读取、写入、列出目录内容
+- 文件操作：读取、写入、列出目录内容、创建目录
 - 工作区交互：复制文件到工作区、从工作区复制出来
 - 权限检查：智能体可检测目标文件的读写权限
 - 访问审计：完整记录所有文件访问日志（时间、智能体、操作、路径、结果）
@@ -132,6 +132,22 @@ modules/localfile/
     { "name": "folder", "isDirectory": true, "isFile": false, "path": "/path/folder" }
   ],
   "path": "/path/to/dir"
+}
+```
+
+### localfile_create_dir
+
+创建目录。
+
+**参数：**
+- `path` (string, 必需): 要创建的目录绝对路径
+- `recursive` (boolean, 可选): 是否递归创建父目录，默认为 true
+
+**返回：**
+```json
+{
+  "ok": true,
+  "path": "/path/to/new/dir"
 }
 ```
 

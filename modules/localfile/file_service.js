@@ -190,6 +190,55 @@ export class FileService {
   }
 
   /**
+   * 创建目录
+   * @param {object} ctx - 智能体上下文
+   * @param {string} dirPath - 目录路径
+   * @param {object} options - 选项
+   * @returns {Promise<{ok: boolean, path?: string, error?: string}>}
+   */
+  async createDirectory(ctx, dirPath, options = {}) {
+    try {
+      // 检查权限（创建目录需要写入权限）
+      const permission = await this.permissionManager.checkWritePermission(dirPath);
+      if (!permission.allowed) {
+        await this.accessLogger.logCreateDir(ctx, dirPath, false, "access_denied");
+        return { ok: false, error: "access_denied", message: "没有权限在此位置创建目录" };
+      }
+
+      // 检查是否已存在
+      if (existsSync(dirPath)) {
+        const stats = statSync(dirPath);
+        if (stats.isDirectory()) {
+          await this.accessLogger.logCreateDir(ctx, dirPath, false, "already_exists");
+          return { ok: false, error: "already_exists", message: "目录已存在" };
+        } else {
+          await this.accessLogger.logCreateDir(ctx, dirPath, false, "path_is_file");
+          return { ok: false, error: "path_is_file", message: "同路径的文件已存在" };
+        }
+      }
+
+      // 创建目录
+      const recursive = options.recursive !== false; // 默认递归创建
+      await mkdir(dirPath, { recursive });
+      
+      await this.accessLogger.logCreateDir(ctx, dirPath, true);
+      
+      return { 
+        ok: true, 
+        path: dirPath
+      };
+      
+    } catch (error) {
+      this.log.error?.("[LocalFile] 创建目录失败", { 
+        path: dirPath, 
+        error: error.message 
+      });
+      await this.accessLogger.logCreateDir(ctx, dirPath, false, error.message);
+      return { ok: false, error: "create_failed", message: error.message };
+    }
+  }
+
+  /**
    * 复制文件到工作区
    * @param {object} ctx - 智能体上下文
    * @param {string} sourcePath - 源文件路径（本地文件系统）

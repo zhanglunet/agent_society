@@ -81,6 +81,28 @@ export function getToolDefinitions() {
     {
       type: "function",
       function: {
+        name: "localfile_create_dir",
+        description: "在本地文件系统中创建目录。只能在有写入权限的授权文件夹内创建。支持递归创建多级目录。",
+        parameters: {
+          type: "object",
+          properties: {
+            path: {
+              type: "string",
+              description: "要创建的目录绝对路径（如 /home/user/documents/new_folder）"
+            },
+            recursive: {
+              type: "boolean",
+              description: "是否递归创建父目录，默认为 true",
+              default: true
+            }
+          },
+          required: ["path"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
         name: "localfile_copy_to_workspace",
         description: "将本地文件系统中的文件复制到当前工作区。源文件必须在已授权的文件夹内。适用于将外部文件引入当前任务进行处理。",
         parameters: {
