@@ -7,7 +7,7 @@ import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
 import { useAgentStore } from '../../stores/agent';
 import { useGuideStore } from '../../stores/guide';
-import { useOrgStore } from '../../stores/org';
+// import { useOrgStore } from '../../stores/org';  // 暂时未使用，保留导入以备后续功能
 import { apiService } from '../../services/api';
 import ChatMessageList from './ChatMessageList.vue';
 import ConfirmDialog from '../common/ConfirmDialog.vue';
@@ -21,13 +21,12 @@ const props = defineProps<{
 const chatStore = useChatStore();
 const agentStore = useAgentStore();
 const guideStore = useGuideStore();
-const orgStore = useOrgStore();
+
 
 // ========== 新手引导相关状态 ==========
 // 是否显示引导气泡（JS状态）
 const showGuideBubble = computed(() => guideStore.isVisible);
-// 发送按钮引用（用于定位气泡）
-const sendButtonRef = ref<InstanceType<typeof Button> | null>(null);
+
 // ====================================
 
 // 当前正在对话的智能体 ID
@@ -92,13 +91,7 @@ const isDeleting = ref(false);
 const showDeleteConfirm = ref(false);
 const deleteConfirmMessage = ref('');
 
-/**
- * 预填输入框文字（JS逻辑）
- */
-const prefillInput = () => {
-  const targetText = '建立一个私人助理';
-  chatStore.updateInputValue(activeAgentId.value, targetText);
-};
+
 
 /**
  * 更多菜单项

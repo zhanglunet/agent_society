@@ -21,12 +21,8 @@ const isCreating = ref(false);
 const showChat = ref(false);
 const chatContainer = ref<HTMLElement | null>(null);
 
-// ========== 新手引导相关状态 ==========
-// 发送按钮引用（用于定位气泡）
-const sendButtonRef = ref<InstanceType<typeof Button> | null>(null);
-// 是否显示引导气泡（JS状态）
+// 是否显示引导气泡
 const showGuideBubble = computed(() => guideStore.isVisible && !showChat.value);
-// =====================================
 
 // 获取除了首页之外的所有组织
 const organizations = computed(() => orgStore.orgs.filter(o => o.id !== 'home'));
@@ -257,7 +253,6 @@ watch(() => guideStore.isVisible, (isVisible) => {
                   </div>
                   <div class="absolute right-3 bottom-3.5 flex items-center">
                     <Button 
-                      ref="sendButtonRef"
                       @click="createOrganization"
                       :loading="isCreating"
                       class="!w-9 !h-9 !rounded-lg !bg-[var(--primary)] !border-none !text-white hover:!brightness-110 transition-all duration-200 shadow-sm hover:shadow-md"
