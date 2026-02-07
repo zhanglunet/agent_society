@@ -62,8 +62,11 @@ export class InputController {
     const buffer = Buffer.from(scriptContent, 'utf16le');
     const base64Script = buffer.toString('base64');
     
+    // 使用 PowerShell 的绝对路径，避免被 conda 等工具拦截
+    const psPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    
     const { stdout, stderr } = await execAsync(
-      `powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64Script}`,
+      `"${psPath}" -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64Script}`,
       { timeout }
     );
     return { stdout, stderr, success: true };
@@ -397,7 +400,7 @@ Write-Host "$($bounds.Width),$($bounds.Height)"`;
 
   /**
    * 找到根 agent 的工作区 ID
-   * 从当前 agent 向上追溯，找到 parentAgentId 为 "root" 的 agent
+   * 从当前 agent 向上追溯，找到 parentAgentId 为 "root" 的 agent，返回其 workspaceId
    */
   _findRootWorkspaceId(agentId) {
     const runtime = this.runtime;

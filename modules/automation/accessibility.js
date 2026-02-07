@@ -35,8 +35,11 @@ export class AccessibilityService {
     const buffer = Buffer.from(scriptContent, 'utf16le');
     const base64Script = buffer.toString('base64');
     
+    // 使用 PowerShell 的绝对路径，避免被 conda 等工具拦截
+    const psPath = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    
     const { stdout, stderr } = await execAsync(
-      `powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64Script}`,
+      `"${psPath}" -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64Script}`,
       { timeout }
     );
     return { stdout, stderr, success: true };
@@ -52,43 +55,45 @@ export class AccessibilityService {
       }
 
       const timeout = criteria.timeout || 5000;
-      const conditions = [];
       
+      // 构建条件判断代码
+      const checks = [];
       if (criteria.controlType) {
-        conditions.push(`$_.Current.ControlType.ProgrammaticName -eq "${criteria.controlType}"`);
+        checks.push(`$_.Current.ControlType.ProgrammaticName -eq "${criteria.controlType}"`);
       }
       if (criteria.name) {
-        conditions.push(`$_.Current.Name -like "${criteria.name}"`);
+        checks.push(`$_.Current.Name -like "${criteria.name}"`);
       }
       if (criteria.automationId) {
-        conditions.push(`$_.Current.AutomationId -eq "${criteria.automationId}"`);
+        checks.push(`$_.Current.AutomationId -eq "${criteria.automationId}"`);
       }
       if (criteria.className) {
-        conditions.push(`$_.Current.ClassName -eq "${criteria.className}"`);
+        checks.push(`$_.Current.ClassName -eq "${criteria.className}"`);
       }
-      if (criteria.processName) {
-        conditions.push(`$_.Current.ProcessName -eq "${criteria.processName}"`);
-      }
-
-      // 如果没有条件，默认匹配所有
-      const conditionStr = conditions.length > 0 ? conditions.join(' -and ') : '$true';
+      
+      // 构建基本匹配条件（不包括 processName）
+      const baseCondition = checks.length > 0 ? checks.join(' -and ') : '$true';
+      
+      // processName 实现：先获取目标进程的所有 PID，然后使用数组查找（更快）
+      const processNameSetup = criteria.processName
+        ? `\n# Get target process PIDs\n$targetPids = @(Get-Process | Where-Object { $_.ProcessName -eq "${criteria.processName}" } | Select-Object -ExpandProperty Id)\n`
+        : '';
+      
+      const processNameCheck = criteria.processName
+        ? `\n        # Quick PID check using array\n        $currentPid = $_.Current.ProcessId\n        if (-not $currentPid -or ($targetPids -notcontains $currentPid)) { continue }\n`
+        : '';
+      
+      const loopLogic = `\n    $elements = $desktop.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)\n    for ($i = 0; $i -lt $elements.Count; $i++) {\n        $_ = $elements[$i]\n        ${processNameCheck}\n        if (${baseCondition}) {\n            $found = $_\n            break\n        }\n    }\n`;
       
       const script = `Add-Type -AssemblyName UIAutomationClient
 $startTime = Get-Date
 $found = $null
+${processNameSetup}
 
 while (((Get-Date) - $startTime).TotalMilliseconds -lt ${timeout}) {
     $desktop = [System.Windows.Automation.AutomationElement]::RootElement
     $condition = [System.Windows.Automation.Condition]::TrueCondition
-    $elements = $desktop.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
-    
-    for ($i = 0; $i -lt $elements.Count; $i++) {
-        $_ = $elements[$i]
-        if (${conditionStr}) {
-            $found = $_
-            break
-        }
-    }
+    ${loopLogic}
     
     if ($found) { break }
     Start-Sleep -Milliseconds 100
@@ -96,7 +101,9 @@ while (((Get-Date) - $startTime).TotalMilliseconds -lt ${timeout}) {
 
 if ($found) {
     $rect = $found.Current.BoundingRectangle
-    Write-Host "FOUND:$($found.Current.ControlType):$($found.Current.Name):$($found.Current.AutomationId):$([int]$rect.X):$([int]$rect.Y):$([int]$rect.Width):$([int]$rect.Height)"
+    $className = $found.Current.ClassName
+    $output = "FOUND:" + $found.Current.ControlType.ProgrammaticName + ":" + $found.Current.Name + ":" + $found.Current.AutomationId + ":" + $className + ":" + [int]$rect.X + ":" + [int]$rect.Y + ":" + [int]$rect.Width + ":" + [int]$rect.Height
+    Write-Host $output
 } else {
     Write-Host "NOT_FOUND"
 }`;
@@ -104,21 +111,32 @@ if ($found) {
       const { stdout } = await this._runPSScript(script, timeout + 5000);
       const output = stdout.trim();
       
-      if (output.startsWith('FOUND:')) {
-        const parts = output.split(':');
-        return {
-          ok: true,
-          found: true,
-          controlType: parts[1],
-          name: parts[2],
-          automationId: parts[3],
-          bounds: {
-            x: parseInt(parts[4], 10),
-            y: parseInt(parts[5], 10),
-            width: parseInt(parts[6], 10),
-            height: parseInt(parts[7], 10)
-          }
-        };
+      // 过滤掉 CLIXML 进度信息
+      const lines = output.split('\n').filter(line => !line.startsWith('#<') && !line.includes('_x000D_'));
+      const resultLine = lines.find(line => line.startsWith('FOUND:') || line === 'NOT_FOUND');
+      
+      if (resultLine && resultLine.startsWith('FOUND:')) {
+        // 格式: FOUND:ControlType.Name:控件名称:AutomationId:ClassName:X:Y:Width:Height
+        const match = resultLine.match(/^FOUND:([^:]+):(.+):([^:]*):([^:]*):(-?\d+):(-?\d+):(\d+):(\d+)$/);
+        if (match) {
+          return {
+            ok: true,
+            found: true,
+            control: {
+              controlType: match[1],
+              name: match[2],
+              automationId: match[3],
+              className: match[4],
+              bounds: {
+                x: parseInt(match[5], 10),
+                y: parseInt(match[6], 10),
+                width: parseInt(match[7], 10),
+                height: parseInt(match[8], 10)
+              }
+            }
+          };
+        }
+        return { ok: true, found: false };
       } else {
         return { ok: true, found: false };
       }
@@ -286,7 +304,11 @@ $elements = $desktop.FindAll([System.Windows.Automation.TreeScope]::Descendants,
 $parent = $null
 for ($i = 0; $i -lt $elements.Count; $i++) {
     $_ = $elements[$i]
-    if ($_.Current.AutomationId -eq "${parentCriteria.automationId}" -or $_.Current.Name -eq "${parentCriteria.name}") {
+    $match = $false
+    if ("${parentCriteria.automationId}" -ne "" -and $_.Current.AutomationId -eq "${parentCriteria.automationId}") { $match = $true }
+    if ("${parentCriteria.name}" -ne "" -and $_.Current.Name -eq "${parentCriteria.name}") { $match = $true }
+    if ("${parentCriteria.className}" -ne "" -and $_.Current.ClassName -eq "${parentCriteria.className}") { $match = $true }
+    if ($match) {
         $parent = $_
         break
     }
@@ -296,7 +318,16 @@ if ($parent) {
     $children = Get-Children -element $parent -depth 0 -maxDepth ${maxDepth}
     Write-Host "CHILDREN:$($children.Count)"
     foreach ($child in $children) {
-        Write-Host "$($child.controlType):$($child.name):$($child.automationId)"
+        # 使用 | 作为分隔符
+        $ct = $child.controlType -replace ':', ''
+        $nm = ($child.name -replace ':', '') -replace '\\|', ''
+        $id = $child.automationId -replace ':', '' -replace '\\|', ''
+        $cn = $child.className -replace ':', '' -replace '\\|', ''
+        $bx = $child.bounds.x
+        $by = $child.bounds.y
+        $bw = $child.bounds.width
+        $bh = $child.bounds.height
+        Write-Host "$ct|$nm|$id|$cn|$bx|$by|$bw|$bh"
     }
 } else {
     Write-Host "PARENT_NOT_FOUND"
@@ -308,11 +339,18 @@ if ($parent) {
       if (lines[0].startsWith('CHILDREN:')) {
         const children = [];
         for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(':');
+          const parts = lines[i].split('|');
           children.push({
-            controlType: parts[0],
+            controlType: parts[0] || '',
             name: parts[1] || '',
-            automationId: parts[2] || ''
+            automationId: parts[2] || '',
+            className: parts[3] || '',
+            bounds: {
+              x: parseInt(parts[4] || '0', 10),
+              y: parseInt(parts[5] || '0', 10),
+              width: parseInt(parts[6] || '0', 10),
+              height: parseInt(parts[7] || '0', 10)
+            }
           });
         }
         return { ok: true, children };
@@ -549,7 +587,7 @@ if ($target) {
 
   /**
    * 找到根 agent 的工作区 ID
-   * 从当前 agent 向上追溯，找到 parentAgentId 为 "root" 的 agent
+   * 从当前 agent 向上追溯，找到 parentAgentId 为 "root" 的 agent，返回其 workspaceId
    */
   _findRootWorkspaceId(agentId) {
     const runtime = this.runtime;
@@ -559,20 +597,19 @@ if ($target) {
     while (currentId && currentId !== "user" && !visited.has(currentId)) {
       visited.add(currentId);
       
-      // 检查当前 agent 是否有工作区
-      if (runtime.workspaceManager.checkWorkspaceExists(currentId)) {
-        // 检查是否是根 agent（parentAgentId 为 "root" 或不存在）
-        const meta = runtime._agentMetaById.get(currentId);
-        if (!meta || !meta.parentAgentId || meta.parentAgentId === "root") {
-          return currentId;
-        }
+      // 获取当前 agent 的 meta 信息
+      const meta = runtime._agentMetaById.get(currentId);
+      if (!meta) {
+        break;
+      }
+      
+      // 检查是否是根 agent（parentAgentId 为 "root" 或不存在）
+      if (!meta.parentAgentId || meta.parentAgentId === "root") {
+        // 返回该 agent 的 workspaceId
+        return meta.workspaceId || null;
       }
       
       // 向上查找父 agent
-      const meta = runtime._agentMetaById.get(currentId);
-      if (!meta || !meta.parentAgentId) {
-        break;
-      }
       currentId = meta.parentAgentId;
     }
     
@@ -608,7 +645,7 @@ if ($target) {
       return { ok: false, error: 'control_not_found', findResult };
     }
 
-    const bounds = findResult.bounds;
+    const bounds = findResult.control?.bounds;
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
       return { ok: false, error: 'invalid_bounds', bounds };
     }
