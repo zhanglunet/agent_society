@@ -390,7 +390,7 @@ public class Clicker {
   }
 
   /**
-   * 设置焦点
+   * 设置焦点并激活窗口
    */
   async setFocus(criteria) {
     try {
@@ -399,6 +399,20 @@ public class Clicker {
       }
 
       const script = `Add-Type -AssemblyName UIAutomationClient
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+    public const int SW_RESTORE = 9;
+}
+"@
 
 $desktop = [System.Windows.Automation.AutomationElement]::RootElement
 $condition = [System.Windows.Automation.Condition]::TrueCondition
@@ -414,6 +428,17 @@ for ($i = 0; $i -lt $elements.Count; $i++) {
 }
 
 if ($target) {
+    # 获取窗口句柄并激活窗口
+    $hwnd = $target.Current.NativeWindowHandle
+    if ($hwnd -ne 0) {
+        # 如果窗口最小化，先恢复
+        if ([Win32]::IsIconic([IntPtr]$hwnd)) {
+            [Win32]::ShowWindow([IntPtr]$hwnd, [Win32]::SW_RESTORE) | Out-Null
+        }
+        # 设置前台窗口
+        [Win32]::SetForegroundWindow([IntPtr]$hwnd) | Out-Null
+    }
+    # 同时设置 UIAutomation 焦点
     $target.SetFocus()
     Write-Host "FOCUSED"
 } else {
