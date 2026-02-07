@@ -195,7 +195,7 @@ if ($found) {
 '    return "\"" + ([string]$obj).Replace(""", "\\"") + "\""\n' +
 '}\n' +
 '\n' +
-'Write-Host (Convert-ToJson $tree)';
+'$tree | ConvertTo-Json -Compress';
 
       const { stdout } = await this._runPSScript(script, 30000);
       
