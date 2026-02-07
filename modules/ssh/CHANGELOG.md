@@ -53,6 +53,12 @@
   - 总超时时间从 90 秒延长到约 10 分钟
   - 避免短暂网络抖动导致连接断开
 
+- 修复内存泄漏问题
+  - `connection_manager.js`: 连接失败时清理 SSH 客户端事件监听器
+  - `shell_manager.js`: Shell 关闭时清理流事件监听器和写入流资源
+  - `file_transfer.js`: 修复 `checkStalled` 定时器泄漏，确保传输完成后清理
+  - `file_transfer.js`: 添加 SFTP 会话过期检查，清理无效连接的缓存会话
+
 ### 待完善
 - 单元测试覆盖
 - 性能优化

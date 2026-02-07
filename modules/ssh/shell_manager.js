@@ -225,39 +225,48 @@ class ShellManager {
         encoding: 'utf8'
       });
 
-      // 5. 监听shell输出并写入文件
-      stream.on('data', (data) => {
+      // 5. 定义事件处理函数（保存引用以便后续清理）
+      const onData = (data) => {
         writeStream.write(data.toString('utf8'));
         // 更新连接的最后使用时间，防止被空闲清理机制断开
         this.connectionManager.updateLastUsed?.(connectionId);
-      });
+      };
 
-      // 6. 处理stream关闭事件
-      stream.on('close', () => {
+      const onStreamClose = () => {
         this.log.debug?.('[ShellManager] Shell流已关闭', { shellId });
+        // 清理事件监听器
+        stream.removeListener('data', onData);
+        stream.removeListener('error', onStreamError);
         writeStream.end();
         
         const shell = this.shells.get(shellId);
         if (shell) {
           shell.isActive = false;
         }
-      });
+      };
 
-      // 7. 处理stream错误事件
-      stream.on('error', (error) => {
+      const onStreamError = (error) => {
         this.log.error?.('[ShellManager] Shell流发生错误', {
           shellId,
           error: error.message
         });
+        // 清理事件监听器
+        stream.removeListener('data', onData);
+        stream.removeListener('close', onStreamClose);
         writeStream.end();
         
         const shell = this.shells.get(shellId);
         if (shell) {
           shell.isActive = false;
         }
-      });
+      };
 
-      // 8. 保存会话到会话池
+      // 6. 监听shell输出并写入文件
+      stream.on('data', onData);
+      stream.once('close', onStreamClose);
+      stream.once('error', onStreamError);
+
+      // 7. 保存会话到会话池（包含事件处理函数引用以便后续清理）
       const shell = {
         shellId,
         connectionId,
@@ -265,7 +274,9 @@ class ShellManager {
         outputFile,
         writeStream,
         isActive: true,
-        createdAt: new Date()
+        createdAt: new Date(),
+        // 保存事件处理函数引用，用于关闭时清理
+        _eventHandlers: { onData, onStreamClose, onStreamError }
       };
 
       this.shells.set(shellId, shell);
@@ -490,6 +501,13 @@ class ShellManager {
         };
       }
 
+      // 清理shell流的事件监听器
+      if (shell._eventHandlers) {
+        shell.stream?.removeListener('data', shell._eventHandlers.onData);
+        shell.stream?.removeListener('close', shell._eventHandlers.onStreamClose);
+        shell.stream?.removeListener('error', shell._eventHandlers.onStreamError);
+      }
+
       // 关闭shell流
       if (shell.stream && shell.isActive) {
         shell.stream.end();
@@ -499,6 +517,7 @@ class ShellManager {
       // 关闭写入流
       if (shell.writeStream) {
         shell.writeStream.end();
+        shell.writeStream.destroy?.(); // 强制销毁流，释放资源
         this.log.debug?.('[ShellManager] 写入流已关闭', { shellId });
       }
 

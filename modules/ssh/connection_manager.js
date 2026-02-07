@@ -335,24 +335,31 @@ class ConnectionManager {
       // 使用Promise包装连接过程
       const connectPromise = new Promise((resolve, reject) => {
         // 连接成功事件
-        client.on('ready', () => {
+        const onReady = () => {
           this.log.info?.('[ConnectionManager] 连接建立成功', { connectionId, hostName });
           resolve();
-        });
+        };
 
         // 连接错误事件
-        client.on('error', (error) => {
+        const onError = (error) => {
           this.log.error?.('[ConnectionManager] 连接失败', { hostName, error: error.message });
+          // 清理事件监听器，避免内存泄漏
+          client.removeListener('ready', onReady);
+          client.removeListener('close', onClose);
           reject(error);
-        });
+        };
 
         // 连接关闭事件
-        client.on('close', () => {
+        const onClose = () => {
           this.log.debug?.('[ConnectionManager] 连接已关闭', { connectionId });
           const conn = this.connections.get(connectionId);
           if (conn) conn.status = 'disconnected';
           this.connections.delete(connectionId);
-        });
+        };
+
+        client.once('ready', onReady);
+        client.once('error', onError);
+        client.on('close', onClose);
 
         // 发起连接
         client.connect(connectionConfig);
@@ -363,7 +370,7 @@ class ConnectionManager {
         await connectPromise;
       } catch (error) {
         // 连接失败，清理客户端
-        client.end();
+        try { client.end(); } catch {}
         
         // 返回友好的错误信息
         let errorMessage = '连接失败';

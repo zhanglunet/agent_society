@@ -59,16 +59,23 @@ class FileTransfer {
    */
   async _getSftpSession(connectionId) {
     try {
-      // 检查是否已有SFTP会话
+      // 首先检查连接是否仍然有效
+      const connResult = this.connectionManager.getConnection(connectionId);
+      if (connResult.error) {
+        // 连接无效，清理可能存在的过期SFTP会话
+        if (this.sftpSessions.has(connectionId)) {
+          const oldSftp = this.sftpSessions.get(connectionId);
+          try { oldSftp.end(); } catch {}
+          this.sftpSessions.delete(connectionId);
+          this.log.debug?.('[FileTransfer] 清理过期的SFTP会话', { connectionId });
+        }
+        return connResult;
+      }
+
+      // 检查是否已有有效的SFTP会话
       if (this.sftpSessions.has(connectionId)) {
         const sftp = this.sftpSessions.get(connectionId);
         return { ok: true, sftp };
-      }
-
-      // 获取连接实例
-      const connResult = this.connectionManager.getConnection(connectionId);
-      if (connResult.error) {
-        return connResult;
       }
 
       const connection = connResult.connection;
@@ -405,6 +412,7 @@ class FileTransfer {
         let opened = false;
         let lastBytesTransferred = 0;
         let lastProgressTime = Date.now();
+        let stalledCheckTimer = null;
         
         // 检测传输是否卡住（30秒无进度则超时）
         const checkStalled = () => {
@@ -421,6 +429,7 @@ class FileTransfer {
           } else if (elapsed > 30000) {
             // 30秒无进度，判定为卡住
             finished = true;
+            stalledCheckTimer = null;
             this.log.error?.('[FileTransfer] 传输卡住', { 
               elapsedMs: elapsed, 
               bytesTransferred: currentBytes, 
@@ -431,11 +440,13 @@ class FileTransfer {
           }
           
           // 继续检测
-          setTimeout(checkStalled, 1000);
+          if (!finished) {
+            stalledCheckTimer = setTimeout(checkStalled, 1000);
+          }
         };
         
         // 启动卡住检测
-        setTimeout(checkStalled, 1000);
+        stalledCheckTimer = setTimeout(checkStalled, 1000);
         
         writeStream.on('open', (handle) => {
           this.log.info?.('[FileTransfer] 写入流 open 事件', { handle: !!handle });
@@ -449,6 +460,11 @@ class FileTransfer {
         writeStream.on('finish', () => {
           if (finished) return;
           finished = true;
+          // 清理卡住检测定时器
+          if (stalledCheckTimer) {
+            clearTimeout(stalledCheckTimer);
+            stalledCheckTimer = null;
+          }
           this.log.info?.('[FileTransfer] 写入流 finish 事件 - 上传成功');
           task.bytesTransferred = task.totalBytes;
           task.progress = 100;
@@ -458,6 +474,11 @@ class FileTransfer {
         writeStream.on('error', (err) => {
           if (finished) return;
           finished = true;
+          // 清理卡住检测定时器
+          if (stalledCheckTimer) {
+            clearTimeout(stalledCheckTimer);
+            stalledCheckTimer = null;
+          }
           this.log.error?.('[FileTransfer] 写入流 error 事件', { 
             error: err.message, 
             code: err.code,
@@ -472,6 +493,11 @@ class FileTransfer {
           // 如果 close 触发但 finish 没有触发，检查是否实际写入了数据
           if (!finished) {
             finished = true;
+            // 清理卡住检测定时器
+            if (stalledCheckTimer) {
+              clearTimeout(stalledCheckTimer);
+              stalledCheckTimer = null;
+            }
             if (bytesWritten >= task.totalBytes) {
               // 数据实际已写入，视为成功
               this.log.info?.('[FileTransfer] close 事件发现数据已完整写入，视为成功');
@@ -502,7 +528,11 @@ class FileTransfer {
                 this.log.error?.('[FileTransfer] write 回调错误', { error: err.message });
                 if (!finished) {
                   finished = true;
-                  cleanup();
+                  // 清理卡住检测定时器
+                  if (stalledCheckTimer) {
+                    clearTimeout(stalledCheckTimer);
+                    stalledCheckTimer = null;
+                  }
                   reject(err);
                 }
                 return;
@@ -527,6 +557,11 @@ class FileTransfer {
             this.log.error?.('[FileTransfer] 写入时抛出异常', { error: writeErr.message });
             if (!finished) {
               finished = true;
+              // 清理卡住检测定时器
+              if (stalledCheckTimer) {
+                clearTimeout(stalledCheckTimer);
+                stalledCheckTimer = null;
+              }
               reject(writeErr);
             }
           }
