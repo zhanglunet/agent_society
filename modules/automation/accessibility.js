@@ -363,7 +363,7 @@ public class Clicker {
 "@
         [Clicker]::mouse_event(0x0002, 0, 0, 0, 0)
         [Clicker]::mouse_event(0x0004, 0, 0, 0, 0)
-        Write-Host "CLICKED:mouse:$x:$y"
+        Write-Host ('CLICKED:mouse:' + $x + ':' + $y)
     }
 } else {
     Write-Host "NOT_FOUND"
