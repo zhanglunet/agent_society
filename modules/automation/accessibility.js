@@ -240,7 +240,7 @@ Write-Host "SAVED"
         return { ok: false, error: 'parent_not_found', parentResult };
       }
 
-      const maxDepth = options.maxDepth || 1;
+      const maxDepth = options.maxDepth || 3;
       
       const script = `Add-Type -AssemblyName UIAutomationClient
 

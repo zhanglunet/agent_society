@@ -299,8 +299,8 @@ export function getToolDefinitions() {
             },
             maxDepth: {
               type: "number",
-              description: "遍历深度，默认1（仅直接子控件）",
-              default: 1
+              description: "遍历深度，默认3层",
+              default: 3
             }
           },
           required: []
