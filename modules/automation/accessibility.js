@@ -139,74 +139,85 @@ if ($found) {
 
       const maxDepth = options.maxDepth || 3;
       
-      const script = 'Add-Type -AssemblyName UIAutomationClient\n' +
-'\n' +
-'function Get-ControlTree {\n' +
-'    param($element, $depth, $maxDepth)\n' +
-'    \n' +
-'    if ($depth -gt $maxDepth) { return $null }\n' +
-'    \n' +
-'    $rect = $element.Current.BoundingRectangle\n' +
-'    $result = @{\n' +
-'        controlType = $element.Current.ControlType.ProgrammaticName\n' +
-'        name = $element.Current.Name\n' +
-'        automationId = $element.Current.AutomationId\n' +
-'        className = $element.Current.ClassName\n' +
-'        bounds = @{\n' +
-'            x = [int]$rect.X\n' +
-'            y = [int]$rect.Y\n' +
-'            width = [int]$rect.Width\n' +
-'            height = [int]$rect.Height\n' +
-'        }\n' +
-'        children = @()\n' +
-'    }\n' +
-'    \n' +
-'    if ($depth -lt $maxDepth) {\n' +
-'        $condition = [System.Windows.Automation.Condition]::TrueCondition\n' +
-'        $children = $element.FindAll([System.Windows.Automation.TreeScope]::Children, $condition)\n' +
-'        for ($i = 0; $i -lt $children.Count; $i++) {\n' +
-'            $childTree = Get-ControlTree -element $children[$i] -depth ($depth + 1) -maxDepth $maxDepth\n' +
-'            if ($childTree) {\n' +
-'                $result.children += $childTree\n' +
-'            }\n' +
-'        }\n' +
-'    }\n' +
-'    \n' +
-'    return $result\n' +
-'}\n' +
-'\n' +
-'$desktop = [System.Windows.Automation.AutomationElement]::RootElement\n' +
-'$tree = Get-ControlTree -element $desktop -depth 0 -maxDepth ' + maxDepth + '\n' +
-'\n' +
-'# Convert to JSON manually to ensure proper formatting\n' +
-'function Convert-ToJson {\n' +
-'    param($obj)\n' +
-'    if ($obj -eq $null) { return "null" }\n' +
-'    if ($obj -is [array]) {\n' +
-'        $items = $obj | ForEach-Object { Convert-ToJson $_ }\n' +
-'        return "[" + ($items -join ",") + "]"\n' +
-'    }\n' +
-'    if ($obj -is [hashtable] -or $obj -is [System.Collections.Hashtable]) {\n' +
-'        $props = $obj.GetEnumerator() | ForEach-Object { \n' +
-'            "\"" + $_.Key + "\":" + (Convert-ToJson $_.Value)\n' +
-'        }\n' +
-'        return "{" + ($props -join ",") + "}"\n' +
-'    }\n' +
-'    return "\"" + ([string]$obj).Replace(""", "\\"") + "\""\n' +
-'}\n' +
-'\n' +
-'$tree | ConvertTo-Json -Compress';
-
-      const { stdout } = await this._runPSScript(script, 30000);
+      // 使用纯字符串拼接生成 JSON，避免 PowerShell 内置 ConvertTo-Json 的问题
+      const tempOutputPath = path.join(tmpdir(), `tree_${Date.now()}.json`);
       
+      const script = `
+Add-Type -AssemblyName UIAutomationClient
+
+function Escape-JsonString {
+    param($str)
+    $str = [string]$str
+    # 只保留可打印字符（包括中文）
+    $str = $str -replace '[^\x20-\x7E\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\s]', ''
+    $str = $str.Replace('\\', '\\\\')
+    $str = $str.Replace('"', '\\"')
+    return $str
+}
+
+function Get-ControlTree {
+    param($element, $depth, $maxDepth)
+    
+    if ($depth -gt $maxDepth) { return $null }
+    
+    $rect = $element.Current.BoundingRectangle
+    $name = Escape-JsonString $element.Current.Name
+    $controlType = Escape-JsonString $element.Current.ControlType.ProgrammaticName
+    $automationId = Escape-JsonString $element.Current.AutomationId
+    $className = Escape-JsonString $element.Current.ClassName
+    $x = [int]($rect.X -as [int])
+    $y = [int]($rect.Y -as [int])
+    $w = [int]($rect.Width -as [int])
+    $h = [int]($rect.Height -as [int])
+    if ($x -eq $null -or $x -isnot [int]) { $x = 0 }
+    if ($y -eq $null -or $y -isnot [int]) { $y = 0 }
+    if ($w -eq $null -or $w -isnot [int]) { $w = 0 }
+    if ($h -eq $null -or $h -isnot [int]) { $h = 0 }
+    
+    [System.Collections.ArrayList]$childJsons = @()
+    if ($depth -lt $maxDepth) {
+        $condition = [System.Windows.Automation.Condition]::TrueCondition
+        $childElements = $element.FindAll([System.Windows.Automation.TreeScope]::Children, $condition)
+        for ($i = 0; $i -lt $childElements.Count; $i++) {
+            $childTree = Get-ControlTree -element $childElements[$i] -depth ($depth + 1) -maxDepth $maxDepth
+            if ($childTree) {
+                [void]$childJsons.Add($childTree)
+            }
+        }
+    }
+    
+    $childrenJson = "[" + ($childJsons -join ",") + "]"
+    
+    return "{" +
+           '"controlType":"' + $controlType + '",' +
+           '"name":"' + $name + '",' +
+           '"automationId":"' + $automationId + '",' +
+           '"className":"' + $className + '",' +
+           '"bounds":{"x":' + $x + ',"y":' + $y + ',"width":' + $w + ',"height":' + $h + '},' +
+           '"children":' + $childrenJson +
+           "}"
+}
+
+$desktop = [System.Windows.Automation.AutomationElement]::RootElement
+$json = Get-ControlTree -element $desktop -depth 0 -maxDepth ${maxDepth}
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+$base64 = [Convert]::ToBase64String($bytes)
+$base64 | Out-File -FilePath "${tempOutputPath}" -Encoding utf8
+Write-Host "SAVED"
+`;
+
+      await this._runPSScript(script, 60000);
+      
+      // 从文件读取 JSON (Base64 编码)
+      const fs = await import('node:fs/promises');
       try {
-        // Parse the JSON output
-        const jsonStart = stdout.indexOf('{');
-        const jsonStr = stdout.substring(jsonStart);
+        const base64Str = await fs.readFile(tempOutputPath, 'utf8');
+        await fs.unlink(tempOutputPath).catch(() => {});
+        const jsonStr = Buffer.from(base64Str.trim(), 'base64').toString('utf8');
         const tree = JSON.parse(jsonStr);
         return { ok: true, tree };
       } catch (parseError) {
-        return { ok: false, error: 'parse_error', raw: stdout };
+        return { ok: false, error: 'parse_error', message: parseError.message };
       }
     } catch (error) {
       this.log.error?.('[Automation] 获取控件树失败', { error: error.message });
