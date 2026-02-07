@@ -49,6 +49,13 @@
     "ffmpeg": {
       "ffmpegPath": ""
     },
-    "ui_page": {}
+    "ui_page": {},
+    "localfile": {},
+    "automation": {
+      "enabled": true,
+      "allowMouse": true,
+      "allowKeyboard": true,
+      "allowAccessibility": true
+    }
   }
 }

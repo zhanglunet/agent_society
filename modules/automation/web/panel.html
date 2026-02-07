@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自动化控制</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🤖 自动化控制</h1>
+      <p class="subtitle">配置鼠标键盘控制和屏幕自动化权限</p>
+    </header>
+
+    <!-- 状态概览 -->
+    <section class="status-section">
+      <div class="status-card" id="statusCard">
+        <div class="status-indicator enabled" id="statusIndicator"></div>
+        <div class="status-info">
+          <div class="status-title" id="statusTitle">模块已启用</div>
+          <div class="status-desc" id="statusDesc">鼠标、键盘、无障碍接口均可用</div>
+        </div>
+        <button class="btn btn-toggle" id="toggleBtn">禁用</button>
+      </div>
+    </section>
+
+    <!-- 权限设置 -->
+    <section class="permissions-section">
+      <div class="section-header">
+        <h2>权限控制</h2>
+      </div>
+      
+      <div class="permissions-list">
+        <div class="permission-item">
+          <div class="permission-info">
+            <div class="permission-name">🖱️ 鼠标控制</div>
+            <div class="permission-desc">允许智能体移动鼠标、点击、拖拽、滚动</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="mouseToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="permission-item">
+          <div class="permission-info">
+            <div class="permission-name">⌨️ 键盘控制</div>
+            <div class="permission-desc">允许智能体发送按键、组合键、输入文本</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="keyboardToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="permission-item">
+          <div class="permission-info">
+            <div class="permission-name">🎯 无障碍接口</div>
+            <div class="permission-desc">允许智能体查找和交互屏幕上的控件</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="accessibilityToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 受限区域 -->
+    <section class="regions-section">
+      <div class="section-header">
+        <h2>受限区域</h2>
+        <span class="section-hint">智能体无法操作这些区域的鼠标</span>
+      </div>
+      
+      <div class="regions-list" id="regionsList">
+        <div class="empty-state">
+          <div class="empty-icon">📐</div>
+          <p>暂无受限区域</p>
+        </div>
+      </div>
+      
+      <button class="btn btn-secondary" id="addRegionBtn">+ 添加受限区域</button>
+    </section>
+
+    <!-- 屏幕信息 -->
+    <section class="screen-section">
+      <div class="section-header">
+        <h2>屏幕信息</h2>
+        <button class="btn btn-sm btn-secondary" id="refreshScreenBtn">刷新</button>
+      </div>
+      
+      <div class="screen-info" id="screenInfo">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">屏幕尺寸</span>
+            <span class="info-value" id="screenSize">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">鼠标位置</span>
+            <span class="info-value" id="mousePos">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">平台</span>
+            <span class="info-value" id="platform">-</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 操作日志 -->
+    <section class="logs-section">
+      <div class="section-header">
+        <h2>最近操作</h2>
+        <button class="btn btn-sm btn-secondary" id="clearLogsBtn">清空</button>
+      </div>
+      
+      <div class="logs-list" id="logsList">
+        <div class="empty-state">
+          <div class="empty-icon">📝</div>
+          <p>暂无操作记录</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 添加受限区域模态框 -->
+  <div class="modal" id="regionModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>添加受限区域</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="regionForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label>X坐标</label>
+              <input type="number" id="regionX" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Y坐标</label>
+              <input type="number" id="regionY" min="0" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>宽度</label>
+              <input type="number" id="regionWidth" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>高度</label>
+              <input type="number" id="regionHeight" min="1" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>限制原因（可选）</label>
+            <input type="text" id="regionReason" placeholder="如：系统菜单栏">
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="getCurrentMouseBtn">获取鼠标位置</button>
+            <button type="submit" class="btn btn-primary">添加</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="panel.js"></script>
+</body>
+</html>

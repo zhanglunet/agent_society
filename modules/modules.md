@@ -11,3 +11,4 @@
 - ffmpeg: FFmpeg 音视频处理模块，提供命令执行、进度查询与管理界面。（详见 ffmpeg/ffmpeg.md）
 - ssh: SSH远程连接模块，提供SSH连接管理、交互式Shell会话和文件传输功能。包含连接管理器、Shell管理器和文件传输管理器三个核心组件。（详见 ssh/ssh.md）
 - localfile: 本地文件访问模块，为智能体提供受控的服务器本地文件系统访问能力。支持文件夹授权管理、文件读写、工作区交互和访问审计。（详见 localfile/localfile.md）
+- automation: 自动化控制模块，为智能体提供鼠标键盘控制和屏幕无障碍接口交互能力。支持GUI自动化操作、控件遍历和交互。（详见 automation/automation.md）
