@@ -55,19 +55,23 @@ export class AccessibilityService {
       const conditions = [];
       
       if (criteria.controlType) {
-        conditions.push `$_.ControlType -eq "${criteria.controlType}"`;
+        conditions.push(`$_.Current.ControlType.ProgrammaticName -eq "${criteria.controlType}"`);
       }
       if (criteria.name) {
-        conditions.push `$_.Name -like "${criteria.name}"`;
+        conditions.push(`$_.Current.Name -like "${criteria.name}"`);
       }
       if (criteria.automationId) {
-        conditions.push `$_.AutomationId -eq "${criteria.automationId}"`;
+        conditions.push(`$_.Current.AutomationId -eq "${criteria.automationId}"`);
       }
       if (criteria.className) {
-        conditions.push `$_.ClassName -eq "${criteria.className}"`;
+        conditions.push(`$_.Current.ClassName -eq "${criteria.className}"`);
+      }
+      if (criteria.processName) {
+        conditions.push(`$_.Current.ProcessName -eq "${criteria.processName}"`);
       }
 
-      const conditionStr = conditions.join(' -and ');
+      // 如果没有条件，默认匹配所有
+      const conditionStr = conditions.length > 0 ? conditions.join(' -and ') : '$true';
       
       const script = `Add-Type -AssemblyName UIAutomationClient
 $startTime = Get-Date
