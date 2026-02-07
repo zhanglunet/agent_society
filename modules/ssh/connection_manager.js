@@ -106,7 +106,7 @@ class ConnectionManager {
     normalized.commandTimeout = Number.isFinite(normalized.commandTimeout) ? normalized.commandTimeout : 30000;
     normalized.idleTimeout = Number.isFinite(normalized.idleTimeout) ? normalized.idleTimeout : 7200000; // 默认2小时
     normalized.keepaliveInterval = Number.isFinite(normalized.keepaliveInterval) ? normalized.keepaliveInterval : 30000; // 默认30秒保活
-    normalized.keepaliveCountMax = Number.isFinite(normalized.keepaliveCountMax) ? normalized.keepaliveCountMax : 3;
+    normalized.keepaliveCountMax = Number.isFinite(normalized.keepaliveCountMax) ? normalized.keepaliveCountMax : 20;
     normalized.verifyHostKey = !!normalized.verifyHostKey;
     normalized.hosts = this._normalizeHosts(normalized.hosts);
     return normalized;

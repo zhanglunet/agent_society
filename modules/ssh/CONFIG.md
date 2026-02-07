@@ -23,6 +23,7 @@
 | maxOutputSize | number | 10485760 | 最大输出大小（字节，默认10MB） |
 | verifyHostKey | boolean | false | 是否验证主机密钥 |
 | keepaliveInterval | number | 30000 | SSH协议层保活间隔（毫秒），默认30秒 |
+| keepaliveCountMax | number | 20 | 保活失败最大次数，默认20次（总超时约10分钟） |
 
 ### 主机配置
 

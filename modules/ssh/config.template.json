@@ -6,6 +6,7 @@
   "maxOutputSize": 10485760,
   "verifyHostKey": false,
   "keepaliveInterval": 30000,
+  "keepaliveCountMax": 20,
   "hosts": {
     "production-server": {
       "description": "生产服务器",
