@@ -597,7 +597,7 @@ const handleDeleteAgent = async () => {
         <!-- 非阻塞设计：输入区域容器 -->
         <div class="input-area-container relative group">
           <div class="absolute -inset-0.5 bg-gradient-to-r from-[var(--primary)] to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500"></div>
-          <div class="input-area relative flex items-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)] group-focus-within:ring-4 group-focus-within:ring-[var(--primary-weak)]">
+          <div class="input-area relative flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)]">
             <InputText 
               v-model="message" 
               :placeholder="placeholder" 
@@ -666,10 +666,12 @@ const handleDeleteAgent = async () => {
    自定义输入框样式，确保 PrimeVue 默认样式不冲突
    ============================================ */
 
-:deep(.p-inputtext) {
+:deep(.p-inputtext),
+:deep(.p-inputtext:focus) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 
 /* ============================================
@@ -739,10 +741,9 @@ const handleDeleteAgent = async () => {
    可访问性
    ============================================ */
 
-/* 确保焦点样式正确 */
+/* 禁用默认焦点样式，发光效果由外层 blur 实现 */
 .input-area > :deep(.p-inputtext:focus),
 .input-area > button:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  outline: none !important;
 }
 </style>
