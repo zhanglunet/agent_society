@@ -6,8 +6,15 @@
 import puppeteer from "puppeteer-core";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
+
+/**
+ * 延迟指定毫秒
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * @typedef {object} BrowserInstance
@@ -16,6 +23,7 @@ import path from "node:path";
  * @property {string} createdAt - 创建时间 ISO 字符串
  * @property {string} status - 状态: 'running' | 'closed'
  * @property {{server?: string, username?: string, password?: string}|null} proxy - 代理配置
+ * @property {string|null} userDataDir - 用户数据目录路径
  */
 
 export class BrowserManager {
@@ -86,7 +94,7 @@ export class BrowserManager {
     // 构建 Chrome 用户数据目录路径（从配置获取）
     let userDataDir = null;
     if (this.config.dataDir) {
-      userDataDir = path.resolve(this.config.dataDir, "chrome");
+      userDataDir = path.resolve(this.config.dataDir, "chrome", browserId);
       // 确保用户数据目录存在
       if (!existsSync(userDataDir)) {
         mkdirSync(userDataDir, { recursive: true });
@@ -143,13 +151,35 @@ export class BrowserManager {
         browser,
         createdAt: new Date().toISOString(),
         status: "running",
-        proxy: proxy.server ? proxy : null
+        proxy: proxy.server ? proxy : null,
+        userDataDir: userDataDir
       };
 
       this._browsers.set(browserId, instance);
 
       // 监听浏览器断开连接
-      browser.on("disconnected", () => {
+      browser.on("disconnected", async () => {
+        // 等待 Chrome 进程完全退出（Windows 上需要延迟）
+        await delay(1000);
+        
+        // 删除用户数据目录（重试机制）
+        if (instance.userDataDir && existsSync(instance.userDataDir)) {
+          let retries = 5;
+          while (retries > 0) {
+            try {
+              rmSync(instance.userDataDir, { recursive: true, force: true });
+              this.log.info?.("已删除用户数据目录", { browserId, userDataDir: instance.userDataDir });
+              break;
+            } catch (err) {
+              retries--;
+              if (retries === 0) {
+                this.log.warn?.("删除用户数据目录失败", { browserId, userDataDir: instance.userDataDir, error: err?.message });
+              } else {
+                await delay(500);
+              }
+            }
+          }
+        }
         // 直接从列表中删除，不保留 closed 状态记录
         this._browsers.delete(browserId);
         this.log.info?.("浏览器已断开连接", { browserId });
@@ -192,6 +222,29 @@ export class BrowserManager {
         await instance.browser.close();
       }
       instance.status = "closed";
+      
+      // 等待 Chrome 进程完全退出（Windows 上需要延迟）
+      await delay(1000);
+      
+      // 删除用户数据目录（重试机制）
+      if (instance.userDataDir && existsSync(instance.userDataDir)) {
+        let retries = 5;
+        while (retries > 0) {
+          try {
+            rmSync(instance.userDataDir, { recursive: true, force: true });
+            this.log.info?.("已删除用户数据目录", { browserId, userDataDir: instance.userDataDir });
+            break;
+          } catch (rmErr) {
+            retries--;
+            if (retries === 0) {
+              this.log.warn?.("删除用户数据目录失败", { browserId, userDataDir: instance.userDataDir, error: rmErr?.message });
+            } else {
+              await delay(500);
+            }
+          }
+        }
+      }
+      
       this._browsers.delete(browserId);
       
       this.log.info?.("浏览器已关闭", { browserId });
