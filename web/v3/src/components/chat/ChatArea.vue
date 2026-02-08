@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Send, Bot, Sparkles, ArrowDown, User, Search, MoreVertical, Loader2, ChevronUp, ChevronDown, X, Trash2 } from 'lucide-vue-next';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
 import Menu from 'primevue/menu';
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useChatStore } from '../../stores/chat';
@@ -224,6 +224,36 @@ watch(() => chatStore.chatMessages[activeAgentId.value]?.length, (newLen, oldLen
   }
 }, { deep: true });
 
+/**
+ * 自动调整 textarea 高度
+ * 兼容 Safari 等不支持 field-sizing 的浏览器
+ */
+const autoResize = (event?: Event) => {
+  const textarea = event?.target as HTMLTextAreaElement;
+  if (!textarea) return;
+  
+  // 重置高度以便正确计算 scrollHeight
+  textarea.style.height = 'auto';
+  
+  // 计算新高度（限制在视口高度的一半以内）
+  const maxHeight = window.innerHeight * 0.5;
+  const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+  
+  textarea.style.height = newHeight + 'px';
+};
+
+/**
+ * 处理键盘事件
+ * Enter: 发送消息
+ * Shift+Enter: 换行
+ */
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+};
+
 const sendMessage = async () => {
   if (!message.value.trim() || isSending.value) return;
   const text = message.value;
@@ -244,6 +274,13 @@ const sendMessage = async () => {
     chatStore.updateInputValue(activeAgentId.value, text);
   } finally {
     isSending.value = false;
+    // 清空后重置 textarea 高度（等待 DOM 更新后）
+    nextTick(() => {
+      const textareaEl = document.querySelector('.chat-textarea textarea') as HTMLTextAreaElement;
+      if (textareaEl) {
+        textareaEl.style.height = 'auto';
+      }
+    });
   }
 };
 
@@ -598,11 +635,13 @@ const handleDeleteAgent = async () => {
         <div class="input-area-container relative group">
           <div class="absolute -inset-0.5 bg-gradient-to-r from-[var(--primary)] to-blue-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500"></div>
           <div class="input-area relative flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl p-2 pl-4 transition-all duration-300 group-focus-within:border-[var(--primary)]">
-            <InputText 
+            <Textarea 
               v-model="message" 
               :placeholder="placeholder" 
-              class="flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm"
-              @keyup.enter="sendMessage"
+              :rows="1"
+              class="flex-grow !bg-transparent !border-none !ring-0 !shadow-none !py-3 text-sm max-h-[50vh] chat-textarea"
+              @keydown="handleKeydown"
+              @input="autoResize"
             />
             <Button 
               ref="sendButtonRef"
@@ -656,7 +695,7 @@ const handleDeleteAgent = async () => {
 }
 
 /* 输入框和发送按钮保持最高优先级 */
-.input-area > :deep(.p-inputtext),
+.input-area > :deep(.p-textarea),
 .input-area > button {
   position: relative;
   pointer-events: auto;  /* 始终可交互 */
@@ -666,12 +705,19 @@ const handleDeleteAgent = async () => {
    自定义输入框样式，确保 PrimeVue 默认样式不冲突
    ============================================ */
 
-:deep(.p-inputtext),
-:deep(.p-inputtext:focus) {
+/* 覆盖 PrimeVue Textarea 默认样式 */
+:deep(.p-textarea),
+:deep(.p-textarea:focus),
+:deep(.p-textarea.p-focus) {
   background: transparent !important;
   border: none !important;
+  border-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+  resize: none !important;
+  overflow: hidden !important;
+  min-height: unset !important;
+  field-sizing: content !important;
 }
 
 /* ============================================
@@ -742,7 +788,7 @@ const handleDeleteAgent = async () => {
    ============================================ */
 
 /* 禁用默认焦点样式，发光效果由外层 blur 实现 */
-.input-area > :deep(.p-inputtext:focus),
+.input-area > :deep(.p-textarea:focus),
 .input-area > button:focus-visible {
   outline: none !important;
 }
