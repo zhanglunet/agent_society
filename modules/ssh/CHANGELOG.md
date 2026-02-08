@@ -59,6 +59,12 @@
   - `file_transfer.js`: 修复 `checkStalled` 定时器泄漏，确保传输完成后清理
   - `file_transfer.js`: 添加 SFTP 会话过期检查，清理无效连接的缓存会话
 
+- 修复 SSH Channel 耗尽问题（"Channel open failure: open failed"）
+  - 根因：SSH 连接断开时，Shell 会话未被清理，导致服务器端 Channel 资源泄漏
+  - `connection_manager.js`: 添加 `onDisconnect` 方法，支持注册连接断开回调
+  - `shell_manager.js`: 创建 Shell 时注册断开回调，连接断开时自动清理本地资源
+  - 解决创建十几个连接后出现 Channel open failure 的问题
+
 ### 待完善
 - 单元测试覆盖
 - 性能优化

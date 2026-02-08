@@ -99,6 +99,15 @@ class FileTransfer {
       const sftp = await sftpPromise;
       this.sftpSessions.set(connectionId, sftp);
 
+      // 注册连接断开回调，连接断开时自动清理SFTP会话
+      this.connectionManager.onDisconnect?.(connectionId, () => {
+        this.log.debug?.('[FileTransfer] 连接断开，自动清理SFTP会话', { connectionId });
+        if (this.sftpSessions.has(connectionId)) {
+          try { sftp.end(); } catch {}
+          this.sftpSessions.delete(connectionId);
+        }
+      });
+
       this.log.debug?.('[FileTransfer] SFTP会话已创建', { connectionId });
 
       return { ok: true, sftp };

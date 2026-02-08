@@ -281,6 +281,13 @@ class ShellManager {
 
       this.shells.set(shellId, shell);
 
+      // 8. 注册连接断开回调，连接断开时自动清理shell
+      this.connectionManager.onDisconnect?.(connectionId, () => {
+        this.log.debug?.('[ShellManager] 连接断开，自动清理shell', { shellId, connectionId });
+        // 使用 void 忽略异步返回值，避免未处理的 promise
+        void this._cleanupShell(shellId);
+      });
+
       this.log.info?.('[ShellManager] Shell会话已创建', {
         shellId,
         connectionId,
@@ -475,6 +482,59 @@ class ShellManager {
   }
 
   /**
+   * 内部方法：清理shell（连接断开时使用）
+   * 
+   * 设计说明：
+   * - 当连接断开时自动调用，不尝试关闭底层连接
+   * - 仅清理本地资源（流、文件句柄、事件监听器）
+   * - 不返回结果，不抛异常，确保清理过程不中断
+   * 
+   * @param {string} shellId - 会话ID
+   * @private
+   */
+  async _cleanupShell(shellId) {
+    try {
+      const shell = this.shells.get(shellId);
+      if (!shell) return;
+
+      this.log.debug?.('[ShellManager] 清理shell会话（连接已断开）', { shellId });
+
+      // 清理shell流的事件监听器
+      if (shell._eventHandlers) {
+        shell.stream?.removeListener('data', shell._eventHandlers.onData);
+        shell.stream?.removeListener('close', shell._eventHandlers.onStreamClose);
+        shell.stream?.removeListener('error', shell._eventHandlers.onStreamError);
+      }
+
+      // 关闭shell流（不等待，因为连接已断开）
+      if (shell.stream && shell.isActive) {
+        try { shell.stream.close(); } catch {}
+      }
+
+      // 关闭写入流
+      if (shell.writeStream) {
+        try { 
+          shell.writeStream.end(); 
+          shell.writeStream.destroy?.();
+        } catch {}
+      }
+
+      // 更新会话状态
+      shell.isActive = false;
+
+      // 从会话池中移除
+      this.shells.delete(shellId);
+
+      this.log.info?.('[ShellManager] Shell会话已清理（连接已断开）', {
+        shellId,
+        remainingShells: this.shells.size
+      });
+    } catch {
+      // 清理过程不抛异常
+    }
+  }
+
+  /**
    * 关闭会话
    * 
    * 设计说明：
@@ -537,7 +597,8 @@ class ShellManager {
             connectionId: shell.connectionId,
             hostName: shell.hostName 
           });
-          await this.connectionManager.disconnect(shell.connectionId);
+          // 使用 void 忽略返回值，连接可能已经断开
+          void this.connectionManager.disconnect(shell.connectionId);
         }
       }
 

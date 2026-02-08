@@ -353,13 +353,21 @@ class ConnectionManager {
         const onClose = () => {
           this.log.debug?.('[ConnectionManager] 连接已关闭', { connectionId });
           const conn = this.connections.get(connectionId);
+          
+          // 执行注册的断开回调（用于清理关联资源如 shell 会话）
+          if (conn?._onDisconnect) {
+            for (const callback of conn._onDisconnect) {
+              try { callback(); } catch {}
+            }
+          }
+          
           if (conn) conn.status = 'disconnected';
           this.connections.delete(connectionId);
         };
 
         client.once('ready', onReady);
         client.once('error', onError);
-        client.on('close', onClose);
+        client.once('close', onClose);
 
         // 发起连接
         client.connect(connectionConfig);
@@ -402,7 +410,8 @@ class ConnectionManager {
         username: hostConfig.username,
         status: 'connected',
         createdAt: new Date(),
-        lastUsedAt: new Date()
+        lastUsedAt: new Date(),
+        _onDisconnect: [] // 连接断开时的回调数组，用于清理关联资源
       };
 
       this.connections.set(connectionId, connection);
@@ -510,6 +519,29 @@ class ConnectionManager {
     if (conn) {
       conn.lastUsedAt = new Date();
     }
+  }
+
+  /**
+   * 注册连接断开回调
+   * 
+   * 设计说明：
+   * - 当连接断开时（网络故障、服务器断开等），执行注册的回调
+   * - 用于清理关联资源（如 shell 会话、SFTP 会话等）
+   * 
+   * @param {string} connectionId - 连接ID
+   * @param {Function} callback - 断开时执行的回调函数
+   * @returns {boolean} 是否注册成功
+   */
+  onDisconnect(connectionId, callback) {
+    const conn = this.connections.get(connectionId);
+    if (!conn || conn.status !== 'connected') {
+      return false;
+    }
+    if (!conn._onDisconnect) {
+      conn._onDisconnect = [];
+    }
+    conn._onDisconnect.push(callback);
+    return true;
   }
 
   /**
