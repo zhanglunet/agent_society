@@ -9,7 +9,7 @@
   "llm": {
     "baseURL": "https://open.bigmodel.cn/api/paas/v4",
     "model": "glm-4-plus",
-    "apiKey": "30d4b8fb7ea04701afb451735bb51d5d.YDOtWa4WeJS0m8AY",
+    "apiKey": "REPLACE_WITH_ENV_VAR",
     "maxConcurrentRequests": 2,
     "maxTokens": 4096
   },
