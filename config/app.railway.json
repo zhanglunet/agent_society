@@ -1,0 +1,61 @@
+{
+  "promptsDir": "config/prompts",
+  "workspacesDir": "data/workspaces",
+  "runtimeDir": "data/runtime/state",
+  "loggingConfigPath": "config/logging.json",
+  "maxSteps": 200,
+  "maxToolRounds": 20000,
+  "httpPort": 3000,
+  "llm": {
+    "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+    "model": "glm-4-plus",
+    "apiKey": "30d4b8fb7ea04701afb451735bb51d5d.YDOtWa4WeJS0m8AY",
+    "maxConcurrentRequests": 2,
+    "maxTokens": 4096
+  },
+  "contextLimit": {
+    "maxTokens": 12000000,
+    "warningThreshold": 0.7,
+    "criticalThreshold": 0.9,
+    "hardLimitThreshold": 0.95
+  },
+  "modules": {
+    "chrome": {
+      "headless": false,
+      "proxy": {
+        "server": "",
+        "username": "",
+        "password": ""
+      }
+    },
+    "ssh": {
+      "maxConnections": 10,
+      "connectionTimeout": 30000,
+      "commandTimeout": 30000,
+      "idleTimeout": 300000,
+      "maxOutputSize": 10485760,
+      "verifyHostKey": false,
+      "keepaliveInterval": 10000,
+      "hosts": {
+        "example-server": {
+          "description": "示例主机",
+          "host": "192.0.2.1",
+          "port": 22,
+          "username": "user",
+          "password": "your_password_here"
+        }
+      }
+    },
+    "ffmpeg": {
+      "ffmpegPath": ""
+    },
+    "ui_page": {},
+    "localfile": {},
+    "automation": {
+      "enabled": true,
+      "allowMouse": true,
+      "allowKeyboard": true,
+      "allowAccessibility": true
+    }
+  }
+}
